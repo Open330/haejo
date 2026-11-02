@@ -7,6 +7,10 @@ description: Automate macOS/web tasks (Windows experimental) with reusable Tacto
 
 Use the signed `tacto` command for UI work. Resolve `command -v tacto` or
 `~/.local/bin/tacto` in the same tool call as the next command.
+For Tacto tasks, use this CLI from the first UI call, rather than `cua_repl`/Sky.
+For a remote Mac, run all observations/actions through SSH to that same host.
+Report the host, command and returned error. An external tool's URL restriction
+belongs to that provider, not Tacto or OS permissions; do not route around it.
 
 **Default: accessibility tree, background execution.** Observe the target and
 use named selectors with `click` (AXPress when supported), `set_value` or `read`.
