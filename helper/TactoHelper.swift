@@ -2847,8 +2847,9 @@ func pasteCredential(_ element:AXUIElement,pid:pid_t,value:String,origin:String?
                 guard exactFocus(),isFrontmost(pid:pid),!abortState.isStopped,ProcessInfo.processInfo.systemUptime<deadline else {
                     return ["type":"error","error":"unicode_input_interrupted","effect":attempted ? "unknown" : "not_started"]
                 }
-                withExtendedLifetime(pair.owners) {event.postToPid(pid)}
                 attempted=true
+                do {try withExtendedLifetime(pair.owners) {try nativePIDPost(event,pid)}}
+                catch {return ["type":"error","error":"unicode_input_interrupted","effect":"unknown"]}
             }
             Thread.sleep(forTimeInterval:0.01)
         }
