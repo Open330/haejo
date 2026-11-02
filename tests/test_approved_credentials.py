@@ -65,3 +65,16 @@ class ApprovedCredentials(unittest.TestCase):
             r=original(*a,**kw);return {**r,'input_route':'native_paste','unverified':'observe_effect','clipboard_restored':True}
         driver.act=paste;result=replay(driver,f,confirm=lambda _:True)
         self.assertTrue(result.ok,result.log);self.assertEqual(1,len(driver.calls));self.assertNotIn(SECRET,str(result.events))
+    def test_unicode_route_requires_receiving_contract_and_never_retries(self):
+        for route in ('native_unicode','unrecognized_route'):
+            with self.subTest(route=route):
+                f=flow();f.steps[0].params['input_method']='paste';driver=Driver()
+                driver.capabilities=driver.capabilities|{'action.credential_paste'}
+                original=driver.act
+                def unicode_input(*a,**kw):
+                    return {**original(*a,**kw),'input_route':route,'unverified':'observe_effect','clipboard_restored':True}
+                driver.act=unicode_input
+                result=replay(driver,f,confirm=lambda _:True)
+                self.assertEqual(route=='native_unicode',result.ok,result.log)
+                self.assertEqual(1,len(driver.calls))
+                self.assertNotIn(SECRET,str(result.events))

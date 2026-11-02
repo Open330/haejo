@@ -28,7 +28,10 @@ and the existing task approval. A Vault field can likewise declare
 `action.credential_paste`; it is not silently downgraded on older helpers.
 
 This route brings the target forward, focuses the exact field and uses native
-Edit → Paste. It keeps all clipboard formats in memory, restores them only while
+Edit → Paste for NFC text. For decomposed/non-NFC text, it instead sends exact
+Unicode input to that field's process/window, leaving the clipboard untouched;
+the response identifies `input_route: native_unicode`. Do not normalize a secret
+to make it match. The Paste path keeps all clipboard formats in memory, restores them only while
 its own clipboard change count still owns the clipboard, and never records the
 secret. An unavailable snapshot (including over 8 MiB) is reported before input.
 Use a fresh field/form-state postcondition; `unverified_ok` explicitly records

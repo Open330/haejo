@@ -147,3 +147,9 @@ and invokes native Edit/Paste. Clipboard item/type data are preserved in memory
 Clipboard restoration is best effort under external clipboard races; no atomic
 cross-application clipboard transaction is claimed. Native dispatch requires
 fresh receiving-state observation and is never automatically repeated.
+For decomposed/non-NFC input this route instead posts exact Unicode text to the
+already verified input and its owning process/window, without changing the
+clipboard. All bounded event pairs are constructed before selection changes;
+each event rechecks focus, origin, foreground, cancellation and deadline.
+The response identifies `native_unicode`. It uses the same receiving-observation
+contract as native paste, and uncertain partial input is not automatically retried.

@@ -2999,7 +2999,7 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
                         "detail":"window preparation response has no reobservation contract"}
             credential_observation = (credential_edit and payload.get('input_method')=='paste'
                 and 'action.credential_paste' in caps and response.get('type')=='acted'
-                and response.get('input_route')=='native_paste' and response.get('unverified')=='observe_effect'
+                and response.get('input_route') in ('native_paste','native_unicode') and response.get('unverified')=='observe_effect'
                 and (step.postcondition is not None or step.unverified_ok))
             if credential_observation:
                 event['clipboard_restored']=response.get('clipboard_restored') is True

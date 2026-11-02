@@ -952,3 +952,12 @@ existing credential task approval, temporarily uses the clipboard and foreground
 and requires a receiving postcondition or explicit `unverified_ok` dispatch-only
 reporting. Vault plan fields may carry the same optional input_method beside the
 selector and secret reference. Secrets are not embedded in saved plans.
+For text that differs from NFC at the UTF-16 level, the same method uses pinned
+native Unicode input (`input_route: native_unicode`) rather than Safari paste,
+which can compose decomposed characters. It preserves the original code units,
+replaces existing content, and leaves the clipboard untouched. Events are bounded
+to 64 UTF-16 units without splitting surrogate pairs; focus/origin and cancellation
+are checked before every event. Interrupted input has an unknown effect after the
+first event and is not retried. Foreground is needed for this explicit route;
+ordinary AXValue remains the default background operation. Receiving verification
+is still required; canonical equivalence is insufficient for passwords.

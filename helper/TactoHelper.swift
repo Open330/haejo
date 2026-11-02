@@ -2781,16 +2781,32 @@ func nativeSelectionParametersProblem(_ action: [String: Any]) -> String? {
 }
 
 
+// Swift String == uses canonical equivalence, which is unsuitable for secrets.
+// Native Unicode key events retain exact code units where Safari paste composes
+// NFD. Build bounded chunks without ever splitting a surrogate pair.
+func credentialUnicodeChunks(_ value:String)->[String] {
+    var chunks:[String]=[],chunk="",units=0
+    for scalar in value.unicodeScalars {
+        let width=scalar.value>0xFFFF ? 2 : 1
+        if units+width>64 {chunks.append(chunk);chunk="";units=0}
+        chunk.unicodeScalars.append(scalar);units += width
+    }
+    if !chunk.isEmpty {chunks.append(chunk)}
+    return chunks
+}
+
 // Explicit credential paste: values never enter logs or command arguments.
 // The caller holds the app and global-input leases throughout this operation.
 func pasteCredential(_ element:AXUIElement,pid:pid_t,value:String,origin:String?,obsID:String)->[String:Any] {
     func refuse(_ code:String)->[String:Any] {["type":"error","error":code,"effect":"not_started"]}
     guard ["AXTextField","AXTextArea","AXComboBox","AXSearchField"].contains(str(element,kAXRoleAttribute as String) ?? ""),
           value.utf8.count<=16384 else {return refuse("invalid_paste_input")}
+    let unicodeInput=Array(value.utf16) != Array(value.precomposedStringWithCanonicalMapping.utf16)
+    let deadline=ProcessInfo.processInfo.systemUptime+5
     let pasteboard=NSPasteboard.general
     let beforeCount=pasteboard.changeCount
     var saved:[NSPasteboardItem]=[];var bytes=0
-    for item in pasteboard.pasteboardItems ?? [] {
+    for item in unicodeInput ? [] : (pasteboard.pasteboardItems ?? []) {
         let copy=NSPasteboardItem()
         for type in item.types {
             guard let data=item.data(forType:type) else {return refuse("clipboard_snapshot_unavailable")}
@@ -2811,9 +2827,34 @@ func pasteCredential(_ element:AXUIElement,pid:pid_t,value:String,origin:String?
         return CFEqual(focus,element) && (origin==nil || credentialElementAllowed(element,pid:pid,origin:origin!,write:true))
     }
     guard exactFocus() else {return refuse("paste_target_changed")}
+    // Prepare every event before selection changes; unsupported input has no
+    // effect. The Unicode path neither reads nor writes clipboard contents.
+    var unicodePairs:[NativeWindowKeyPair]=[]
+    if unicodeInput {
+        guard let rawWindow=attr(element,kAXWindowAttribute as String),CFGetTypeID(rawWindow)==AXUIElementGetTypeID(),
+              let windowID=nativeWindowID(rawWindow as! AXUIElement) else {return refuse("unicode_input_unavailable")}
+        do {unicodePairs=try credentialUnicodeChunks(value).map {try buildNativeWindowText(windowID,text:$0)}}
+        catch {return refuse("unicode_input_unavailable")}
+    }
     if !(str(element,kAXValueAttribute as String) ?? "").isEmpty {
         guard let (select,_) = menuItem(pid:pid,path:[["Edit","편집"],["Select All","모두 선택","전체 선택"]]),
               AXUIElementPerformAction(select,kAXPressAction as CFString) == .success else {return refuse("paste_selection_unavailable")}
+    }
+    if unicodeInput {
+        var attempted=false
+        for pair in unicodePairs {
+            for event in [pair.down,pair.up] {
+                guard exactFocus(),isFrontmost(pid:pid),!abortState.isStopped,ProcessInfo.processInfo.systemUptime<deadline else {
+                    return ["type":"error","error":"unicode_input_interrupted","effect":attempted ? "unknown" : "not_started"]
+                }
+                withExtendedLifetime(pair.owners) {event.postToPid(pid)}
+                attempted=true
+            }
+            Thread.sleep(forTimeInterval:0.01)
+        }
+        Thread.sleep(forTimeInterval:0.2)
+        return ["type":"acted","action":"set_value","obs_id":obsID,"input_route":"native_unicode",
+                "clipboard_restored":true,"clipboard_used":false,"unverified":"observe_effect"]
     }
     guard let (paste,_) = menuItem(pid:pid,path:[["Edit","편집"],["Paste","붙여넣기"]]),
           exactFocus(),pasteboard.changeCount==beforeCount else {return refuse("paste_target_changed")}
