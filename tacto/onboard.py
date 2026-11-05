@@ -85,9 +85,6 @@ def run(interactive: bool = True, narrate=print) -> bool:
     Accessibility is required; screen recording is optional (AX-tree first design
     means most tasks never need pixels), so a missing SR is reported, not blocked.
     """
-    # When the signed helper holds the grant, this interpreter does not need it:
-    # the whole point of the helper is that permission lives with a named,
-    # single-purpose binary instead of a shared Python.
     screen_locked = False
     try:
         from .session import lock_state
@@ -98,6 +95,9 @@ def run(interactive: bool = True, narrate=print) -> bool:
     # when called interactively; permissions and session readiness are separate.
     if screen_locked:
         interactive = False
+    # When the signed helper holds the grant, this interpreter does not need it:
+    # the whole point of the helper is that permission lives with a named,
+    # single-purpose binary instead of a shared Python.
     helper = {}
     try:
         helper = helper_status()

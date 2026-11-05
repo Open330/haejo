@@ -31,8 +31,9 @@ typealias NativeWindowPreparation = DispatchResult
 struct NativeWindowBinding {
  let window=NSNumber(value:2),windowID:UInt32=12
  let windowBounds=1,elementBounds=2,point=3
+ let pointKind=PointKind.titlebar
 }
-enum PointKind { case windowInput, windowPoint, titlebar, elementCenter }
+enum PointKind { case windowInput, windowPoint, titlebar, elementCenter, titlebarToolbar }
 struct DispatchResult { let posted = 2; let windowID = 12 }
 final class Abort { var isStopped = false }
 let abortState = Abort()
@@ -115,6 +116,7 @@ func requireNativeForegroundClickFocus(_ b: NativeWindowBinding,_ focused:AXUIEl
 func requireNativeKeyTarget(_ b: NativeWindowBinding, element: Bool, scope: NativeWindowReadScope) throws {}
 func requireNativeSubmitTarget(_ b: NativeWindowBinding, scope: NativeWindowReadScope) throws {}
 func validateNativeWindowBinding(_ b: NativeWindowBinding, scope: NativeWindowReadScope) throws {}
+func validateNativeMenuPreparationBinding(_ b: NativeWindowBinding, scope: NativeWindowReadScope) throws {}
 func windowInputCGFrame(_ id:UInt32,_ pid:pid_t) throws -> Int {1}
 func dispatchNativeWindowDrag(_ b:NativeWindowBinding,drag:NativeWindowDrag,deadline:Double,
  stopped:()->Bool,context:()throws->Void,validate:()throws->Void,

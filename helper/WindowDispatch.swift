@@ -130,7 +130,7 @@ func dispatchNativeWindowPreparation(
     }
     do {
         try ready()
-        guard windowInput != nil || key != nil || pointClick || elementClicks != 0 || (binding.pointKind == .titlebar && CFEqual(binding.element, binding.window)) else {
+        guard windowInput != nil || key != nil || pointClick || elementClicks != 0 || ((binding.pointKind == .titlebar || binding.pointKind == .titlebarToolbar) && CFEqual(binding.element, binding.window)) else {
             throw NativeWindowInputError.refused("window preparation requires a titlebar binding")
         }
         if let input = windowInput {

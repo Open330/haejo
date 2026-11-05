@@ -2513,7 +2513,8 @@ func prepareBackgroundWindow(_ obsID: String, _ target: String, _ element: AXUIE
                              elementClicks: Int = 0, submitKey: Bool = false,
                              popup: AXUIElement? = nil, observedControl:AXUIElement? = nil,
                              selectionCheck: ((NativeWindowReadScope) throws -> Void)? = nil,
-                             finalTransition: ((_ checkpoint: () throws -> Void, _ scope:NativeWindowReadScope) throws -> Void)? = nil) -> [String: Any] {
+                             finalTransition: ((_ checkpoint: () throws -> Void, _ scope:NativeWindowReadScope) throws -> Void)? = nil,
+                             toolbarTitlebar: Bool = false) -> [String: Any] {
     let diagnosticStart = ProcessInfo.processInfo.systemUptime
     var phase = "identity"
     var identityCause: String?
@@ -2662,7 +2663,7 @@ func prepareBackgroundWindow(_ obsID: String, _ target: String, _ element: AXUIE
             return try scope.withBindingContext {
                 try captureNativeWindowBinding(element, pid, expectedStart: start,
                     pointKind: windowInput != nil ? .windowInput : point != nil ? .windowPoint
-                        : (key == nil && elementClicks == 0) ? .titlebar : .elementCenter,
+                        : (key == nil && elementClicks == 0) ? (toolbarTitlebar ? .titlebarToolbar : .titlebar) : .elementCenter,
                     scope: scope, relativePoint: point)
             }
         }
@@ -2721,6 +2722,9 @@ func prepareBackgroundWindow(_ obsID: String, _ target: String, _ element: AXUIE
                           fresh.point==previous.point else {
                         throw NativeWindowInputError.refused("popup binding changed")
                     }
+                } else if previous.pointKind == .titlebarToolbar {
+                    // Captured with the full readiness walk; re-read cheaply per event.
+                    try scope.withBindingContext {try validateNativeMenuPreparationBinding(previous,scope:scope)}
                 } else {try scope.withBindingContext {try validateNativeWindowBinding(previous,scope:scope)}}
             }, key: key,
             routing: routing,
@@ -2896,10 +2900,13 @@ struct TemporaryMenuPreparation {
     /// Same main/focused window, still without a sheet.
     func stillBound(pid: pid_t) -> Bool {
         let app = AXUIElementCreateApplication(pid)
-        guard let focused = attr(app, kAXFocusedWindowAttribute as String),
-              CFGetTypeID(focused) == AXUIElementGetTypeID(), CFEqual(focused, window),
-              let main = attr(app, kAXMainWindowAttribute as String),
+        guard let main = attr(app, kAXMainWindowAttribute as String),
               CFGetTypeID(main) == AXUIElementGetTypeID(), CFEqual(main, window) else { return false }
+        var focused: CFTypeRef?
+        let error = AXUIElementCopyAttributeValue(app, kAXFocusedWindowAttribute as CFString, &focused)
+        if error == .success {
+            guard let focused, CFGetTypeID(focused) == AXUIElementGetTypeID(), CFEqual(focused, window) else { return false }
+        } else if error != .noValue { return false }
         return temporaryMenuSheetCount(window) == 0
     }
 
@@ -2983,12 +2990,21 @@ func beginTemporaryMenuPreparation(_ obsID: String, _ target: String, _ pid: pid
         return skip("target_frontmost_unreadable")
     }
     guard (selfFront as? Bool) == false else { return skip("target_self_reports_frontmost") }
-    guard let focused = attr(app, kAXFocusedWindowAttribute as String),
-          CFGetTypeID(focused) == AXUIElementGetTypeID(),
-          let main = attr(app, kAXMainWindowAttribute as String),
-          CFGetTypeID(main) == AXUIElementGetTypeID(),
-          CFEqual(focused, main) else { return skip("focused_main_window_unavailable") }
-    let window = focused as! AXUIElement
+    // The main window is the command's window. A focused window, when the app
+    // reports one, must be that same window; a background app may report none
+    // (Finder after an earlier prepared command, measured 2026-11-05).
+    guard let main = attr(app, kAXMainWindowAttribute as String),
+          CFGetTypeID(main) == AXUIElementGetTypeID() else { return skip("focused_main_window_unavailable") }
+    var focusedRaw: CFTypeRef?
+    let focusError = AXUIElementCopyAttributeValue(app, kAXFocusedWindowAttribute as CFString, &focusedRaw)
+    if focusError == .success {
+        guard let focusedRaw, CFGetTypeID(focusedRaw) == AXUIElementGetTypeID(), CFEqual(focusedRaw, main) else {
+            return skip("focused_main_window_unavailable")
+        }
+    } else if focusError != .noValue {
+        return skip("focused_window_unreadable")
+    }
+    let window = main as! AXUIElement
     guard latestElements.filter({ CFEqual($0, window) }).count == 1 else { return skip("main_window_not_observed") }
     guard temporaryMenuSheetCount(window) == 0 else { return skip("main_window_has_sheet") }
     var windowID: CGWindowID = 0
@@ -2997,7 +3013,7 @@ func beginTemporaryMenuPreparation(_ obsID: String, _ target: String, _ pid: pid
     }
     var prepared = TemporaryMenuPreparation(window: window, windowID: windowID,
         record: ["attempted": true, "window_id": Int(windowID), "frontmost_before": false])
-    let result = prepareBackgroundWindow(obsID, target, window, pid, deadline: deadline)
+    let result = prepareBackgroundWindow(obsID, target, window, pid, deadline: deadline, toolbarTitlebar: true)
     let posted = (result["posted_events"] as? Int) ?? (result["posted_or_attempted_events"] as? Int) ?? 0
     prepared.record["posted_events"] = posted
     if let diagnostic = result["preparation_diagnostic"] { prepared.record["preparation_diagnostic"] = diagnostic }
@@ -3904,6 +3920,11 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
         // every path below (TemporaryMenuPreparation). Raising the app is still
         // never this action's to decide.
         var temporary: TemporaryMenuPreparation? = nil
+        // The helper's own 5 s act default is too short for a window
+        // preparation's per-event readiness in a large tree (Finder measured
+        // ~5 s, 2026-11-05). A prepared command gets at most 10 s, and never
+        // more than a deadline the caller sent.
+        var menuDeadline = deadline
         func finish(_ result: [String: Any]) -> [String: Any] {
             guard var prepared = temporary else { return result }
             temporary = nil
@@ -3931,7 +3952,8 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
                 return out
             }
             guard !wasFront else { return disabled(nil) }
-            switch beginTemporaryMenuPreparation(obsID, target, p, deadline: deadline) {
+            menuDeadline = min(clickDeadline ?? .infinity, ProcessInfo.processInfo.systemUptime + 10)
+            switch beginTemporaryMenuPreparation(obsID, target, p, deadline: menuDeadline) {
             case .skipped(let record):
                 return disabled(record)
             case .failed(var prepared, let failure):
@@ -3945,7 +3967,7 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
                 temporary = prepared
             }
             let settle = ProcessInfo.processInfo.systemUptime
-            let settleDeadline = min(deadline - 0.2, settle + 2)
+            let settleDeadline = min(menuDeadline - 0.2, settle + 2)
             var nowEnabled = false
             while !abortState.isStopped, ProcessInfo.processInfo.systemUptime < settleDeadline {
                 if (attr(item, kAXEnabledAttribute as String) as? Bool) == true { nowEnabled = true; break }
@@ -3962,7 +3984,7 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
             }
             // Re-ask just before the press: still behind, same main window.
             guard !isFrontmost(pid: p), temporary?.stillBound(pid: p) == true,
-                  !abortState.isStopped, ProcessInfo.processInfo.systemUptime < deadline else {
+                  !abortState.isStopped, ProcessInfo.processInfo.systemUptime < menuDeadline else {
                 return finish(["type": "error", "error": abortState.isStopped ? "aborted_by_user" : "action_failed",
                                "effect": "not_started", "reason_code": "menu_preparation_context_changed",
                                "detail": "준비 뒤 대상 창이나 전경 상태가 바뀌어 누르지 않았습니다"])
@@ -3994,7 +4016,7 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
             }
             // The check took time; stop and the deadline are asked again
             // right before the press (Codex review of 31955f0).
-            guard !abortState.isStopped, ProcessInfo.processInfo.systemUptime < deadline else {
+            guard !abortState.isStopped, ProcessInfo.processInfo.systemUptime < menuDeadline else {
                 return finish(["type": "error", "error": abortState.isStopped ? "aborted_by_user" : "input_deadline_expired",
                         "effect": "not_started", "detail": "문서 확인 뒤 중단되었거나 기한이 지났습니다"])
             }
@@ -4009,8 +4031,19 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
         // A prepared press is answered by a sheet on the same window. Watched
         // (bounded) before the preparation is undone, and only reported: the
         // caller's postcondition and receipt decide success, never this.
+        // Only a command whose own observed title says it opens a dialog (the
+        // macOS "…" convention) is watched, and never past the act deadline:
+        // New Folder or Select All have nothing to wait for (peer review of
+        // cc93830 measured a needless 3 s there).
         if let prepared = temporary {
-            temporary?.record["sheet_observed_ms"] = prepared.waitForSheet(seconds: 3) ?? NSNull()
+            let title = walked.last ?? ""
+            if title.hasSuffix("\u{2026}") || title.hasSuffix("...") {
+                let budget = min(3, max(0, menuDeadline - ProcessInfo.processInfo.systemUptime))
+                temporary?.record["sheet_wait_budget_ms"] = Int(budget * 1000)
+                temporary?.record["sheet_observed_ms"] = prepared.waitForSheet(seconds: budget) ?? NSNull()
+            } else {
+                temporary?.record["sheet_wait"] = "not_a_dialog_command"
+            }
         }
         // Some commands make the app bring itself forward (Finder's Go > Go to
         // Folder…, measured 2026-10-08). Not prevented — the press was the

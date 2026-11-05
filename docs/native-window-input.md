@@ -238,6 +238,32 @@ AX 조회 자체의 오류도 구분한다. AttributeUnsupported/NoValue만 미�
 
 물리 타이핑 보존, 다른 앱, 다른 OS 버전은 검증하지 않았다.
 
+후속 조정(같은 날):
+
+- **대화상자 대기:** 저장 창을 기다리는 시간은 관측된 메뉴 제목이 macOS 관례대로 `…`(또는 `...`)로 끝날 때만 쓴다. 그 대기도 `min(3초, act 기한까지 남은 시간)`을 넘지 않는다. 다른 명령은 대기 없이 바로 복구하며, 응답에 `sheet_wait: not_a_dialog_command`가 남는다.
+  - 소유 TextEdit 문서의 Edit > Select All을 배경에서 3회 실행했다(`signed_textedit_select_all`). 매번 선택 범위가 `[0,0]`에서 `[0,39]`(문서 전체)로 바뀌었고, menu act는 1.63~1.66초였다. 복구 결과는 `AXFrontmost=false`, 활성화 기록은 0이었다.
+  - Save As 재검증 2회도 모두 통과했다(sheet 552~621ms, eval 종료 코드 0).
+- **기한:** 준비를 시작하는 명령의 기한은 helper 기본값 5초 대신 최대 10초다. 호출자가 보낸 기한이 더 짧으면 그것을 따른다.
+- **Finder 툴바:** unified toolbar 창(Finder)에서는 titlebar 어디를 hit-test해도 창 자체가 나오지 않는다. 임시 준비에 한해 `titlebarToolbar` binding을 쓴다. 조건은 다음과 같다.
+  - 창의 직접 자식인 같은 프로세스의 `AXToolbar`여야 한다.
+  - 그 툴바의 action은 `AXShowMenu`뿐이어야 한다.
+  - 점과 그 십자 주변 네 점이 모두 같은 툴바에 맞아야 한다.
+  - 창 제어 버튼 프레임에서 8pt 이상 떨어져 있어야 한다.
+  - 독립 실행되는 `prepare_window`는 기존 `titlebar` 규칙을 그대로 쓴다.
+- **Finder New Folder:** 처음에는 dispatch 전 headroom 검사에서 거절됐다(`validation_headroom`: 창 검증 1회 2,092ms, 필요 21,153ms). 원인은 이벤트마다 binding을 full readiness(Finder 2개 창, 2,124 노드)로 다시 capture하는 것이었다.
+  - 임시 메뉴 준비의 binding(`titlebarToolbar`)만 다르게 처리한다. capture 때는 full readiness와 titlebar hit 검사를 그대로 1회 한다. 이후 이벤트마다는 `validateNativeMenuPreparationBinding`으로 저렴하게 다시 읽는다.
+    - 같은 process 시작 시각, 같은 CG frame과 AX frame
+    - 앱의 main window가 그 창이고, focused window는 그 창이거나 없음
+    - 앱의 어느 창도 `AXModal=true`가 아님
+    - 그 창에 sheet가 없음
+    - 같은 점이 여전히 빈 창 chrome이나 같은 툴바임(십자 5점)
+  - context, abort, deadline, 사용자 입력(전경·포인터·focus) 검사는 dispatcher가 이벤트마다 그대로 한다. headroom 추정도 실제 반복 비용(validation 17~31ms, 필요 407~537ms)을 쓴다.
+  - 독립 실행되는 `prepare_window`와 text, key, click, drag 경로의 검증은 바뀌지 않았다.
+  - 실측: 소유 Finder 폴더에서 File > New Folder를 3/3 실행했다(`signed_finder_new_folder`, raw `reviews/2026-11-05/finder-new-folder-{1793888705493867000,1793888733640042000,1793888762181142000}.json`). 매번 정확히 새 폴더 1개가 생겼고, menu act는 2.86~2.92초였다. `not_a_dialog_command`, 복구 결과 `AXFrontmost=false`, 작업 구간 활성화 0, witness의 body·caret·keys 보존, eval 종료 코드 0이었다. 소유 창은 닫고 폴더는 삭제했다.
+  - 같은 코드로 Save As(1회)와 Select All(1회)도 다시 통과했다.
+  - 이름 설정은 아직 되지 않는다. File > Rename도 임시 준비로 `acted`·복구까지 됐지만, 복구 뒤 배경 Finder의 이름 편집기는 focused가 아니었다. 이름 칸에 `set_value` + `AXConfirm`을 해도 `acted`만 돌아오고 디스크의 이름은 바뀌지 않았다(probe의 `rename_verified=false`). 앱이 비활성으로 돌아가면 인라인 편집이 끝나는 것으로 보인다. 원인은 확정하지 않았다.
+  - 한 번은 직전 준비가 복구된 뒤 Finder가 focused window를 보고하지 않았다. 그래서 자격 조건과 이벤트별 검사는 focused window가 "없음"인 경우를 허용한다. 다른 창이 focused이면 여전히 거절한다.
+
 ## General의 명시적 창 준비
 
 2026-10-01의 추가 owned 실험에서는 프로세스에 주소를 지정한 AppKit activation

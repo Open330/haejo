@@ -1,5 +1,23 @@
 # 비교 실행 기록
 
+## 후보 런타임을 선택한 독립 비교
+
+`examples/product_comparison.py --tacto-launcher /absolute/runtime/launcher/tacto`
+는 선택한 CLI와 그 스킬을 Tacto arm에 명시하고 Sky arm의 도구 지침은 그대로
+둔다. 선택한 실행 파일·helper·Python·모듈·스킬의 해시도 각 arm의 source
+manifest에 포함한다. 외부 fixture worker 모드에도 이 선택을 전달한다.
+기본값은 기존 설치 경로 선택을 유지한다. 이 옵션은 설치나 권한을 바꾸지 않는다.
+각 반복 직전에도 후보를 재확인하며 없어졌거나 손상됐으면 fixture·모델을
+실행하지 않는다. 실행 중 없어졌으면 결과를 invalid로 남긴다. 기본 설치본과
+후보 모두 AppleScript·직접 native 입력을 사용하지 않는 같은 도구 제한을 갖는다.
+
+실제 signed worker의 metadata-only preflight에서 선택된 후보와161개 runtime
+파일을 확인했다. 모델·native 과제 입력은0이며 비교 결과가 아니다. 명시적 선택은
+agent가 그 경로를 실제 사용했다는 증거가 아니므로 execution attribution은
+false로 둔다. 실제 비교에서는 tool trace도 검토하며, 이전 설치본을 새 소스의
+성능으로 부르지 않는다. 원본: `reviews/goal-resume-20261105-comparison-selection/`.
+
+
 ## 2026-11-05 실제 Preview의 AX 밖 이미지 읽기
 
 소유한 난수 점수 PNG를 실제 Preview에서 열고, 서명된 rc.22 후보 CLI의

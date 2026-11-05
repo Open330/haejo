@@ -5333,6 +5333,42 @@ def scenario_native_select_scroll_receiving_failure_fixture():
     return True
 
 
+def scenario_signed_finder_new_folder():
+    """Owned actual Finder New Folder from the background; filesystem oracle."""
+    from datetime import date
+    from pathlib import Path
+    from tacto.helper import InheritedHelperDriver
+    from examples.probes.signed_finder_new_folder import run_probe
+    assert InheritedHelperDriver.available(), 'signed launcher required'
+    output = Path(__file__).resolve().parents[1]/'reviews'/date.today().isoformat()/f'finder-new-folder-{time.time_ns()}.json'
+    output.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    report = run_probe(InheritedHelperDriver())
+    with output.open('x') as stream:
+        json.dump(report, stream, ensure_ascii=False, indent=2)
+        stream.write('\n')
+    print('  actual Finder New Folder report: '+str(output))
+    assert report['passed'], report.get('failure') or report.get('failure_class') or report.get('cleanup')
+    return True
+
+
+def scenario_signed_textedit_select_all():
+    """Owned actual TextEdit Select All from the background (no dialog)."""
+    from datetime import date
+    from pathlib import Path
+    from tacto.helper import InheritedHelperDriver
+    from examples.probes.signed_textedit_select_all import run_probe
+    assert InheritedHelperDriver.available(), 'signed launcher required'
+    output = Path(__file__).resolve().parents[1]/'reviews'/date.today().isoformat()/f'textedit-select-all-{time.time_ns()}.json'
+    output.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    report = run_probe(InheritedHelperDriver())
+    with output.open('x') as stream:
+        json.dump(report, stream, ensure_ascii=False, indent=2)
+        stream.write('\n')
+    print('  actual TextEdit Select All report: '+str(output))
+    assert report['passed'], report.get('failure') or report.get('failure_class')
+    return True
+
+
 def scenario_signed_textedit_save_as_transition():
     """Owned actual TextEdit Save As, new file and pinned URL transition."""
     from datetime import date
@@ -5373,6 +5409,8 @@ def scenario_native_observation_pages_fixed(provider='fixed'):
 
 SCENARIOS = [
     ('signed_textedit_save_as_transition (actual TextEdit, guarded new-file Save As)', scenario_signed_textedit_save_as_transition),
+    ('signed_finder_new_folder (actual Finder, owned folder, background New Folder)', scenario_signed_finder_new_folder),
+    ('signed_textedit_select_all (actual TextEdit, owned document, background Select All)', scenario_signed_textedit_select_all),
     ('native_observation_pages_fixed (240 owned AppKit controls, no model)', scenario_native_observation_pages_fixed),
     ('native_observation_pages_codex (240 owned AppKit controls, live Codex)', lambda: scenario_native_observation_pages_fixed('codex')),
     ('native_observation_pages_claude (240 owned AppKit controls, live Claude)', lambda: scenario_native_observation_pages_fixed('claude')),
@@ -5703,6 +5741,8 @@ _LOOKED = [False]
 #     ./launcher/tacto eval an_abort_lasts
 ISOLATED = {
     'signed_textedit_save_as_transition',
+    'signed_finder_new_folder',
+    'signed_textedit_select_all',
     'native_observation_pages_fixed', 'native_observation_pages_codex', 'native_observation_pages_claude',
     "signed_textedit_saved_state",
     "signed_popover_routing_refusal",
@@ -5794,6 +5834,8 @@ ISOLATED = {
 
 SCENARIO_REQUIREMENTS: dict = {
     'signed_textedit_save_as_transition': {'gui', 'native'},
+    'signed_finder_new_folder': {'gui', 'native'},
+    'signed_textedit_select_all': {'gui', 'native'},
     'native_observation_pages_fixed': {'gui', 'native'},
     'native_observation_pages_codex': {'gui', 'native', 'model'},
     'native_observation_pages_claude': {'gui', 'native', 'model'},

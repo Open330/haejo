@@ -329,6 +329,7 @@ class DoctorCheckIsReadOnlyTests(unittest.TestCase):
         status = {"built": True, "trusted": False, "bundled": True, "path": "x",
                   "why": "도우미에 접근성 권한이 없습니다"}
         with patch.object(onboard, "helper_status", return_value=status), \
+             patch("tacto.session.lock_state", return_value={"locked":False}), \
              patch.object(onboard, "open_settings", side_effect=opened.append), \
              patch.object(onboard, "request_accessibility", return_value=False):
             ok = onboard.run(interactive=interactive, narrate=lambda s: None)

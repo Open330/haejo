@@ -150,6 +150,7 @@ var action: [String: Any] = [:]
 let target = "com.apple.TextEdit"
 let p: pid_t = 0
 let deadline = Double.infinity
+let clickDeadline: Double? = nil
 struct AbortStub { var isStopped = false }
 let abortState = AbortStub()
 var latestDocumentToken: String? = nil

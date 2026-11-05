@@ -53,3 +53,22 @@ class LockedSessionReadinessTests(unittest.TestCase):
         self.assertFalse(ok)
         self.assertIn('화면 세션에 연결한 뒤', text)
         self.assertNotIn('설정에서 권한을 켜신 뒤', text)
+
+    def test_locked_missing_permission_does_not_open_settings_but_unlocked_does(self):
+        from types import SimpleNamespace
+        workspace = SimpleNamespace(runningApplications=lambda:[SimpleNamespace(activationPolicy=lambda:0)])
+        missing = onboard.Check('accessibility',False,'앱 조작 권한','enable','x-owned-settings')
+        for locked in (True,False):
+            with self.subTest(locked=locked), \
+                 patch.object(onboard,'helper_status',return_value={'built':False}), \
+                 patch.object(onboard,'check_all',return_value=[missing]), \
+                 patch('tacto.session.lock_state',return_value={'locked':locked}), \
+                 patch('AppKit.NSWorkspace',SimpleNamespace(sharedWorkspace=lambda:workspace)), \
+                 patch.object(onboard,'request_accessibility') as request, \
+                 patch.object(onboard,'open_settings') as settings:
+                self.assertFalse(onboard.run(interactive=True,narrate=lambda _:None))
+                if locked:
+                    request.assert_not_called();settings.assert_not_called()
+                else:
+                    request.assert_called_once_with(prompt=True)
+                    settings.assert_called_once_with('x-owned-settings')

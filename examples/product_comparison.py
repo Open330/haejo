@@ -41,6 +41,7 @@ sys.path.insert(0, str(ROOT / "examples" / "probes"))
 _AGENT_EXECUTABLE = "codex"
 _AGENT_REQUESTED_EXECUTABLE = "codex"
 _SKY_SKILL_FILE = None
+_TACTO_RUNTIME = None
 _COLD_START = False
 _REQUESTED_MODEL = None
 _REQUESTED_REASONING_EFFORT = None
@@ -66,7 +67,8 @@ ARM_CLAUSE = {
             "Do not use the `tacto` command."),
     "tacto": ("Use the tacto skill and the `tacto` command to drive the app. "
             "Do not use the Computer Use plugin or node_repl. "
-            "Use the installed signed tacto (typically ~/.local/bin/tacto) with --helper for GUI operations."),
+            "Use the installed signed tacto (typically ~/.local/bin/tacto) with --helper for GUI operations. "
+            "Do not use AppleScript or direct native input."),
 }
 
 
@@ -176,11 +178,18 @@ def _instruction_profile():
             'tacto_template_sha256': hashlib.sha256(_arm_prompt('{TASK}', 'tacto').encode()).hexdigest(),
             'sky_template_sha256': hashlib.sha256(_arm_prompt('{TASK}', 'sky').encode()).hexdigest(),
             'sky_guide_sha256': guide.get('sha256') if guide else None,
-            'sky_guide_provided': _SKY_SKILL_FILE is not None}
+            'sky_guide_provided': _SKY_SKILL_FILE is not None,
+            'selected_tacto_runtime': _TACTO_RUNTIME['resolved_launcher'] if _TACTO_RUNTIME else None}
 
 
 def _arm_prompt(ask, arm):
     clause = ARM_CLAUSE[arm]
+    if arm == 'tacto' and _TACTO_RUNTIME is not None:
+        clause = ('Read the selected Tacto skill at ' + json.dumps(_TACTO_RUNTIME['skill']) +
+                  '. Drive the UI only through the selected launcher ' +
+                  json.dumps(_TACTO_RUNTIME['resolved_launcher']) +
+                  ' with --helper. Use this exact runtime and guide; do not substitute an installed alias. '
+                  'Do not use Computer Use, node_repl, AppleScript, or direct native input.')
     if arm == 'sky' and _SKY_SKILL_FILE is not None:
         clause += (' Read the host-selected bundled Computer Use skill at ' +
                    json.dumps(_SKY_SKILL_FILE) +
@@ -1178,6 +1187,13 @@ def source_manifest():
     files = {path.relative_to(ROOT).as_posix():
              hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
              for path in sorted(paths)}
+    if _TACTO_RUNTIME is not None:
+        from examples.benchmark_runtime import runtime_evidence
+        try:
+            selected = runtime_evidence(_TACTO_RUNTIME['resolved_launcher'])
+            files.update({'selected_runtime/' + name:digest for name,digest in selected['files'].items()})
+        except (OSError, ValueError):
+            files['selected_runtime/unavailable'] = None
     digest = hashlib.sha256(json.dumps(files, sort_keys=True,
                                       separators=(",", ":")).encode()).hexdigest()
     return {"version": 2, "sha256": digest, "files": files}
@@ -1189,7 +1205,10 @@ def source_hash():
 
 
 def _source_evidence(before, after):
+    unavailable = any("selected_runtime/unavailable" in manifest["files"]
+                      for manifest in (before, after))
     return {"source": before["sha256"][:12], "source_end": after["sha256"][:12],
+            "selected_runtime_unavailable": unavailable,
             "source_changed": before != after,
             "source_manifest_before": before, "source_manifest_after": after}
 
@@ -1252,6 +1271,15 @@ TASKS = [
 def run_one(task: Task, arm: str, timeout: int = 600) -> dict:
     from focus_witness import FocusWitness
     source_before = source_manifest()
+    if "selected_runtime/unavailable" in source_before["files"]:
+        # Parse-time validation is insufficient if a candidate is moved/deleted
+        # between repetitions. Do not run a fixture or model against that state.
+        return {"task":task.name, "arm":arm, "status":"not_run", "seconds":0,
+                "oracle_contract":task.oracle_contract, "oracle_passed":None,
+                "observed":"selected_runtime_unavailable", "answer":"", "calls":{},
+                "usage":None, "activations":[], "process_exit":None,
+                "comparison_eligible":False, "cleanup_status":"not_requested",
+                **_source_evidence(source_before, source_before)}
     instruction_before = _instruction_profile()
     sky_skill_before = _sky_skill_evidence() if arm == 'sky' else None
     from tacto.helper import InheritedHelperDriver
@@ -1459,11 +1487,12 @@ def run_one(task: Task, arm: str, timeout: int = 600) -> dict:
     if task.cleanup is newdir_cleanup:result['finder_fixture_evidence']=newdir_evidence()
     if isinstance(setup_evidence,dict):result['setup_evidence']=setup_evidence
     result.update(_source_evidence(source_before, source_manifest()))
-    if result["source_changed"]:
+    if result["source_changed"] or result["selected_runtime_unavailable"]:
         # A successful oracle cannot certify a comparison under drifting code.
         result["observed_status"] = result["status"]
         result["status"] = "invalid"
-        result["invalid_reason"] = "source_changed"
+        result["invalid_reason"] = ("selected_runtime_unavailable"
+                                    if result["selected_runtime_unavailable"] else "source_changed")
         result["comparison_eligible"] = False
     # Environment variables are not a TCC responsibility boundary. A Codex
     # spawned by this signed controller may inherit its responsible identity.
@@ -1476,6 +1505,9 @@ def run_one(task: Task, arm: str, timeout: int = 600) -> dict:
     result['agent_requested_executable'] = _AGENT_REQUESTED_EXECUTABLE
     result['agent_requested_model'] = _REQUESTED_MODEL
     result['agent_requested_reasoning_effort'] = _REQUESTED_REASONING_EFFORT
+    result['selected_tacto_runtime'] = ({key:value for key,value in _TACTO_RUNTIME.items()
+                                         if key != 'files'} if _TACTO_RUNTIME else None)
+    result['selected_runtime_execution_attribution_verified'] = False
     result['agent_serving_model_verified'] = False
     result['agent_executable'] = _AGENT_EXECUTABLE
     result['agent_cli_cwd'] = context_evidence['workspace'] if context_evidence else '/tmp'
@@ -1513,7 +1545,7 @@ def run_one(task: Task, arm: str, timeout: int = 600) -> dict:
 
 
 def main(argv=None) -> int:
-    global _AGENT_EXECUTABLE, _AGENT_REQUESTED_EXECUTABLE, _FIXTURE_WORKER, _WORKER_METADATA, _SKY_SKILL_FILE, _COLD_START, _REQUESTED_MODEL, _REQUESTED_REASONING_EFFORT
+    global _AGENT_EXECUTABLE, _AGENT_REQUESTED_EXECUTABLE, _FIXTURE_WORKER, _WORKER_METADATA, _SKY_SKILL_FILE, _TACTO_RUNTIME, _COLD_START, _REQUESTED_MODEL, _REQUESTED_REASONING_EFFORT
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     from comparison_fixture_worker import WORKER_TASKS
     ap.add_argument('--fixture-worker-task', choices=WORKER_TASKS, default='textedit_edit_owned', help=argparse.SUPPRESS)
@@ -1527,6 +1559,7 @@ def main(argv=None) -> int:
                     help='check separate worker/helper metadata without GUI setup or model requests')
     ap.add_argument('--cold-start', action='store_true', help='fresh exec, ephemeral session, empty private workspace; global/system context and server cache remain unverified')
     ap.add_argument('--sky-skill-file', help='host-selected absolute bundled Computer Use SKILL.md path; no installation changes')
+    ap.add_argument('--tacto-launcher', help='host-selected complete runtime/launcher/tacto; explicit guide and hashes, no installation change')
     ap.add_argument('--agent-executable', help='host-selected absolute Codex CLI path; does not change PATH')
     ap.add_argument('--model', help='same requested Codex model for both arms; omitted preserves CLI default, not serving-model verification')
     ap.add_argument('--reasoning-effort', choices=('minimal', 'low', 'medium', 'high', 'xhigh'),
@@ -1559,6 +1592,14 @@ def main(argv=None) -> int:
     checks.add_argument('--check-owned-scoped-save',action='store_true',help='native document-token Save and exact saved-state receipt')
     checks.add_argument('--check-owned-scoped-cli-save',action='store_true',help='installed scoped CLI built-in Save with disk-state check')
     args = ap.parse_args(argv)
+    if args.tacto_launcher is not None:
+        from examples.benchmark_runtime import runtime_evidence
+        try:
+            _TACTO_RUNTIME = runtime_evidence(args.tacto_launcher)
+        except (OSError, ValueError):
+            ap.error('--tacto-launcher requires an absolute executable in a complete Tacto runtime')
+    else:
+        _TACTO_RUNTIME = None
     if args.model is not None and (not args.model.strip() or len(args.model) > 200 or any(ord(c) < 32 for c in args.model)):
         ap.error('--model requires a nonempty model name without control characters')
     _REQUESTED_MODEL = args.model
@@ -1649,7 +1690,7 @@ def main(argv=None) -> int:
                 from tacto.process_responsibility import observe_responsibility
                 print(json.dumps({'scope': 'external_controller_signed_worker_metadata_only',
                                   'controller': observe_responsibility(os.getpid()),
-                                  'worker': metadata, 'gui_task_executed': False,
+                                  'worker': metadata, 'selected_tacto_runtime': _TACTO_RUNTIME, 'gui_task_executed': False,
                                   'agent_executed': False, 'comparison_eligible': False}))
                 return 0
             if args.check_worker_lifecycle:
@@ -1665,6 +1706,8 @@ def main(argv=None) -> int:
                          '--timeout', str(args.timeout), '--arms', *args.arms]
             if args.cold_start:
                 forwarded.append('--cold-start')
+            if args.tacto_launcher:
+                forwarded += ['--tacto-launcher', _TACTO_RUNTIME['resolved_launcher']]
             if args.sky_skill_file:
                 forwarded += ['--sky-skill-file', _SKY_SKILL_FILE]
             if args.agent_executable:

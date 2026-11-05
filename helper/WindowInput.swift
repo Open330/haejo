@@ -60,7 +60,12 @@ func nativeObservedBundleMatches(_ pid: pid_t, _ bundle: String,
     return actualBundle?.lowercased() == bundle.lowercased()
 }
 
-enum NativeWindowPointKind { case elementCenter, titlebar, windowPoint, windowInput }
+/// `titlebarToolbar` is the temporary menu preparation's titlebar: like
+/// `titlebar`, but in a unified toolbar window (Finder, measured 2026-11-05:
+/// no titlebar point hit-tests to the window) it may also use blank space of
+/// the window's own AXToolbar (no action but its AXShowMenu). Standalone prepare_window keeps
+/// `titlebar`.
+enum NativeWindowPointKind { case elementCenter, titlebar, windowPoint, windowInput, titlebarToolbar }
 
 struct NativeWindowKeyPair {
     let down: CGEvent
@@ -972,6 +977,39 @@ func nativeTitlebarPointIsClear(_ point: CGPoint, _ bounds: CGRect,
     return true
 }
 
+/// The whole cross must hit one AXToolbar that is a direct child of the
+/// window, of the same process, and advertises no AX action but AXShowMenu.
+func nativeToolbarPointIsClear(_ point: CGPoint, _ bounds: CGRect,
+                               _ window: AXUIElement, _ pid: pid_t,
+                               scope: NativeWindowReadScope?) throws -> Bool {
+    let points = [point, CGPoint(x: point.x-4, y: point.y), CGPoint(x: point.x+4, y: point.y),
+                  CGPoint(x: point.x, y: point.y-4), CGPoint(x: point.x, y: point.y+4)]
+    guard points.allSatisfy({ bounds.contains($0) }) else { return false }
+    var toolbar: AXUIElement? = nil
+    for sample in points {
+        try scope?.ready()
+        let hit = try windowInputHit(sample, pid, scope: scope)
+        guard try windowInputPID(hit) == pid, !CFEqual(hit, window) else { return false }
+        if let toolbar {
+            guard CFEqual(hit, toolbar) else { return false }
+            continue
+        }
+        guard try windowInputRole(hit, scope: scope) == "AXToolbar",
+              let parent = try? windowInputElement(windowInputAttribute(hit, kAXParentAttribute, scope: scope)),
+              CFEqual(parent, window) else { return false }
+        var names: CFArray?
+        let error = try scope?.withTimeout(hit) { AXUIElementCopyActionNames(hit, &names) }
+            ?? AXUIElementCopyActionNames(hit, &names)
+        guard error == .success || error == .noValue || error == .attributeUnsupported,
+              // A toolbar's only action is its customization menu, which a
+              // left click does not open (Finder, measured 2026-11-05).
+              Set((names as? [String]) ?? []).isSubset(of: ["AXShowMenu"]) else { return false }
+        toolbar = hit
+    }
+    try scope?.ready()
+    return toolbar != nil
+}
+
 /// Read-only diagnostic: never returns coordinates, text, or an input binding.
 func nativeTitlebarHitSummary(_ window: AXUIElement, _ pid: pid_t,
                              scope: NativeWindowReadScope) throws -> [[String: Any]] {
@@ -1084,7 +1122,7 @@ func captureNativeWindowBinding(_ element: AXUIElement, _ pid: pid_t,
             pointKind: .windowPoint, relativePoint: relativePoint)
     }
     if relativePoint != nil { throw NativeWindowInputError.refused("point is only valid for a window-point binding") }
-    if pointKind == .titlebar {
+    if pointKind == .titlebar || pointKind == .titlebarToolbar {
         try nativeRequireWindowReady(window, pid, scope: scope)
         guard CFEqual(element, window),
               try windowInputAttribute(window, kAXSubroleAttribute, scope: scope) as? String == "AXStandardWindow" else {
@@ -1107,7 +1145,27 @@ func captureNativeWindowBinding(_ element: AXUIElement, _ pid: pid_t,
                     throw NativeWindowInputError.refused("process changed during capture")
                 }
                 return NativeWindowBinding(element: element, window: window, pid: pid, processStart: expectedStart,
-                    windowID: windowID, windowBounds: bounds, elementBounds: rect, point: point, pointKind: .titlebar)
+                    windowID: windowID, windowBounds: bounds, elementBounds: rect, point: point, pointKind: pointKind)
+            }
+        }
+        if pointKind == .titlebarToolbar {
+            // Window controls are kept clear by their own frames, not a guess.
+            var controls = [anchor]
+            for name in ["AXMinimizeButton", "AXZoomButton", "AXFullScreenButton"] {
+                if let raw = try? windowInputAttribute(window, name, scope: scope),
+                   let button = try? windowInputElement(raw), (try? windowInputPID(button)) == pid,
+                   let frame = try? windowInputFrame(button, scope: scope) { controls.append(frame) }
+            }
+            for point in try nativeTitlebarPoints(bounds, anchor) {
+                try scope?.ready()
+                guard !controls.contains(where: { $0.insetBy(dx: -8, dy: -8).contains(point) }) else { continue }
+                if try nativeToolbarPointIsClear(point, bounds, window, pid, scope: scope) {
+                    guard nativeProcessStartIdentity(pid) == expectedStart else {
+                        throw NativeWindowInputError.refused("process changed during capture")
+                    }
+                    return NativeWindowBinding(element: element, window: window, pid: pid, processStart: expectedStart,
+                        windowID: windowID, windowBounds: bounds, elementBounds: rect, point: point, pointKind: .titlebarToolbar)
+                }
             }
         }
         throw NativeWindowInputError.refused("no blank native titlebar point")
@@ -1130,6 +1188,75 @@ func captureNativeWindowBinding(_ element: AXUIElement, _ pid: pid_t,
         current = try windowInputElement(windowInputAttribute(current, kAXParentAttribute, scope: scope))
     }
     throw NativeWindowInputError.refused("hit-test does not identify element or descendant")
+}
+
+/// Per-event check for the temporary menu preparation's titlebar pair.
+///
+/// The full readiness walk (every node, for modality) ran once when this
+/// binding was captured; repeating it before each of the three contentless
+/// events cost ~2.1 s per pass in Finder (2,124 nodes, 2026-11-05) and made
+/// the headroom estimate ask for 21 s. Between events the things that could
+/// redirect or block the pair are re-read directly instead: same process and
+/// physical window, the app's focused and main window, no sheet and no modal
+/// window anywhere in the app, and the same point still on the same blank
+/// chrome. Context, abort, deadline and user input stay with the dispatcher.
+func validateNativeMenuPreparationBinding(_ binding: NativeWindowBinding,
+                                          scope: NativeWindowReadScope? = nil) throws {
+    guard binding.pointKind == .titlebarToolbar, CFEqual(binding.element, binding.window) else {
+        throw NativeWindowInputError.refused("menu preparation requires its own titlebar binding")
+    }
+    try scope?.ready()
+    guard nativeProcessStartIdentity(binding.pid) == binding.processStart,
+          try windowInputCGFrame(binding.windowID, binding.pid, scope: scope) == binding.windowBounds,
+          try windowInputFrame(binding.window, scope: scope) == binding.windowBounds else {
+        throw NativeWindowInputError.refused("window binding changed")
+    }
+    let app = AXUIElementCreateApplication(binding.pid)
+    let main = try windowInputElement(windowInputAttribute(app, kAXMainWindowAttribute, scope: scope))
+    guard CFEqual(main, binding.window) else {
+        throw NativeWindowInputError.refused("target window is not the app focused window")
+    }
+    // A background app may report no focused window at all (measured in
+    // Finder after an earlier prepared command was undone); another one is
+    // a refusal.
+    var focused: CFTypeRef?
+    let focusError = AXUIElementCopyAttributeValue(app, kAXFocusedWindowAttribute as CFString, &focused)
+    if focusError == .success {
+        guard let focused, CFGetTypeID(focused) == AXUIElementGetTypeID(),
+              CFEqual(focused as! AXUIElement, binding.window) else {
+            throw NativeWindowInputError.refused("target window is not the app focused window")
+        }
+    } else if focusError != .noValue {
+        throw NativeWindowInputError.refused("user focus unavailable")
+    }
+    guard let windows = try windowInputAttribute(app, kAXWindowsAttribute, scope: scope) as? [AXUIElement],
+          windows.contains(where: { CFEqual($0, binding.window) }), windows.count <= 256 else {
+        throw NativeWindowInputError.refused("window state unavailable: AXWindows")
+    }
+    for window in windows {
+        try scope?.ready()
+        guard (try? windowInputAttribute(window, "AXModal", scope: scope) as? Bool) != true else {
+            throw NativeWindowInputError.refused("modal or unknown window")
+        }
+    }
+    let children = (try windowInputAttribute(binding.window, kAXChildrenAttribute, scope: scope) as? [AXUIElement]) ?? []
+    for child in children {
+        try scope?.ready()
+        guard (try? windowInputRole(child, scope: scope)) != "AXSheet" else {
+            throw NativeWindowInputError.refused("sheet or malformed sheet list")
+        }
+    }
+    let hit = try windowInputHit(binding.point, binding.pid, scope: scope)
+    var clear = false
+    if try windowInputPID(hit) == binding.pid, CFEqual(hit, binding.window) {
+        clear = try nativeTitlebarPointIsClear(binding.point, binding.windowBounds, binding.window, binding.pid, scope: scope)
+    } else {
+        clear = try nativeToolbarPointIsClear(binding.point, binding.windowBounds, binding.window, binding.pid, scope: scope)
+    }
+    guard clear else {
+        throw NativeWindowInputError.refused("window binding changed")
+    }
+    try scope?.ready()
 }
 
 func validateNativeWindowBinding(_ binding: NativeWindowBinding, scope: NativeWindowReadScope? = nil) throws {

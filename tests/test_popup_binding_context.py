@@ -27,7 +27,8 @@ enum NativeWindowInputError:Error {case refused(String),unavailable(String)}
 func AXUIElementSetMessagingTimeout(_ node:Int,_ seconds:Float)->AXError {.success}
 func AXUIElementCopyAttributeValue(_ node:Int,_ name:CFString,_ out:inout CFTypeRef?)->AXError {.success}
 struct NativeWindowBinding {}
-enum PointKind {case windowInput,windowPoint,titlebar,elementCenter}
+enum PointKind {case windowInput,windowPoint,titlebar,elementCenter,titlebarToolbar}
+let toolbarTitlebar=false
 var anchor=true,reads=0
 func nativePopupSelectionAnchorMatches(_ control:Int,_ element:Int,_ popup:Int,_ pid:Int,scope:NativeWindowReadScope?=nil)->Bool {anchor}
 func captureNativePopupWindowBinding(_ element:Int,_ popup:Int,_ pid:Int,expectedStart:Int,scope:NativeWindowReadScope) throws->NativeWindowBinding {
