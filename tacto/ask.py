@@ -583,6 +583,11 @@ def _here_question(goal: str, candidates: list[dict], done_so_far=(),
                  + "\n".join(f"- {d}" for d in (list(done_so_far) if paged else list(done_so_far)[-6:])) + "\n"
                  if done_so_far else "\n# 지금까지 한 일\n(아직 없음 — 화면의 값은 이전 작업의 것입니다)\n")
               + f"\n# 이 화면에서 할 수 있는 것 ([…]은 아래 후보들의 위치)\n" + "\n".join(lines))
+    if any(c.get('_observation_page') for c in indexed.values()):
+        prompt += ('\n\n관측에서 생략된 항목이 더 있습니다. 필요한 대상이 없으면 '
+                   'ObservationPage 후보 하나에 read를 요청해 다음 관측을 보십시오. '
+                   '이는 앱 조작이나 결과 읽기가 아닙니다. 다른 행동·expect·finishes와 '
+                   '섞지 마십시오. 아직 전체 항목을 확인한 것은 아닙니다.')
     # A reordered page knows its own position; picks alone cannot say it.
     has_next = (more if more is not None else
                 paged and bool(indexed) and max(indexed) + 1 < total)
@@ -626,6 +631,10 @@ def _here_question(goal: str, candidates: list[dict], done_so_far=(),
             can = indexed[pick].get("can")
             if can is not None and do not in can:
                 return None                       # not a thing you do to THAT
+            if indexed[pick].get('_observation_page') and (
+                    do != 'read' or len(raw) != 1 or a.get('finishes')
+                    or a.get('expect') or set(item) - {'pick', 'do', 'why'}):
+                return None
             if do in ("scroll", "press_key", "submit", "double_click", "select_option", "open_select", "select_custom_option", "prepare_window", "inspect_menu", "menu", "upload") and (can is None or indexed[pick].get("disabled")):
                 return None
             if out and out[-1]["do"] in ("scroll", "press_key", "submit", "double_click", "select_option", "open_select", "select_custom_option", "prepare_window", "inspect_menu", "menu", "upload"):

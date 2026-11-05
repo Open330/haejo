@@ -140,7 +140,8 @@ class DocumentScopedDriver:
         if target != self.target:raise DocumentScopeUnavailable('target_mismatch')
         return self._inner.identity(target)
 
-    def observe(self, target, mode='tree_full', require_window=True, *, document_token=None, reveal=None):
+    def observe(self, target, mode='tree_full', require_window=True, *, document_token=None, reveal=None,
+                continuation=None):
         if reveal is not None:
             # One pinned document window; looking past caps elsewhere is not its read.
             return _refuse('reveal_unavailable')
@@ -149,7 +150,8 @@ class DocumentScopedDriver:
         self._indices=frozenset()
         if target != self.target or document_token not in (None,self._token):return _refuse()
         try:
-            reply = self._inner.observe(target,mode,require_window=require_window,document_token=self._token)
+            options = {} if continuation is None else {'continuation': continuation}
+            reply = self._inner.observe(target,mode,require_window=require_window,document_token=self._token, **options)
         except Exception:return _refuse('native_read_failed')
         if (not isinstance(reply,dict) or reply.get('type') != 'observation'
                 or reply.get('document_token') != self._token

@@ -12,6 +12,12 @@ Piped invalid JSON, EOF, cancellation, extra records in the input buffer, or a
 changed target end the session.
 A failed flow is never rerun by the session.
 
+When `TACTO_OBSERVATION_MORE` appears, the tree omitted candidates. Before
+authoring the Flow, send `{"observe_next":true}` alone on this same session to
+read the next page. Each page replaces the previous observation; do not combine
+element indices across pages. Up to eight continuation pages share the original
+input deadline. No app input occurs. The live cursor stays inside the runtime.
+
 For agent tools, start with `exec_command`, `tty: true`, and
 `yield_time_ms: 1000`. Wait for both the observation and `TACTO_SESSION_READY`.
 Send a minified JSON line with `write_stdin` using the exact returned session ID.

@@ -11,6 +11,7 @@ from .flow import Flow, every_step
 
 
 MAX_FLOW_BYTES = 1024 * 1024
+MAX_OBSERVATION_PAGES = 8
 
 
 @contextmanager
@@ -94,7 +95,7 @@ def read_flow_line(fd, timeout, *, platform=None, reader=None):
             return line.decode('utf-8')
 
 
-def read_session_flow(fd, timeout, emit, *, prepare=None):
+def read_session_flow(fd, timeout, emit, *, prepare=None, observe_next=None):
     """Repair interactive schema errors before dispatch on the same connection."""
     deadline = time.monotonic() + timeout
     reader = _windows_reader(fd) if sys.platform == 'win32' else None
@@ -103,6 +104,15 @@ def read_session_flow(fd, timeout, emit, *, prepare=None):
         # rejected by Flow parsing can be corrected without starting over.
         raw = read_flow_line(fd, max(0, deadline - time.monotonic()), reader=reader)
         try:
+            if observe_next is not None:
+                command = json.loads(raw)
+                if isinstance(command, dict) and 'observe_next' in command:
+                    if set(command) != {'observe_next'} or command['observe_next'] is not True:
+                        from .flow_errors import FlowFieldError
+                        raise FlowFieldError('invalid_observation_request', 'observe_next',
+                                             'Send only {"observe_next":true}; send the Flow separately.')
+                    observe_next()
+                    continue
             flow = Flow.from_json(raw, strict_checks=True)
             return prepare(flow) if prepare is not None else flow
         except (ValueError, TypeError, KeyError, RecursionError) as exc:
@@ -207,6 +217,41 @@ def run_session(args, *, make_driver, run_flow, stdin, emit):
         if observation.get('type') != 'observation':
             emit(json.dumps(observation, ensure_ascii=False))
             return 1
+        continuation_pages = 0
+
+        def show_observation():
+            # The live cursor belongs to this connection; authors see only
+            # whether there are more candidates, never a reusable native token.
+            visible = {key: value for key, value in observation.items()
+                       if key != 'next_observation_cursor'}
+            more = bool(observation.get('next_observation_cursor'))
+            if more:
+                visible['has_more_observation'] = True
+            emit(json.dumps(visible, ensure_ascii=False))
+            if more:
+                emit('TACTO_OBSERVATION_MORE send {"observe_next":true} to inspect omitted candidates on this session; no UI input is sent.')
+            emit('TACTO_SESSION_READY send one compact Flow JSON line, then newline; target=' + target)
+
+        def observe_next():
+            nonlocal observation, continuation_pages
+            from .flow_errors import FlowFieldError
+            if continuation_pages >= MAX_OBSERVATION_PAGES:
+                raise FlowFieldError('observation_page_limit', 'observe_next',
+                                     'Eight continuation pages were requested; narrow the window or task.')
+            cursor = observation.pop('next_observation_cursor', None)
+            if not isinstance(cursor, str) or not cursor:
+                raise FlowFieldError('observation_continuation_unavailable', 'observe_next',
+                                     'No next observation is available on this session.')
+            continuation_pages += 1
+            try:
+                next_page = driver.observe(target, 'tree_full', continuation=cursor)
+            except Exception:
+                next_page = None
+            if not isinstance(next_page, dict) or next_page.get('type') != 'observation':
+                raise FlowFieldError('observation_continuation_failed', 'observe_next',
+                                     'The continuation expired or changed; start a fresh observation.')
+            observation = next_page
+            show_observation()
         try:
             # Avoid terminal canonical-line limits and echoing document text.
             # Restore this invocation's terminal flags even on cancellation.
@@ -216,11 +261,11 @@ def run_session(args, *, make_driver, run_flow, stdin, emit):
                     emit(session_guide(target, reusable='--reuse-guide' in args, document=document))
                 if window_id is not None:
                     emit(f'TACTO_WINDOW_SCOPE {window_id}: read/set_value/type_text and supported AXPress only; menus/keys/pointer require a separate app-wide session. Do not save the live window ID in the Flow.')
-                emit(json.dumps(observation, ensure_ascii=False))
-                emit('TACTO_SESSION_READY send one compact Flow JSON line, then newline; target=' + target)
+                show_observation()
                 timing['input_ready_seconds'] = time.monotonic() - started
                 flow, template = read_session_flow(stdin.fileno(), timeout, emit,
-                                                   prepare=lambda parsed: prepare_session_flow(parsed, target))
+                                                   prepare=lambda parsed: prepare_session_flow(parsed, target),
+                                                   observe_next=observe_next)
                 timing['flow_received_seconds'] = time.monotonic() - started
         except (ValueError, TypeError, KeyError, TimeoutError, RecursionError) as exc:
             # A flow may contain personal text. Do not echo malformed input or

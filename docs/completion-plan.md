@@ -1,5 +1,20 @@
 # 전체 목표의 완료 기준과 현재 작업
 
+## 2026-11-05 G2: 관측에서 생략된 후보 연결 작업 중
+
+후보 token paging은 받은 후보만 나누므로, native 관측의 자식60개 제한 뒤에
+생략된 후보는 플래너가 요청할 수 없었다. 실제 소유 AppKit240버튼 창에서
+첫 관측 truncated=true, Item239 누락, 다음 cursor 없음, 입력0·수신 count0으로
+이 한계를 재현했다. 소유 앱은 종료했고 입력 표본은 UNCHANGED_SAMPLED다.
+원본은 `reviews/goal-resume-20261105-observation-paging/before-direct-fixed.json`이다.
+
+후속 구현은 명시적인 읽기 전용 관측 continuation이다. cursor는 runtime만
+보유하고 모델에는 다음 항목 관측 후보만 제공한다. 기존 시간·취소·화면 수
+예산 안에서 다음 관측을 요청하며 이전 페이지의 요소 번호와 합치지 않는다.
+root의 general/ask 연결과 새8검사는 통과했지만 native 드라이버·서명 helper
+구현 및 실제 모델 검증은 진행 중이다. 이 후보는 rc.20 설치본에 포함되지 않는다.
+240버튼 시험은 소유 AppKit 검증이며 사용자 실제 앱의 전체 성공률이 아니다.
+
 ## 2026-11-05 rc.20 설치 검증 완료
 
 고정 소스 a13cc55의 rc.20은 전체 3,120검사에서 실패·오류0, 조건부 제외26으로

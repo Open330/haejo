@@ -522,6 +522,7 @@ class GeneralResult:
     identity_changed: bool = False
     visual_used: bool = False
     visual_history: list[dict] = field(default_factory=list)
+    observation_pages: int = 0  # successful read-only continuation observations
 
     @property
     def did(self) -> list[str]:
@@ -607,6 +608,7 @@ def run(driver, target: str, goal: str, ask_here, *, max_screens: int = 8,
     capabilities = getattr(driver, "capabilities", ()) or ()
     select_options = {}
     custom_selects = {}
+    pending_continuation = None
     prepare_commit = prepare_commit or getattr(driver, "prepare_commit", None)
     after_commit = after_commit or getattr(driver, "after_commit", None)
 
@@ -691,10 +693,16 @@ def run(driver, target: str, goal: str, ask_here, *, max_screens: int = 8,
         return result + menus.candidates()
 
     def observe():
-        nonlocal select_options, custom_selects
+        nonlocal select_options, custom_selects, pending_continuation
         try:
-            result = driver.observe(target, "tree_full", require_window=False)
+            options = {}
+            if pending_continuation is not None:
+                options['continuation'] = pending_continuation
+                pending_continuation = None
+            result = driver.observe(target, "tree_full", require_window=False, **options)
             if result.get("type") == "observation":
+                if options:
+                    res.observation_pages += 1
                 res.after_tree = result["tree"]
                 select_options = result.get("select_options", {})
                 custom_selects = result.get("custom_selects", {})
@@ -784,6 +792,10 @@ def run(driver, target: str, goal: str, ask_here, *, max_screens: int = 8,
             return res
         if stopped():return res
         cands = available(obs["tree"])
+        from .observation_paging import continuation_candidate
+        page_candidate = continuation_candidate(obs)
+        if page_candidate is not None:
+            cands.append(page_candidate)
         if not cands:
             res.why = "화면에 조작할 수 있는 것이 없습니다"
             return res
@@ -835,6 +847,18 @@ def run(driver, target: str, goal: str, ask_here, *, max_screens: int = 8,
         if not acts:
             res.why = "이 화면에서 할 수 있는 일이 없습니다"
             return res
+
+        # This is a host-owned observation request, never an app element or a
+        # read result. Do not mix it with actions against the preceding page.
+        if any(a.get('candidate', {}).get('_observation_page') for a in acts):
+            if (len(acts) != 1 or acts[0].get('do') != 'read'
+                    or page_candidate is None or acts[0].get('candidate') != page_candidate
+                    or answer.get('finishes') or answer.get('expect')):
+                res.why = '추가 관측은 다른 행동이나 완료 선언과 함께 요청할 수 없습니다'
+                return res
+            pending_continuation = obs['next_observation_cursor']
+            planned_on = None
+            continue
 
         if any(a.get("do") in ("inspect_menu", "menu") for a in acts):
             if len(acts) != 1 or acts[0].get("candidate") not in cands:
@@ -1346,7 +1370,7 @@ def run(driver, target: str, goal: str, ask_here, *, max_screens: int = 8,
                                   # choose among what was actually there.
                                   "screen_options": list(dict.fromkeys(
                                       x["label"] for x in cands
-                                      if x.get("role") == c.get("role") and x.get("label")))[:40],
+                                      if not x.get('_observation_page') and x.get("role") == c.get("role") and x.get("label")))[:40],
                                   # What the planner could SEE when it chose:
                                   # a display's value is often the whole reason
                                   # for a choice, even when it was never read.
@@ -1355,7 +1379,7 @@ def run(driver, target: str, goal: str, ask_here, *, max_screens: int = 8,
                                       | {"value": str(_value_of(x))[:500]}
                                       # Displays and text fields — a field's
                                       # text is what a later step may copy.
-                                      for x in cands if "read" in x.get("can", ())
+                                      for x in cands if not x.get('_observation_page') and "read" in x.get("can", ())
                                       and ("click" not in x.get("can", ())
                                            or "set_value" in x.get("can", ()))][:12],
                                   **{k: recorded_action[k] for k in ("value", "direction", "pages", "key", "option_label", "scope", "attachment_digest") if k in recorded_action},
