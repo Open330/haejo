@@ -1,0 +1,276 @@
+{
+  "schema": "tacto-observed-benchmark-v1",
+  "date": "2026-11-06",
+  "release": "v1.0.0-rc.22",
+  "runtime_source_commit": "8a28650a2cc45c6a066907ceb73d57c43fcbb38d",
+  "qualification": "internal release candidate; no stable/public release approval implied",
+  "regression": {
+    "tests": 3257,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 27,
+    "source_unchanged": true
+  },
+  "native_tasks": {
+    "scope": "signed source runtime, owned actual app fixtures; zero model requests",
+    "save_as": {
+      "passed": 3,
+      "trials": 3,
+      "guarded_save_inputs_each": 1,
+      "exact_new_RTF_and_document_URL": true,
+      "cleaned": true
+    },
+    "finder_named_folder": {
+      "passed": 1,
+      "trials": 1,
+      "exact_name_and_single_new_directory": true,
+      "cleaned": true
+    },
+    "textedit_select_all": {
+      "passed": 1,
+      "trials": 1,
+      "cleaned": true
+    },
+    "foreground_witness_preserved": true,
+    "physical_typing_preservation_verified": false
+  },
+  "comparison": {
+    "task": "Calculator 23 x 19 to owned TextEdit document: exact 437",
+    "requested_model": "gpt-6.1-sol",
+    "requested_reasoning_effort": "medium",
+    "fresh_ephemeral_empty_workspaces": true,
+    "timeout_seconds_each": 180,
+    "alternating_first_arm": true,
+    "runtime_profile_agent_stable": true,
+    "harness_exit": 2,
+    "strict_product_equivalence_verified": false,
+    "strict_comparison_exclusion_reason": "agent responsibility boundary not isolated or observed",
+    "serving_model_verified": false,
+    "server_cache_controlled": false,
+    "billing_verified": false,
+    "token_scope": "single reported parent Codex turn.completed usage per task; not a billing or nested-provider accounting claim",
+    "arms": {
+      "tacto": {
+        "runs": 3,
+        "passed": 3,
+        "seconds_median": 57.0,
+        "seconds_mean": 56.53333333333333,
+        "input_tokens": {
+          "total": 461607,
+          "median": 154494,
+          "mean": 153869
+        },
+        "cached_input_tokens": {
+          "total": 410496,
+          "median": 135936,
+          "mean": 136832
+        },
+        "uncached_input_tokens": {
+          "total": 51111,
+          "median": 18558,
+          "mean": 17037
+        },
+        "output_tokens": {
+          "total": 3269,
+          "median": 1078,
+          "mean": 1089.6666666666667
+        },
+        "total_tokens": {
+          "total": 464876,
+          "median": 155572,
+          "mean": 154958.66666666666
+        }
+      },
+      "sky": {
+        "runs": 3,
+        "passed": 3,
+        "seconds_median": 33.0,
+        "seconds_mean": 34.2,
+        "input_tokens": {
+          "total": 432887,
+          "median": 144340,
+          "mean": 144295.66666666666
+        },
+        "cached_input_tokens": {
+          "total": 384256,
+          "median": 125312,
+          "mean": 128085.33333333333
+        },
+        "uncached_input_tokens": {
+          "total": 48631,
+          "median": 19028,
+          "mean": 16210.333333333334
+        },
+        "output_tokens": {
+          "total": 1899,
+          "median": 639,
+          "mean": 633
+        },
+        "total_tokens": {
+          "total": 434786,
+          "median": 144985,
+          "mean": 144928.66666666666
+        }
+      }
+    },
+    "trials": [
+      {
+        "arm": "tacto",
+        "rep": 0,
+        "status": "passed",
+        "seconds": 63.0,
+        "tokens": {
+          "scope": "single reported turn.completed usage",
+          "status": "reported",
+          "input_tokens": 172490,
+          "cached_input_tokens": 153728,
+          "uncached_input_tokens": 18762,
+          "output_tokens": 1126,
+          "total_tokens": 173616,
+          "event_count": 1,
+          "stream_complete": true,
+          "cost_usd": null,
+          "billing_verified": false
+        },
+        "source_changed": false
+      },
+      {
+        "arm": "sky",
+        "rep": 0,
+        "status": "passed",
+        "seconds": 33.0,
+        "tokens": {
+          "scope": "single reported turn.completed usage",
+          "status": "reported",
+          "input_tokens": 144346,
+          "cached_input_tokens": 125312,
+          "uncached_input_tokens": 19034,
+          "output_tokens": 639,
+          "total_tokens": 144985,
+          "event_count": 1,
+          "stream_complete": true,
+          "cost_usd": null,
+          "billing_verified": false
+        },
+        "source_changed": false
+      },
+      {
+        "arm": "sky",
+        "rep": 1,
+        "status": "passed",
+        "seconds": 39.7,
+        "tokens": {
+          "scope": "single reported turn.completed usage",
+          "status": "reported",
+          "input_tokens": 144201,
+          "cached_input_tokens": 133632,
+          "uncached_input_tokens": 10569,
+          "output_tokens": 597,
+          "total_tokens": 144798,
+          "event_count": 1,
+          "stream_complete": true,
+          "cost_usd": null,
+          "billing_verified": false
+        },
+        "source_changed": false
+      },
+      {
+        "arm": "tacto",
+        "rep": 1,
+        "status": "passed",
+        "seconds": 49.6,
+        "tokens": {
+          "scope": "single reported turn.completed usage",
+          "status": "reported",
+          "input_tokens": 134623,
+          "cached_input_tokens": 120832,
+          "uncached_input_tokens": 13791,
+          "output_tokens": 1065,
+          "total_tokens": 135688,
+          "event_count": 1,
+          "stream_complete": true,
+          "cost_usd": null,
+          "billing_verified": false
+        },
+        "source_changed": false
+      },
+      {
+        "arm": "tacto",
+        "rep": 2,
+        "status": "passed",
+        "seconds": 57.0,
+        "tokens": {
+          "scope": "single reported turn.completed usage",
+          "status": "reported",
+          "input_tokens": 154494,
+          "cached_input_tokens": 135936,
+          "uncached_input_tokens": 18558,
+          "output_tokens": 1078,
+          "total_tokens": 155572,
+          "event_count": 1,
+          "stream_complete": true,
+          "cost_usd": null,
+          "billing_verified": false
+        },
+        "source_changed": false
+      },
+      {
+        "arm": "sky",
+        "rep": 2,
+        "status": "passed",
+        "seconds": 29.9,
+        "tokens": {
+          "scope": "single reported turn.completed usage",
+          "status": "reported",
+          "input_tokens": 144340,
+          "cached_input_tokens": 125312,
+          "uncached_input_tokens": 19028,
+          "output_tokens": 663,
+          "total_tokens": 145003,
+          "event_count": 1,
+          "stream_complete": true,
+          "cost_usd": null,
+          "billing_verified": false
+        },
+        "source_changed": false
+      }
+    ]
+  },
+  "deployment": {
+    "hosts": 3,
+    "version": "v1.0.0-rc.22",
+    "identical_signed_bundle": true,
+    "permissions_retained": true,
+    "additional_permission_action_needed": false,
+    "background_running": true,
+    "dock_hidden": true,
+    "local_installed_native_tests": 7,
+    "session_repair_document_readback_cancel_and_paging": true,
+    "remote_native_GUI_tasks_tested_in_this_batch": false,
+    "public_github_release_changed": false,
+    "vault_session_modified": false
+  },
+  "notarization": {
+    "app": "Accepted",
+    "dmg": "Accepted",
+    "app_gatekeeper_accepted": true,
+    "dmg_gatekeeper_accepted": true
+  },
+  "security": {
+    "scope": "current non-fixture tracked source, source patch history since RC2, and exact notarized DMG app bytes; historical GitHub caches not certified",
+    "passed": true,
+    "source_findings": 0,
+    "delta_findings": 0,
+    "dmg_findings": 0
+  },
+  "preserved_negative_evidence": [
+    "Earlier candidate: 2 capability/schema checks failed, then repaired and retested in the new frozen candidate. No notarization or installation of that candidate.",
+    "Earlier Finder trial: exact name and cleanup succeeded, but System Settings activation invalidated background evidence. Origin remains unconfirmed.",
+    "Earlier peer Save As trial: file appeared after unverified receipt; preserved as unverified. Subsequent independent trials passed; original cause remains unconfirmed."
+  ],
+  "remaining": [
+    "Cold authoring latency and token overhead versus Sky",
+    "Native visual input beyond the verified Preview image-reading task",
+    "Long-running real-service save/send/resume evidence beyond existing owned-fixture coverage"
+  ]
+}
