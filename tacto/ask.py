@@ -588,6 +588,12 @@ def _here_question(goal: str, candidates: list[dict], done_so_far=(),
                    'ObservationPage 후보 하나에 read를 요청해 다음 관측을 보십시오. '
                    '이는 앱 조작이나 결과 읽기가 아닙니다. 다른 행동·expect·finishes와 '
                    '섞지 마십시오. 아직 전체 항목을 확인한 것은 아닙니다.')
+    can_reveal = any(c.get('_observation_reveal') for c in indexed.values())
+    if can_reveal:
+        prompt += ('\n정확한 대상 이름을 이미 알면 페이지를 차례로 읽는 대신 '
+                   '{"find_in_observation":"정확한 이름"}을 단독 요청하십시오. '
+                   '앱 조작 없이 생략된 이름·값·identifier를 정확히 검색해 새 관측을 줍니다. '
+                   '부분 검색이 아니며, 못 찾으면 다음 관측 페이지로 탐색하십시오.')
     # A reordered page knows its own position; picks alone cannot say it.
     has_next = (more if more is not None else
                 paged and bool(indexed) and max(indexed) + 1 < total)
@@ -602,6 +608,14 @@ def _here_question(goal: str, candidates: list[dict], done_so_far=(),
     def check(a: dict) -> dict | None:
         if not isinstance(a, dict):
             return None
+        if 'find_in_observation' in a:
+            from .protocol import reveal_problem
+            label = a['find_in_observation']
+            if (not can_reveal or not isinstance(label, str) or reveal_problem([label])
+                    or set(a) - {'find_in_observation', 'done', 'actions'}
+                    or a.get('done', False) is not False or a.get('actions', []) != []):
+                return None
+            return {'done': False, 'actions': [], 'find_in_observation': label}
         if "next_page" in a and type(a["next_page"]) is not bool:
             return None
         if a.get("next_page"):

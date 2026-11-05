@@ -1,4 +1,5 @@
 import copy
+import json
 import unittest
 from unittest.mock import patch
 
@@ -40,6 +41,43 @@ def find_last(goal, cands, history):
 
 
 class GeneralObservationPagingTests(unittest.TestCase):
+    def test_exact_name_lookup_replaces_page_scan_and_uses_fresh_native_index(self):
+        class SearchApp(PagedApp):
+            capabilities = {'observe.reveal'}
+            def observe(self, *args, **kwargs):
+                if kwargs.get('reveal'):
+                    self.revealed = kwargs['reveal']
+                    return super().observe(*args, continuation='PRIVATE-cursor-3')
+                return super().observe(*args, **kwargs)
+        app = SearchApp()
+        def planner(goal, cands, history):
+            if not any(c['match'] == 'row-3' for c in cands):
+                self.assertTrue(cands[0]['_observation_reveal'])
+                return {'find_in_observation': 'row-3'}
+            return find_last(goal, cands, history)
+        result = run(app, 'owned', 'read row-3', planner)
+        self.assertTrue(result.verified, result.why)
+        self.assertEqual(['row-3'], app.revealed)
+        self.assertEqual(1, result.observation_searches)
+        self.assertEqual(0, result.observation_pages)
+        self.assertEqual(['value-3'], result.said)
+        self.assertEqual([('obs-3', {'name': 'read', 'element_index': 1})], app.actions)
+
+    def test_lookup_requires_advertised_support_and_no_input_or_completion(self):
+        page = continuation_candidate({'next_observation_cursor': 'private'}, reveal_supported=True)
+        q = what_to_do_here('find', [page])
+        good = {'find_in_observation': 'Item239'}
+        self.assertEqual('Item239', q.check(good)['find_in_observation'])
+        self.assertIsNone(what_to_do_here('find', [dict(page, _observation_reveal=False)]).check(good))
+        for extra in ({'done': True}, {'actions': [{'pick': 0, 'do': 'read'}]},
+                      {'expect': 'done'}, {'finishes': False}, {'unknown': 'PRIVATE'}):
+            self.assertIsNone(q.check({**good, **extra}))
+        for label in ('', 'a\nb', 'x'*257, None, ['Item239']):
+            self.assertIsNone(q.check({'find_in_observation': label}))
+        with patch('tacto.ask.reach_model', return_value=json.dumps(good)):
+            result = ask_here_paged('find', [page])
+        self.assertEqual('Item239', result['find_in_observation'])
+
     def test_reaches_omitted_page_without_dispatching_fake_read_or_old_index(self):
         app = PagedApp()
         result = run(app, 'owned', 'read row-3', find_last)
@@ -89,12 +127,12 @@ class GeneralObservationPagingTests(unittest.TestCase):
             with self.subTest(variant=variant):
                 app = PagedApp()
                 def planner(goal, cs, history):
-                    page = copy.deepcopy(cs[-1])
+                    page = copy.deepcopy(next(c for c in cs if c.get('_observation_page')))
                     if variant == 'forged':
                         page['element_index'] = 1
                     answer = {'actions': [{'do': 'set_value' if variant == 'write' else 'read', 'candidate': page}]}
                     if variant == 'mixed':
-                        answer['actions'].append({'do': 'read', 'candidate': cs[0]})
+                        answer['actions'].append({'do': 'read', 'candidate': next(c for c in cs if not c.get('_observation_page'))})
                     if variant == 'finishes':
                         answer['finishes'] = True
                     if variant == 'expect':

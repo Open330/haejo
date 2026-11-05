@@ -143,14 +143,18 @@ class DocumentScopedDriver:
     def observe(self, target, mode='tree_full', require_window=True, *, document_token=None, reveal=None,
                 continuation=None):
         if reveal is not None:
-            # One pinned document window; looking past caps elsewhere is not its read.
-            return _refuse('reveal_unavailable')
+            # Modern backends apply the same document token before walking or
+            # revealing. Looking past a cap stays inside the already pinned file.
+            if 'observe.reveal' not in self.capabilities:
+                return _refuse('reveal_unavailable')
         self._obs_id = None
         self._window_index = None
         self._indices=frozenset()
         if target != self.target or document_token not in (None,self._token):return _refuse()
         try:
             options = {} if continuation is None else {'continuation': continuation}
+            if reveal is not None:
+                options['reveal'] = reveal
             reply = self._inner.observe(target,mode,require_window=require_window,document_token=self._token, **options)
         except Exception:return _refuse('native_read_failed')
         if (not isinstance(reply,dict) or reply.get('type') != 'observation'

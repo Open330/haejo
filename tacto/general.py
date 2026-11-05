@@ -523,6 +523,7 @@ class GeneralResult:
     visual_used: bool = False
     visual_history: list[dict] = field(default_factory=list)
     observation_pages: int = 0  # successful read-only continuation observations
+    observation_searches: int = 0  # targeted read-only native label lookups
 
     @property
     def did(self) -> list[str]:
@@ -609,6 +610,7 @@ def run(driver, target: str, goal: str, ask_here, *, max_screens: int = 8,
     select_options = {}
     custom_selects = {}
     pending_continuation = None
+    pending_reveal = None
     prepare_commit = prepare_commit or getattr(driver, "prepare_commit", None)
     after_commit = after_commit or getattr(driver, "after_commit", None)
 
@@ -693,16 +695,26 @@ def run(driver, target: str, goal: str, ask_here, *, max_screens: int = 8,
         return result + menus.candidates()
 
     def observe():
-        nonlocal select_options, custom_selects, pending_continuation
+        nonlocal select_options, custom_selects, pending_continuation, pending_reveal
         try:
             options = {}
             if pending_continuation is not None:
                 options['continuation'] = pending_continuation
                 pending_continuation = None
+            elif pending_reveal is not None:
+                options['reveal'] = [pending_reveal]
+                pending_reveal = None
             result = driver.observe(target, "tree_full", require_window=False, **options)
             if result.get("type") == "observation":
-                if options:
+                if 'continuation' in options:
                     res.observation_pages += 1
+                if 'reveal' in options:
+                    res.observation_searches += 1
+                    count = result.get('revealed')
+                    status = (f'생략 부분에서 {count}개 일치' if type(count) is int else '일치 수 미확인')
+                    if result.get('reveal_scan_complete') is False:
+                        status += '; 검색 범위 일부 미확인'
+                    done_so_far.append('이름 검색(앱 입력 없음): ' + json.dumps(options['reveal'][0], ensure_ascii=False) + ' — ' + status)
                 res.after_tree = result["tree"]
                 select_options = result.get("select_options", {})
                 custom_selects = result.get("custom_selects", {})
@@ -793,9 +805,11 @@ def run(driver, target: str, goal: str, ask_here, *, max_screens: int = 8,
         if stopped():return res
         cands = available(obs["tree"])
         from .observation_paging import continuation_candidate
-        page_candidate = continuation_candidate(obs)
+        page_candidate = continuation_candidate(obs, reveal_supported='observe.reveal' in capabilities)
         if page_candidate is not None:
-            cands.append(page_candidate)
+            # Keep the lookup/continuation affordance on the first token page,
+            # rather than making the agent read every visible candidate first.
+            cands.insert(0, page_candidate)
         if not cands:
             res.why = "화면에 조작할 수 있는 것이 없습니다"
             return res
@@ -841,6 +855,18 @@ def run(driver, target: str, goal: str, ask_here, *, max_screens: int = 8,
                        f"(페이지 {details.get('page', '?')}, "
                        f"입력 {details.get('token_count', '?')}/{details.get('budget', '?')})")
             return res
+        if 'find_in_observation' in answer:
+            from .protocol import reveal_problem
+            label = answer['find_in_observation']
+            if (page_candidate is None or not page_candidate.get('_observation_reveal')
+                    or not isinstance(label, str) or reveal_problem([label])
+                    or answer.get('actions') or answer.get('done')
+                    or answer.get('finishes') or answer.get('expect')):
+                res.why = '정확한 이름의 추가 관측만 단독으로 요청할 수 있습니다'
+                return res
+            pending_reveal = label
+            planned_on = None
+            continue
         if answer.get("done"):
             return finish(obs, cands)
         acts = answer.get("actions") or []

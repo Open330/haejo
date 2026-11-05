@@ -95,7 +95,7 @@ def read_flow_line(fd, timeout, *, platform=None, reader=None):
             return line.decode('utf-8')
 
 
-def read_session_flow(fd, timeout, emit, *, prepare=None, observe_next=None):
+def read_session_flow(fd, timeout, emit, *, prepare=None, observe_next=None, find_observation=None):
     """Repair interactive schema errors before dispatch on the same connection."""
     deadline = time.monotonic() + timeout
     reader = _windows_reader(fd) if sys.platform == 'win32' else None
@@ -104,14 +104,25 @@ def read_session_flow(fd, timeout, emit, *, prepare=None, observe_next=None):
         # rejected by Flow parsing can be corrected without starting over.
         raw = read_flow_line(fd, max(0, deadline - time.monotonic()), reader=reader)
         try:
-            if observe_next is not None:
+            if observe_next is not None or find_observation is not None:
                 command = json.loads(raw)
                 if isinstance(command, dict) and 'observe_next' in command:
-                    if set(command) != {'observe_next'} or command['observe_next'] is not True:
+                    if (set(command) != {'observe_next'} or command['observe_next'] is not True
+                            or observe_next is None):
                         from .flow_errors import FlowFieldError
                         raise FlowFieldError('invalid_observation_request', 'observe_next',
                                              'Send only {"observe_next":true}; send the Flow separately.')
                     observe_next()
+                    continue
+                if isinstance(command, dict) and 'find_in_observation' in command:
+                    from .protocol import reveal_problem
+                    from .flow_errors import FlowFieldError
+                    label = command['find_in_observation']
+                    if (set(command) != {'find_in_observation'} or not isinstance(label, str)
+                            or reveal_problem([label]) or find_observation is None):
+                        raise FlowFieldError('invalid_observation_lookup', 'find_in_observation',
+                                             'Send one exact label as text, without a Flow or other commands.')
+                    find_observation(label)
                     continue
             flow = Flow.from_json(raw, strict_checks=True)
             return prepare(flow) if prepare is not None else flow
@@ -229,26 +240,33 @@ def run_session(args, *, make_driver, run_flow, stdin, emit):
                 visible['has_more_observation'] = True
             emit(json.dumps(visible, ensure_ascii=False))
             if more:
-                emit('TACTO_OBSERVATION_MORE send {"observe_next":true} to inspect omitted candidates on this session; no UI input is sent.')
+                lookup = (' If the exact name is known, send {"find_in_observation":"exact label"} instead.'
+                          if 'observe.reveal' in getattr(driver, 'capabilities', ()) else '')
+                emit('TACTO_OBSERVATION_MORE send {"observe_next":true} to inspect omitted candidates on this session; no UI input is sent.' + lookup)
             emit('TACTO_SESSION_READY send one compact Flow JSON line, then newline; target=' + target)
 
-        def observe_next():
+        def additional_observation(label=None):
             nonlocal observation, continuation_pages
             from .flow_errors import FlowFieldError
+            field = 'observe_next' if label is None else 'find_in_observation'
             if continuation_pages >= MAX_OBSERVATION_PAGES:
-                raise FlowFieldError('observation_page_limit', 'observe_next',
-                                     'Eight continuation pages were requested; narrow the window or task.')
+                raise FlowFieldError('observation_page_limit', field,
+                                     'Eight additional observations were requested; narrow the window or task.')
+            if label is not None and 'observe.reveal' not in getattr(driver, 'capabilities', ()):
+                raise FlowFieldError('observation_lookup_unavailable', field,
+                                     'This runtime cannot search omitted labels; use observe_next.')
             cursor = observation.pop('next_observation_cursor', None)
             if not isinstance(cursor, str) or not cursor:
-                raise FlowFieldError('observation_continuation_unavailable', 'observe_next',
+                raise FlowFieldError('observation_continuation_unavailable', field,
                                      'No next observation is available on this session.')
             continuation_pages += 1
             try:
-                next_page = driver.observe(target, 'tree_full', continuation=cursor)
+                options = {'continuation': cursor} if label is None else {'reveal': [label]}
+                next_page = driver.observe(target, 'tree_full', **options)
             except Exception:
                 next_page = None
             if not isinstance(next_page, dict) or next_page.get('type') != 'observation':
-                raise FlowFieldError('observation_continuation_failed', 'observe_next',
+                raise FlowFieldError('observation_continuation_failed', field,
                                      'The continuation expired or changed; start a fresh observation.')
             observation = next_page
             show_observation()
@@ -265,7 +283,8 @@ def run_session(args, *, make_driver, run_flow, stdin, emit):
                 timing['input_ready_seconds'] = time.monotonic() - started
                 flow, template = read_session_flow(stdin.fileno(), timeout, emit,
                                                    prepare=lambda parsed: prepare_session_flow(parsed, target),
-                                                   observe_next=observe_next)
+                                                   observe_next=additional_observation,
+                                                   find_observation=additional_observation)
                 timing['flow_received_seconds'] = time.monotonic() - started
         except (ValueError, TypeError, KeyError, TimeoutError, RecursionError) as exc:
             # A flow may contain personal text. Do not echo malformed input or

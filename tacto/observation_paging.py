@@ -1,7 +1,7 @@
 """Host-owned continuation affordance; no native handle/cursor enters a prompt."""
 
 
-def continuation_candidate(observation):
+def continuation_candidate(observation, *, reveal_supported=False):
     cursor = observation.get('next_observation_cursor')
     if not isinstance(cursor, str) or not cursor:
         return None
@@ -17,4 +17,5 @@ def continuation_candidate(observation):
         'disabled': False,
         'line': '',
         '_observation_page': True,
+        **({'_observation_reveal': True} if reveal_supported else {}),
     }

@@ -17,6 +17,9 @@ authoring the Flow, send `{"observe_next":true}` alone on this same session to
 read the next page. Each page replaces the previous observation; do not combine
 element indices across pages. Up to eight continuation pages share the original
 input deadline. No app input occurs. The live cursor stays inside the runtime.
+If the marker offers name lookup and the exact label is known, send
+`{"find_in_observation":"exact label"}` instead to avoid reading intervening
+pages. Lookup and continuation share the eight-request limit and deadline.
 
 For agent tools, start with `exec_command`, `tty: true`, and
 `yield_time_ms: 1000`. Wait for both the observation and `TACTO_SESSION_READY`.

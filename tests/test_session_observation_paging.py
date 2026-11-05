@@ -29,9 +29,9 @@ class SessionObservationPagingTests(unittest.TestCase):
         self.assertEqual('error', driver.observe('com.apple.TextEdit', continuation='next-cursor')['type'])
         inner.document_text.assert_called_once()  # No repin or app-wide read.
 
-    def run_interactive(self, pages, replies):
+    def run_interactive(self, pages, replies, *, capabilities=()):
         app = Mock()
-        app.capabilities = ()
+        app.capabilities = capabilities
         app.observe.side_effect = pages
         runner = Mock(return_value=0)
         messages = []
@@ -82,6 +82,44 @@ class SessionObservationPagingTests(unittest.TestCase):
         app.act.assert_not_called()
         app.close.assert_called_once()
 
+    def test_known_label_lookup_stays_on_same_session_and_no_native_input_is_sent(self):
+        result, app, runner, messages = self.run_interactive(
+            [self.page('PRIVATE-cursor'), self.page()],
+            [{'find_in_observation': 'Item239'}, calculator_example()],
+            capabilities={'observe.reveal'})
+        self.assertEqual(0, result)
+        self.assertEqual(2, app.observe.call_count)
+        self.assertEqual({'reveal': ['Item239']}, app.observe.call_args.kwargs)
+        self.assertIn('find_in_observation', '\n'.join(messages))
+        self.assertNotIn('PRIVATE', '\n'.join(messages))
+        app.act.assert_not_called()
+        runner.assert_called_once()
+
+    def test_unsupported_lookup_does_not_call_backend_or_restart_session(self):
+        result, app, runner, messages = self.run_interactive(
+            [self.page('PRIVATE-cursor')],
+            [{'find_in_observation': 'Item239'}, calculator_example()])
+        self.assertEqual(0, result)
+        self.assertEqual(1, app.observe.call_count)
+        self.assertIn('find_in_observation:', '\n'.join(messages))
+        app.act.assert_not_called()
+        runner.assert_called_once()
+
+    def test_label_lookup_passes_the_existing_document_pin_without_widening(self):
+        from tacto.document_scope import DocumentScopedDriver
+        from tests import test_document_scoped_driver as cases
+        inner = cases.ScopedDriverTests().inner()
+        inner.capabilities = {*inner.capabilities, 'observe.reveal'}
+        driver = DocumentScopedDriver(inner, cases.TARGET, cases.PATH)
+        self.assertEqual('observation', driver.observe(cases.TARGET, reveal=['owned'])['type'])
+        self.assertEqual({'require_window': True, 'document_token': 'pin', 'reveal': ['owned']},
+                         inner.observe.call_args.kwargs)
+        inner.document_text.assert_called_once()
+        inner.act.assert_not_called()
+        inner.observe.return_value['document_token'] = 'OTHER-PIN'
+        self.assertEqual('error', driver.observe(cases.TARGET, reveal=['owned'])['type'])
+        inner.document_text.assert_called_once()
+
     def test_rejected_continuation_does_not_dispatch_or_echo_transport_details(self):
         result, app, runner, messages = self.run_interactive(
             [self.page('PRIVATE-cursor'), {'type': 'error', 'error': 'PRIVATE-transport-detail'}],
@@ -121,7 +159,7 @@ class SessionObservationPagingTests(unittest.TestCase):
             pages, [{'observe_next': True}] * 9 + [calculator_example()])
         self.assertEqual(0, result)
         self.assertEqual(9, app.observe.call_count)  # initial + 8 continuation pages
-        self.assertIn('Eight continuation pages', '\n'.join(messages))
+        self.assertIn('Eight additional observations', '\n'.join(messages))
         self.assertNotIn('PRIVATE', '\n'.join(messages))
         app.act.assert_not_called()
         runner.assert_called_once()

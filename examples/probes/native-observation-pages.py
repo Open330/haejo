@@ -55,6 +55,7 @@ def run_probe(driver, *, provider='fixed', budget=4000):
         report.setdefault('observations', []).append({
             'type': value.get('type'), 'error': value.get('error'),
             'continued': kwargs.get('continuation') is not None,
+            'lookup': kwargs.get('reveal'),
             'has_next': bool(value.get('next_observation_cursor')),
             'target_present': 'tacto-pages-Item239' in value.get('tree', ''),
             'truncated': value.get('truncated')})
@@ -117,6 +118,7 @@ def run_probe(driver, *, provider='fixed', budget=4000):
                                                 token_counter=lambda text: len(counter(text)))
                     report['plans'].append({'labels': [c['label'] for c in cands],
                         'actions': [{'do': a['do'], 'label': a['candidate']['label']} for a in (answer or {}).get('actions', [])],
+                        'find_in_observation': (answer or {}).get('find_in_observation'),
                         'stop_reason': (answer or {}).get('stop_reason')})
                     return answer
                 audit = ProcessInputAudit(interval=.01, startup_timeout=10, stop_timeout=3, max_samples=25000)
@@ -127,10 +129,15 @@ def run_probe(driver, *, provider='fixed', budget=4000):
                         plan, max_screens=12, timeout_seconds=160)
                 report.update(loop_ok=result.ok, verified=result.verified, why=result.why,
                               stop_reason=result.stop_reason, observation_pages=result.observation_pages,
+                              observation_searches=result.observation_searches,
                               said=result.said, provider_calls=result.provider_calls,
                               provider_summary=summarize_provider_calls(result.provider_calls),
                               audit=audit.report(), final_oracle=json.loads(oracle.read_text()))
-                report['passed'] = (result.ok and result.verified and result.observation_pages >= 3
+                report['omitted_target_found_after_read'] = any(
+                    obs['target_present'] and (obs['continued'] or obs.get('lookup'))
+                    for obs in report['observations'])
+                report['passed'] = (result.ok and result.verified
+                    and report['omitted_target_found_after_read']
                     and report['initial_oracle'] == {'count': 0, 'selected': ''}
                     and report['final_oracle'] == {'count': 1, 'selected': 'Item239'}
                     and 'Picked Item239 count 1' in result.said
