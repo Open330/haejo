@@ -387,3 +387,48 @@ class StopWiringSourceTests(unittest.TestCase):
         self.assertIn('let status = waitForChildServicingMainRunLoop(childPID)', source)
         self.assertNotIn('waitpid(childPID, &status, 0)', source)
         self.assertIn('cancelled: { childCancelled() || helperStopWatch.isStopped }', source)
+
+
+class WatcherLifecycleTests(unittest.TestCase):
+    """The cancel watcher never outlives or stalls its request (no Swift)."""
+
+    def driver(self, sock):
+        driver = object.__new__(InheritedHelperDriver)
+        driver._sock = sock
+        driver._f = sock.makefile('rw', encoding='utf-8', newline='\n')
+        driver._ready = True
+        driver.capabilities = set()
+        driver.launcher_capabilities = frozenset({'ask_cancel_v1'})
+        return driver
+
+    def watchers(self):
+        return [t for t in threading.enumerate() if t.name == 'tacto-ask-cancel' and t.is_alive()]
+
+    def test_send_failure_before_frame_is_written_returns_promptly(self):
+        mine, theirs = socket.socketpair()
+        theirs.close()                       # the ask frame cannot be written
+        driver = self.driver(mine)
+        started = time.monotonic()
+        with model_cancellation(lambda: False), self.assertRaises(Exception) as caught:
+            driver._ask_launcher_response('plan', provider='opencode', timeout_seconds=300)
+        self.assertNotIsInstance(caught.exception, ModelCancelled)
+        self.assertLess(time.monotonic() - started, 2, 'must not wait for the 300 s request timeout')
+        self.assertEqual([], self.watchers())
+
+    def test_unwritable_cancel_frame_closes_channel_without_blocking(self):
+        mine, theirs = socket.socketpair()
+        self.addCleanup(theirs.close)
+        class WouldBlock:
+            """The real socket, except a cancel frame cannot be sent now."""
+            def __init__(self, inner): self.inner = inner
+            def send(self, *args): raise BlockingIOError()
+            def __getattr__(self, name): return getattr(self.inner, name)
+        driver = self.driver(mine)
+        driver._sock = WouldBlock(mine)
+        started = time.monotonic()
+        # The peer reads the ask and never answers; cancellation is at once.
+        with model_cancellation(lambda: True), self.assertRaises(ModelCancelled):
+            driver._ask_launcher_response('plan', provider='opencode', timeout_seconds=300)
+        self.assertLess(time.monotonic() - started, 2)
+        self.assertTrue(driver._poisoned, 'a cancel that could not be framed closes the channel')
+        self.assertEqual([], self.watchers())

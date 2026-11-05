@@ -310,22 +310,31 @@ class InheritedHelperDriver:
                      and 'ask_cancel_v1' in getattr(self, 'launcher_capabilities', ()) else None)
         written, done, cancel_sent = threading.Event(), threading.Event(), threading.Event()
         def watch():
-            if not written.wait(timeout_seconds) or done.is_set():
-                return
+            # Every wait is done-aware: a request that fails before its frame
+            # is written (or ends at any time) releases this thread at once.
+            while not written.is_set():
+                if done.wait(ASK_CANCEL_POLL_SECONDS):
+                    return
             while not done.wait(ASK_CANCEL_POLL_SECONDS):
                 if probe():
                     frame = (json.dumps({'type': 'ask_cancel', 'cancel_id': cancel_id}) + '\n').encode()
-                    try:
-                        self._sock.sendall(frame)
-                    except OSError:
-                        pass
                     cancel_sent.set()
+                    try:
+                        # Never block: the frame is tiny, and one that cannot
+                        # be written whole would desynchronize the channel.
+                        sent = self._sock.send(frame, socket.MSG_DONTWAIT)
+                    except OSError:
+                        sent = -1
+                    if sent != len(frame):
+                        expire()
+                        return
                     # Bounded: the launcher's cooperative grace and cleanup.
                     # A missing reply after that closes the channel for good.
                     if not done.wait(ASK_CANCEL_REPLY_GRACE_SECONDS):
                         expire()
                     return
-        watcher = threading.Thread(target=watch, daemon=True) if cancel_id is not None else None
+        watcher = (threading.Thread(target=watch, name='tacto-ask-cancel', daemon=True)
+                   if cancel_id is not None else None)
         if watcher is not None:
             watcher.start()
         def timeout_error():
@@ -356,7 +365,8 @@ class InheritedHelperDriver:
         finally:
             done.set()
             if watcher is not None:
-                watcher.join()
+                # The watcher only waits on `done` or sends without blocking.
+                watcher.join(ASK_CANCEL_POLL_SECONDS * 4 + 1)
             timer.cancel()
             timer.join()
             if cancel_sent.is_set() and expired.is_set():
