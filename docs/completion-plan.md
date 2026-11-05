@@ -1,5 +1,31 @@
 # 전체 목표의 완료 기준과 현재 작업
 
+## 2026-11-05 rc.20 설치 검증 완료
+
+고정 소스 a13cc55의 rc.20은 전체 3,120검사에서 실패·오류0, 조건부 제외26으로
+통과했다. 첫 후보의 필드 오류 안내 회귀 5건을 고친 새 후보이며 실패 기록은
+보존했다. 앱·DMG 모두 Apple Accepted, 티켓·Gatekeeper 검증과 보안·최종
+산출물 검사를 통과했다. localhost·june-mba·jiun-mini에 동일 번들을 설치했고
+서명·스킬 연결·기존 앱 조작/화면 읽기 권한을 확인했다. Vault 세션과 GitHub
+공개 릴리스는 변경하지 않았다.
+
+설치본 native7검사(한글 NFC/NFD·암호 입력·클립보드·floating 드래그/크기 조절),
+같은 세션의 schema 수리(guide1·READY2·모델0·쓰기0), 실제 소유 TextEdit의
+입력1회 뒤 본문 상태 확인과 정리를 통과했다. Flow는 exit1로 유지하며 본문
+일치를 저장 성공으로 승격하지 않는다. 설치된 signed launcher에서 요청 CLI를
+종료한 시험도 소유 합성 provider 그룹 회수·지연 쓰기 없음으로 통과했다
+(종료까지0.236초). 실제 원격 생성/과금 취소와 물리 Esc는 이 시험 범위가 아니다.
+
+증빙은 `reviews/tacto-rc20-candidate2-20261105/completion-report.json`,
+`fleet-final-audit.json`, `fleet-installation-report.json`, `installed-native.log`,
+`installed-session-repair.log`,
+`test-installed-document-readback.py.log`, `test-installed-client-cancel.py.log`다.
+후속 실제 앱3쌍도 Tacto/Sky 모두3/3 성공했다. 관측 평균57.1/37.3초로
+차이가 남으며 엄격 비교 제외 사유도 유지한다. [비교 기록](benchmark-records.md)에
+토큰·전체 실행·한계를 보존했다. 이 배포 검증은 G0~G10 전체 목표 완료를
+뜻하지 않는다. 아래 과거 절의
+“현재 rc.19”, “설치본 E2E 미검증”은 해당 시점의 기록이며 이 절로 갱신한다.
+
 ## 2026-11-05 후속: 입력 전 수리·본문 상태·실제 취소 경로
 
 후보 d696a6c/525fb61/ea2a103은 잘못된 selector/check/resource/evidence/binding을
