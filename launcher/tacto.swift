@@ -179,7 +179,7 @@ let topLevelKeys: Set<String> = ["sensitive_input_authorized", "window_scope_id"
                                  "require_window", "window_identity", "reveal", "prompt", "image", "model", "json", "path",
                                  "expect", "element_index", "provider",
                                  "document_token", "document_path", "max_utf16_units", "timeout_seconds",
-                                 "window_index", "window_element_index", "panel_token", "require_format", "element_indices", "read_strategy", "titlebar_probe", "cancel_id"]
+                                 "window_index", "window_element_index", "panel_token", "require_format", "element_indices", "read_strategy", "titlebar_probe", "cancel_id", "continuation"]
 
 // What a caller may claim its target still is. Reading one element's own
 // attributes is about a millisecond; re-walking Mail's tree to find out is
@@ -423,6 +423,15 @@ func vetted(_ msg: [String: Any]) -> String? {
         return "cancel_id 는 ask 전용입니다"
     }
     if let raw = msg["cancel_id"], !askCancelIDIsValid(raw) { return "cancel_id 형식 오류" }
+    if let raw = msg["continuation"] {
+        // An opaque helper-issued page cursor: observe only, never alongside
+        // reveal/window_identity, and nothing but its own closed alphabet.
+        guard type == "observe", msg["reveal"] == nil, msg["window_identity"] == nil,
+              let cursor = raw as? String, (3...128).contains(cursor.utf8.count),
+              cursor.unicodeScalars.allSatisfy({ ("a"..."z").contains($0) || ("0"..."9").contains($0) }) else {
+            return "continuation 형식 오류"
+        }
+    }
     if type == "ask_cancel", Set(msg.keys) != Set(["type", "cancel_id"]) {
         return "ask_cancel 형식 오류"
     }

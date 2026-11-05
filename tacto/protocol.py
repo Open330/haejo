@@ -195,6 +195,25 @@ def drag_reobservation(action, response, capabilities):
 
 
 REVEAL_CAPABILITY = 'observe.reveal'
+# Explicit next page of what an observation omitted past its caps.
+CONTINUATION_CAPABILITY = 'observe.continuation_v1'
+
+
+def continuation_problem(cursor, *, reveal=None, window_identity=False):
+    """None when `cursor` is an opaque observation continuation id.
+
+    The id is issued by the driver; its alphabet is closed so it can travel
+    through the launcher's vetting unchanged. It never combines with reveal or
+    window identity, which describe a first observation.
+    """
+    if cursor is None:
+        return None
+    if (not isinstance(cursor, str) or not 3 <= len(cursor) <= 128
+            or any(c not in 'abcdefghijklmnopqrstuvwxyz0123456789' for c in cursor)):
+        return 'continuation must be the opaque id from next_observation_cursor'
+    if reveal is not None or window_identity:
+        return 'continuation cannot be combined with reveal or window_identity'
+    return None
 
 
 def reveal_problem(reveal):

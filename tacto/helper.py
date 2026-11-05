@@ -580,6 +580,14 @@ class HelperDriver:
                     stream.close()
 
     def _send(self, msg: dict) -> dict:
+        # The same window scope contract as the inherited channel: a scoped
+        # driver names its window on every targeted request, and a request for
+        # another target is refused before anything is written.
+        scope = getattr(self, '_window_scope', None)
+        if scope is not None and msg.get('target'):
+            if msg['target'] != scope[0]:
+                return {'type':'error','error':'window_scope_changed','effect':'not_started'}
+            msg = dict(msg, window_scope_id=scope[1])
         self._proc.stdin.write(json.dumps(msg, ensure_ascii=False) + "\n")
         self._proc.stdin.flush()
         line = self._proc.stdout.readline()
@@ -629,8 +637,14 @@ class HelperDriver:
 
     def observe(self, target: str, mode: str = "tree_full",
                 require_window: bool = True, *, document_token=None, window_identity=False, reveal=None,
-                _settle_after_action=True):
-        from .protocol import REVEAL_CAPABILITY, reveal_problem
+                continuation=None, _settle_after_action=True):
+        from .protocol import CONTINUATION_CAPABILITY, REVEAL_CAPABILITY, continuation_problem, reveal_problem
+        problem = continuation_problem(continuation, reveal=reveal, window_identity=window_identity)
+        if problem:
+            return {'type':'error', 'error':'invalid_continuation', 'effect':'not_started', 'detail':problem}
+        if continuation is not None and CONTINUATION_CAPABILITY not in getattr(self, 'capabilities', ()):
+            return {'type':'error', 'error':'continuation_unavailable', 'effect':'not_started',
+                    'detail':'helper does not page past the observation caps'}
         if reveal_problem(reveal):
             return {'type':'error', 'error':'invalid_reveal', 'effect':'not_started', 'detail':reveal_problem(reveal)}
         if reveal is not None and REVEAL_CAPABILITY not in getattr(self, 'capabilities', ()):
@@ -661,6 +675,11 @@ class HelperDriver:
             message['document_token'] = document_token
         if reveal is not None:
             message['reveal'] = list(reveal)
+        if continuation is not None:
+            # A page of the previous observation, not a new look at the app:
+            # no settle wait was needed, and no unhide retry applies.
+            message['continuation'] = continuation
+            return self._send(message)
         out = self._send(message)
         if out.get("error") == "no_window_content" and "reason" not in out:
             # The helper says only that there is no window. Which of the

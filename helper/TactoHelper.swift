@@ -306,6 +306,11 @@ final class ObservationRevealScan {
 
 /// One line per element, in the exact format the Python `Selector` parses:
 /// `<indent><index> <Role>  Key: value, Key2: value [disabled] [selected]`
+func axParentElement(_ el: AXUIElement) -> AXUIElement? {
+    guard let raw = attr(el, kAXParentAttribute as String), CFGetTypeID(raw) == AXUIElementGetTypeID() else { return nil }
+    return unsafeBitCast(raw, to: AXUIElement.self)
+}
+
 func windowControlElement(_ window:AXUIElement,_ key:String) -> AXUIElement? {
     guard let raw=attr(window,key),CFGetTypeID(raw)==AXUIElementGetTypeID() else {return nil}
     return unsafeBitCast(raw,to:AXUIElement.self)
@@ -404,6 +409,10 @@ func walk(_ el: AXUIElement, depth: Int, out: inout [String],
     }
     if children.count > maxChildrenPerNode {
         truncated = true
+        // Remember exactly what was skipped, so an explicit continuation can
+        // read it later. O(1) here; nothing beyond the cap is read now.
+        observationOmission?(.children(parent: el, start: maxChildrenPerNode, count: children.count,
+                                       firstSkipped: children[maxChildrenPerNode], depth: depth + 1))
         var revealed = 0
         if let reveal {
             for child in children.dropFirst(maxChildrenPerNode) {
@@ -433,7 +442,40 @@ func walk(_ el: AXUIElement, depth: Int, out: inout [String],
     }
 }
 
+/// What an observation left unread, for one explicit continuation page.
+enum ObservationOmission {
+    /// A node the node budget deferred, at its walk depth.
+    case node(AXUIElement, depth: Int)
+    /// Children past the per-node cap: `parent`'s AXChildren from `start`,
+    /// pinned by the child count and the first skipped child at deferral.
+    case children(parent: AXUIElement, start: Int, count: Int, firstSkipped: AXUIElement, depth: Int)
+}
+/// Set only while an observation walks; nil otherwise (like `walkSeen`).
+var observationOmission: ((ObservationOmission) -> Void)? = nil
 // MARK: - Session state
+
+/// The most a continuation remembers. Past it, the page says so instead of
+/// pretending the rest is reachable.
+let maxContinuationEntries = 4096
+
+/// Server-side continuation of the latest observation. The client holds only
+/// the opaque id. It is bound to the observation that issued it and to the
+/// same target process, document pin and window scope; any newer observation
+/// or action (which replaces `latestObsID`) retires it, and it is single use.
+struct ObservationContinuation {
+    let id: String
+    let obsID: String
+    let target: String
+    let pid: pid_t
+    let processStart: Double?
+    let documentToken: String?
+    let scopeID: CGWindowID?
+    let entries: [(window: AXUIElement, omission: ObservationOmission)]
+    let page: Int
+    let capped: Bool
+}
+var latestContinuation: ObservationContinuation? = nil
+
 
 // Only the newest observation is actionable. Keeping every obs_id valid forever
 // would let a caller act on a tree captured before the UI changed — the same
@@ -1095,6 +1137,174 @@ func bundleProcessUnavailable(_ bundle: String) -> Bool {
     }
 }
 
+/// Keep what an observation left unread, behind an opaque single-use id.
+func issueContinuation(_ entries: [(window: AXUIElement, omission: ObservationOmission)],
+                       obsID: String, target: String, pid: pid_t, processStart: Double?,
+                       documentToken: String?, page: Int, capped: Bool = false) -> String? {
+    guard !entries.isEmpty else { latestContinuation = nil; return nil }
+    let kept = Array(entries.prefix(maxContinuationEntries))
+    let id = "oc" + UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased()
+    latestContinuation = ObservationContinuation(id: id, obsID: obsID, target: target, pid: pid,
+        processStart: processStart, documentToken: documentToken,
+        scopeID: ParallelWindowState.shared.current?.id, entries: kept, page: page,
+        capped: capped || entries.count > maxContinuationEntries)
+    return id
+}
+
+/// One line for an ancestor shown again as context on a continuation page.
+/// It is a real element of the new page (a selector may name it), read fresh.
+func continuationContextLine(_ el: AXUIElement, depth: Int, index: Int) -> String {
+    let role = str(el, kAXRoleAttribute as String) ?? "?"
+    let quoteValues = role == kAXWindowRole as String || role == "AXWebArea" || role == "AXLink"
+    var text = label(el, quoteValues: quoteValues)
+    // Exactly as the first walk: a pinned document is recognized by this path.
+    if role == kAXWindowRole as String, let doc = str(el, "AXDocument"),
+       let path = documentURLSyntaxPath(doc), !path.hasPrefix("/.file/"),
+       let encoded = quotedLabelValue(path.precomposedStringWithCanonicalMapping) {
+        text += (text.isEmpty ? "" : ", ") + "Document: \(encoded)"
+    }
+    let short = role.hasPrefix("AX") ? String(role.dropFirst(2)) : role
+    let enabled = (attr(el, kAXEnabledAttribute as String) as? Bool) ?? true
+    return String(repeating: "  ", count: depth) + "\(index) \(short)"
+        + (text.isEmpty ? "" : "  \(text)") + (enabled ? "" : " [disabled]")
+}
+
+/// The next page of what the latest observation omitted: a NEW observation
+/// (new obs_id, indices from 0) that replaces the previous one, so indices
+/// from earlier pages can never be acted on. Same caps per page; never
+/// widens them, never acts on the app.
+func observeContinuation(_ target: String, cursor: String, documentToken: String?) -> [String: Any] {
+    func refuse(_ code: String) -> [String: Any] {
+        ["type": "error", "error": code, "effect": "not_started"]
+    }
+    guard let cont = latestContinuation, cont.id == cursor else { return refuse("continuation_unknown_or_expired") }
+    // Single use, whatever happens next.
+    latestContinuation = nil
+    guard cont.obsID == latestObsID, cont.target.lowercased() == target.lowercased(),
+          latestTargetName.lowercased() == target.lowercased(),
+          cont.documentToken == documentToken, latestDocumentToken == documentToken,
+          cont.scopeID == ParallelWindowState.shared.current?.id else {
+        return refuse("continuation_unknown_or_expired")
+    }
+    guard let p = pid(forBundle: target), p == cont.pid, p == latestTargetPID,
+          nativeProcessStartIdentity(p) == cont.processStart else {
+        return refuse("continuation_target_changed")
+    }
+    if let documentToken {
+        do {
+            guard let first = cont.entries.first,
+                  CFEqual(try documentWindowForToken(target, documentToken), first.window) else {
+                return refuse("document_snapshot_unavailable")
+            }
+        } catch { return refuse("document_snapshot_unavailable") }
+    }
+    if abortState.isStopped { return ["type": "error", "error": "aborted_by_user"] }
+    guard ensureVisibleControl(forPID: p, windowless: true) else { return indicatorRefusal() }
+    var lines: [String] = []
+    var elements: [AXUIElement] = []
+    var visited = 0
+    var truncated = false
+    walkSeen = []
+    defer { walkSeen = nil; observationOmission = nil }
+    let metrics = ObservationReadMetrics()
+    var remaining: [(window: AXUIElement, omission: ObservationOmission)] = []
+    var depthDropped = 0
+    // The ancestors (window first) of a resumed node, read fresh by AXParent.
+    func context(for node: AXUIElement, window: AXUIElement) -> [AXUIElement]? {
+        var chain: [AXUIElement] = []
+        var current = node
+        for _ in 0..<26 {
+            if CFEqual(current, window) { return [window] + chain.reversed() }
+            guard let parent = axParentElement(current) else { return nil }
+            current = parent
+            if !CFEqual(current, window) { chain.append(current) }
+        }
+        return nil
+    }
+    func show(_ chain: [AXUIElement]) {
+        for (depth, el) in chain.enumerated() where !elements.contains(el) {
+            if depth == 0 {
+                lines.append("… (이어지는 관측: 생략됐던 부분의 다음 페이지입니다)")
+            }
+            walkSeen?.insert(el)
+            lines.append(continuationContextLine(el, depth: depth, index: elements.count))
+            elements.append(el)
+        }
+    }
+    var queue = cont.entries[...]
+    while let entry = queue.first {
+        if visited >= maxTreeNodes { break }
+        queue = queue.dropFirst()
+        if abortState.isStopped { return ["type": "error", "error": "aborted_by_user"] }
+        observationOmission = { remaining.append((window: entry.window, omission: $0)) }
+        switch entry.omission {
+        case .node(let node, _):
+            guard let chain = context(for: node, window: entry.window) else {
+                return refuse("continuation_stale")
+            }
+            // The same depth limit as the first walk; say how many it dropped.
+            if chain.count > 25 { depthDropped += 1; continue }
+            show(chain)
+            walk(node, depth: chain.count, out: &lines, elements: &elements, visited: &visited,
+                 truncated: &truncated, nodeLimit: maxTreeNodes,
+                 deferred: { remaining.append((window: entry.window, omission: .node($0, depth: $1))) },
+                 metrics: metrics)
+        case .children(let parent, let start, let count, let firstSkipped, _):
+            // The list must be the one that was skipped: same length, same
+            // first omitted element. Never guess how indices moved.
+            guard let children = attr(parent, kAXChildrenAttribute as String) as? [AXUIElement],
+                  children.count == count, start < count, CFEqual(children[start], firstSkipped),
+                  let chain = context(for: parent, window: entry.window) else {
+                return refuse("continuation_stale")
+            }
+            show(CFEqual(parent, entry.window) ? [entry.window] : chain + [parent])
+            let depth = CFEqual(parent, entry.window) ? 1 : chain.count + 1
+            let end = min(count, start + maxChildrenPerNode)
+            for child in children[start..<end] {
+                walk(child, depth: depth, out: &lines, elements: &elements, visited: &visited,
+                     truncated: &truncated, nodeLimit: maxTreeNodes,
+                     deferred: { remaining.append((window: entry.window, omission: .node($0, depth: $1))) },
+                     metrics: metrics)
+            }
+            if end < count {
+                remaining.append((window: entry.window, omission: .children(parent: parent, start: end,
+                    count: count, firstSkipped: children[end], depth: depth)))
+                lines.append(String(repeating: "  ", count: depth) + "… (\(count - end)개 더 있음)")
+            }
+        }
+    }
+    observationOmission = nil
+    // Unread entries first, then what this page newly deferred.
+    let next = Array(queue) + remaining
+    let obsID = "s" + UUID().uuidString.prefix(8)
+    latestObsID = obsID
+    latestElements = elements
+    latestTargetPID = p
+    latestProcessStart = cont.processStart
+    latestTargetName = target
+    latestDocumentToken = documentToken
+    let cursorOut = issueContinuation(next, obsID: obsID, target: target, pid: p,
+        processStart: cont.processStart, documentToken: documentToken, page: cont.page + 1, capped: cont.capped)
+    if cursorOut != nil { truncated = true; lines.append(truncationMark) }
+    var reply: [String: Any] = ["type": "observation", "obs_id": obsID, "target": target,
+        "tree": lines.joined(separator: "\n"), "element_count": elements.count, "truncated": truncated,
+        "observation_metrics": metrics.metadata,
+        "continuation": ["page": cont.page + 1, "entries_remaining": next.count,
+                         "frontier_queue_capped": latestContinuation?.capped ?? cont.capped,
+                         "depth_limit_dropped": depthDropped,
+                         "limits": ["nodes_per_page": maxTreeNodes, "children_per_node": maxChildrenPerNode,
+                                    "max_depth": 25, "max_entries": maxContinuationEntries]]]
+    if let cursorOut { reply["next_observation_cursor"] = cursorOut }
+    let selectLines = lines.compactMap { line -> Int? in
+        let words = line.split(separator: " ", maxSplits: 2)
+        guard words.count >= 2, ["PopUpButton", "ComboBox"].contains(String(words[1])) else { return nil }
+        return Int(words[0])
+    }
+    reply["custom_selects"] = customSelects(p, elements, obsID: obsID, candidates: selectLines)
+    if let documentToken { reply["document_token"] = documentToken }
+    return reply
+}
+
 func observe(_ target: String, requireWindow: Bool = true, documentToken: String? = nil, windowIdentity: Bool = false, reveal: [String]? = nil) -> [String: Any] {
     guard let p = pid(forBundle: target) else {
         let gui = NSWorkspace.shared.runningApplications.filter { $0.activationPolicy == .regular }
@@ -1194,9 +1404,11 @@ func observe(_ target: String, requireWindow: Bool = true, documentToken: String
     }
     // With no front window known, every window keeps its hints.
     let hinted = front.contains(true) ? front : front.map { _ in true }
-    defer { readSecondaryActions = true }
+    defer { readSecondaryActions = true; observationOmission = nil }
+    var omitted: [[ObservationOmission]] = Array(repeating: [], count: windowCount)
     for (position, w) in windows.prefix(windowCount).enumerated() {
         readSecondaryActions = hinted[position]
+        observationOmission = { omitted[position].append($0) }
         var block: [String] = []
         var pending: [(AXUIElement, Int)] = []
         var windowTruncated = false
@@ -1221,6 +1433,7 @@ func observe(_ target: String, requireWindow: Bool = true, documentToken: String
         var unfinished: [(AXUIElement, Int)] = []
         var windowTruncated = partial[position]
         readSecondaryActions = hinted[position]
+        observationOmission = { omitted[position].append($0) }
         for (node, depth) in pending {
             walk(node, depth: depth, out: &block, elements: &elements,
                  visited: &visited, truncated: &windowTruncated,
@@ -1253,18 +1466,30 @@ func observe(_ target: String, requireWindow: Bool = true, documentToken: String
             return ["type":"error", "error":"document_snapshot_unavailable", "effect":"not_started"]
         }
     }
+    observationOmission = nil
+    // Front window first, as the leftover budget was spent.
+    var continuationEntries: [(window: AXUIElement, omission: ObservationOmission)] = []
+    for position in resumeOrder {
+        let w = windows[position]
+        continuationEntries += omitted[position].map { (window: w, omission: $0) }
+        continuationEntries += frontiers[position].map { (window: w, omission: .node($0.0, depth: $0.1)) }
+    }
     latestObsID = obsID
     latestElements = elements
     latestTargetPID = p
     latestProcessStart = processStart
     latestTargetName = target
     latestDocumentToken = documentToken
+    latestContinuation = nil
+    let continuation = issueContinuation(continuationEntries, obsID: obsID, target: target, pid: p,
+        processStart: processStart, documentToken: documentToken, page: 0)
     if truncated { lines.append(truncationMark) }
     var reply: [String: Any] = ["type": "observation", "obs_id": obsID, "target": target,
             "tree": windows.isEmpty ? "(창 없음 — 메뉴만 사용 가능)"
                                     : lines.joined(separator: "\n"),
             "element_count": elements.count, "truncated": truncated,
             "observation_metrics":metrics.metadata]
+    if let continuation { reply["next_observation_cursor"] = continuation }
     let walkMs = milliseconds(since: walkStart)
     // Reading only; nothing here opens a menu. A closed popup reports
     // no options because it HAS none until it is opened.
@@ -5410,7 +5635,7 @@ let experimentalForegroundCapabilities: [String] = []
 
 let helperCapabilities: [String] = [
     "observe.reveal",
-    "observe", "act", "probe", "selection", "menu_state", "menu_items",
+    "observe", "observe.continuation_v1", "act", "probe", "selection", "menu_state", "menu_items",
     "expect.role", "expect.label", "expect.attribute", "expect.attribute.subrole", "expect.attribute.url", "observe.subrole", "expect.enabled",
     "expect.no_modal", "expect.selection",
     "effect",                       // errors say whether an effect is possible
@@ -6850,12 +7075,23 @@ func handle(_ msg: [String: Any]) -> [String: Any] {
         if let raw = msg["document_token"], !(raw is String) {
             return ["type":"error", "error":"document_snapshot_unavailable", "effect":"not_started"]
         }
+        if let raw = msg["continuation"] {
+            guard let cursor = raw as? String, !cursor.isEmpty, cursor.utf8.count <= 128,
+                  msg["reveal"] == nil, msg["window_identity"] == nil else {
+                return ["type":"error", "error":"invalid_continuation", "effect":"not_started"]
+            }
+            return observeContinuation(msg["target"] as? String ?? "", cursor: cursor,
+                                       documentToken: msg["document_token"] as? String)
+        }
         return observe(msg["target"] as? String ?? "",
                        requireWindow: msg["require_window"] as? Bool ?? true,
                        documentToken: msg["document_token"] as? String,
                        windowIdentity: msg["window_identity"] as? Bool ?? false,
                        reveal: msg["reveal"] as? [String])
     case "act":
+        // Any action retires the observation's continuation: what was
+        // omitted described the screen before this action.
+        latestContinuation = nil
         var sensitiveInputAuthorized=false
         if let raw=msg["sensitive_input_authorized"] {
             guard let value=raw as? NSNumber, CFGetTypeID(value)==CFBooleanGetTypeID(), value.boolValue,

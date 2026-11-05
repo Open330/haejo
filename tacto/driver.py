@@ -94,6 +94,8 @@ MAX_TREE_NODES = 2500
 # the window — sidebar, toolbar, the first rows — where a global budget alone
 # would spend everything inside the first big list and never reach the rest.
 MAX_CHILDREN_PER_NODE = 60
+# The most omitted places one observation continuation remembers.
+MAX_CONTINUATION_ENTRIES = 4096
 TRUNCATION_MARK = "… (트리가 커서 여기서 잘렸습니다 — 더 좁은 창/앱을 대상으로 하세요)"
 # `reveal` looks past the per-container cap for named elements only: the 200th
 # row of a mailbox is found by its name without walking the other 199. Each
@@ -511,6 +513,11 @@ class Observation:
         self.reveal_deadline = None
         self.reveal_complete = True
         self.revealed = 0
+        # Continuation: a callback told what the caps skipped (None: nobody
+        # asked), and on a continuation page the already-shown context.
+        self.omission = None
+        self.context = ()
+        self.continuation_entries = []
 
     def _reveals(self, el):
         """Whether `el` or a shallow part of it carries a reveal text exactly.
@@ -573,6 +580,8 @@ class Observation:
             else:
                 deferred.append((el, depth))
             return
+        if getattr(self, 'context', ()) and any(CFEqual(el, shown) for shown in self.context):
+            return
         self.visited += 1
         role = _attr(el, "AXRole") or "?"
         label = _elem_label(el,quote_values=role=='AXWindow')
@@ -606,6 +615,10 @@ class Observation:
             self.walk(child, depth + 1, node_limit=node_limit, deferred=deferred)
         if len(children) > MAX_CHILDREN_PER_NODE:
             self.truncated = True
+            if getattr(self, 'omission', None) is not None:
+                # Exactly what was skipped, for an explicit continuation; O(1).
+                self.omission(('children', el, MAX_CHILDREN_PER_NODE, len(children),
+                               children[MAX_CHILDREN_PER_NODE], depth + 1))
             shown = 0
             if self.reveal:
                 for child in children[MAX_CHILDREN_PER_NODE:]:
@@ -849,9 +862,11 @@ class Driver:
             obs.truncated = True
         prior_lines, prior_truncated = obs.lines, obs.truncated
         blocks, frontiers, partial = [], [], []
+        omitted = [[] for _ in range(window_count)]
         for position, w in enumerate(windows[:window_count]):
             obs.lines = []
             obs.truncated = False
+            obs.omission = omitted[position].append
             pending = []
             window_budget = (MAX_TREE_NODES - obs.visited) // (window_count - position)
             obs.walk(w, node_limit=obs.visited + window_budget, deferred=pending)
@@ -861,10 +876,15 @@ class Driver:
                 break
             pending, frontiers[position] = frontiers[position], []
             obs.lines, obs.truncated = blocks[position], partial[position]
+            obs.omission = omitted[position].append
             for node, depth in pending:
                 obs.walk(node, depth, deferred=frontiers[position])
             partial[position] = obs.truncated
         obs.lines, obs.truncated = prior_lines, prior_truncated
+        obs.omission = None
+        obs.continuation_entries = [(w, entry) for position, w in enumerate(windows[:window_count])
+                                    for entry in omitted[position]
+                                    + [('node', node, depth) for node, depth in frontiers[position]]]
         for position, w in enumerate(windows[:window_count]):
             block = blocks[position]
             # Mark the frontmost window so a selector can mean "the one the
@@ -1385,8 +1405,16 @@ class Driver:
             pass
 
     def observe(self, target: str, mode: str = "tree_diff",
-                require_window: bool = True, *, document_token=None, reveal=None, _settle_after_action=True):
-        from .protocol import reveal_problem
+                require_window: bool = True, *, document_token=None, reveal=None, continuation=None,
+                _settle_after_action=True):
+        from .protocol import continuation_problem, reveal_problem
+        problem = continuation_problem(continuation, reveal=reveal)
+        if problem:
+            return {'type':'error','error':'invalid_continuation','effect':'not_started','detail':problem}
+        if continuation is not None:
+            return self._observe_continuation(target, continuation, document_token)
+        # A new look at the app retires any continuation of the previous one.
+        self._continuation = None
         problem = reveal_problem(reveal)
         if problem:
             return {'type':'error','error':'invalid_reveal','effect':'not_started','detail':problem}
@@ -1522,11 +1550,162 @@ class Driver:
             answer["reveal_scanned_nodes"] = obs.reveal_scanned
         if document_token is not None:
             answer['document_token'] = document_token
+        cursor = self._issue_continuation(obs, target, document_token, obs.continuation_entries, page=0)
+        if cursor is not None:
+            answer['next_observation_cursor'] = cursor
         if obs.truncated:
             # A tree that stopped early describes less than the window holds,
             # which is the other half of "screenshots are for where the tree
             # is incomplete". Saying so here is how a caller knows to ask.
             answer["visual_read"] = self.visual_read()
+        return answer
+
+    def _issue_continuation(self, obs, target, document_token, entries, *, page, capped=False):
+        """Keep what `obs` omitted behind an opaque single-use id."""
+        self._continuation = None
+        if not entries:
+            return None
+        import uuid
+        kept = list(entries[:MAX_CONTINUATION_ENTRIES])
+        cursor = 'oc' + uuid.uuid4().hex
+        self._continuation = {
+            'id': cursor, 'obs_id': obs.obs_id, 'target': target.lower(), 'pid': obs.pid,
+            'launch': obs.process_launch_identity, 'document_token': document_token,
+            'document_window': getattr(obs, 'document_window', None), 'entries': kept, 'page': page,
+            'capped': capped or len(entries) > MAX_CONTINUATION_ENTRIES}
+        return cursor
+
+    def _observe_continuation(self, target, cursor, document_token):
+        """The next page of what the latest observation omitted.
+
+        A NEW observation (new obs_id, indices from 0) replaces the previous
+        one, so earlier pages' indices are stale. The same caps apply per page;
+        nothing is activated or acted on.
+        """
+        def refuse(code):
+            return {'type': 'error', 'error': code, 'effect': 'not_started'}
+        cont, self._continuation = getattr(self, '_continuation', None), None   # single use
+        latest = self._latest.get(target.lower())
+        if (cont is None or cont['id'] != cursor or latest is None or latest.obs_id != cont['obs_id']
+                or cont['target'] != target.lower() or cont['document_token'] != document_token
+                or getattr(latest, 'document_token', None) != document_token):
+            return refuse('continuation_unknown_or_expired')
+        pid = self._resolve(target, launch=False)
+        from .native_process_identity import process_start_identity
+        try:
+            launch = process_start_identity(pid) if pid is not None else None
+        except Exception:
+            launch = None
+        if pid != cont['pid'] or launch is None or launch != cont['launch']:
+            return refuse('continuation_target_changed')
+        if document_token is not None:
+            try:
+                window = self._document_reader.window_for_token(target, document_token)
+            except Exception:
+                return refuse('document_snapshot_unavailable')
+            if not CFEqual(window, cont['document_window']):
+                return refuse('document_snapshot_unavailable')
+        self._showing_control(pid)
+        page = Observation(target, pid)
+        if document_token is not None:
+            page.document_token = document_token
+            page.document_window = cont['document_window']
+        remaining, shown = [], []
+        depth_dropped = 0
+
+        def context(node, window):
+            chain, current = [], node
+            for _ in range(MAX_TREE_DEPTH + 1):
+                if CFEqual(current, window):
+                    return [window] + list(reversed(chain))
+                parent = _attr(current, 'AXParent')
+                try:
+                    if parent is None or CFGetTypeID(parent) != AXUIElementGetTypeID():
+                        return None
+                except (TypeError, ValueError):
+                    return None
+                current = parent
+                if not CFEqual(current, window):
+                    chain.append(current)
+            return None
+
+        def show(chain):
+            for depth, el in enumerate(chain):
+                if any(CFEqual(el, known) for known in page.elements):
+                    continue
+                if depth == 0:
+                    page.lines.append('… (이어지는 관측: 생략됐던 부분의 다음 페이지입니다)')
+                role = _attr(el, 'AXRole') or '?'
+                label = _elem_label(el, quote_values=role == 'AXWindow')
+                if role == 'AXWindow':
+                    # Exactly as the first walk: a pinned document wrapper
+                    # recognizes its window by this Document path.
+                    doc = _attr(el, 'AXDocument')
+                    path = _document_path(doc) if isinstance(doc, str) else None
+                    if path:
+                        from .document_label import quote_value
+                        label = (label + ', ' if label else '') + f'Document: {quote_value(path)}'
+                disabled = ' [disabled]' if _attr(el, 'AXEnabled') is False else ''
+                page.lines.append('  ' * depth + f"{len(page.elements)} {role[2:] if role.startswith('AX') else role}"
+                                  + (f'  {label}' if label else '') + disabled)
+                page.elements.append(el)
+                shown.append(el)
+            page.context = tuple(shown)
+
+        queue = list(cont['entries'])
+        while queue and page.visited < MAX_TREE_NODES:
+            window, entry = queue.pop(0)
+            page.omission = lambda omission, window=window: remaining.append((window, omission))
+            deferred = []
+            if entry[0] == 'node':
+                _, node, _ = entry
+                chain = context(node, window)
+                if chain is None:
+                    return refuse('continuation_stale')
+                if len(chain) > MAX_TREE_DEPTH:
+                    depth_dropped += 1
+                    continue
+                show(chain)
+                page.walk(node, len(chain), deferred=deferred)
+            else:
+                _, parent, start, count, first, _ = entry
+                children = _attr(parent, 'AXChildren') or []
+                chain = context(parent, window)
+                # Same list as skipped, or refuse: never guess shifted indices.
+                if (len(children) != count or not start < count or not CFEqual(children[start], first)
+                        or chain is None):
+                    return refuse('continuation_stale')
+                at_window = CFEqual(parent, window)
+                show([window] if at_window else chain + [parent])
+                depth = 1 if at_window else len(chain) + 1
+                end = min(count, start + MAX_CHILDREN_PER_NODE)
+                for child in children[start:end]:
+                    page.walk(child, depth, deferred=deferred)
+                if end < count:
+                    remaining.append((window, ('children', parent, end, count, children[end], depth)))
+                    page.lines.append('  ' * depth + f'… ({count - end}개 더 있음)')
+            remaining.extend((window, ('node', node, depth)) for node, depth in deferred)
+        page.omission = None
+        self._latest[target.lower()] = page
+        cursor_out = self._issue_continuation(page, target, document_token, queue + remaining,
+                                              page=cont['page'] + 1, capped=cont['capped'])
+        if cursor_out is not None:
+            page.truncated = True
+            page.lines.append(TRUNCATION_MARK)
+        answer = {'type': 'observation', 'obs_id': page.obs_id, 'target': target, 'mode': 'tree_full',
+                  'tree': '\n'.join(page.lines), 'element_count': len(page.elements),
+                  'custom_selects': self._custom_selects(page), 'truncated': page.truncated,
+                  'continuation': {'page': cont['page'] + 1, 'entries_remaining': len(queue) + len(remaining),
+                                   'frontier_queue_capped': (self._continuation or cont)['capped'],
+                                   'depth_limit_dropped': depth_dropped,
+                                   'limits': {'nodes_per_page': MAX_TREE_NODES,
+                                              'children_per_node': MAX_CHILDREN_PER_NODE,
+                                              'max_depth': MAX_TREE_DEPTH,
+                                              'max_entries': MAX_CONTINUATION_ENTRIES}}}
+        if cursor_out is not None:
+            answer['next_observation_cursor'] = cursor_out
+        if document_token is not None:
+            answer['document_token'] = document_token
         return answer
 
     def wait_until(self, target: str, predicate, timeout_ms=4000, poll_ms=250):
@@ -1575,6 +1754,8 @@ class Driver:
         if action.get('name') == 'click_point' and (risk_class not in ('preapproved', 'confirm') or approved is not True):
             return {'type':'error', 'error':'coordinate_authorization_required', 'effect':'not_started',
                     'detail':'the host must explicitly authorize the intended coordinate operation'}
+        # Any action retires the continuation of the observation it cites.
+        self._continuation = None
         if risk_class not in ("none", "preapproved", "confirm", "handoff"):
             return {"type": "error", "error": "unverifiable_action", "effect": "not_started"}
         # D6 gate. handoff -> user does it. confirm AND preapproved both require

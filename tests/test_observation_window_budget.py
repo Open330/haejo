@@ -189,6 +189,8 @@ func attr(_ node: Int, _ key: String) -> Any? {
 }
 func secondaryActionsOf(_ node: Int) -> [String] { [] }
 func windowControlElement(_ node:Int,_ key:String)->Int? {nil}
+enum ObservationOmission { case node(Int, depth: Int); case children(parent: Int, start: Int, count: Int, firstSkipped: Int, depth: Int) }
+var observationOmission: ((ObservationOmission) -> Void)? = nil
 var readSecondaryActions = true
 var walkSeen: Set<Int>? = nil
 func documentURLSyntaxPath(_ text: String) -> String? { nil }
