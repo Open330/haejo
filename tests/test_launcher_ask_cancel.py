@@ -47,17 +47,28 @@ if CommandLine.arguments.count > 4 {
           askCancelFrameIsValid(["type": "ask", "cancel_id": "0123456789abcdef"]))
     exit(0)
 }
-var fromChild = Data()
-while let msg = readJSONLine(relayEnd, &fromChild) {
-    let type = msg["type"] as? String
-    if type == "ask_cancel" { continue }
-    if type == "ask" {
-        relayAsk(msg, timeout: (msg["timeout_seconds"] as? NSNumber)?.doubleValue ?? 30, fromChild: &fromChild)
-        continue
-    }
-    writeJSONLine(relayEnd, ["type": type == "ping" ? "pong" : "unexpected"])
+if let raw = ProcessInfo.processInfo.environment["HARNESS_HELPER_PID"], let pid = Int32(raw),
+   let name = ProcessInfo.processInfo.environment["HARNESS_STATUS_NAME"] {
+    helperStopWatch.bind(pid)
+    startHelperStopObserver(Notification.Name(name))
 }
-_ = modelCleanupGroup.wait(timeout: .now() + 2)
+// As in the launcher: the relay runs off the main thread, which services the
+// main run loop (where distributed notifications arrive).
+Thread {
+    var fromChild = Data()
+    while let msg = readJSONLine(relayEnd, &fromChild) {
+        let type = msg["type"] as? String
+        if type == "ask_cancel" { continue }
+        if type == "ask" {
+            relayAsk(msg, timeout: (msg["timeout_seconds"] as? NSNumber)?.doubleValue ?? 30, fromChild: &fromChild)
+            continue
+        }
+        writeJSONLine(relayEnd, ["type": type == "ping" ? "pong" : "unexpected"])
+    }
+    _ = modelCleanupGroup.wait(timeout: .now() + 2)
+    exit(0)
+}.start()
+while true { _ = CFRunLoopRunInMode(CFRunLoopMode.defaultMode, 0.05, false) }
 ''')
 
 
@@ -112,7 +123,11 @@ class LauncherAskCancelTests(unittest.TestCase):
         base = Path(cls.folder.name)
         (base / 'main.swift').write_text(harness_source())
         cls.binary = base / 'relay'
-        subprocess.run(['xcrun', 'swiftc', str(base / 'main.swift'), '-o', str(cls.binary)],
+        subprocess.run(['xcrun', 'swiftc', str(base / 'main.swift'), str(ROOT / 'RuntimeStatus.swift'),
+                        '-o', str(cls.binary)], check=True, capture_output=True, timeout=120)
+        (base / 'poster.swift').write_text(POSTER)
+        cls.poster = base / 'poster'
+        subprocess.run(['xcrun', 'swiftc', str(base / 'poster.swift'), '-o', str(cls.poster)],
                        check=True, capture_output=True, timeout=120)
         # The launcher runs the wrapper with -I; give it this checkout only.
         subprocess.run([sys.executable, '-m', 'venv', '--without-pip', str(base / 'venv')],
@@ -133,10 +148,23 @@ class LauncherAskCancelTests(unittest.TestCase):
         self.base = Path(self.work.name)
         (self.base / 'bin').mkdir()
         self.ready, self.marker = self.base / 'ready', self.base / 'survived'
+        # A private notification name: the person's Tacto menu never sees it.
+        self.status_name = 'ai.callabo.tacto.test.status.' + uuid.uuid4().hex
 
-    def start(self, python=None):
+    def post(self, pid, *, active=True, stopped=True, uid=None):
+        subprocess.run([str(self.poster), self.status_name, str(pid), str(int(active)), str(int(stopped)),
+                        str(os.getuid() if uid is None else uid)], check=True, timeout=10)
+
+    def owned_helper(self):
+        helper = subprocess.Popen([sys.executable, '-c', 'import time;time.sleep(60)'])
+        self.addCleanup(lambda: (helper.kill(), helper.wait()))
+        return helper.pid
+
+    def start(self, python=None, helper_pid=None):
         mine, theirs = socket.socketpair()
         env = dict(os.environ, PATH=f'{self.base / "bin"}:/usr/bin:/bin')
+        if helper_pid is not None:
+            env.update(HARNESS_HELPER_PID=str(helper_pid), HARNESS_STATUS_NAME=self.status_name)
         for key in ('TACTO_HELPER_FD', 'TACTO_LAUNCHER', 'TACTO_HELPER_TOKEN'):
             env.pop(key, None)
         relay = subprocess.Popen([str(self.binary), str(python or self.python), str(ROOT), str(theirs.fileno())],
@@ -258,6 +286,64 @@ class LauncherAskCancelTests(unittest.TestCase):
         self.assertFalse(self.marker.exists())
 
 
+    def run_with_status(self, *, post_pid, active=True, stopped=True, uid=None, scoped=True):
+        fake_cli(self.base / 'bin/opencode', self.ready, self.marker)
+        helper = self.owned_helper()
+        driver = self.start(helper_pid=helper)
+        def stop_once_started():
+            while not self.ready.exists():
+                time.sleep(.01)
+            time.sleep(.2)
+            self.post(helper if post_pid == 'helper' else post_pid, active=active, stopped=stopped, uid=uid)
+        threading.Thread(target=stop_once_started, daemon=True).start()
+        started = time.monotonic()
+        # The client is not cancelling: only the helper's published stop can.
+        with model_cancellation((lambda: False) if scoped else None):
+            try:
+                result = driver.ask_launcher_result('plan', provider='opencode', timeout_seconds=4)
+            except TimeoutError:
+                result = None   # ran to its own deadline: not cancelled
+        return result, time.monotonic() - started, driver
+
+    def test_helper_stop_status_cancels_in_flight_request(self):
+        result, elapsed, driver = self.run_with_status(post_pid='helper')
+        self.assertEqual('cancelled', result.status)
+        self.assertLess(elapsed, 3.5, 'the published stop, not the 4 s deadline, ended it')
+        self.assertEqual(18, result.attempts[-1].total_input_tokens)
+        self.assertTrue(group_gone(json.loads(self.ready.read_text())['group']))
+        time.sleep(1.6)
+        self.assertFalse(self.marker.exists())
+        self.assertEqual('pong', driver._send({'type': 'ping'})['type'])
+
+    def test_helper_stop_needs_no_client_cancellation_scope(self):
+        result, elapsed, driver = self.run_with_status(post_pid='helper', scoped=False)
+        self.assertEqual('cancelled', result.status)
+        self.assertLess(elapsed, 3.5)
+        self.assertEqual('pong', driver._send({'type': 'ping'})['type'])
+
+    def test_status_from_other_process_or_not_stopped_is_ignored(self):
+        for case in ({'post_pid': os.getpid()}, {'post_pid': 'helper', 'stopped': False},
+                     {'post_pid': 'helper', 'active': False}, {'post_pid': 'helper', 'uid': os.getuid() + 1}):
+            with self.subTest(**case):
+                self.setUp()
+                result, elapsed, _ = self.run_with_status(**case)
+                # Not cancelled: the request ran to its own 4 s deadline.
+                self.assertIsNone(result)
+                self.assertGreaterEqual(elapsed, 3.5)
+
+
+POSTER = r'''
+import Foundation
+let a = CommandLine.arguments
+DistributedNotificationCenter.default().postNotificationName(Notification.Name(a[1]), object: nil,
+    userInfo: ["schema": 1, "uid": Int(a[5])!, "pid": Int(a[2])!, "id": UUID().uuidString,
+               "target": "Test", "active": a[3] == "1", "stopped": a[4] == "1"],
+    deliverImmediately: true)
+// Let the post leave this process before it exits.
+RunLoop.current.run(until: Date().addingTimeInterval(0.3))
+'''
+
+
 class CooperativeStopTests(unittest.TestCase):
     def test_first_signal_cancels_then_restores_disposition(self):
         from tacto.cli import cooperative_stop
@@ -276,3 +362,28 @@ class CooperativeStopTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class StopWiringSourceTests(unittest.TestCase):
+    """The parts the harness cannot run without real Esc input or a helper."""
+
+    def test_esc_publishes_stopped_status_like_the_indicator_stop(self):
+        source = (ROOT / 'helper/TactoHelper.swift').read_text()
+        body = source[source.index('func watchForAbort()'):]
+        body = body[:body.index('\n}\n')]
+        note = body.index('abortState.note(at: ev.timestamp)')
+        publish = body.index('if abortState.isStopped && RuntimePublisher.shared.active { RuntimePublisher.shared.publish() }')
+        self.assertLess(note, publish)
+        menu = source[source.index('@objc func stopNow(_ sender: Any?)'):]
+        self.assertIn('RuntimePublisher.shared.publish()', menu[:menu.index('\n    }\n')])
+
+    def test_launcher_binds_authenticated_helper_and_services_main_run_loop(self):
+        source = (ROOT / 'launcher/tacto.swift').read_text()
+        connect = source[source.index('            helperFD = fd\n'):]
+        connect = connect[:connect.index('        }\n')]
+        self.assertIn('if let token = peerToken(fd) {', connect)
+        self.assertIn('helperStopWatch.bind(pid_t(token.val.5))', connect)
+        self.assertIn('startHelperStopObserver()', connect)
+        self.assertIn('let status = waitForChildServicingMainRunLoop(childPID)', source)
+        self.assertNotIn('waitpid(childPID, &status, 0)', source)
+        self.assertIn('cancelled: { childCancelled() || helperStopWatch.isStopped }', source)

@@ -1309,7 +1309,7 @@ func askModel(_ prompt: String, _ wantJSON: Bool, _ provider: String,
     do {
         if let result = try askModel(prompt, wantJSON, provider, timeout: timeout,
             image: msg["image"] as? [String: Any], model: msg["model"] as? String,
-            cancelled: childCancelled) {
+            cancelled: { childCancelled() || helperStopWatch.isStopped }) {
             if result["status"] as? String == "ok" {
                 writeJSONLine(relayEnd, ["type": "answer", "text": result["text"]!,
                                         "provider_result_v1": result])
@@ -1336,6 +1336,65 @@ func askModel(_ prompt: String, _ wantJSON: Bool, _ provider: String,
 @Sendable func askCancelFrameIsValid(_ frame: [String: Any]) -> Bool {
     frame["type"] as? String == "ask_cancel" && Set(frame.keys) == Set(["type", "cancel_id"])
         && frame["cancel_id"].map(askCancelIDIsValid) == true
+}
+
+/// The person's Stop (Esc or the indicator) for this run's own helper.
+///
+/// The helper publishes its run status as a distributed notification. Only a
+/// status from the exact helper process on this run's authenticated
+/// connection (audit-token PID, same uid), active and stopped, counts; it is
+/// sticky for the run because the helper's stop is. Distributed
+/// notifications are unauthenticated, so this can only ever stop work early:
+/// it never authorizes input, never resets anything, and stops only this
+/// launcher's own in-flight provider through the request cancel lifecycle.
+final class HelperStopWatch: @unchecked Sendable {
+    private let lock = NSLock()
+    private var pid: pid_t = 0
+    private var stopped = false
+    func bind(_ helper: pid_t) {
+        lock.lock(); defer { lock.unlock() }
+        if pid != helper { pid = helper; stopped = false }
+    }
+    func observe(_ info: [AnyHashable: Any]) {
+        guard let run = TactoRuntimeStatus.Run(info), run.active, run.stopped else { return }
+        lock.lock(); defer { lock.unlock() }
+        if pid > 0 && run.pid == pid { stopped = true }
+    }
+    var isStopped: Bool {
+        lock.lock(); defer { lock.unlock() }
+        return stopped
+    }
+}
+let helperStopWatch = HelperStopWatch()
+let helperStopObserverStarted = NSLock()
+nonisolated(unsafe) var helperStopObserverRunning = false
+
+/// Distributed notifications reach a command-line process only on its main
+/// run loop, so the observer is registered there; the launcher's main thread
+/// services it while it waits for the child (see the wait loop below).
+/// `name` is injectable only so tests observe a private channel and never
+/// show a fake run in the person's Tacto menu.
+func startHelperStopObserver(_ name: Notification.Name = TactoRuntimeStatus.status) {
+    helperStopObserverStarted.lock(); defer { helperStopObserverStarted.unlock() }
+    guard !helperStopObserverRunning else { return }
+    helperStopObserverRunning = true
+    DispatchQueue.main.async {
+        let token = DistributedNotificationCenter.default().addObserver(forName: name, object: nil, queue: nil) { note in
+            helperStopWatch.observe(note.userInfo ?? [:])
+        }
+        _ = Unmanaged.passRetained(token as AnyObject)   // for the life of this run
+    }
+}
+
+/// Wait for the child while servicing the main run loop (status observer).
+func waitForChildServicingMainRunLoop(_ pid: pid_t) -> Int32 {
+    var status: Int32 = 0
+    while true {
+        let done = waitpid(pid, &status, WNOHANG)
+        if done == pid { return status }
+        if done < 0 && errno != EINTR { return status }
+        _ = CFRunLoopRunInMode(CFRunLoopMode.defaultMode, 0.05, false)
+    }
 }
 
 // MARK: - Relay
@@ -1390,6 +1449,10 @@ relayQueue.async {
                 continue
             }
             helperFD = fd
+            if let token = peerToken(fd) {
+                helperStopWatch.bind(pid_t(token.val.5))
+                startHelperStopObserver()
+            }
         }
         writeJSONLine(helperFD, msg)
         guard let reply = readJSONLine(helperFD, &fromHelper) else {
@@ -1429,8 +1492,7 @@ relayQueue.async {
     if helperFD >= 0 { close(helperFD) }
 }
 
-var status: Int32 = 0
-waitpid(childPID, &status, 0)
+let status = waitForChildServicingMainRunLoop(childPID)
 // Give already scheduled watchdog cleanup its bounded grace before process exit.
 // This affects launcher shutdown, never the model response deadline.
 _ = modelCleanupGroup.wait(timeout: .now() + 1)

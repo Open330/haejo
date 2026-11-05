@@ -110,7 +110,7 @@ class WhatEndsTheHelper(unittest.TestCase):
         self.assertIn("exit(0)", body[body.index("serve(connection: conn)"):])
 
     def test_the_launcher_terminates_the_instance_not_a_remembered_pid(self):
-        tail = LAUNCHER[LAUNCHER.index("waitpid(childPID"):]
+        tail = LAUNCHER[LAUNCHER.index("waitForChildServicingMainRunLoop(childPID)"):]
         self.assertIn("helperRunning", tail)
         self.assertIn("forceTerminate()", tail)
         self.assertNotIn("kill(helperPID", tail)

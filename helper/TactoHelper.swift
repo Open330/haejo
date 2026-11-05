@@ -5272,6 +5272,10 @@ func watchForAbort() {
         // checks deep and intermittently.
         guard ev.keyCode == 53 else { return }
         abortState.note(at: ev.timestamp)
+        // Say so at once, as the indicator's Stop does. The launcher watches
+        // this status to stop a model request already in flight; until now an
+        // Esc reached only the helper's next request.
+        if abortState.isStopped && RuntimePublisher.shared.active { RuntimePublisher.shared.publish() }
     }
 }
 
