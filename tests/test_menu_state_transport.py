@@ -169,6 +169,20 @@ func focusedDocumentMismatch(pid: pid_t, want: String) -> String {
 }
 var current: Any? = nil
 func attr(_ item: Int, _ key: String) -> Any? { current }
+// The disabled branch's temporary preparation, stubbed as "not eligible".
+let obsID = "o1"
+func isFrontmost(pid: pid_t) -> Bool { false }
+struct TemporaryMenuPreparation {
+    var record: [String: Any] = [:]
+    mutating func restore(pid: pid_t) {}
+    func stillBound(pid: pid_t) -> Bool { true }
+}
+enum TemporaryMenuPreparationStart {
+    case skipped([String: Any]); case failed(TemporaryMenuPreparation, [String: Any]); case prepared(TemporaryMenuPreparation)
+}
+func beginTemporaryMenuPreparation(_ obsID: String, _ target: String, _ pid: pid_t, deadline: Double) -> TemporaryMenuPreparationStart {
+    .skipped(["attempted": false, "skipped": "stub"])
+}
 func run() -> [String: Any] {
 '''+guard+'''
 return ["type":"dispatch"]

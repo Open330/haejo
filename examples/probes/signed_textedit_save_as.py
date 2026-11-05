@@ -87,6 +87,10 @@ def run_probe(driver):
             report['guarded_save_attempts'] += 1
         response = original_act(*args, **kwargs)
         entry.update(end_t=time.monotonic(), result_type=response.get('type'))
+        # The helper's own record of a temporary menu preparation and its undo.
+        for key in ('temporary_preparation', 'reason_code', 'effect', 'activated_target'):
+            if key in response:
+                entry[key] = response[key]
         return response
     driver.act = act
     driver.document_mode = mode

@@ -198,17 +198,45 @@ AX 조회 자체의 오류도 구분한다. AttributeUnsupported/NoValue만 미�
 
 `menu` act의 거절은 이제 `reason_code`로 구분된다: `menu_path_invalid`, `menu_item_not_unique`, `menu_item_disabled`(`needs_foreground`와 `target_was_front` 포함), `menu_focused_document_mismatch`, `menu_press_failed`(원시 `ax_error`와 `target_was_front` 포함). path 길이 거절에는 누락됐던 `effect: not_started`도 붙였다. 사람이 읽는 `detail` 문구는 그대로이며, 판정에는 문구 대신 `reason_code`를 쓴다.
 
-배경에 있는 TextEdit의 File > Save As…는 실행할 수 있는 비활성화 없는 경로가 확인되지 않았다. 측정 범위는 다음과 같다(소유한 RTF 하나만 사용, `examples/probes/background_menu_key_equivalent.py`, 비공개 로컬 기록 `reviews/2026-11-05/background-menu-key-equivalent-1793882425509131000.json`):
+이번 TextEdit 시행(macOS 27.2, 소유 RTF 하나, `examples/probes/background_menu_key_equivalent.py`, 비공개 로컬 기록 `reviews/2026-11-05/background-menu-key-equivalent-*.json`)에서 배경의 File > Save As…를 세 경로로 측정했다. 다른 앱, 다른 OS 버전, 다른 경로에서도 안 된다는 주장은 아니다.
 
-- 배경 상태 3회: 소유 창이 TextEdit의 `AXFocusedWindow`이자 `AXMain`이었고, 메뉴 항목은 `AXEnabled=false`였다.
-- 전달 대조군: 같은 창에 바인딩해 pid로 보낸 Right 키는 매번 소유 문서의 caret을 1칸 옮겼다. 따라서 키 이벤트는 앱에 도달한다.
-- key equivalent: 메뉴 항목의 관측값(`AXMenuItemCmdChar`=`S`, `AXMenuItemCmdModifiers`=3, 즉 ⌥⇧⌘S)에서 이벤트를 만들고, keyCode는 현재 키보드 배열에서 유일하게 대응하는 키로 구했다. 이 이벤트를 같은 방식으로 보냈을 때 3초 안에 시트가 생기지 않았다(3/3). 활성화 기록도 없었다(focus witness의 activation 0).
-- 전경 대조군(`--foreground-control`, 측정 전용 활성화): TextEdit이 앞에 있고 소유 창이 focused일 때 같은 이벤트는 0.63초 만에 소유 창에 저장 시트를 열었다. 시트는 Cancel AXPress로 닫았다. 따라서 이벤트 형식은 맞고, 차이는 앱이 비활성이라는 점뿐이다.
-- 별도로 root run22에서는 disabled 항목에 AXPress를 허용해 봤다. 응답은 `acted`였지만 패널이 열리지 않아 postcondition_timeout으로 끝났다. 이 실험용 완화는 되돌렸다.
+1. 관측 key equivalent(`AXMenuItemCmdChar`=`S`, `AXMenuItemCmdModifiers`=3, 즉 ⌥⇧⌘S. keyCode는 현재 배열에서 유일하게 대응하는 키)를 소유 창에 바인딩해 pid로 전달했다. 배경에서는 시트가 열리지 않았다. 첫 실행 3/3은 같은 창의 Right 키가 caret을 옮겨 전달이 확인된 상태였다. 이후 실행에서는 Right 대조군도 caret을 옮기지 않아 판정 불가로 따로 기록했다. 측정 전용 전경 대조군(TextEdit 활성화)에서는 같은 이벤트가 0.63초 만에 시트를 열었다.
+2. File 메뉴바 항목: 광고된 action은 `AXCancel`/`AXPress`/`AXPick`이고 `AXShowMenu`는 광고되지 않았다. `AXPress`(2회)와 `AXPick`(1회)는 활성화 기록 없이 메뉴를 열었지만, Save As는 계속 `AXEnabled=false`였다. 열린 메뉴는 그 메뉴의 `AXCancel`로 닫았다. 메뉴가 화면에 보였는지는 확인하지 않았다.
+3. 기존 창 준비 형태(`prepare_window`와 같은 이벤트: 창 지정 AppKit applicationActivated 이벤트 + 빈 titlebar 클릭 한 쌍을 pid로 전달) 뒤 Save As를 읽었다. 0.52~0.73초 안에 `AXEnabled=true`가 됐고, 이어 AXPress하자 0.64~0.67초 안에 소유 창에 저장 시트가 열렸다(3/3). 매 이벤트 전후 시스템 전경 PID는 소유 전경 창 그대로였고 포인터도 바뀌지 않았다. TextEdit의 활성화 알림은 0회였다. 다만 첫 회차 witness에는 TextEdit이 아닌 System Settings의 활성화가 한 번 기록됐다. 이 측정과의 인과는 확인하지 못했다. 저장 시트는 화면의 새 창으로도 기록됐다. 시트는 패널의 `CancelButton`으로 닫았고 저장은 0회였다.
 
-이번 TextEdit/macOS/키보드 배열의 시행에서는 Save As가 배경의 메뉴 AXPress나 관측 key equivalent의 창 바인딩 전달로 저장 시트를 열지 못했다. 다른 앱이나 버전, 다른 메뉴 경로 전체의 불가능을 뜻하지 않는다. helper는 기존대로 `menu_item_disabled` + `needs_foreground`로 실행 전에 거절한다. 포커스를 가져오는 우회(activate, AXFrontmost 쓰기, 전역 CGEvent)는 추가하지 않았다. key equivalent 경로도 제품에 넣지 않았다. 이벤트가 전달됐다는 응답(ack)만으로는 앱이 명령을 받았다는 증거가 되지 않기 때문이다. 전경 전환을 허용한 작업에서는 명시적 `tacto activate … --window` 경로를 사용할 수 있다. 그때의 실제 입력 결과와 포커스 변화는 별도로 확인하며 백그라운드 성공으로 계산하지 않는다. 패널 없이 Apple Event로 저장하는 방식은 Save As 패널 흐름과 의미가 다르고 별도 Automation 권한이 필요하므로 이 범위 밖이다.
+경로 3의 부작용: 창 준비 뒤 TextEdit은 다른 앱이 앞에 있는데도 `AXFrontmost=true`를 유지했다. 그동안 메뉴는 TextEdit의 key window 기준으로 활성화된다. 한 번은 시트를 닫고 소유 문서를 닫은 뒤에도 그 상태가 남아, 사용자 문서 창이 focused인 채 Save As가 enabled로 보였다. 창을 지정하지 않은 applicationDeactivated 이벤트로는 풀리지 않았다. 창을 지정한 applicationDeactivated 이벤트를 pid로 보내자 `AXFrontmost=false`로 돌아왔다(probe의 `deactivate`, 3/3). 직후 메뉴 enabled 표시는 다음 검증 전까지 남았다. helper의 `prepare_window`는 현재 이 되돌림을 하지 않는다.
 
-측정 범위의 한계: TextEdit 하나, macOS 27.2, 이 키보드 배열 하나에서 측정했다. 다른 앱의 직접 target 메뉴 항목은 배경에서도 동작할 수 있다(`background-menu-refusal.py`). 이번 실행에서는 `open -g`가 TextEdit을 앞으로 가져오지 않았지만(앞 앱이 Finder로 유지), 같은 날 다른 실행에서는 `open -g` 직후 TextEdit이 앞에 관측됐다. 그래서 probe는 open 뒤 소유 전경 창이 한 번 앞을 가져간 다음부터 witness를 켠다.
+정리: 이번 시행에서 포커스를 옮기지 않고 Save As 시트를 연 경로는 3번(창 준비 → 메뉴 AXPress)뿐이다. 이후 signed helper의 `menu` act에 이 경로를 한정해 넣었다(아래 "배경 메뉴의 임시 창 준비"). 독립 실행되는 `prepare_window`의 동작은 바꾸지 않았다. `acted`나 이벤트 전달 응답은 증거로 쓰지 않는다. 시트가 같은 창에 실제로 생겼는지, receipt와 저장된 파일로 판정한다. 호출자는 필요할 때 `tacto activate … --window` 같은 명시적 전경 전환도 선택할 수 있다. 이때 발생하는 포커스 변화는 결과에 기록된다. 이번 시행에서는 macOS 27에서 `open -g`가 TextEdit을 앞으로 가져온 경우(같은 날 한 실행)도 있었다. 그래서 probe는 open 뒤 소유 전경 창이 한 번 앞을 가져간 다음부터 witness를 켠다.
+
+### 배경 메뉴의 임시 창 준비 (signed helper, 2026-11-05)
+
+`menu` act에서 항목이 `AXEnabled=false`이고 시스템 전경이 대상 앱이 아닐 때만 동작한다.
+
+조건이 하나라도 맞지 않으면 아무 이벤트도 보내지 않는다. 기존대로 `menu_item_disabled` + `needs_foreground`로 거절하고, `temporary_preparation.skipped`에 이유를 남긴다.
+
+- 대상 앱이 스스로 보고하는 `AXFrontmost`가 처음부터 `false`여야 한다. `true`(stale 누출 포함)이면 `target_self_reports_frontmost`로 건너뛴다. 원래 활성이던 상태를 복구 과정이 비활성화하는 일을 막기 위해서다.
+- 앱의 `AXFocusedWindow`가 `AXMainWindow`와 같아야 한다.
+- 그 창이 현재 관측에 정확히 한 번 있어야 한다.
+- 그 창에 sheet가 없어야 한다.
+
+조건을 만족하면 다음 순서로 진행한다.
+
+1. 그 창에 기존 `prepareBackgroundWindow`를 한 번 실행한다. 같은 관측·PID·시작 시각·문서 pin, readiness, 빈 titlebar binding을 쓰고, 이벤트마다 시스템 전경·포인터·사용자 focus가 그대로인지 검사한다.
+2. 메뉴 항목의 `AXEnabled`를 기한 안에서 다시 읽는다. 계속 비활성이면 누르지 않는다.
+3. 누르기 직전에 대상이 여전히 배경인지, 같은 main/focused 창인지, sheet가 없는지 확인한다. 그다음 AXPress는 한 번만 한다. 실패해도 다시 누르지 않는다.
+4. 누른 뒤 같은 창에 sheet가 생기는지 최대 3초 지켜본다(`sheet_observed_ms`). 이 값은 보고용이며 판정은 호출자의 postcondition이 한다.
+5. 어느 경로로 끝나든 준비 이벤트를 하나라도 보냈다면 같은 창을 지정한 `applicationDeactivated` 이벤트를 pid로 보낸다. 이어 `AXFrontmost=false`를 다시 읽어 `restored`로 기록한다. 그 사이 시스템 전경이 대상이 되었다면 이벤트를 보내지 않고 `restore_skipped: target_in_front`로 남긴다. 복구를 확인하지 못하면 `not_started`를 `unknown`으로 바꾼다.
+
+응답의 `temporary_preparation`에는 `posted_events`, `enabled_after_ms`, `sheet_observed_ms`, `restore_posted`, `frontmost_after_restore`, `restored`와 준비 진단이 들어간다.
+
+실측: worktree에서 서명 빌드한 helper와 소유 TextEdit RTF로 `signed_textedit_save_as`를 소유 전경 창(foreground-reassert witness) 아래에서 3회 실행했다(비공개 로컬 기록 `reviews/2026-11-05/textedit-save-as-transition-{1793885483830503000,1793885494312112000,1793885503840766000}.json; wrapper 기록 `reviews/bg-menu-witness/run{5,6,7}-report.json``).
+
+- 3회 모두 menu가 준비 이벤트 3개를 보냈다. enabled까지 109~212ms, sheet까지 521~661ms였고 복구 결과는 `AXFrontmost=false`였다.
+- 이후 Flow, guarded Save 1회, receipt(DocumentSaveEvidence), 정확한 새 RTF 본문, 같은 새 문서 URL 조회, 소유 문서 닫기와 파일 정리가 모두 통과했다.
+- 작업 구간(snapshot 이후)의 활성화 기록은 0이었다. 전경 witness의 본문·caret·키 수·first responder도 그대로였다. 실행 뒤 TextEdit의 `AXFrontmost`도 `false`였다.
+- `open -g`가 setup 단계에서 TextEdit을 한 번 앞으로 가져왔고, witness가 그 직후 한 번 앞을 되찾았다. 이 setup 활성화 때문에 probe 자체의 `passed`(전체 활성화 0 요구)는 false이고 eval 종료 코드는 1이다. 작업 구간 판정은 wrapper가 따로 한다.
+
+물리 타이핑 보존, 다른 앱, 다른 OS 버전은 검증하지 않았다.
 
 ## General의 명시적 창 준비
 

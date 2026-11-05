@@ -2879,6 +2879,141 @@ func prepareWindow(_ obsID: String, _ target: String, _ element: AXUIElement,
     return out
 }
 
+/// One menu command's temporary window preparation, and its undoing.
+///
+/// Measured on an owned TextEdit document (2026-11-05): after the window-bound
+/// preparation a background TextEdit enabled Save As and opened the sheet, but
+/// kept reporting AXFrontmost=true behind another app, with its menus enabled
+/// for whatever window was key — also after the owned document was gone. An
+/// unaddressed applicationDeactivated event did not undo that; one addressed to
+/// the prepared window did. So the undo is part of the same transaction.
+struct TemporaryMenuPreparation {
+    let window: AXUIElement
+    let windowID: CGWindowID
+    var record: [String: Any]
+    var restored = false
+
+    /// Same main/focused window, still without a sheet.
+    func stillBound(pid: pid_t) -> Bool {
+        let app = AXUIElementCreateApplication(pid)
+        guard let focused = attr(app, kAXFocusedWindowAttribute as String),
+              CFGetTypeID(focused) == AXUIElementGetTypeID(), CFEqual(focused, window),
+              let main = attr(app, kAXMainWindowAttribute as String),
+              CFGetTypeID(main) == AXUIElementGetTypeID(), CFEqual(main, window) else { return false }
+        return temporaryMenuSheetCount(window) == 0
+    }
+
+    /// Milliseconds until a sheet appeared on the prepared window, or nil.
+    func waitForSheet(seconds: Double) -> Int? {
+        let start = ProcessInfo.processInfo.systemUptime
+        while ProcessInfo.processInfo.systemUptime - start < seconds, !abortState.isStopped {
+            if temporaryMenuSheetCount(window) > 0 {
+                return Int((ProcessInfo.processInfo.systemUptime - start) * 1000)
+            }
+            Thread.sleep(forTimeInterval: 0.05)
+        }
+        return nil
+    }
+
+    /// Undo the app-internal activation, never a real foreground: when the
+    /// window server says the target is in front, nothing is posted.
+    mutating func restore(pid: pid_t) {
+        guard !restored else { return }
+        restored = true
+        if isFrontmost(pid: pid) {
+            record["restored"] = false
+            record["restore_skipped"] = "target_in_front"
+            return
+        }
+        guard let owner = NSEvent.otherEvent(with: .appKitDefined, location: .zero,
+                modifierFlags: NSEvent.ModifierFlags(rawValue: 0xC0000),
+                timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: Int(windowID), context: nil,
+                subtype: NSEvent.EventSubtype.applicationDeactivated.rawValue, data1: 0, data2: 0),
+              let event = owner.cgEvent, event.type.rawValue == 13,
+              let reflected = NSEvent(cgEvent: event), reflected.type == .appKitDefined,
+              reflected.subtype == .applicationDeactivated, reflected.windowNumber == Int(windowID) else {
+            record["restored"] = false
+            record["restore_failure"] = "event_construction"
+            return
+        }
+        // The one PID post boundary shared with window preparation.
+        do { try withExtendedLifetime(owner) { try nativePIDPost(event, pid) } }
+        catch {
+            record["restored"] = false
+            record["restore_failure"] = "post_failed"
+            return
+        }
+        record["restore_posted"] = true
+        let app = AXUIElementCreateApplication(pid)
+        let start = ProcessInfo.processInfo.systemUptime
+        var frontmost: Bool? = nil
+        while ProcessInfo.processInfo.systemUptime - start < 1 {
+            frontmost = attr(app, "AXFrontmost") as? Bool
+            if frontmost == false { break }
+            Thread.sleep(forTimeInterval: 0.05)
+        }
+        record["frontmost_after_restore"] = frontmost.map { $0 as Any } ?? NSNull()
+        record["restored"] = frontmost == false
+    }
+}
+
+func temporaryMenuSheetCount(_ window: AXUIElement) -> Int {
+    ((attr(window, kAXChildrenAttribute as String) as? [AXUIElement]) ?? [])
+        .filter { (attr($0, kAXRoleAttribute as String) as? String) == "AXSheet" }.count
+}
+
+enum TemporaryMenuPreparationStart {
+    case skipped([String: Any])
+    case failed(TemporaryMenuPreparation, [String: Any])
+    case prepared(TemporaryMenuPreparation)
+}
+
+/// Eligibility, then the existing prepareBackgroundWindow on the app's observed
+/// main window. Skipped (nothing posted) unless: the target reports itself NOT
+/// frontmost (a stale AXFrontmost=true is never "restored" by this), its
+/// focused window is its main window, that window is exactly once in the
+/// current observation, and it has no sheet.
+func beginTemporaryMenuPreparation(_ obsID: String, _ target: String, _ pid: pid_t,
+                                   deadline: Double) -> TemporaryMenuPreparationStart {
+    func skip(_ reason: String) -> TemporaryMenuPreparationStart {
+        .skipped(["attempted": false, "skipped": reason])
+    }
+    let app = AXUIElementCreateApplication(pid)
+    guard let selfFront = attr(app, "AXFrontmost"), CFGetTypeID(selfFront) == CFBooleanGetTypeID() else {
+        return skip("target_frontmost_unreadable")
+    }
+    guard (selfFront as? Bool) == false else { return skip("target_self_reports_frontmost") }
+    guard let focused = attr(app, kAXFocusedWindowAttribute as String),
+          CFGetTypeID(focused) == AXUIElementGetTypeID(),
+          let main = attr(app, kAXMainWindowAttribute as String),
+          CFGetTypeID(main) == AXUIElementGetTypeID(),
+          CFEqual(focused, main) else { return skip("focused_main_window_unavailable") }
+    let window = focused as! AXUIElement
+    guard latestElements.filter({ CFEqual($0, window) }).count == 1 else { return skip("main_window_not_observed") }
+    guard temporaryMenuSheetCount(window) == 0 else { return skip("main_window_has_sheet") }
+    var windowID: CGWindowID = 0
+    guard let lookup = try? WindowInputSPI.windowFunction(), lookup(window, &windowID) == 0, windowID > 0 else {
+        return skip("window_id_unavailable")
+    }
+    var prepared = TemporaryMenuPreparation(window: window, windowID: windowID,
+        record: ["attempted": true, "window_id": Int(windowID), "frontmost_before": false])
+    let result = prepareBackgroundWindow(obsID, target, window, pid, deadline: deadline)
+    let posted = (result["posted_events"] as? Int) ?? (result["posted_or_attempted_events"] as? Int) ?? 0
+    prepared.record["posted_events"] = posted
+    if let diagnostic = result["preparation_diagnostic"] { prepared.record["preparation_diagnostic"] = diagnostic }
+    guard result["type"] as? String == "acted" else {
+        if posted == 0 {
+            prepared.restored = true
+            prepared.record["restored"] = true
+            prepared.record["restore_skipped"] = "nothing_posted"
+        }
+        var failure = result
+        failure.removeValue(forKey: "preparation_diagnostic")
+        return .failed(prepared, failure)
+    }
+    return .prepared(prepared)
+}
+
 /// press_key Return: the Go to Folder sheet path only (submitReturnInSheet).
 /// Same observation-identity checks as prepareBackgroundWindow; one keyDown;
 /// the receipt says so (window_submit_key, posted 1) and that the effect must
@@ -3762,16 +3897,76 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
             return ["type": "error", "error": "menu_state_unavailable",
                     "effect": "not_started", "detail": "메뉴의 활성 상태를 읽지 못했습니다"]
         }
+        // A background app validates responder-chain commands against a key
+        // window it does not have (2026-11-05: TextEdit Save As disabled behind
+        // another app). Only then, and only for the app's observed main window,
+        // the existing window-bound preparation is posted once and undone on
+        // every path below (TemporaryMenuPreparation). Raising the app is still
+        // never this action's to decide.
+        var temporary: TemporaryMenuPreparation? = nil
+        func finish(_ result: [String: Any]) -> [String: Any] {
+            guard var prepared = temporary else { return result }
+            temporary = nil
+            prepared.restore(pid: p)
+            var out = result
+            out["temporary_preparation"] = prepared.record
+            // A command that was not started is still not started; whether the
+            // app's own activation state was put back is said, not assumed.
+            if prepared.record["restored"] as? Bool != true, out["effect"] as? String == "not_started" {
+                out["effect"] = "unknown"
+                out["restore_detail"] = "임시 준비 상태를 되돌렸는지 확인하지 못했습니다"
+            }
+            return out
+        }
         if (enabled as? Bool) == false {
             // An app validates its menus while it is the active one, so a
             // background app reports items disabled that are perfectly fine.
-            // Said here rather than fixed by raising the app: which of those
-            // two it is decides whether asking the person is worth it.
-            return ["type": "error", "error": "action_failed",
+            func disabled(_ record: [String: Any]?) -> [String: Any] {
+                var out: [String: Any] = ["type": "error", "error": "action_failed",
                     "effect": "not_started", "reason_code": "menu_item_disabled",
                     "needs_foreground": !wasFront, "target_was_front": wasFront,
                     "detail": "메뉴 '\(walked.joined(separator: " > "))' 가 비활성 상태입니다"
                               + (wasFront ? "" : " (이 앱이 앞에 있지 않아 그렇게 보일 수 있습니다)")]
+                if let record { out["temporary_preparation"] = record }
+                return out
+            }
+            guard !wasFront else { return disabled(nil) }
+            switch beginTemporaryMenuPreparation(obsID, target, p, deadline: deadline) {
+            case .skipped(let record):
+                return disabled(record)
+            case .failed(var prepared, let failure):
+                prepared.restore(pid: p)
+                var out = failure
+                out["temporary_preparation"] = prepared.record
+                out["reason_code"] = "menu_preparation_failed"
+                if prepared.record["restored"] as? Bool != true { out["effect"] = "unknown" }
+                return out
+            case .prepared(let prepared):
+                temporary = prepared
+            }
+            let settle = ProcessInfo.processInfo.systemUptime
+            let settleDeadline = min(deadline - 0.2, settle + 2)
+            var nowEnabled = false
+            while !abortState.isStopped, ProcessInfo.processInfo.systemUptime < settleDeadline {
+                if (attr(item, kAXEnabledAttribute as String) as? Bool) == true { nowEnabled = true; break }
+                Thread.sleep(forTimeInterval: 0.05)
+            }
+            temporary?.record["enabled_after_preparation"] = nowEnabled
+            temporary?.record["enabled_after_ms"] = nowEnabled
+                ? Int((ProcessInfo.processInfo.systemUptime - settle) * 1000) : NSNull()
+            guard nowEnabled else {
+                if abortState.isStopped {
+                    return finish(["type": "error", "error": "aborted_by_user", "effect": "not_started"])
+                }
+                return finish(disabled(nil))
+            }
+            // Re-ask just before the press: still behind, same main window.
+            guard !isFrontmost(pid: p), temporary?.stillBound(pid: p) == true,
+                  !abortState.isStopped, ProcessInfo.processInfo.systemUptime < deadline else {
+                return finish(["type": "error", "error": abortState.isStopped ? "aborted_by_user" : "action_failed",
+                               "effect": "not_started", "reason_code": "menu_preparation_context_changed",
+                               "detail": "준비 뒤 대상 창이나 전경 상태가 바뀌어 누르지 않았습니다"])
+            }
         }
         // A command that acts on "the document in front" (File > Save) may be
         // bound to one file: right before the press, the app's focused AND
@@ -3784,7 +3979,7 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
                 // Menus may have taken time to resolve. The same pinned window
                 // and path must still exist before the focused/main check.
                 do { _ = try documentWindowForToken(target, token) }
-                catch { return ["type":"error", "error":"document_snapshot_unavailable", "effect":"not_started"] }
+                catch { return finish(["type":"error", "error":"document_snapshot_unavailable", "effect":"not_started"]) }
             }
             let why: String
             if let want = wanted as? String, want.hasPrefix("/") {
@@ -3793,23 +3988,29 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
                 why = "invalid focused_document"
             }
             guard why.isEmpty else {
-                return ["type": "error", "error": "action_failed", "effect": "not_started",
+                return finish(["type": "error", "error": "action_failed", "effect": "not_started",
                         "reason_code": "menu_focused_document_mismatch",
-                        "detail": "포커스된 문서가 승인한 파일이 아니어서 누르지 않았습니다 (\(why))"]
+                        "detail": "포커스된 문서가 승인한 파일이 아니어서 누르지 않았습니다 (\(why))"])
             }
             // The check took time; stop and the deadline are asked again
             // right before the press (Codex review of 31955f0).
             guard !abortState.isStopped, ProcessInfo.processInfo.systemUptime < deadline else {
-                return ["type": "error", "error": abortState.isStopped ? "aborted_by_user" : "input_deadline_expired",
-                        "effect": "not_started", "detail": "문서 확인 뒤 중단되었거나 기한이 지났습니다"]
+                return finish(["type": "error", "error": abortState.isStopped ? "aborted_by_user" : "input_deadline_expired",
+                        "effect": "not_started", "detail": "문서 확인 뒤 중단되었거나 기한이 지났습니다"])
             }
         }
         let menuError = AXUIElementPerformAction(item, kAXPressAction as CFString)
         if menuError != .success {
-            return ["type": "error", "error": "action_failed",
+            return finish(["type": "error", "error": "action_failed",
                     "effect": axActionFailureEffect(menuError), "reason_code": "menu_press_failed",
                     "ax_error": Int(menuError.rawValue), "target_was_front": wasFront,
-                    "detail": "메뉴 실행 실패"]
+                    "detail": "메뉴 실행 실패"])
+        }
+        // A prepared press is answered by a sheet on the same window. Watched
+        // (bounded) before the preparation is undone, and only reported: the
+        // caller's postcondition and receipt decide success, never this.
+        if let prepared = temporary {
+            temporary?.record["sheet_observed_ms"] = prepared.waitForSheet(seconds: 3) ?? NSNull()
         }
         // Some commands make the app bring itself forward (Finder's Go > Go to
         // Folder…, measured 2026-10-08). Not prevented — the press was the
@@ -3828,7 +4029,7 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
             out["activated_target"] = true
             out["note"] = "not verified — observe again; the app was observed in front after the press"
         }
-        return out
+        return finish(out)
     case "reopen_window":
         // An app whose window was closed, or went to another Space after a
         // context menu (KakaoTalk, 2026-10-10), shows nothing to act in. What

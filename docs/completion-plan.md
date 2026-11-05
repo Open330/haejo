@@ -1,5 +1,43 @@
 # 전체 목표의 완료 기준과 현재 작업
 
+## 2026-11-05 후속 통합: 배경 Save As 수신과 실제 Preview
+
+고립 통합 작업본 `da52f7d`의 helper는 peer 최종 소스 `cc93830`과 바이트가
+동일하다. 비활성 배경 메뉴에만 기존 창 지정 준비를 한 번 적용하고, 같은
+창에 비활성화 이벤트를 보내 앱 내부 활성 상태를 되돌린다. 새 agent JSON은
+필요 없다. 준비·실행·해제 상태는 `temporary_preparation`에 남기며 실제
+완료는 후속 화면과 receipt로 확인한다. 독립 `prepare_window` 의미는 유지한다.
+
+실제 서명 helper의 TextEdit Save As는 소유 전면 witness 아래3/3 통과했다.
+각각 저장 입력1회·새 RTF 본문·같은 문서 URL 전이·상태 복구·창/파일 정리를
+확인했고 작업 구간 활성화는0회였다. 원본 probe 전체 판정은 bootstrap의
+활성화 때문에 false이며 그대로 보존했다. 작업 구간 성공은 별도 wrapper로
+판정했고 원시 로그와 helper 해시까지 재검증했다. 물리 타이핑 보존이나 다른
+앱의 메뉴 전체 성공은 이 결과로 주장하지 않는다. 시트가 없는 명령에도3초
+기다리는 불필요한 지연은 발견해 별도 최적화·실제 Finder 검증을 진행 중이다.
+증빙: `reviews/goal-resume-20261105-saveas/background-fixed/report.json`.
+
+실제 Preview에서 난수 점수 PNG를 열어 서명된 Tacto로 해당 창만 캡처했다.
+점수가 scoped AX tree에 없는 것을 먼저 확인한 뒤 이미지 질문을 했다.
+Codex·Claude 각각3/3 정답, 창/임시 파일 정리를 통과했다. 새 rc.22 후보의
+capture 경로를 사용했으나 후보는 아직 공증·설치하지 않았다. 이 시험은
+읽기 기능 검증이며 native 시각 입력·전체 agent 비용·Sky 비교는 아니다.
+원본: `reviews/goal-resume-20261105-preview/report.json`, 재현 코드:
+`examples/probes/preview_visual_read.py`. 원격 최초 실패와 잠금 preflight SKIP도
+보존했다. 설치 rc.21의 doctor가 잠긴 화면을 준비 완료로 보고하던 결함은
+`ddc1677`에서 고쳤고 관련38검사가 통과했다. 앱 목록과 잠금 상태를 구분하며
+알 수 없는 잠금 상태에 새 차단을 추가하지 않는다.
+
+배포: rc.22 첫 후보는 Python3.13 환경에서 기존 setuptools 누락을 검출해
+중단했다. Python3.11로 고정한 후보2(소스78cd467)는 전체3,226검사 실패·오류0,
+제외27·소스 불변,190개 Mach-O 타임스탬프·서명·앱 보안 검사를 통과했다.
+공증 키 조회는 Vault 공개 경로의 Cloudflare1033와 내부 서버 접속 실패로
+중단됐다. CLI status는 unlocked이며 세션 파일·잠금·갱신은 변경하지 않았다.
+공증 제출0, 설치0이다. 새 메뉴/doctor 통합 뒤 후보3을 만들며, 위 후보2를
+통합 수정까지 포함한 설치본으로 부르지 않는다. 외부 접속 경로를 확인하는
+동안 다른 목표 구현·검증은 계속한다.
+
+
 ## 2026-11-05 후속 후보: 동적 페이지와 이미지 요청 비용
 
 실제 OpenStreetMap의 무관한 타일 변화가 전체 캡처 비교를 깨뜨리는 실패를
