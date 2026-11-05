@@ -2341,7 +2341,6 @@ func prepareBackgroundWindow(_ obsID: String, _ target: String, _ element: AXUIE
         guard identityRequirement(obsID == latestObsID, "observation_id"),
               identityRequirement(pid == latestTargetPID, "process_id"),
               identityRequirement(target.lowercased() == latestTargetName.lowercased(), "target_name"),
-              identityRequirement(nativeProcessStartIdentity(pid) == start, "process_start"),
               identityRequirement(latestElementGeneration == elementGeneration, "element_map"),
               identityRequirement(latestElements.count == elements.count, "element_map"),
               identityRequirement(latestDocumentToken == observedDocumentToken, "document_token") else {
@@ -2363,6 +2362,12 @@ func prepareBackgroundWindow(_ obsID: String, _ target: String, _ element: AXUIE
         do { try validateDocumentObservation(target) }
         catch { identityCause = "document_live"; throw error }
         try contextIdentity()
+        // Process identity is checked at full phase boundaries. The incremental
+        // read/drag check compares the pinned observation in memory; repeating
+        // proc_pidinfo for every AX read and stroke checkpoint adds no routing.
+        guard identityRequirement(nativeProcessStartIdentity(pid) == start, "process_start") else {
+            throw NativeWindowInputError.refused("window observation or process changed")
+        }
         guard identityRequirement(observedBundle ? nativeObservedBundleMatches(pid, target)
                              : processForWindowTarget(target) == pid, "target_resolution") else {
             throw NativeWindowInputError.refused("window observation or process changed")
@@ -2428,8 +2433,11 @@ func prepareBackgroundWindow(_ obsID: String, _ target: String, _ element: AXUIE
             }
             result = try dispatchNativeWindowDrag(binding,drag:drag,deadline:deadline,
                 stopped:{abortState.isStopped},context:contextIdentity,
-                validate:{try scope.withBindingContext {try validateNativeWindowBinding(binding,scope:scope)}
-                          try requireNativeWindowTarget(binding,scope:scope)},
+                // The PID/window-addressed pointer stroke does not require the
+                // app's keyboard-focused window. Binding validation already
+                // checks ownership, geometry and readiness; do not walk the
+                // same readiness tree a second time or reject non-key panels.
+                validate:{try scope.withBindingContext {try validateNativeWindowBinding(binding,scope:scope)}},
                 sameProcess:{nativeProcessStartIdentity(pid)==start && (try? windowInputCGFrame(binding.windowID,pid)) != nil},
                 windowUnchanged:{
                     guard try windowInputCGFrame(binding.windowID,pid)==binding.windowBounds else {

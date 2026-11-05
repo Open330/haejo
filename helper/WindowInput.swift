@@ -1014,7 +1014,6 @@ func captureNativeWindowBinding(_ element: AXUIElement, _ pid: pid_t,
     if pointKind == .windowPoint {
         try nativeRequireWindowReady(window, pid, scope: scope)
         guard CFEqual(element, window),
-              try windowInputAttribute(window, kAXSubroleAttribute, scope: scope) as? String == "AXStandardWindow",
               let relativePoint, relativePoint.x.isFinite, relativePoint.y.isFinite,
               relativePoint.x >= 0, relativePoint.x < bounds.width,
               relativePoint.y >= 0, relativePoint.y < bounds.height,

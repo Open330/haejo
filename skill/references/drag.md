@@ -30,7 +30,8 @@ Owned on-screen normal and floating app windows (macOS layers 0 and 3) are
 supported by window binding. Layer 3 alone is not a reason to abandon Tacto.
 An older helper may reject it with `CG window ownership or visibility mismatch`;
 update that helper and re-observe before another undispatched gesture.
-The target is its app's focused window; the app may be in front or in the background.
+The target is the uniquely observed app window; a floating/nonactivating panel
+does not need keyboard focus. The app may be in front or in the background.
 The helper sends a continuous left-button stroke to that window; it does not
 activate apps, move the global pointer, or provide cross-app file dragging.
 To move the real cursor itself (hover effects), use [hover](hover.md).

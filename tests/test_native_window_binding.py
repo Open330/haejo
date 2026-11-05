@@ -100,11 +100,17 @@ class NativeWindowBindingTests(unittest.TestCase):
             kCGWindowOwnerPID='pid',kCGWindowIsOnscreen='onscreen',
             kCGWindowLayer='layer',kCGWindowBounds='bounds',
             CGWindowListCopyWindowInfo=lambda *_:[{'id':Number(7),'pid':Number(4),
-                'onscreen':True,'layer':0,'bounds':dict(zip(('X','Y','Width','Height'),
+                'onscreen':True,'layer':Number(3),'bounds':dict(zip(('X','Y','Width','Height'),
                                                         map(Number,(10,20,300,200))))}])
         row=backend.windows()[0]
         self.assertEqual(7,row['id']);self.assertEqual(4,row['pid'])
+        self.assertEqual(3,row['layer']);self.assertIs(type(row['layer']),int)
         self.assertEqual((10.,20.,300.,200.),binding._rect(row['bounds']))
+
+    def test_layer_normalization_refuses_invalid_metadata(self):
+        for raw in (True,False,None,'3',b'3',3.5,float('nan'),float('inf')):
+            with self.subTest(raw=raw):
+                self.assertIsNone(binding._window_layer(raw))
 
     def capture(self, backend):
         with patch.object(binding, '_load_backend', return_value=backend):
@@ -127,6 +133,15 @@ class NativeWindowBindingTests(unittest.TestCase):
         b.cg[0]['pid'] = 9
         with self.assertRaises(binding.NativeWindowBindingError):
             binding.validate_binding(result)
+
+    def test_pointer_binding_does_not_require_keyboard_window_subrole(self):
+        b = Backend()
+        b.cg[0]['layer'] = 3
+        b.nodes['window']['AXSubrole'] = 'AXFloatingWindow'
+        b.require_ready = lambda *a: None
+        with patch.object(binding, '_load_backend', return_value=b):
+            result = binding.capture_binding('window', 4, point_kind='window_point', relative_point=(30, 30))
+        self.assertIs(binding.validate_binding(result), result)
 
     def test_invalid_input_rejected_before_mac_imports(self):
         with patch.object(binding, '_load_backend') as load:

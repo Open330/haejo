@@ -25,8 +25,14 @@ import AppKit
     let root:URL
     init(_ root:URL) {self.root=root}
     func applicationDidFinishLaunching(_ notification:Notification) {
-        window=NSWindow(contentRect:NSRect(x:200,y:200,width:480,height:300),styleMask:[.titled,.closable],backing:.buffered,defer:false)
+        if CommandLine.arguments.contains("--floating") {
+            window=NSPanel(contentRect:NSRect(x:200,y:200,width:480,height:300),
+                styleMask:[.titled,.closable,.utilityWindow,.nonactivatingPanel],backing:.buffered,defer:false)
+        } else {
+            window=NSWindow(contentRect:NSRect(x:200,y:200,width:480,height:300),styleMask:[.titled,.closable],backing:.buffered,defer:false)
+        }
         window.title="Tacto Drag Fixture"
+        if CommandLine.arguments.contains("--floating") {window.level = .floating}
         window.isReleasedWhenClosed=false
         let canvas=DragCanvas(frame:NSRect(x:20,y:100,width:440,height:180),receipt:root.appendingPathComponent("events.json"))
         window.contentView?.addSubview(canvas)

@@ -129,7 +129,7 @@ class _MacBackend:
         # PyObjC may return OC_PythonLong/Float proxies, not exact Python
         # builtins. Normalize OS metadata before the strict host validation.
         return [dict(id=int(e[q.kCGWindowNumber]), pid=int(e[q.kCGWindowOwnerPID]),
-                     onscreen=e.get(q.kCGWindowIsOnscreen), layer=e.get(q.kCGWindowLayer),
+                     onscreen=e.get(q.kCGWindowIsOnscreen), layer=_window_layer(e.get(q.kCGWindowLayer)),
                      bounds=tuple(float(e[q.kCGWindowBounds][k])
                                   if k in e.get(q.kCGWindowBounds, {}) else None
                                   for k in ('X','Y','Width','Height')))
@@ -153,6 +153,18 @@ class _MacBackend:
 
 def _load_backend():
     return _MacBackend()
+
+
+def _window_layer(value):
+    # PyObjC wraps native integers in OC_PythonLong; reject booleans, strings
+    # and fractional/nonfinite metadata before producing the host builtin.
+    if value is None or isinstance(value, (bool, str, bytes)):
+        return None
+    try:
+        number = int(value)
+        return number if float(value) == number else None
+    except (ValueError, TypeError, OverflowError):
+        return None
 
 
 def _rect(value):
@@ -227,8 +239,8 @@ def _capture(element, pid, requested_launch, backend, point_kind="element_center
                              (x+w/2, y+h/2), backend, point_kind)
     if point_kind == 'window_point':
         backend.require_ready(window, pid)
-        if not backend.equal(element, window) or backend.attr(window, 'AXSubrole') != 'AXStandardWindow':
-            raise NativeWindowBindingError('coordinate input requires an observed standard window')
+        if not backend.equal(element, window):
+            raise NativeWindowBindingError('coordinate input requires an observed window')
         px, py = _relative_point(relative_point)
         if not (0 <= px < w and 0 <= py < h):
             raise NativeWindowBindingError('coordinate outside bound window')
