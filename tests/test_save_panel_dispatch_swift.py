@@ -15,7 +15,7 @@ class SavePanelDispatchSwiftTests(unittest.TestCase):
         source = (ROOT / 'helper/TactoHelper.swift').read_text()
         guard = source[source.index('func validateSavePanelDispatch('):source.index('func readSavePanel(')]
         click = source[source.index('    case "click":', source.index('func act(')):
-                       source.index('    case "set_value":', source.index('func act('))]
+                       source.index('    case "resize_window":', source.index('func act('))]
         prelude = r'''
 import Foundation
 import ApplicationServices

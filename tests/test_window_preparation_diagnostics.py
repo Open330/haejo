@@ -23,7 +23,10 @@ typealias AXUIElement = NSNumber
 enum NativeWindowInputError: Error { case refused(String), unavailable(String), needsForeground(String) }
 struct NativeWindowDispatchFailure: Error { let stopped: Bool; let attempted: Int; let detail: String }
 struct NativeOpaqueWindowInput {}
-struct NativeWindowDrag {}
+struct NativeWindowDrag { let resizing = false }
+let kAXRoleAttribute = "AXRole"
+func elementAtPoint(_ point:Int,pid:pid_t) -> AXUIElement? { nil }
+func str(_ element:AXUIElement,_ attribute:String) -> String? { nil }
 typealias NativeWindowPreparation = DispatchResult
 struct NativeWindowBinding {
  let window=NSNumber(value:2),windowID:UInt32=12
@@ -115,7 +118,8 @@ func validateNativeWindowBinding(_ b: NativeWindowBinding, scope: NativeWindowRe
 func windowInputCGFrame(_ id:UInt32,_ pid:pid_t) throws -> Int {1}
 func dispatchNativeWindowDrag(_ b:NativeWindowBinding,drag:NativeWindowDrag,deadline:Double,
  stopped:()->Bool,context:()throws->Void,validate:()throws->Void,
- sameProcess:()->Bool,windowUnchanged:()throws->Void) throws -> DispatchResult {
+ sameProcess:()->Bool,windowUnchanged:()throws->Void,
+ geometry:(()throws->Int)? = nil) throws -> DispatchResult {
  fatalError("drag is tested separately; preparation cases must not dispatch it")
 }
 func dispatchNativeWindowPreparation(_ b: NativeWindowBinding, deadline: Double, stopped: () -> Bool,
