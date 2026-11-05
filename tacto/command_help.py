@@ -80,10 +80,10 @@ def session_guide(target, *, reusable=False, document=None):
             '"evidence":[{"source":"user_intent","field":"asked","value":"<actual user request>","covers":["write_persistent"]}]}. '
             'Quote the actual edit request; do not invent coverage. '
             'Use selector keys identifier/title/desc, not description. '
-            'An edit can return commit_unverified after input: observe the same document to check its text; do not retype just to remove that status. '
+            'After an uncertain edit, TACTO_DOCUMENT_STATE checks the body once on this same connection. '
+            'matches_requested_text:true with remaining_steps:0 verifies the requested visible text; no extra read session or retyping is needed. '
+            'False/null or remaining steps require inspection; the marker never confirms Save or attributes the write. '
             'Visible text is not a Save or persistence receipt. Use run/replay for a saved-state task requiring the built-in Save adapter. '
-            'A saved Flow file does not store this read scope: later run/replay must include --document with the intended path; omitting it reads the app windows. '
-            'TACTO_FLOW_SCOPE returns the scoped replay argv after --save. '
         )
     if reusable:
         details += (
@@ -96,9 +96,12 @@ def session_guide(target, *, reusable=False, document=None):
             'Use captures on that verified action for values needed later. Keep separate reads for a later checkpoint or new data. '
             'Do not invent observe as an action; read is supported. '
         )
+    if reusable and document is not None:
+        details += 'Saved Flow files do not store this read scope: use the TACTO_FLOW_SCOPE replay argv with --document. '
     return (
         "TACTO_FLOW_GUIDE (trusted schema instructions)\n"
         + json.dumps(template, ensure_ascii=False, separators=(',', ':')) + "\n"
+        + ("" if document is not None else
         "Adapt selectors, effects/resource and result to the user task. Selectors must be unique. "
         'AX-first, background by default: click invokes AXPress when supported; use set_value/read on observed elements. '
         'Do not activate or use coordinates/screenshots first. Pin the observed window with ancestor (TextEdit: --document); '
@@ -107,7 +110,7 @@ def session_guide(target, *, reusable=False, document=None):
         'check_defaults.field and expand to postcondition/skip_if. Put answers:true only on the result step. '
         'Full steps use action/selector/params. set_value uses params.value; its postcondition uses field:{"identifier":"same-id"}, equals:"text", attribute:"Value". Checks use equals, not value. '
         'Shared defaults fill explicit fields only; local effects replace and resource/destination merge. '
-        'Persistent writes/sending need their actual contract, binding and completion evidence; use run for approvals. '
+        'Persistent writes/sending need their actual contract, binding and completion evidence; use run for approvals. ')
         + details
         + "Inspect uncertain outcomes before retrying. Send one minified JSON line plus newline on this session."
     )

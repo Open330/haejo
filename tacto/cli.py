@@ -408,7 +408,7 @@ def _emit_pin_diagnostic(reason):
     if line is not None:print(line)
 
 
-def _run_flow(flow, argv, walked: bool = False, *, _driver=None, _confirm=None, _on_result=None, _auto_params=None, _replay_seed=None, _replay_secrets=(), _replay_sensitive_names=frozenset()):
+def _run_flow(flow, argv, walked: bool = False, *, _driver=None, _confirm=None, _on_result=None, _result_observer=None, _auto_params=None, _replay_seed=None, _replay_secrets=(), _replay_sensitive_names=frozenset()):
     """All direct replay commands use the same consent and trace path.
 
     And the same judgment as `tacto do`: a recipe promoted from a walk may ask
@@ -551,6 +551,8 @@ def _run_flow(flow, argv, walked: bool = False, *, _driver=None, _confirm=None, 
                 print("TACTO_TIMINGS " + json.dumps(report, separators=(',', ':')), file=sys.stderr)
     if _on_result is not None:
         _on_result(result)
+    if _result_observer is not None:
+        _result_observer(result)
     if repair_path is not None:
         from .repair_packet import packet_for
         packet=packet_for(flow,result)

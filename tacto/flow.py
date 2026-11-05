@@ -19,7 +19,7 @@ import json
 import re
 import time
 from copy import deepcopy
-from dataclasses import dataclass, field, asdict, replace, fields, is_dataclass
+from dataclasses import MISSING, dataclass, field, asdict, replace, fields, is_dataclass
 from dataclasses import field as dataclass_field
 
 from .flow_errors import FlowFieldError, step_error
@@ -1021,6 +1021,21 @@ class Flow:
             except (ValueError, TypeError, KeyError) as exc:
                 raise step_error(exc, path) from exc
 
+        def schema_object(cls, raw, where):
+            # Report the schema location, not a constructor traceback containing
+            # an authored key. Only trusted dataclass field names become hints.
+            members = [f for f in fields(cls) if f.init]
+            known = {f.name for f in members}
+            required = [f.name for f in members
+                        if f.default is MISSING and f.default_factory is MISSING]
+            missing = [name for name in required if name not in raw]
+            if set(raw) - known or missing:
+                hint = ('Required fields: ' + ', '.join(required) + '.' if missing
+                        else ('Allowed fields: ' if len(members)<=6 else 'Allowed fields include: ')
+                        + ', '.join(f.name for f in members[:6]) + '.')
+                raise FlowFieldError('invalid object fields', where, hint)
+            return cls(**raw)
+
         def parse_step(s, path):
             # Compact click records expand before the existing parser/policy.
             # No target, action meaning, or result predicate is inferred.
@@ -1128,12 +1143,9 @@ class Flow:
                 # once reached `in tree` mid-replay and surfaced as a traceback.
                 for key in ("equals", "contains", "absent", "attribute", "absent_role"):
                     if pc.get(key) is not None and not isinstance(pc[key], str):
-                        raise ValueError(
-                            f"{where}.{key} must be text, not "
-                            f"{type(pc[key]).__name__}"
-                            + (" — absent is text that must not appear in the "
-                               "observed tree, e.g. an identifier like "
-                               "'GoToWindow'" if key == "absent" else ""))
+                        raise FlowFieldError(
+                            'check value must be text', path+'.'+where+'.'+key,
+                            'Use text for '+key+'; compare with equals:"expected text".')
                 group=pc.get('all_of',[])
                 if (not isinstance(group,list) or len(group)>32 or depth>8
                         or any(not isinstance(item,dict) or not item for item in group)):
@@ -1163,15 +1175,16 @@ class Flow:
                 contract = SafetyContract(
                     effects=sf.get("effects", []),
                     data_classes=sf.get("data_classes", ["none"]),
-                    resource=Resource(**r) if r else Resource(),
-                    destination=Destination(**dd) if dd else Destination(),
+                    resource=schema_object(Resource, r, path+".safety.resource") if r else Resource(),
+                    destination=schema_object(Destination, dd, path+".safety.destination") if dd else Destination(),
                     reversibility=sf.get("reversibility", "unknown"),
                     commit_point=sf.get("commit_point"),
-                    evidence=[Evidence(**e) for e in sf.get("evidence", [])],
+                    evidence=[schema_object(Evidence, e, path+f".safety.evidence[{j}]")
+                              for j, e in enumerate(sf.get("evidence", []))],
                     unknowns=sf.get("unknowns", []))
             binding = None
             if s.get("binding"):
-                binding = ContextBinding(**s["binding"])
+                binding = schema_object(ContextBinding, s["binding"], path+".binding")
             return Step(action=s["action"], selector=sel,
                               params=payload,
                               risk_class=s.get("risk_class", "none"),

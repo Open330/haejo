@@ -228,7 +228,20 @@ def run_session(args, *, make_driver, run_flow, stdin, emit):
         flags = [*helper, '--think', '0']
         if '--timings' in args:
             flags.append('--timings')
-        result = run_flow(flow, flags, _driver=driver, _confirm=lambda description: False)
+        observed_state = []
+        result_options = {}
+        if document is not None:
+            from .document_readback import failure_readback, MARKER
+            def observe_result(replayed):
+                readback = failure_readback(driver, flow, replayed)
+                if readback is not None:
+                    observed_state.append(readback)
+            # Unlike _on_result this callback retains no resume authority.
+            result_options['_result_observer'] = observe_result
+        result = run_flow(flow, flags, _driver=driver, _confirm=lambda description: False,
+                          **result_options)
+        for readback in observed_state:
+            emit(MARKER + json.dumps(readback, separators=(',', ':')))
         timing['replay_done_seconds'] = time.monotonic() - started
         if result == 0 and save_path is not None:
             from .storage import write_private

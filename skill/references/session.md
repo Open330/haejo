@@ -59,3 +59,13 @@ repinning or reading the rest of the app. The guide includes the text selector
 and edit/read schema; implementation history is not needed for ordinary edits.
 Text verification is not Save evidence. Saved Flow files do not store this read
 scope: use the `TACTO_FLOW_SCOPE` replay argv with `--document` on each invocation.
+
+
+After `commit_unverified` for a pinned TextEdit body edit, the session may emit
+`TACTO_DOCUMENT_STATE`: one read on the same native token, no model call or input
+retry. `matches_requested_text:true` means the authored text is currently visible;
+`remaining_steps:0` means this failed step was last. For that visible-text task,
+no extra read session is needed. False/null requires inspection, and remaining
+steps are unfinished work. The result does not attribute the write, verify Save,
+change the failed Flow's status, or save an unverified template. Existing text
+could already match. Raw text and document tokens are not included in the marker.

@@ -125,3 +125,13 @@ The app’s **실행 기록 보기** opens its built-in history and settings.
 opens their folder on macOS. These record command, target app, operation, outcome
 and timing, without screen contents, input values, prompts or agent reasoning.
 For a detailed screen/action trace, explicitly use `--trace` on do/run/replay.
+
+## Optional helper reuse
+
+Enable “빠른 실행(helper 유지)” in Tacto Settings or use
+`TACTO_HELPER_MODE=warm` when repeated startup is material. Warm mode has up to
+four isolated workers for different apps. A full pool waits up to10s, then returns
+`helper_busy`. Resource conflicts wait inside the helper within existing input
+deadlines; only undispatched work can resume. A final `target_busy` requires
+ending the owning session before a fresh observation. Warm mode does not make
+an old observation reusable or retry an uncertain input.

@@ -66,19 +66,23 @@ class DocumentSessionTests(unittest.TestCase):
             'source':'user_intent','field':'asked','value':'Type changed in the owned document',
             'covers':['write_persistent']}]}
         inner=self.inner()
-        def receive(obs,target,action):
+        def receive(obs,target,action,**kwargs):
             inner.observe.return_value['tree']=inner.observe.return_value['tree'].replace('Value: owned','Value: changed')
+            inner.document_text.return_value['text']='changed'
             return {'type':'acted'}
         inner.act.side_effect=receive
         captured=io.StringIO()
         def runner(*args,**kwargs):
             with contextlib.redirect_stdout(captured):return _run_flow(*args,**kwargs)
-        code,_,_=self.run_session(inner,doc=doc,runner=runner)
+        code,_,messages=self.run_session(inner,doc=doc,runner=runner)
         self.assertEqual(1,code)  # body edit is not a persistence receipt
         self.assertIn('commit_unverified',captured.getvalue())
         inner.act.assert_called_once()
         self.assertEqual(1,inner.act.call_args.args[2]['element_index'])
-        self.assertEqual(1,inner.document_text.call_count)
+        self.assertEqual(2,inner.document_text.call_count)  # pin + one body-state read
+        state=json.loads(next(x.removeprefix('TACTO_DOCUMENT_STATE ') for x in messages if x.startswith('TACTO_DOCUMENT_STATE ')))
+        self.assertTrue(state['matches_requested_text'])
+        self.assertFalse(state['save_verified']);self.assertFalse(state['dispatch_confirmed'])
         inner.close.assert_called_once()
 
     def test_saved_flow_reports_scoped_replay_without_persisting_token(self):
