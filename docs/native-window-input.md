@@ -206,7 +206,7 @@ AX 조회 자체의 오류도 구분한다. AttributeUnsupported/NoValue만 미�
 - 전경 대조군(`--foreground-control`, 측정 전용 활성화): TextEdit이 앞에 있고 소유 창이 focused일 때 같은 이벤트는 0.63초 만에 소유 창에 저장 시트를 열었다. 시트는 Cancel AXPress로 닫았다. 따라서 이벤트 형식은 맞고, 차이는 앱이 비활성이라는 점뿐이다.
 - 별도로 root run22에서는 disabled 항목에 AXPress를 허용해 봤다. 응답은 `acted`였지만 패널이 열리지 않아 postcondition_timeout으로 끝났다. 이 실험용 완화는 되돌렸다.
 
-결론: 응답자 체인으로 검증되는 문서 명령(Save As 등)은 배경에서 메뉴 AXPress로도, 관측 key equivalent의 창 바인딩 전달로도 실행되지 않는다. helper는 기존대로 `menu_item_disabled` + `needs_foreground`로 실행 전에 거절한다. 포커스를 가져오는 우회(activate, AXFrontmost 쓰기, 전역 CGEvent)는 추가하지 않았다. key equivalent 경로도 제품에 넣지 않았다. 이벤트가 전달됐다는 응답(ack)만으로는 앱이 명령을 받았다는 증거가 되지 않기 때문이다. 남은 선택지는 사람이 동의한 전경 전환(`tacto activate … --window`)이다. 패널 없이 Apple Event로 저장하는 방식은 Save As 패널 흐름과 의미가 다르고 별도 Automation 권한이 필요하므로 이 범위 밖이다.
+이번 TextEdit/macOS/키보드 배열의 시행에서는 Save As가 배경의 메뉴 AXPress나 관측 key equivalent의 창 바인딩 전달로 저장 시트를 열지 못했다. 다른 앱이나 버전, 다른 메뉴 경로 전체의 불가능을 뜻하지 않는다. helper는 기존대로 `menu_item_disabled` + `needs_foreground`로 실행 전에 거절한다. 포커스를 가져오는 우회(activate, AXFrontmost 쓰기, 전역 CGEvent)는 추가하지 않았다. key equivalent 경로도 제품에 넣지 않았다. 이벤트가 전달됐다는 응답(ack)만으로는 앱이 명령을 받았다는 증거가 되지 않기 때문이다. 전경 전환을 허용한 작업에서는 명시적 `tacto activate … --window` 경로를 사용할 수 있다. 그때의 실제 입력 결과와 포커스 변화는 별도로 확인하며 백그라운드 성공으로 계산하지 않는다. 패널 없이 Apple Event로 저장하는 방식은 Save As 패널 흐름과 의미가 다르고 별도 Automation 권한이 필요하므로 이 범위 밖이다.
 
 측정 범위의 한계: TextEdit 하나, macOS 27.2, 이 키보드 배열 하나에서 측정했다. 다른 앱의 직접 target 메뉴 항목은 배경에서도 동작할 수 있다(`background-menu-refusal.py`). 이번 실행에서는 `open -g`가 TextEdit을 앞으로 가져오지 않았지만(앞 앱이 Finder로 유지), 같은 날 다른 실행에서는 `open -g` 직후 TextEdit이 앞에 관측됐다. 그래서 probe는 open 뒤 소유 전경 창이 한 번 앞을 가져간 다음부터 witness를 켠다.
 
