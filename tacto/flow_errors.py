@@ -71,6 +71,13 @@ def feedback(exc):
 def contract_field_error(contract, path):
     """Closed authoring hints for contracts the existing policy already blocks."""
     from .contract import EFFECTS, DATA_CLASSES, PROVENANCE, RESOURCE_SCOPES, REVERSIBILITY, policy
+    try:
+        if policy(contract).risk != 'blocked':
+            return None
+    except (TypeError, ValueError, AttributeError):
+        # A malformed contract would fail later too. Repair it before any
+        # dispatch; do not impose extra restrictions on accepted contracts.
+        pass
     def problem(field, hint):
         return FlowFieldError('incomplete or malformed contract',path+'.'+field,hint)
     def names(value, allowed):

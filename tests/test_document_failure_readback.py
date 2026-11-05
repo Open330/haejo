@@ -56,7 +56,7 @@ class FailureReadbackTests(unittest.TestCase):
         self.assertNotIn('PRIVATE',json.dumps(failure_readback(driver,flow,result)))
 
     def test_unrelated_or_sensitive_failures_do_not_read(self):
-        for change in ('ok','not_dispatched','menu','secret','other_effect','other_body','other_event'):
+        for change in ('ok','not_dispatched','menu','secret','other_effect','other_body','other_event','absent_action'):
             inner,driver,flow,result=self.make()
             if change=='ok':result.ok=True
             elif change=='not_dispatched':result.log[-1]['error']='target_not_found'
@@ -65,6 +65,7 @@ class FailureReadbackTests(unittest.TestCase):
             elif change=='other_effect':flow.steps[0].safety.effects.append('transmit')
             elif change=='other_body':flow.steps[0].selector.identifier='other'
             elif change=='other_event':result.events[0]['action']['value']='other'
+            elif change=='absent_action':result.events[0]['action']=None
             self.assertIsNone(failure_readback(driver,flow,result),change)
             inner.document_text.assert_not_called();inner.act.assert_not_called()
         inner,driver,flow,result=self.make()

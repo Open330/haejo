@@ -81,3 +81,14 @@ class ContractFeedbackTests(unittest.TestCase):
             doc={'name':'task','target':'app','steps':[{'action':'read' if effects==['read'] else 'set_value','selector':{'identifier':'body'},'params':{} if effects==['read'] else {'value':'text'},'safety':{'effects':effects,'reversibility':'unknown' if effects==['read'] else 'reversible','resource':{'scope':'unknown' if effects==['read'] else 'item'}}}]}
             flow=Flow.from_json(json.dumps(doc));prepared,_=prepare_session_flow(flow,'app')
             self.assertEqual(flow.to_json(),prepared.to_json())
+        # Preserve an odd but previously accepted non-critical legacy value;
+        # the new preflight is diagnostic, not a stricter authorization policy.
+        doc['steps'][0]['safety']={'effects':['read'],'unknowns':'PRIVATE'}
+        flow=Flow.from_json(json.dumps(doc));prepared,_=prepare_session_flow(flow,'app')
+        self.assertEqual(flow.to_json(),prepared.to_json())
+
+    def test_credential_authority_is_not_rejected_by_static_preflight(self):
+        from tacto.flow_session import prepare_session_flow
+        doc={'name':'delegation','target':'app','steps':[{'action':'authenticate','params':{'grant':'owned-grant'},'safety':{'effects':['credential'],'data_classes':['credential']}}]}
+        flow=Flow.from_json(json.dumps(doc));prepared,_=prepare_session_flow(flow,'app')
+        self.assertEqual(flow.to_json(),prepared.to_json())

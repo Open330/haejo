@@ -28,9 +28,9 @@ def failure_readback(driver, flow, result):
             or set(step.safety.effects)-{'read','write_ephemeral','write_persistent'}):
         return None
     event=next((e for e in result.events if e.get('event_id')==last.get('event_id')),None)
-    if (event is None or event.get('target')!=flow.target
-            or event.get('action',{}).get('name')!='set_value'
-            or event['action'].get('value')!=value):
+    action=event.get('action') if event is not None else None
+    if (event is None or event.get('target')!=flow.target or type(action) is not dict
+            or action.get('name')!='set_value' or action.get('value')!=value):
         return None
     report={'scope':'visible_document_text','step':index,
             'matches_requested_text':None,'remaining_steps':len(flow.steps)-index-1,
