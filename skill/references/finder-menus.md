@@ -36,3 +36,17 @@ large), so they are addressed by title. Neither backend raises the app to the
 user's foreground. A disabled responder command may require explicit observed
 window preparation and fresh menu-state verification; never infer its effect
 from successful dispatch alone.
+
+A disabled command in a background app's main window gets one temporary
+window preparation inside the same `menu` step, undone before it returns.
+When the command opens an inline name editor (Finder New Folder), give the
+name in the same step with `text` — a separate later step finds the editor
+already closed. Verify the name on disk, not the reply:
+
+```jsonc
+{ "action": "menu",
+  "params": { "path": ["File", ["New Folder", "새로운 폴더"]], "text": "Reports" } }
+```
+
+`text` is refused unless that preparation ran; a failure after the press is
+`effect: unknown` and must not be retried.

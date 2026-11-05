@@ -20,15 +20,17 @@ class MenuRefusalReasonTests(unittest.TestCase):
 
     def test_every_action_failed_has_a_reason_code_and_an_effect(self):
         refusals = self.refusals()
-        self.assertEqual(6, len(refusals))
-        codes = [re.search(r'"reason_code": "([a-z_]+)"', r).group(1) for r in refusals]
+        codes = [re.search(r'"reason_code": (?:"([a-z_]+)"|(failure\.code))', r).group(1) or 'failure.code'
+                 for r in refusals]
         self.assertEqual(['menu_path_invalid', 'menu_path_invalid', 'menu_item_not_unique',
-                          'menu_item_disabled', 'menu_focused_document_mismatch', 'menu_press_failed'], codes)
+                          'menu_item_disabled', 'menu_focused_document_mismatch', 'menu_text_invalid',
+                          'menu_text_requires_preparation', 'menu_press_failed', 'failure.code'], codes)
         for refusal in refusals:
             self.assertIn('"effect":', refusal)
 
     def test_disabled_and_press_failures_carry_their_diagnostics(self):
-        refusals = {re.search(r'"reason_code": "([a-z_]+)"', r).group(1): r for r in self.refusals()}
+        refusals = {m.group(1): r for r in self.refusals()
+                    if (m := re.search(r'"reason_code": "([a-z_]+)"', r))}
         disabled = refusals['menu_item_disabled']
         self.assertIn('"effect": "not_started"', disabled)
         self.assertIn('"needs_foreground": !wasFront', disabled)

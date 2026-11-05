@@ -261,8 +261,18 @@ AX 조회 자체의 오류도 구분한다. AttributeUnsupported/NoValue만 미�
   - 독립 실행되는 `prepare_window`와 text, key, click, drag 경로의 검증은 바뀌지 않았다.
   - 실측: 소유 Finder 폴더에서 File > New Folder를 3/3 실행했다(`signed_finder_new_folder`, raw `reviews/2026-11-05/finder-new-folder-{1793888705493867000,1793888733640042000,1793888762181142000}.json`). 매번 정확히 새 폴더 1개가 생겼고, menu act는 2.86~2.92초였다. `not_a_dialog_command`, 복구 결과 `AXFrontmost=false`, 작업 구간 활성화 0, witness의 body·caret·keys 보존, eval 종료 코드 0이었다. 소유 창은 닫고 폴더는 삭제했다.
   - 같은 코드로 Save As(1회)와 Select All(1회)도 다시 통과했다.
-  - 이름 설정은 아직 되지 않는다. File > Rename도 임시 준비로 `acted`·복구까지 됐지만, 복구 뒤 배경 Finder의 이름 편집기는 focused가 아니었다. 이름 칸에 `set_value` + `AXConfirm`을 해도 `acted`만 돌아오고 디스크의 이름은 바뀌지 않았다(probe의 `rename_verified=false`). 앱이 비활성으로 돌아가면 인라인 편집이 끝나는 것으로 보인다. 원인은 확정하지 않았다.
-  - 한 번은 직전 준비가 복구된 뒤 Finder가 focused window를 보고하지 않았다. 그래서 자격 조건과 이벤트별 검사는 focused window가 "없음"인 경우를 허용한다. 다른 창이 focused이면 여전히 거절한다.
+  - 이름 설정(2026-11-06): 원인은 배경 Finder가 임시 준비를 복구해 비활성으로 돌아가는 순간 인라인 이름 편집을 끝낸다는 것이다. 준비가 유지되는 동안에는 New Folder 직후 편집기에 focus가 있다. 그래서 `menu` act에 선택 키 `text` 하나(capability `action.menu.prepared_text`)를 더했다. 입력과 확정은 같은 임시 준비 트랜잭션 안에서 한다.
+    - `text`는 임시 준비가 실제로 수행된 경우에만 받는다. 그 밖에는 `menu_text_requires_preparation`, `not_started`로 거절한다. 형식은 비어 있지 않고 UTF-16 255자 이하이며 제어 문자가 없어야 한다. launcher는 기존 `text` 검사를 다시 쓴다.
+    - 명령을 누른 뒤 최대 1.5초 동안 새 focus를 찾는다. 누르기 전 focus와 다르고, 같은 pid의 `AXTextField`이며, frame이 준비된 창 안에 완전히 들어가야 한다. Finder의 이름 편집기는 `AXWindow`도 parent도 보고하지 않는다(실측).
+    - `AXValue`를 설정한 뒤 정확히 같은 값으로 다시 읽혀야 한다. 이어 앱이 여전히 배경이고 focus가 그 편집기인지 확인한 다음, 같은 창에 Return 한 쌍을 공용 `nativePIDPost`로 보낸다.
+    - 편집기가 닫히는지(`editor_closed`) 최대 1초 지켜보고 그다음 복구한다.
+    - 입력 단계가 실패하면 명령 자체는 이미 실행된 것이므로 `effect: unknown`으로 반환하고 다시 시도하지 않는다.
+  - 실측: `signed_finder_new_folder` 3/3. 원본은 `reviews/2026-11-06/finder-new-folder-*.json`이고 wrapper 기록은 `reviews/bg-menu-witness/finder-run{16,17,18}-report.json`이다.
+    - 같은 act로 New Folder와 정확한 이름 `tacto-renamed-<nonce>`가 입력됐다. 편집기는 496~962ms에 찾았고 Return 뒤 닫혔다.
+    - FS 확인: 소유 폴더에 새 항목은 정확히 1개였고, 요청한 이름의 일반 디렉터리였다.
+    - 복구 결과 `AXFrontmost=false`, 작업 구간 활성화 0, witness의 body·caret·keys 보존, eval 종료 코드 0이었다. 창은 닫고 폴더는 삭제했다.
+    - 그 직전 1회는 준비 단계에서 `identity_changed`(`target_resolution`)로 이벤트 0개, `not_started`였다. 일시적이었고 재시도하지 않았다.
+  - 직전 준비가 복구된 뒤 Finder가 focused window를 보고하지 않은 적이 있다. 그래서 자격 조건과 이벤트별 검사는 focused window가 "없음"인 경우를 허용한다. 다른 창이 focused이면 여전히 거절한다.
 
 ## General의 명시적 창 준비
 

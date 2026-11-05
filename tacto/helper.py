@@ -761,6 +761,9 @@ class HelperDriver:
                 return {'type':'error', 'error':'window_input_unavailable', 'effect':'not_started', 'detail':problem}
             if risk_class not in ('confirm','preapproved') or approved is not True:
                 return {'type':'error','error':'window_input_authorization_required','effect':'not_started'}
+        if action.get('name') == 'menu' and 'text' in action \
+                and 'action.menu.prepared_text' not in getattr(self, 'capabilities', ()):
+            return {'type': 'error', 'error': 'menu_text_unavailable', 'effect': 'not_started'}
         if action.get('name') == 'menu' and 'focused_document' in action \
                 and 'action.menu.focused_document' not in getattr(self, 'capabilities', ()):
             # An older helper ignores the field and presses anyway — Save on

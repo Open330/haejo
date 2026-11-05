@@ -12,7 +12,11 @@
 각 이벤트에서는 같은 창과 변경 가능한 문맥을 직접 읽는다. 수정 후 메뉴
 작업은2.86~2.92초였으며 전면 witness와 정리도3/3 통과했다. 서로 다른 시점의
 프로파일이므로 전체 작업의 인과적 속도 개선률이나 Sky 대비 성능으로 쓰지 않는다.
-이름 지정은 실제 파일명으로 확인되지 않아 rename_verified=false로 남겼다.
+이 첫 시험의 이름 지정 실패는 rename_verified=false로 보존했다. 후속으로
+준비가 유지되는 동안 menu.text 입력과 Return을 한 번 수행해 최초3/3,
+리뷰 수정 후1/1 정확한 디스크 이름·새 항목1개·전면 witness 보존·정리를
+확인했다. 이름까지 포함한 메뉴 작업은3.76~4.90초였다. 새 단계나 모델 요청은
+없다. 원본은 `reviews/goal-resume-20261106-finder/verified-named-folder/report.json`.
 root가 raw/wrapper·디스크 개수·소스 불변·입력 보존 표본·정리를 재검증해
 `reviews/goal-resume-20261106-finder/verified-new-folder/report.json`에 보존했다.
 전체3,249검사는 실패·오류0, 조건부 제외27로 통과했다. 이는 회귀 검사 수이며

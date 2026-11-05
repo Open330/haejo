@@ -5,8 +5,9 @@ Run only through the signed evaluator. An owned directory under
 activates=false); that is the bootstrap. The task is one signed `menu` act
 on File > New Folder, which a background Finder reports disabled, so the
 helper's temporary window preparation is what runs it. The filesystem is the
-oracle: exactly one new directory. A rename through Finder's own File > Rename
-and name field is attempted and reported (`rename_verified`), not required. The owned Finder window is closed by its close
+oracle: exactly one new directory with exactly the requested name, typed by the
+same act (`text`) into the editor New Folder opens, inside the helper's
+temporary preparation. The owned Finder window is closed by its close
 button and the directory removed. No other Finder window is acted on.
 """
 import hashlib
@@ -104,89 +105,27 @@ def run_probe(driver):
             if observed.get('type') != 'observation':
                 raise RuntimeError('task_observation_unavailable')
             began = time.monotonic()
-            response = driver.act(observed['obs_id'], TARGET, {'name': 'menu', 'path': NEW_FOLDER})
+            response = driver.act(observed['obs_id'], TARGET, {'name': 'menu', 'path': NEW_FOLDER, 'text': wanted})
             report['menu_seconds'] = time.monotonic() - began
             report['menu_response'] = {k: response.get(k) for k in
                 ('type', 'error', 'effect', 'reason_code', 'needs_foreground', 'temporary_preparation',
                  'activated_target', 'menu_path') if k in response}
             if response.get('type') != 'acted':
                 raise RuntimeError('menu_not_acted')
-            created_names = []
+            # Filesystem oracle: exactly one new entry, a directory, with the
+            # exact requested name (bounded wait for Finder's own rename).
+            names = []
             deadline = time.monotonic() + 3
             while time.monotonic() < deadline:
-                created_names = [n for n in _subdirectories(folder) if n not in before]
-                if created_names:
+                names = [n for n in sorted(p.name for p in folder.iterdir() if not p.name.startswith('.'))
+                         if n not in before]
+                if names == [wanted]:
                     break
                 time.sleep(0.05)
-            report['created_directories'] = len(created_names)
-            if len(created_names) != 1:
-                raise RuntimeError('new_folder_not_created_once')
-            phase('rename')
-            # Where Finder put its name editor: role/subrole and containment
-            # only, never other windows' titles or contents.
-            def frame(node):
-                from ApplicationServices import AXValueGetValue, kAXValueCGPointType, kAXValueCGSizeType
-                ok1, pos = AXValueGetValue(_attr(node, 'AXPosition'), kAXValueCGPointType, None)
-                ok2, size = AXValueGetValue(_attr(node, 'AXSize'), kAXValueCGSizeType, None)
-                return (pos.x, pos.y, size.width, size.height) if ok1 and ok2 else None
-            owned_frame = frame(window)
-            tops = []
-            for top in (_attr(app, 'AXWindows') or [])[:64]:
-                f = frame(top)
-                inside = bool(f and owned_frame and owned_frame[0] <= f[0] and owned_frame[1] <= f[1]
-                              and f[0] + f[2] <= owned_frame[0] + owned_frame[2] and f[1] + f[3] <= owned_frame[1] + owned_frame[3])
-                tops.append({'role': _attr(top, 'AXRole'), 'subrole': _attr(top, 'AXSubrole'),
-                             'is_owned': top == window, 'inside_owned': inside,
-                             'modal_readable': _attr(top, 'AXModal') is not None,
-                             'name_field_here': bool(_name_fields(top, created_names[0])) if inside else None})
-            report['top_windows_after_new_folder'] = tops
-            # Inline editing does not start for a background Finder; its own
-            # File > Rename starts it for the selected new item.
-            observed = driver.observe(TARGET, 'tree_full')
-            rename_menu = driver.act(observed['obs_id'], TARGET, {'name': 'menu', 'path': ['File', ['Rename', '이름 변경']]})
-            report['rename_menu'] = {k: rename_menu.get(k) for k in ('type', 'error', 'effect', 'reason_code', 'temporary_preparation')
-                                     if k in rename_menu}
-            fields = []
-            deadline = time.monotonic() + 3
-            while time.monotonic() < deadline and not fields:
-                fields = _name_fields(window, created_names[0])
-                if not fields:
-                    time.sleep(0.1)
-            report['name_fields'] = fields
-            report['inline_name_field'] = len(fields) == 1
-            renamed = False
-            if len(fields) == 1 and fields[0]['settable']:
-                observed = driver.observe(TARGET, 'tree_full')
-                report['rename_observation'] = observed.get('type')
-                # The field is addressed through the helper by its observed index.
-                from tacto.flow import Selector
-                try:
-                    index, _ = Selector(role='TextField', value=created_names[0]).resolve(observed['tree'])
-                except LookupError as error:
-                    report['rename_selector_error'] = type(error).__name__
-                else:
-                    set_reply = driver.act(observed['obs_id'], TARGET,
-                                           {'name': 'set_value', 'element_index': index, 'value': wanted})
-                    report['rename_set_value'] = {k: set_reply.get(k) for k in ('type', 'error', 'effect')}
-                    observed = driver.observe(TARGET, 'tree_full')
-                    try:
-                        index, _ = Selector(role='TextField', value=wanted).resolve(observed['tree'])
-                    except LookupError as error:
-                        report['rename_commit_selector_error'] = type(error).__name__
-                    else:
-                        # The name field's own advertised AXConfirm commits the edit.
-                        commit = driver.act(observed['obs_id'], TARGET, {'name': 'secondary_action',
-                                            'action': 'AXConfirm', 'element_index': index})
-                        report['rename_commit'] = {k: commit.get(k) for k in ('type', 'error', 'effect', 'reason_code')}
-                    deadline = time.monotonic() + 3
-                    while time.monotonic() < deadline:
-                        names = [n for n in _subdirectories(folder) if n not in before]
-                        if names == [wanted]:
-                            renamed = True
-                            break
-                        time.sleep(0.05)
-            report['renamed_on_disk'] = renamed
-            report['final_new_directories'] = len([n for n in _subdirectories(folder) if n not in before])
+            report['new_entries'] = len(names)
+            report['renamed_on_disk'] = names == [wanted] and (folder / wanted).is_dir() and not (folder / wanted).is_symlink()
+            report['created_directories'] = len([n for n in names if (folder / n).is_dir()])
+            report['final_new_directories'] = report['created_directories']
             report['finder_ax_frontmost_after'] = _attr(app, 'AXFrontmost')
             phase('cleanup')
     except Exception as error:
@@ -198,7 +137,8 @@ def run_probe(driver):
             button = _attr(window, 'AXCloseButton')
             report['window_close_error'] = AXUIElementPerformAction(button, 'AXPress') if button is not None else None
             time.sleep(0.5)
-            report['window_closed'] = _window(pid, folder.name)[1] is None
+            # The column-view title follows the selection; the held element decides.
+            report['window_closed'] = _attr(window, 'AXRole') is None
         if report.get('window_closed') or window is None:
             shutil.rmtree(folder, ignore_errors=True)
         report['directory_removed'] = not folder.exists()
@@ -213,15 +153,11 @@ def run_probe(driver):
     during = [a for a in report.get('activation_events', []) if task is not None and a['t'] >= task]
     report['task_activation_events'] = during
     tp = (report.get('menu_response') or {}).get('temporary_preparation') or {}
-    rename_tp = (report.get('rename_menu') or {}).get('temporary_preparation') or {}
-    # Renaming is measured and reported, not required: a background Finder
-    # ends inline editing once the temporary preparation is undone (measured
-    # 2026-11-05: Rename acted, the name editor was not focused afterwards,
-    # set_value + AXConfirm acted, nothing renamed on disk).
     report['rename_verified'] = report.get('renamed_on_disk') is True
-    report['passed'] = (report.get('created_directories') == 1
-                        and report.get('final_new_directories') == 1 and tp.get('restored') is True
-                        and rename_tp.get('restored', True) is True
+    text = tp.get('text') or {}
+    report['passed'] = (report.get('created_directories') == 1 and report.get('new_entries') == 1
+                        and report['rename_verified'] and text.get('entered') is True
+                        and tp.get('restored') is True
                         and report.get('finder_ax_frontmost_after') is False and not during
                         and report['directory_removed'] and report['source_unchanged'])
     return report

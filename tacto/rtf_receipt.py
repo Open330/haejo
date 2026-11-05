@@ -44,6 +44,9 @@ class FreshRTFReceipt(FreshFileReceipt):
         self._document_path = document_path
         self._after_lock = threading.Lock()
         self._decode_deadline = None
+        self._readback_status = "not_started"
+        self._readback_stage = "file_open"
+        self._readback_attempts = 0
         descriptor = self._open_directory()
         try:
             self._initial_directory = self._check_directory(descriptor)
@@ -56,6 +59,12 @@ class FreshRTFReceipt(FreshFileReceipt):
             self._check_directory(descriptor, self._initial_directory)
         finally:
             os.close(descriptor)
+
+    @property
+    def readback_diagnostic(self):
+        """Last reached phase, not a failure reason; no content/paths/exceptions."""
+        return {'status':self._readback_status, 'stage':self._readback_stage,
+                'attempts':self._readback_attempts}
 
     @property
     def commit_expected(self):
@@ -180,9 +189,12 @@ class FreshRTFReceipt(FreshFileReceipt):
         return True
 
     def _read_file(self, directory_descriptor):
+        self._readback_attempts = min(1000000, self._readback_attempts + 1)
+        self._readback_stage = "file_open"
         descriptor = os.open(self._filename, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK,
                              dir_fd=directory_descriptor)
         try:
+            self._readback_stage = "file_identity"
             before = os.fstat(descriptor)
             if (not stat.S_ISREG(before.st_mode) or before.st_nlink != 1
                     or before.st_uid != os.getuid()):
@@ -202,15 +214,21 @@ class FreshRTFReceipt(FreshFileReceipt):
             raw = b''.join(chunks)
             if len(raw) > self._MAX_RTF_BYTES:
                 raise ArtifactReceiptError('RTF exceeds readback byte budget')
-            if self._decode(raw) != self._text:
+            self._readback_stage = "decode"
+            decoded = self._decode(raw)
+            self._readback_stage = "content_compare"
+            if decoded != self._text:
                 raise _ReadbackPending('decoded RTF differs from predetermined text')
             expected_path = str(Path(self._directory) / self._filename)
+            self._readback_stage = "application_document_path"
             if self._document_path() != expected_path:
                 raise _ReadbackPending('application document does not match predetermined path')
+            self._readback_stage = 'deadline_check'
             if self._clock() >= self._decode_deadline:
                 raise _ReadbackPending('readback completed too late')
             # Decode and AX lookup may yield to another writer. Recheck both
             # descriptor and name before returning evidence to the parent.
+            self._readback_stage = "final_file_identity"
             final = os.fstat(descriptor)
             named = os.stat(self._filename, dir_fd=directory_descriptor, follow_symlinks=False)
             self._require_stable(self._file_id(after), self._file_id(final), self._file_id(named))
@@ -222,8 +240,15 @@ class FreshRTFReceipt(FreshFileReceipt):
         if not self._after_lock.acquire(blocking=False):
             raise ArtifactReceiptError('concurrent receipt use is not allowed')
         try:
+            self._readback_status = "polling"
             self._decode_deadline = self._clock() + self._timeout
             receipt = super().after_commit(event, driver_result, context)
-            return receipt if self._clock() < self._decode_deadline else None
+            if self._clock() >= self._decode_deadline:
+                receipt = None
+            self._readback_status = "verified" if receipt is not None else "not_verified"
+            return receipt
+        except BaseException:
+            self._readback_status = "interrupted_or_failed"
+            raise
         finally:
             self._after_lock.release()

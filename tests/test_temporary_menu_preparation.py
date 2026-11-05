@@ -151,3 +151,63 @@ class MenuPreparationPerEventValidationTests(unittest.TestCase):
         for required in ('try ready(); try validated(); try ready()', 'let before = try observedInput()',
                          'guard expectedInput.matches(before) else'):
             self.assertIn(required, loop)
+
+
+class PreparedMenuTextTests(unittest.TestCase):
+    def enter_text(self):
+        start = SOURCE.index('func enterText(_ text: String, pid: pid_t')
+        return SOURCE[start:SOURCE.index('    /// Undo the app-internal activation', start)]
+
+    def test_text_is_only_typed_inside_a_temporary_preparation(self):
+        case = menu_case()
+        guard = case[case.index('let enterText = action["text"] as? String'):case.index('let menuError = AXUIElementPerformAction(item')]
+        self.assertIn('guard temporary != nil else', guard)
+        self.assertIn('"menu_text_requires_preparation"', guard)
+        self.assertIn('enterText.utf16.count <= 255', guard)
+        self.assertIn('generalCategory == .control', guard)
+        after = case[case.index('if let enterText, let prepared = temporary {'):]
+        after = after[:after.index('var activated = false')]
+        self.assertIn('"effect": "unknown"', after)
+        self.assertIn('return finish(', after)
+        self.assertIn('"action.menu.prepared_text"', SOURCE)
+
+    def test_editor_is_new_focus_of_this_process_inside_the_window_and_committed_once(self):
+        body = self.enter_text()
+        for required in ('focusBefore.map { !CFEqual($0, candidate) }', '"AXTextField"',
+                         'AXUIElementGetPid(candidate, &owner) == .success, owner == pid',
+                         'bounds.contains(frame)', 'AXUIElementIsAttributeSettable(field, kAXValueAttribute',
+                         '(attr(field, kAXValueAttribute as String) as? String) == text',
+                         '!isFrontmost(pid: pid)', 'CFEqual(focusedNow, field)',
+                         'buildNativeWindowKey(windowID, key: "Return", submit: true)', 'nativePIDPost(pair.down, pid)'):
+            self.assertIn(required, body)
+        self.assertEqual(1, body.count('nativePIDPost(pair.down, pid)'))
+        self.assertNotIn('postToPid', body)
+
+    def test_python_and_launcher_accept_text_only_for_menu_with_the_capability(self):
+        from tacto.helper import HelperDriver
+        from tacto.protocol import ACTION_PARAMS
+        self.assertIn('text', ACTION_PARAMS['menu'])
+        h = HelperDriver.__new__(HelperDriver)
+        h.capabilities = set()
+        self.assertEqual('menu_text_unavailable',
+                         h.act('o1', 'com.apple.finder', {'name': 'menu', 'path': ['File', 'New Folder'], 'text': 'x'})['error'])
+        launcher = (ROOT / 'launcher/tacto.swift').read_text()
+        self.assertIn('"menu":             (["name", "path"], ["focused_document", "text"]),', launcher)
+
+
+class PreparedMenuTextGuardTests(unittest.TestCase):
+    def test_main_window_is_rechecked_before_write_and_return_and_key_up_is_recovered(self):
+        body = PreparedMenuTextTests().enter_text()
+        write_guard=body.index('mainUnchanged()', body.index('AXUIElementIsAttributeSettable(field'))
+        self.assertLess(write_guard, body.index('AXUIElementSetAttributeValue(field'))
+        second = body.index('guard mainUnchanged()', body.index('AXUIElementSetAttributeValue(field'))
+        self.assertLess(second, body.index('buildNativeWindowKey(windowID, key: "Return", submit: true)'))
+        recover = body[body.index('} catch {', body.index('downAttempted = true')):]
+        self.assertIn('if downAttempted, let start = latestProcessStart, nativeProcessStartIdentity(pid) == start', recover)
+        self.assertIn('try nativePIDPost(pair.up, pid)', recover)
+        self.assertIn('"committed": "unknown"', recover)
+
+    def test_skill_shows_the_minimal_menu_text_example(self):
+        guide = (ROOT / 'skill/references/finder-menus.md').read_text()
+        self.assertIn('"text": "Reports"', guide)
+        self.assertNotIn('"text"', (ROOT / 'skill/SKILL.md').read_text())

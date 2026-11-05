@@ -144,9 +144,11 @@ def run_probe(driver):
                         report['prepare_error']=str(error)[:300]
                         raise
                 hooks['prepare_commit']=prepare
-                result = replay(driver, flow, approvals=approvals,
-                    **hooks)
-                report['replay_seconds'] = time.monotonic()-replay_began
+                try:
+                    result = replay(driver, flow, approvals=approvals, **hooks)
+                finally:
+                    report['replay_seconds'] = time.monotonic()-replay_began
+                    report['save_readback_diagnostic'] = adapter.readback_diagnostic
                 report.update(flow_ok=result.ok, event_states=[e['state'] for e in result.events],
                               flow_errors=[r.get('error') for r in result.log if r.get('error')])
                 report['flow_log'] = []

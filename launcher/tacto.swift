@@ -115,7 +115,7 @@ let actionSchema: [String: (required: Set<String>, optional: Set<String>)] = [
     // items and paying for it on every observe would make the cheap path
     // expensive. The path is what distinguishes File > Save from File > Move to
     // Trash, so it is vetted as strictly as an element index would be.
-    "menu":             (["name", "path"], ["focused_document"]),
+    "menu":             (["name", "path"], ["focused_document", "text"]),
     // Finder only (the helper checks): an existing folder's absolute path,
     // opened by LaunchServices without activating Finder — no keys, no sheet.
     "open_folder":      (["name", "path"], []),

@@ -88,6 +88,26 @@ class RTFReceiptTests(unittest.TestCase):
             with patch.object(adapter,'_decode',return_value=decoded):
                 self.assertIsNone(adapter.after_commit(self.event,self.response,context))
 
+    def test_pending_phase_is_bounded_metadata_without_path_or_text(self):
+        scenarios=[(None,None,'file_open'),('wrong',None,'content_compare'),
+                   ('Hello','/unrelated/PRIVATE.rtf','application_document_path')]
+        for decoded,path,stage in scenarios:
+            with self.subTest(stage=stage):
+                if self.path.exists():self.path.unlink()
+                adapter=self.receipt(document_path=lambda:path)
+                context=adapter.prepare_commit(self.event)
+                if decoded is not None:self.path.write_bytes(b'{\\rtf1 Hello}')
+                with patch.object(adapter,'_decode',return_value=decoded):
+                    self.assertIsNone(adapter.after_commit(self.event,self.response,context))
+                diagnostic=adapter.readback_diagnostic
+                self.assertEqual('not_verified',diagnostic['status'])
+                self.assertEqual(stage,diagnostic['stage'])
+                self.assertGreater(diagnostic['attempts'],0)
+                self.assertEqual({'status','stage','attempts'},set(diagnostic))
+                self.assertNotIn('PRIVATE',str(diagnostic))
+                diagnostic['stage']='caller mutation'
+                self.assertEqual(stage,adapter.readback_diagnostic['stage'])
+
     def test_zero_budget_and_late_document_callback_never_pass(self):
         adapter=self.receipt(timeout_seconds=0)
         context=adapter.prepare_commit(self.event)
@@ -101,6 +121,7 @@ class RTFReceiptTests(unittest.TestCase):
         self.path.write_bytes(b'{\\rtf1 Hello}')
         with patch.object(adapter,'_decode',return_value='Hello'):
             self.assertIsNone(adapter.after_commit(self.event,self.response,context))
+        self.assertEqual('deadline_check',adapter.readback_diagnostic['stage'])
 
     def test_symlink_hardlink_and_group_writable_directory_rejected(self):
         adapter=self.receipt()

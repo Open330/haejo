@@ -151,6 +151,8 @@ let target = "com.apple.TextEdit"
 let p: pid_t = 0
 let deadline = Double.infinity
 let clickDeadline: Double? = nil
+func AXUIElementCreateApplication(_ pid: pid_t) -> Int { 0 }
+let kAXFocusedUIElementAttribute = "AXFocusedUIElement"
 struct AbortStub { var isStopped = false }
 let abortState = AbortStub()
 var latestDocumentToken: String? = nil

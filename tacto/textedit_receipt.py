@@ -82,6 +82,10 @@ class TextEditReceipt:
                                         poll_interval=poll_interval)
 
     @property
+    def readback_diagnostic(self):
+        return self._receipt.readback_diagnostic
+
+    @property
     def commit_expected(self):
         return {**self._receipt.commit_expected, 'artifact_evidence_scope':'document_save',
                 'source_document_path': self._initial['document_path'],

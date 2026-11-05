@@ -2922,6 +2922,99 @@ struct TemporaryMenuPreparation {
         return nil
     }
 
+    struct TextFailure: Error { let code: String; let record: [String: Any] }
+
+    /// Type `text` into the text field the command just focused in the
+    /// prepared window, then commit it with one window-bound Return. The
+    /// field must be NEW focus (not what was focused before the press), an
+    /// AXTextField of this process lying inside this window, and must read
+    /// back exactly `text`.
+    func enterText(_ text: String, pid: pid_t, focusBefore: AnyObject?, deadline: Double) -> Result<[String: Any], TextFailure> {
+        let app = AXUIElementCreateApplication(pid)
+        var field: AXUIElement? = nil
+        let start = ProcessInfo.processInfo.systemUptime
+        while field == nil, !abortState.isStopped,
+              ProcessInfo.processInfo.systemUptime < min(deadline, start + 1.5) {
+            if let raw = attr(app, kAXFocusedUIElementAttribute as String),
+               CFGetTypeID(raw) == AXUIElementGetTypeID() {
+                let candidate = raw as! AXUIElement
+                let isNew = focusBefore.map { !CFEqual($0, candidate) } ?? true
+                // Finder's inline name editor reports no AXWindow or parent
+                // (measured 2026-11-06); it is accepted only as this
+                // process's new focus lying wholly inside the prepared window.
+                var owner: pid_t = 0
+                if isNew, (attr(candidate, kAXRoleAttribute as String) as? String) == "AXTextField",
+                   AXUIElementGetPid(candidate, &owner) == .success, owner == pid,
+                   let frame = try? windowInputFrame(candidate), let bounds = try? windowInputFrame(window),
+                   bounds.contains(frame), frame.width > 0, frame.height > 0 {
+                    field = candidate
+                    break
+                }
+            }
+            Thread.sleep(forTimeInterval: 0.05)
+        }
+        guard let field else {
+            return .failure(TextFailure(code: "menu_text_target_unavailable", record: ["entered": false]))
+        }
+        // Same main window, still behind, inside the deadline: right before the
+        // write and again right before the Return.
+        func mainUnchanged() -> Bool {
+            guard let main = attr(app, kAXMainWindowAttribute as String),
+                  CFGetTypeID(main) == AXUIElementGetTypeID(), CFEqual(main, window) else { return false }
+            return !abortState.isStopped && !isFrontmost(pid: pid)
+                && ProcessInfo.processInfo.systemUptime < deadline
+        }
+        var settable = DarwinBoolean(false)
+        guard AXUIElementIsAttributeSettable(field, kAXValueAttribute as CFString, &settable) == .success,
+              settable.boolValue, mainUnchanged(),
+              AXUIElementSetAttributeValue(field, kAXValueAttribute as CFString, text as CFString) == .success,
+              (attr(field, kAXValueAttribute as String) as? String) == text else {
+            return .failure(TextFailure(code: "menu_text_not_set", record: ["entered": false]))
+        }
+        // Commit: Return into the same window, through the shared PID post.
+        guard mainUnchanged(),
+              let focusedNow = attr(app, kAXFocusedUIElementAttribute as String),
+              CFGetTypeID(focusedNow) == AXUIElementGetTypeID(), CFEqual(focusedNow, field),
+              !abortState.isStopped, ProcessInfo.processInfo.systemUptime < deadline else {
+            return .failure(TextFailure(code: "menu_text_focus_changed", record: ["entered": true, "committed": false]))
+        }
+        let pair: NativeWindowKeyPair
+        do { pair = try buildNativeWindowKey(windowID, key: "Return", submit: true) }
+        catch {
+            return .failure(TextFailure(code: "menu_text_commit_failed", record: ["entered": true, "committed": false]))
+        }
+        var downAttempted = false
+        do {
+            try withExtendedLifetime(pair.owners) {
+                downAttempted = true
+                try nativePIDPost(pair.down, pid)
+                try nativePIDPost(pair.up, pid)
+            }
+        } catch {
+            // As the drag dispatcher releases its button: once a keyDown may
+            // have been delivered, the key-up is still sent once, best effort,
+            // to the same process only. The outcome stays unknown.
+            var released = false
+            if downAttempted, let start = latestProcessStart, nativeProcessStartIdentity(pid) == start {
+                released = (try? withExtendedLifetime(pair.owners) { try nativePIDPost(pair.up, pid) }) != nil
+            }
+            return .failure(TextFailure(code: "menu_text_commit_failed",
+                                        record: ["entered": true, "committed": "unknown", "key_up_released": released]))
+        }
+        // Bounded: the editor closes once the edit is committed.
+        let commitStart = ProcessInfo.processInfo.systemUptime
+        var closed = false
+        while ProcessInfo.processInfo.systemUptime - commitStart < 1 {
+            let current = attr(app, kAXFocusedUIElementAttribute as String)
+            if current.map({ CFGetTypeID($0) != AXUIElementGetTypeID() || !CFEqual($0 as! AXUIElement, field) }) ?? true {
+                closed = true; break
+            }
+            Thread.sleep(forTimeInterval: 0.05)
+        }
+        return .success(["entered": true, "committed_with": "Return", "editor_closed": closed,
+                         "field_after_ms": Int((commitStart - start) * 1000)])
+    }
+
     /// Undo the app-internal activation, never a real foreground: when the
     /// window server says the target is in front, nothing is posted.
     mutating func restore(pid: pid_t) {
@@ -4021,6 +4114,23 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
                         "effect": "not_started", "detail": "문서 확인 뒤 중단되었거나 기한이 지났습니다"])
             }
         }
+        // `text` names what to type into the editor the command itself opens
+        // (Finder New Folder / Rename), inside the same temporary preparation:
+        // a background app ends inline editing once it is deactivated again.
+        let enterText = action["text"] as? String
+        if action["text"] != nil {
+            guard let enterText, !enterText.isEmpty, enterText.utf16.count <= 255,
+                  !enterText.unicodeScalars.contains(where: { $0.properties.generalCategory == .control }) else {
+                return finish(["type": "error", "error": "action_failed", "effect": "not_started",
+                               "reason_code": "menu_text_invalid", "detail": "text 형식 오류"])
+            }
+            guard temporary != nil else {
+                return ["type": "error", "error": "action_failed", "effect": "not_started",
+                        "reason_code": "menu_text_requires_preparation",
+                        "detail": "text 는 배경 앱의 임시 준비 안에서만 입력합니다"]
+            }
+        }
+        let focusBefore = enterText == nil ? nil : attr(AXUIElementCreateApplication(p), kAXFocusedUIElementAttribute as String)
         let menuError = AXUIElementPerformAction(item, kAXPressAction as CFString)
         if menuError != .success {
             return finish(["type": "error", "error": "action_failed",
@@ -4043,6 +4153,19 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
                 temporary?.record["sheet_observed_ms"] = prepared.waitForSheet(seconds: budget) ?? NSNull()
             } else {
                 temporary?.record["sheet_wait"] = "not_a_dialog_command"
+            }
+        }
+        if let enterText, let prepared = temporary {
+            switch prepared.enterText(enterText, pid: p, focusBefore: focusBefore, deadline: menuDeadline) {
+            case .success(let detail):
+                temporary?.record["text"] = detail
+            case .failure(let failure):
+                temporary?.record["text"] = failure.record
+                // The command itself ran; what was typed may be partial. Never
+                // re-run automatically.
+                return finish(["type": "error", "error": "action_failed", "effect": "unknown",
+                               "reason_code": failure.code, "menu_path": walked,
+                               "detail": "메뉴는 실행됐지만 이름 입력을 확인하지 못했습니다"])
             }
         }
         // Some commands make the app bring itself forward (Finder's Go > Go to
@@ -5885,7 +6008,7 @@ let helperCapabilities: [String] = [
     "action.open_folder",
     // menu may carry focused_document: pressed only when the focused and
     // main windows show exactly that file.
-    "action.menu.focused_document", "action.menu.document_token_save",
+    "action.menu.focused_document", "action.menu.document_token_save", "action.menu.prepared_text",
     "action.select_option", "evidence.visual",
     // Native menu items have a title and nothing behind it, so `value` must
     // agree with `option_label` rather than name something else.
