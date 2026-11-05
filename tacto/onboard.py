@@ -88,6 +88,16 @@ def run(interactive: bool = True, narrate=print) -> bool:
     # When the signed helper holds the grant, this interpreter does not need it:
     # the whole point of the helper is that permission lives with a named,
     # single-purpose binary instead of a shared Python.
+    screen_locked = False
+    try:
+        from .session import lock_state
+        screen_locked = lock_state().get('locked') is True
+    except Exception:
+        pass
+    # Settings cannot resolve a locked desktop. Keep this check read-only even
+    # when called interactively; permissions and session readiness are separate.
+    if screen_locked:
+        interactive = False
     helper = {}
     try:
         helper = helper_status()
@@ -133,20 +143,27 @@ def run(interactive: bool = True, narrate=print) -> bool:
     except Exception:
         pass
 
-    # A GUI-session check catches the tmux/ssh "app looks not-running" trap
-    # before the user hits it mid-task (real user report).
-    try:
-        from AppKit import NSWorkspace
-        gui = [a for a in NSWorkspace.sharedWorkspace().runningApplications()
-               if a.activationPolicy() == 0]
-        if not gui:
-            narrate("✕ 화면(GUI) 세션에 연결돼 있지 않아요 — tmux/스크린 밖에서 "
-                    "실행하거나 `reattach-to-user-namespace` 를 쓰세요.")
-            all_ok = False
-        else:
-            narrate(f"✓ 화면 세션 연결됨 (앱 {len(gui)}개 보임).")
-    except Exception:
-        pass
+    # App enumeration still succeeds on a locked console. Permission grants
+    # and an attached application list do not mean its windows are usable.
+    gui_unavailable = False
+    if screen_locked:
+        narrate("✕ 화면이 잠겨 있어요 — 잠금을 해제한 뒤 작업을 이어가세요. "
+                "권한 재설정으로 해결되는 상태는 아니에요.")
+        all_ok = False
+    else:
+        try:
+            from AppKit import NSWorkspace
+            gui = [a for a in NSWorkspace.sharedWorkspace().runningApplications()
+                   if a.activationPolicy() == 0]
+            if not gui:
+                narrate("✕ 화면(GUI) 세션에 연결돼 있지 않아요 — tmux/스크린 밖에서 "
+                        "실행하거나 `reattach-to-user-namespace` 를 쓰세요.")
+                gui_unavailable = True
+                all_ok = False
+            else:
+                narrate(f"✓ 화면 세션 연결됨 (앱 {len(gui)}개 보임).")
+        except Exception:
+            pass
 
     # The helper is the path we want people on: a named, signed binary holding
     # the grant instead of a shared interpreter.
@@ -165,7 +182,12 @@ def run(interactive: bool = True, narrate=print) -> bool:
         pass
 
     if not all_ok:
-        narrate("설정에서 권한을 켜신 뒤, 이 앱을 한 번 다시 열어주세요.")
+        if screen_locked:
+            narrate("화면 잠금을 해제한 뒤 상태를 다시 확인하세요.")
+        elif gui_unavailable:
+            narrate("화면 세션에 연결한 뒤 상태를 다시 확인하세요.")
+        else:
+            narrate("설정에서 권한을 켜신 뒤, 이 앱을 한 번 다시 열어주세요.")
     else:
         narrate("준비 끝! 이제 무엇을 도와드릴까요?")
     return all_ok
