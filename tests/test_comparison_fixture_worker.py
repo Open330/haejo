@@ -20,6 +20,22 @@ spec.loader.exec_module(comparison)
 
 
 class ProtocolTests(unittest.TestCase):
+    def test_each_rpc_yields_targets_before_reply_even_after_setup_failure(self):
+        host=Mock(_SIGNED_OWNED={})
+        driver=host._driver.return_value
+        driver.capabilities={'session.release_targets'}
+        driver.release_targets.return_value={'type':'targets_released','observation_invalidated':True}
+        host.signed_owned_setup.side_effect=RuntimeError('PRIVATE')
+        host.signed_fixture_evidence.return_value={'path':'owned'}
+        out=io.StringIO()
+        serve(host,io.StringIO('{"id":1,"op":"setup"}\n{"id":2,"op":"evidence"}\n'),out)
+        rows=[json.loads(line) for line in out.getvalue().splitlines()]
+        self.assertFalse(rows[0]['ok']);self.assertTrue(rows[1]['ok'])
+        self.assertEqual(2,driver.release_targets.call_count)
+        driver.release_targets.return_value={'type':'error','error':'unavailable'}
+        out=io.StringIO();serve(host,io.StringIO('{"id":1,"op":"evidence"}\n'),out)
+        self.assertEqual('target_release_unverified',json.loads(out.getvalue())['error'])
+
     def test_closed_protocol_rejects_arbitrary_paths_tokens_and_replays(self):
         for request in ({'id':1,'op':'write'}, {'id':1,'op':'oracle','token':'private'},
                         {'id':True,'op':'cleanup'}, {'id':2,'op':'cleanup'},
@@ -38,6 +54,8 @@ class ProtocolTests(unittest.TestCase):
     def test_operation_error_is_sanitized_and_followup_evidence_still_available(self):
         host = Mock(_SIGNED_OWNED={'fixture': object()})
         host.signed_owned_setup.side_effect = RuntimeError('PRIVATE TOKEN')
+        host._driver.return_value.capabilities = {'session.release_targets'}
+        host._driver.return_value.release_targets.return_value = {'type':'targets_released','observation_invalidated':True}
         host.signed_fixture_evidence.return_value = {'path':'owned'}
         out = io.StringIO()
         self.assertEqual(0, serve(host, io.StringIO(
@@ -263,6 +281,8 @@ class ChainTaskTests(unittest.TestCase):
         host.signed_chain_ask.return_value='fixed owned task'
         host.signed_fixture_evidence.return_value={'path':'owned'}
         host.signed_chain_oracle.return_value=(False,'document matches; calculator differs')
+        host._driver.return_value.capabilities={'session.release_targets'}
+        host._driver.return_value.release_targets.return_value={'type':'targets_released','observation_invalidated':True}
         out=io.StringIO()
         serve(host,io.StringIO('{"id":1,"op":"setup"}\n{"id":2,"op":"oracle"}\n'),out,task='calc_to_textedit')
         responses=[json.loads(l) for l in out.getvalue().splitlines()]

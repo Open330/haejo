@@ -87,7 +87,7 @@ func windowScopeActionProblem(_ msg:[String:Any], _ scope:ParallelWindowScope) -
     return nil
 }
 final class ParallelSession {
-    private let targets=TactoScopeLease()
+    private var targets=TactoScopeLease()
     private var scope:ParallelWindowScope?
     private var unscoped=false
     private var foreground:TactoScopeLease?
@@ -103,6 +103,19 @@ final class ParallelSession {
         return ["type":"foreground_lease","acquired":true]
     }
     func respond(_ msg:[String:Any],connection:Int32) -> [String:Any] {
+        if msg["type"] as? String=="release_targets" {
+            guard Set(msg.keys)==Set(["type"]) else {return parallelRefusal("invalid_release_targets")}
+            // A coordinator may prepare an app, yield it to another connection,
+            // then return for a fresh observation without losing document pins.
+            targets=TactoScopeLease()
+            foreground=nil;foregroundTarget=nil;scope=nil;unscoped=false
+            ParallelWindowState.shared.foregroundOwned=false
+            ParallelWindowState.shared.current=nil
+            latestObsID="";latestElements=[];latestProcessStart=nil
+            latestTargetPID = -1;latestTargetName="";latestDocumentToken=nil
+            pendingSelect=nil;spentMenu=nil;savePanelTokens.removeAll()
+            return ["type":"targets_released","observation_invalidated":true]
+        }
         if msg["type"] as? String=="foreground_end" {
             guard foregroundTarget==msg["target"] as? String else { return parallelRefusal("foreground_scope_changed") }
             ParallelWindowState.shared.foregroundOwned=false

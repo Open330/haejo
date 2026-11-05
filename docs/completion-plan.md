@@ -59,6 +59,21 @@ AX 크기만 먼저 바뀌고 CG 반영이 늦어 검증 실패한 기록을 보
 
 ## 2026-10-24 현재 상태 감사
 
+2026-11-05 새 실앱 비교는 `reviews/2026-11-05/product-comparison-20261105-141607.jsonl`에
+실패를 보존한다. 고정 요청 gpt-6.1-sol/medium·cold-start에서 Tacto는
+24.7초 뒤 Calculator target_busy/not_started로 실패했고, Sky는 준비 실패로
+미실행이었다. 평가 worker가 앱 lease를 유지한 채 독립 에이전트를 기다리는
+충돌을 확인했다. 후보 `release_targets`는 연결과 문서 pin을 유지하면서 앱·창
+점유를 넘기고 이전 관찰을 무효화한다. 정적 peer 검토의 높은 문제는 없었고,
+실제 다른 연결의 작업·최종 배포 검증은 별도로 진행한다.
+
+문서 상태 응답에 helper의 coordination_elapsed_ms가 추가되면 Python의 정확한
+필드 집합 검사가 정상 응답을 버리는 결함도 수정했다. 해당 회귀와 실제 이전
+빈 fixture 닫기·삭제가 통과했다. 새 yielded-worker lifecycle에서는 빈 문서 읽기는
+통과했지만, 닫기 뒤 global_window_still_present가 지속되어 정리 미완료로 남았다.
+이를 전체 성공으로 세지 않으며 G7 P0에서 AX 창 부재와 CG backing 잔존을
+구분하는 실제 증거를 더 확보한다. 두 후보 변경은 설치 rc.17에 소급 포함하지 않는다.
+
 아래 2026-10-10 감사와 후속 기록은 당시 사실로 보존한다. 현재 제품명은
 Tacto다. rc.6 배포 완료는 전체 computer-use 목표의 완료와 구분한다.
 

@@ -8,6 +8,22 @@ from tacto.window_scope import take_window_arg,bind_window
 from tacto.helper import InheritedHelperDriver
 
 class ParallelCoordination(unittest.TestCase):
+    def test_explicit_handoff_resets_scope_only_after_helper_receipt(self):
+        from unittest.mock import Mock
+        driver=object.__new__(InheritedHelperDriver)
+        driver.capabilities={'session.release_targets'}
+        driver._window_scope=('app',42)
+        driver._send=Mock(return_value={'type':'error','error':'unavailable'})
+        driver.release_targets()
+        self.assertEqual(('app',42),driver._window_scope)
+        driver._send.return_value={'type':'targets_released','observation_invalidated':True}
+        self.assertEqual('targets_released',driver.release_targets()['type'])
+        self.assertIsNone(driver._window_scope)
+        driver._send.assert_called_with({'type':'release_targets'})
+        driver.capabilities=set();driver._send.reset_mock()
+        self.assertEqual('target_release_unavailable',driver.release_targets()['error'])
+        driver._send.assert_not_called()
+
     def test_window_id_is_live_host_scope_and_invalid_values_are_rejected(self):
         self.assertEqual((['app','--helper'],42),take_window_arg(['app','--window-id','42','--helper']))
         for value in ('0','-1','4294967296','1.5','True','１'):

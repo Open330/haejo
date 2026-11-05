@@ -61,7 +61,7 @@ guard FileManager.default.isExecutableFile(atPath: python.path) else {
 // and hand back the text. That is the whole reason the child's PATH is fixed —
 // it holds screen content, which is exactly what must not be able to choose
 // what runs. Asking needs neither the helper channel nor a program name.
-let allowedTypes: Set<String> = ["foreground_begin","foreground_end","window_list","ping", "list_targets", "observe", "act",
+let allowedTypes: Set<String> = ["release_targets","foreground_begin","foreground_end","window_list","ping", "list_targets", "observe", "act",
                                  "probe", "selection", "ask", "document_text", "document_window_status", "document_rtf_export", "document_attachment_metadata", "save_panel", "menu_state",
                                  "menu_items", "capture", "readiness_read_cost", "readiness_preflight"]
 // The largest complete document this channel will carry, in UTF-16 units. The
@@ -237,6 +237,9 @@ func vetted(_ msg: [String: Any]) -> String? {
     }
     if ["foreground_begin","foreground_end"].contains(type), Set(msg.keys) != Set(["type","target"]) {
         return "invalid foreground lease fields"
+    }
+    if type == "release_targets", Set(msg.keys) != Set(["type"]) {
+        return "invalid release_targets fields"
     }
     if type == "window_list", !Set(msg.keys).isSubset(of:["type","target"]) {
         return "invalid window_list fields"

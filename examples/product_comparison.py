@@ -1688,6 +1688,8 @@ def main(argv=None) -> int:
         print(json.dumps({k:reply.get(k) for k in ('type','error','detail','document_path','text_complete')}, ensure_ascii=False))
         if reply.get('type') == 'document_text':
             print(json.dumps({'text_length':len(reply['text']), 'empty':reply['text']==''}))
+            status = _driver().document_window_status('com.apple.TextEdit', reply['document_token'])
+            print(json.dumps({k:status.get(k) for k in ('type','error','state','reason_code','same_process_verified')}))
             observation = _driver().observe('com.apple.TextEdit', document_token=reply['document_token'])
             print(json.dumps({'type':observation.get('type'), 'buttons':[line for line in observation.get('tree','').splitlines() if re.match(r'^\s*\d+ Button(?:\s|$)',line)]}))
         return 0 if reply.get('type') == 'document_text' else 2
@@ -1738,7 +1740,10 @@ def main(argv=None) -> int:
         try:
             result = _owned_lifecycle_probe(args.resume_owned_fixture_directory, resume_identity, args.owned_fixture_text, args.resume_owned_fixture_text or "")
         except Exception as error:
-            print('owned_document_lifecycle_unavailable:' + type(error).__name__)
+            code = str(error)
+            known = {'owned_fixture_pin_unavailable', 'owned_fixture_initial_state_unverified',
+                     'signed_owned_document_capability_unavailable', 'owned_fixture_resume_identity_unavailable'}
+            print('owned_document_lifecycle_unavailable:' + (code if code in known else type(error).__name__))
             return 2
         print(json.dumps(result))
         return 0 if result['opened_state'] == 'open' and result['initial_expected_text_verified'] and result['cleanup_status'] == 'closed' and result['receiving_text_verified'] is not False and result['artifact_removed'] and not result['source_changed'] else 2

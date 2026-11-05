@@ -38,9 +38,11 @@ def serve(comparison, incoming, outgoing, task='textedit_edit_owned'):
             outgoing.flush()
             return 2  # Framing/ordering failure poisons this channel.
         try:
+            driver = comparison._driver()
+            if 'session.release_targets' not in driver.capabilities:
+                raise RuntimeError('fixture_worker_target_release_unavailable')
             if op == 'check':
                 from tacto.process_responsibility import observe_responsibility
-                driver = comparison._driver()
                 value = {'capabilities': sorted(driver.capabilities),
                          'task': task, 'pid': os.getpid(), 'responsibility': observe_responsibility(os.getpid())}
             elif op == 'prepare':
@@ -71,6 +73,15 @@ def serve(comparison, incoming, outgoing, task='textedit_edit_owned'):
             response = {'id': sequence, 'ok': True, 'value': value}
         except Exception as exc:
             response = {'id': sequence, 'ok': False, 'error': type(exc).__name__}
+        # RPC readiness is a handoff boundary, not an ongoing app transaction.
+        # Retain document pins in this helper, but yield app/window ownership so
+        # the independent agent can act before the next oracle/cleanup request.
+        try:
+            released = comparison._driver().release_targets()
+            if released.get('type') != 'targets_released' or released.get('observation_invalidated') is not True:
+                raise RuntimeError()
+        except Exception:
+            response = {'id': sequence, 'ok': False, 'error': 'target_release_unverified'}
         outgoing.write(json.dumps(response, ensure_ascii=False, allow_nan=False) + '\n')
         outgoing.flush()
         if op == 'shutdown':

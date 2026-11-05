@@ -515,6 +515,15 @@ class HelperDriver:
     def foreground_end(self, target):
         return self._send({'type':'foreground_end','target':target})
 
+    def release_targets(self):
+        """Yield this connection's app/window leases; later actions must reobserve."""
+        if 'session.release_targets' not in getattr(self, 'capabilities', ()):
+            return {'type':'error','error':'target_release_unavailable','effect':'not_started'}
+        reply = self._send({'type':'release_targets'})
+        if reply.get('type') == 'targets_released' and reply.get('observation_invalidated') is True:
+            self._window_scope = None
+        return reply
+
     def windows(self, target):
         return self._send({'type':'window_list','target':target})
 
@@ -924,13 +933,16 @@ class HelperDriver:
             return unavailable
         result = self._send({'type':'document_window_status', 'target':target,
                              'document_token':document_token})
-        if (type(result) is dict and set(result) == {'type','error','effect','reason_code'}
+        # ParallelSession adds timing after handling an otherwise valid reply.
+        # Timing is diagnostic metadata, not part of the document identity.
+        fields = set(result) - {'coordination_elapsed_ms'} if type(result) is dict else set()
+        if (type(result) is dict and fields == {'type','error','effect','reason_code'}
                 and result.get('type') == 'error' and result.get('error') == unavailable['error']
                 and result.get('effect') == 'not_started' and isinstance(result.get('reason_code'),str)
                 and result['reason_code'] in DOCUMENT_WINDOW_STATUS_REASONS):
             return {**unavailable, 'reason_code':result['reason_code']}
         if (type(result) is not dict or result.get('type') != 'document_window_status'
-                or set(result) != {'type','document_token','state','same_process_verified'}
+                or fields != {'type','document_token','state','same_process_verified'}
                 or result['document_token'] != document_token
                 or result['state'] not in ('open','closed')
                 or result['same_process_verified'] is not True):
@@ -999,7 +1011,7 @@ class HelperDriver:
 # The L2 surface is transport-independent: observe/act/wait_until only need a
 # `_send`, so the inherited-socket driver borrows the spawn driver's
 # implementations rather than keeping a second copy in step with the first.
-for _name in ("foreground_begin", "foreground_end", "windows", "scope_window", "identity", "list_targets", "observe", "act", "credential_input", "credential_submit", "probe",
+for _name in ("release_targets", "foreground_begin", "foreground_end", "windows", "scope_window", "identity", "list_targets", "observe", "act", "credential_input", "credential_submit", "probe",
               "selection", "menu_state", "menu_items", "document_text", "document_window_status", "document_rtf_export", "document_attachment_metadata", "save_panel", "capture",
               "wait_until"):
     impl = getattr(HelperDriver, _name)

@@ -248,6 +248,8 @@ requests.append(["type":"foreground_end","target":"com.apple.TextEdit"])
 requests.append(["type":"foreground_begin","target":"com.apple.TextEdit","window_scope_id":1])
 requests.append(["type":"window_list","target":"com.apple.TextEdit"])
 requests.append(["type":"window_list","target":"com.apple.TextEdit","obs_id":"other"])
+requests.append(["type":"release_targets"])
+requests.append(["type":"release_targets","target":"com.apple.TextEdit"])
 print(String(data:try! JSONSerialization.data(withJSONObject:requests.map {vetted($0)==nil}),encoding:.utf8)!)
 '''
         with tempfile.TemporaryDirectory() as directory:
@@ -255,4 +257,4 @@ print(String(data:try! JSONSerialization.data(withJSONObject:requests.map {vette
             path.write_text('import Foundation\nimport CoreFoundation\nfunc modelTimeout(_ raw:Any?)->Double? {1}\n'+schema+checks)
             result=subprocess.run(['swift',str(path)],capture_output=True,text=True,timeout=30)
         self.assertEqual(0,result.returncode,result.stderr)
-        self.assertEqual([True,True,False,False,False,False,False,False,True,True,False,True,False],json.loads(result.stdout))
+        self.assertEqual([True,True,False,False,False,False,False,False,True,True,False,True,False,True,False],json.loads(result.stdout))

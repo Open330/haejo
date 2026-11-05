@@ -994,7 +994,7 @@ WIRE_ONLY = frozenset({
 SIGNED_HELPER_ONLY = frozenset({
     "action.resize_window",
     "observe.labels_v1", "action.credential_paste",
-    "action.approved_credential_input", "observe.window_list", "session.foreground_lease", "session.window_scope",
+    "action.approved_credential_input", "observe.window_list", "session.foreground_lease", "session.window_scope", "session.release_targets",
     "action.drag", "drag.window_bound",
     "action.hover", "hover.pointer_restored",
     "action.click.save_panel_guard",

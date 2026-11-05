@@ -88,6 +88,22 @@ element_index와 `point={"x":..., "y":...}`를 받는다. 호스트가
 직전에 다시 검증하며, 한 입력 시도 전에 token을 소모한다. 이것은 저장 완료
 증거나 `document_snapshot`이 아니다. [패널 검증 범위](save-directory-observation.md)를 참조한다.
 
+### Signed helper task handoff
+
+With capability `session.release_targets`, `driver.release_targets()` yields the
+connection's app/window and foreground leases without disconnecting the helper.
+It returns `targets_released` with `observation_invalidated: true`. The caller
+must observe again before sending another action. Window scope and pending
+selection/save-panel observations are cleared; document pins remain available
+for fresh identity-checked reads after the other agent finishes. This does not
+cancel or repeat an input, clear a user stop, or transfer a document token to
+another connection. Older helpers return `target_release_unavailable`.
+
+Coordinators should yield after fixture preparation and after result/cleanup
+RPCs, before waiting for an independent agent. Keeping the preparation
+connection open otherwise keeps its app leases and can cause `target_busy` in
+the agent being evaluated.
+
 ## 레시피 (IR) — `tacto.flow`
 
 ```python

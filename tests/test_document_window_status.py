@@ -12,6 +12,16 @@ from tacto.helper import HelperDriver, InheritedHelperDriver
 ROOT=Path(__file__).resolve().parents[1]
 
 class StatusChannelTests(unittest.TestCase):
+    def test_parallel_timing_does_not_hide_open_closed_or_failure_reason(self):
+        for state in ('open','closed'):
+            reply={'type':'document_window_status','document_token':'own','state':state,
+                   'same_process_verified':True,'coordination_elapsed_ms':23}
+            self.assertEqual(reply,self.driver(reply).document_window_status('com.apple.TextEdit','own'))
+        reply={'type':'error','error':'document_window_status_unavailable','effect':'not_started',
+               'reason_code':'window_snapshot_changed','coordination_elapsed_ms':23}
+        actual=self.driver(reply).document_window_status('com.apple.TextEdit','own')
+        self.assertEqual('window_snapshot_changed',actual['reason_code'])
+
     def driver(self,reply):
         driver=InheritedHelperDriver.__new__(InheritedHelperDriver)
         driver.capabilities={'evidence.document_window_status'}
