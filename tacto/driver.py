@@ -1708,29 +1708,43 @@ class Driver:
             answer['document_token'] = document_token
         return answer
 
-    def wait_until(self, target: str, predicate, timeout_ms=4000, poll_ms=250):
+    def wait_until(self, target: str, predicate, timeout_ms=4000, poll_ms=250, *, search_pages=False):
         """Re-observe on a monotonic deadline until predicate(full_tree) is true.
 
         Replaces blind fixed sleeps: the dominant CU failure mode is the action
         loop waiting a wrong fixed time. `predicate` receives the full tree text
         and returns bool. Returns the final observation dict (observation on
         success, or {'type':'timeout', ...} with the last tree).
+
+        search_pages=True (presence predicates only) also checks the
+        observation's continuation pages within the same deadline; see
+        observation_wait. Off by default: a tree-comparing predicate would
+        misread a page fragment as change.
         """
         from .observation_state import retryable_observation_error
+        from .observation_wait import match_in_pages
         deadline = time.monotonic() + timeout_ms / 1000
         last = None
+        pages_checked = 0
         while True:
             obs = self.observe(target, "tree_full", _settle_after_action=False)
             last = obs
             if obs["type"] == "observation" and predicate(obs["tree"]):
                 return obs
+            if search_pages and obs.get("type") == "observation":
+                page, read = match_in_pages(self.observe, target, predicate, obs, deadline=deadline)
+                pages_checked += read
+                if page is not None:
+                    return {**page, "observation_pages_checked": pages_checked}
             if obs.get("type") != "observation" and not retryable_observation_error(obs):
                 return obs
             if time.monotonic() >= deadline:
                 if obs.get("type") != "observation":
                     return obs
+                # last_obs is the last first page (the fullest tree to report);
+                # after paging its obs_id is no longer the latest.
                 return {"type": "timeout", "target": target, "waited_ms": timeout_ms,
-                        "last_obs": last}
+                        "last_obs": last, **({"observation_pages_checked": pages_checked} if search_pages else {})}
             time.sleep(min(poll_ms / 1000, max(0, deadline - time.monotonic())))
 
     # ------------------------------------------------------------ act

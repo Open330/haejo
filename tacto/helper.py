@@ -1089,10 +1089,15 @@ class HelperDriver:
             message['document_path'] = document_path
         return self._send(message)
 
-    def wait_until(self, target, predicate, timeout_ms=4000, poll_ms=250):
+    def wait_until(self, target, predicate, timeout_ms=4000, poll_ms=250, *, search_pages=False):
+        """As the in-process driver; search_pages only for presence predicates."""
         from .observation_state import retryable_observation_error
+        from .observation_wait import match_in_pages
+        from .protocol import CONTINUATION_CAPABILITY
+        search_pages = bool(search_pages) and CONTINUATION_CAPABILITY in getattr(self, 'capabilities', ())
         deadline = time.monotonic() + timeout_ms / 1000
         last = None
+        pages_checked = 0
         while True:
             # The predicate is the readiness witness. Check immediately;
             # sleeping first adds a second wait ahead of the polling loop.
@@ -1100,12 +1105,18 @@ class HelperDriver:
             last = obs
             if obs.get("type") == "observation" and predicate(obs["tree"]):
                 return obs
+            if search_pages and obs.get("type") == "observation":
+                page, read = match_in_pages(self.observe, target, predicate, obs, deadline=deadline)
+                pages_checked += read
+                if page is not None:
+                    return {**page, "observation_pages_checked": pages_checked}
             if obs.get("type") != "observation" and not retryable_observation_error(obs):
                 return obs
             if time.monotonic() >= deadline:
                 if obs.get("type") != "observation":
                     return obs
-                return {"type": "timeout", "last_obs": last}
+                return {"type": "timeout", "last_obs": last,
+                        **({"observation_pages_checked": pages_checked} if search_pages else {})}
             time.sleep(min(poll_ms / 1000, max(0, deadline - time.monotonic())))
 
 
