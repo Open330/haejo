@@ -44,7 +44,7 @@ from . import safety
 from .contract import Envelope, describe, policy
 from .flow import Selector, _same_role
 from .outcome import OutcomeSpec
-from .model_budget import model_deadline
+from .model_budget import model_cancellation, model_deadline
 from .provider_observation import capture_provider_calls, provider_failure_reason
 from .protocol import RETURN_BOUND_CAPABILITY
 
@@ -649,7 +649,8 @@ def run(driver, target: str, goal: str, ask_here, *, max_screens: int = 8,
                 return None
             calls = []
             try:
-                with capture_provider_calls() as calls, model_deadline(deadline):
+                with (capture_provider_calls() as calls, model_deadline(deadline),
+                      model_cancellation(cancelled)):
                     result = original_ask_where(*args)
             except TimeoutError:
                 if not stopped():
@@ -797,7 +798,11 @@ def run(driver, target: str, goal: str, ask_here, *, max_screens: int = 8,
             return res
         calls = []
         try:
-            with capture_provider_calls() as calls, model_deadline(deadline):
+            # Host cancellation reaches the in-flight request: the owned
+            # provider process group stops and no fallback route starts.
+            # It does not reach driver input; dispatch keeps its own checks.
+            with (capture_provider_calls() as calls, model_deadline(deadline),
+                  model_cancellation(cancelled)):
                 answer = ask_here(goal, cands, done_so_far)
         except TimeoutError:
             if not stopped():

@@ -24,10 +24,10 @@ import sys
 import time
 import uuid
 
-from .provider_result import (ProviderAttempt, ProviderError, ProviderResult, ProviderUnavailable,
+from .provider_result import (CANCELLED_MESSAGE, ProviderAttempt, ProviderError, ProviderResult, ProviderUnavailable,
                               UNAVAILABLE_REASONS, classify_unavailable)
 from .provider_observation import collecting_provider_calls, record_provider_result
-from .model_budget import remaining_model_seconds
+from .model_budget import ModelCancelled, raise_if_model_cancelled, remaining_model_seconds
 
 from .contract import (SafetyContract, Resource, Destination, Evidence,
                        ContextBinding)
@@ -317,6 +317,8 @@ def reach_model(prompt: str, provider: str = "auto",
     timeout_seconds = remaining_model_seconds(timeout_seconds)
     if collecting_provider_calls():
         result = reach_model_result(prompt, provider, expect_json, timeout_seconds=timeout_seconds)
+        if result.status == "cancelled":
+            raise ModelCancelled()
         if result.status == "timeout":
             raise TimeoutError("model request deadline exceeded")
         if result.status != "ok" or not result.text:
@@ -395,6 +397,8 @@ def _ask_model(prompt: str, provider: str = "auto", timeout: int = 420,
         routes = (("cli-json", _try_cli),) if name == "claude" else (
             ("muxa", _try_muxa), ("cli-json" if name in ('codex','opencode','gemini') else "cli", _try_cli))
         for how, fn in routes:
+            # A cancelled host gets no further route: fallback stops here.
+            raise_if_model_cancelled()
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 raise TimeoutError("model request deadline exceeded; " + "; ".join(tried))
@@ -408,6 +412,8 @@ def _ask_model(prompt: str, provider: str = "auto", timeout: int = 420,
                 reply = fn(name, prompt, remaining)
                 observed = reply if isinstance(reply, ProviderResult) else None
                 if observed is not None:
+                    if observed.status == "cancelled":
+                        raise ModelCancelled()
                     if observed.status == "timeout":
                         raise TimeoutError("provider deadline exceeded")
                     if observed.status != "ok" or not observed.text:
@@ -431,6 +437,12 @@ def _ask_model(prompt: str, provider: str = "auto", timeout: int = 420,
                         invalid_json = True
                         raise
                 accepted = bool(reply)
+            except ModelCancelled:
+                # Keep what this attempt observed (partial usage) and stop:
+                # cancellation is never a reason to try the next provider.
+                attempts.append(_provider_attempt(name, how, 'cancelled', started, observed,
+                                                  'ModelCancelled'))
+                raise
             except Exception as e:
                 timed_out = timed_out or isinstance(e, (TimeoutError, subprocess.TimeoutExpired))
                 code = getattr(e, 'reason', None) or type(e).__name__
@@ -494,7 +506,8 @@ def _model_result(prompt: str, provider: str, timeout: int,
                               _metadata=metadata)
     except Exception as exc:
         text = None
-        status = "timeout" if isinstance(exc, (TimeoutError, subprocess.TimeoutExpired)) else "error"
+        status = ("cancelled" if isinstance(exc, ModelCancelled)
+                  else "timeout" if isinstance(exc, (TimeoutError, subprocess.TimeoutExpired)) else "error")
         # The attempts list is built from our own tokens — provider name,
         # route, and a reason code or exception class — so it can travel with
         # the error without carrying anything a provider printed.
@@ -508,6 +521,7 @@ def _model_result(prompt: str, provider: str, timeout: int,
                       else type(exc).__name__)
         error = ProviderError(error_code,
                               "Model request exceeded its deadline" if status == "timeout"
+                              else CANCELLED_MESSAGE if status == "cancelled"
                               else "Model request failed" + (f" — {attempts}" if attempts else ""))
     except BaseException as exc:
         record_provider_result(ProviderResult(

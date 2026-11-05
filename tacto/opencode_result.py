@@ -12,7 +12,7 @@ import subprocess
 import tempfile
 import time
 import uuid
-from .provider_result import (ProviderError, ProviderResult, ProviderUnavailable,
+from .provider_result import (CANCELLED_MESSAGE, ProviderError, ProviderResult, ProviderUnavailable,
                               classify_unavailable, finite_nonnegative_number)
 
 
@@ -143,15 +143,18 @@ def opencode_result(prompt, *, timeout=420):
                 raise
             if response.returncode != 0: raise OpenCodeProtocolError(fields)
     except Exception as exc:
-        if isinstance(exc,subprocess.TimeoutExpired):
+        from .model_budget import ModelCancelled
+        if isinstance(exc,(subprocess.TimeoutExpired,ModelCancelled)) and exc.output is not None:
             from .provider_io import bounded_output_text
             partial=bounded_output_text(exc.output)
             if partial is not None:
                 try:fields=parse_opencode_events(partial)
                 except OpenCodeProtocolError as rejected:fields=rejected.fields
-        status = 'timeout' if isinstance(exc,(TimeoutError,subprocess.TimeoutExpired)) else 'error'
+        status = ('cancelled' if isinstance(exc,ModelCancelled)
+                  else 'timeout' if isinstance(exc,(TimeoutError,subprocess.TimeoutExpired)) else 'error')
         fields.pop('text',None)
         error = ProviderError(getattr(exc,'reason',type(exc).__name__),
-            'OpenCode request exceeded deadline' if status == 'timeout' else 'OpenCode CLI response failed')
+            'OpenCode request exceeded deadline' if status == 'timeout'
+            else CANCELLED_MESSAGE if status == 'cancelled' else 'OpenCode CLI response failed')
     return ProviderResult(str(uuid.uuid4()),'opencode','opencode','cli-json',status,
         fields.pop('text',None),error,max(0,time.monotonic()-began),**fields)

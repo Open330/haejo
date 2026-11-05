@@ -19,7 +19,7 @@ import json
 import logging
 
 from .authoring import _provider_env
-from .provider_result import ProviderError, ProviderResult, ProviderUnavailable, classify_unavailable
+from .provider_result import CANCELLED_MESSAGE, ProviderError, ProviderResult, ProviderUnavailable, classify_unavailable
 
 
 class CodexProtocolError(ValueError):
@@ -255,12 +255,15 @@ def codex_result(prompt: str, *, model: str | None = None,
                     raise ProviderUnavailable(reason) from None
                 raise
     except Exception as exc:
-        if isinstance(exc,subprocess.TimeoutExpired):
+        from .model_budget import ModelCancelled
+        if isinstance(exc,(subprocess.TimeoutExpired,ModelCancelled)):
             fields.update(_completed_codex_metadata(exc.output))
         else:fields.update(_completed_codex_metadata(observed_stdout))
-        status = 'timeout' if isinstance(exc, (TimeoutError, subprocess.TimeoutExpired)) else 'error'
+        status = ('cancelled' if isinstance(exc, ModelCancelled)
+                  else 'timeout' if isinstance(exc, (TimeoutError, subprocess.TimeoutExpired)) else 'error')
         fields.pop('text',None)
         error = ProviderError(getattr(exc, 'reason', type(exc).__name__), 'Codex request exceeded deadline' if status == 'timeout'
+                              else CANCELLED_MESSAGE if status == 'cancelled'
                               else 'Codex CLI request or structured response failed')
     return ProviderResult(request_id=request_id, requested_provider='codex', provider='codex',
                           transport='cli-json', status=status, text=fields.pop('text', None),

@@ -46,6 +46,8 @@ Claude 계산은 [공식 prompt caching 문서](https://platform.claude.com/docs
 
 일반 CLI, Claude 및 Codex structured adapter는 timeout뿐 아니라 호출자 KeyboardInterrupt 등 `communicate` 중단 시에도 로컬 프로세스 그룹을 종료하고 부모 프로세스를 회수한다. POSIX 실제 subprocess 테스트에서 호출자 중단 후 자식의 지연 파일 쓰기가 발생하지 않음을 검증한다. `cancellation_supported=false`는 계속 유지한다. 원격 생성 중단·비용 중단은 확인하지 못하며, 별도 세션으로 이탈한 자식까지 프로세스 그룹 종료가 보장하지 않는다.
 
+호스트 취소: `model_budget.model_cancellation(predicate)` 범위 안에서는 provider 파이프 루프가 `CANCEL_POLL_SECONDS`(0.05초)마다 predicate를 확인하고, 참이면 timeout과 같은 소유 프로세스 그룹 정리 경로로 로컬 CLI를 멈춘다. predicate가 예외를 내면 취소로 간주한다. 결과 status와 attempt status는 `cancelled`, 오류 코드는 `ModelCancelled`이며, 정리 전까지 관측한 부분 usage는 timeout과 같은 규칙으로 보존한다. 취소된 범위에서는 `remaining_model_seconds`가 즉시 거부하므로 새 route, auto fallback, 검증 재시도가 시작되지 않는다. `general.run(cancelled=...)`은 planner와 ask_where 호출을 이 범위로 감싸고, driver 입력 전송에는 적용하지 않는다. 서명 런처를 통한 요청은 보내기 전에만 취소를 확인한다. 런처 쪽에서 이미 진행 중인 생성은 런처 프로토콜 변경 없이는 멈추지 못한다. `cancellation_supported=false`는 유지하며 원격 생성·청구 중단을 뜻하지 않는다.
+
 서명 런처의 바깥 watchdog도 먼저 요청 Python에 SIGTERM을 보내 정리를
 요청한다. `ask_provider.main`은 이를 BaseException으로 전달하여 위 CLI
 runner의 kill/reap 경로를 실행하고 종료 코드143으로 끝난다. 원래 SIGTERM

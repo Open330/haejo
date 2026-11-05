@@ -15,7 +15,7 @@ import time
 import uuid
 
 from .authoring import _provider_env
-from .provider_result import ProviderError, ProviderResult, ProviderUnavailable, classify_unavailable, finite_nonnegative_number
+from .provider_result import CANCELLED_MESSAGE, ProviderError, ProviderResult, ProviderUnavailable, classify_unavailable, finite_nonnegative_number
 
 
 class ClaudeProtocolError(ValueError):
@@ -423,14 +423,16 @@ def claude_result(prompt: str, *, model: str | None = None, timeout: float = 120
                     raise ClaudeProtocolError('provider initiated model fallback') from None
                 raise
     except Exception as exc:
-        if isinstance(exc,subprocess.TimeoutExpired):
+        from .model_budget import ModelCancelled
+        if isinstance(exc,(subprocess.TimeoutExpired,ModelCancelled)):
             from .provider_io import bounded_output_text
             partial=bounded_output_text(exc.output)
             if partial is not None:
                 try:fields=parse_claude_events(partial,session_id)
                 except (ClaudeProtocolError,RecursionError):pass
         fields.pop('text',None)
-        status = 'timeout' if isinstance(exc, (TimeoutError, subprocess.TimeoutExpired)) else 'error'
+        status = ('cancelled' if isinstance(exc, ModelCancelled)
+                  else 'timeout' if isinstance(exc, (TimeoutError, subprocess.TimeoutExpired)) else 'error')
         reason = getattr(exc, 'reason', None)
         error = (ProviderError(reason, {'not_logged_in': 'Claude CLI is not logged in — run `claude /login`',
                                         'usage_limit': 'Claude usage limit reached',
@@ -439,6 +441,7 @@ def claude_result(prompt: str, *, model: str | None = None, timeout: float = 120
                                         'organization_access_disabled': 'Organization has disabled Claude Code subscription access'}[reason])
                  if reason else
                  ProviderError(getattr(exc, 'code', type(exc).__name__), 'Claude request exceeded deadline' if status == 'timeout'
+                               else CANCELLED_MESSAGE if status == 'cancelled'
                                else 'Claude CLI request or structured response failed'
                                + (' (pre-init event: ' + exc.diagnostic + ')'
                                   if isinstance(exc, ClaudeProtocolError) and exc.diagnostic else '')))

@@ -13,7 +13,7 @@ import subprocess
 import tempfile
 import time
 import uuid
-from .provider_result import ProviderError, ProviderResult, ProviderUnavailable, classify_unavailable
+from .provider_result import CANCELLED_MESSAGE, ProviderError, ProviderResult, ProviderUnavailable, classify_unavailable
 
 
 class GeminiProtocolError(ValueError):
@@ -157,15 +157,18 @@ def gemini_result(prompt, *, timeout=420):
                 raise
             if response.returncode!=0:raise GeminiProtocolError(fields)
     except Exception as exc:
-        if isinstance(exc,subprocess.TimeoutExpired) and wire is not None:
+        from .model_budget import ModelCancelled
+        if isinstance(exc,(subprocess.TimeoutExpired,ModelCancelled)) and wire is not None and exc.output is not None:
             from .provider_io import bounded_output_text
             partial=bounded_output_text(exc.output)
             if partial is not None:
                 try:fields=parse_gemini_events(partial,wire)
                 except GeminiProtocolError as rejected:fields=rejected.fields
-        status='timeout' if isinstance(exc,(TimeoutError,subprocess.TimeoutExpired)) else 'error'
+        status=('cancelled' if isinstance(exc,ModelCancelled)
+                else 'timeout' if isinstance(exc,(TimeoutError,subprocess.TimeoutExpired)) else 'error')
         fields.pop('text',None)
         error=ProviderError(getattr(exc,'reason',type(exc).__name__),
-            'Gemini request exceeded deadline' if status=='timeout' else 'Gemini CLI response failed')
+            'Gemini request exceeded deadline' if status=='timeout'
+            else CANCELLED_MESSAGE if status=='cancelled' else 'Gemini CLI response failed')
     return ProviderResult(str(uuid.uuid4()),'gemini','gemini','cli-json',status,
         fields.pop('text',None),error,max(0,time.monotonic()-began),**fields)

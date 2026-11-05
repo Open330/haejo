@@ -31,7 +31,7 @@ from __future__ import annotations
 import re
 import json
 import time
-from .model_budget import model_deadline, remaining_model_seconds
+from .model_budget import ModelCancelled, model_deadline, remaining_model_seconds
 from dataclasses import dataclass, field
 from typing import Callable
 
@@ -100,7 +100,8 @@ def ask(q: Q, provider: str = "auto", narrate=None, *, timeout_seconds=420,
                     '사용하여 JSON 구조와 필요한 필드를 다시 확인하십시오. '
                     '이미 목표를 달성했다면 done=true와 빈 actions를 반환하십시오.')
         return None
-    except (TimeoutError, _PagingRequestLimit):
+    except (TimeoutError, _PagingRequestLimit, ModelCancelled):
+        # Host cancellation is a stop, never "no answer" to retry or fall back.
         raise
     except Exception as e:
         if narrate:

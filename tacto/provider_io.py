@@ -1,6 +1,9 @@
 """Bound pipe capture while a local planning CLI runs (POSIX only).
 
 This bounds local stdout/stderr, not remote generation, billing, or CLI files.
+Inside a model_cancellation scope, host cancellation stops the owned local
+process group the same way a timeout does; remote generation is not proven
+stopped.
 Output-limit errors expose no partial content. Timeouts retain bounded raw bytes
 for the host's private trace; provider adapters must never accept them as answers.
 """
@@ -15,6 +18,7 @@ from functools import lru_cache
 from contextlib import contextmanager
 
 MAX_PROVIDER_OUTPUT_BYTES = 8 * 1024 * 1024  # per stream
+CANCEL_POLL_SECONDS = 0.05  # host-cancellation latency inside a cancellation scope
 
 
 class ProviderOutputLimitExceeded(ValueError):
@@ -158,9 +162,18 @@ def bounded_communicate(process, *, input=None, timeout, _retain_child_status=Fa
     payload=(input or '').encode(process.stdin.encoding or 'utf-8') if process.stdin else b''
     offset=0
     chunks={'stdout':bytearray(),'stderr':bytearray()}
+    from .model_budget import ModelCancelled, model_cancellation_active, model_cancelled
+    # Host cancellation is polled only inside a cancellation scope, so plain
+    # calls keep their single deadline-length select.
+    watch=model_cancellation_active()
     def timed_out():
         return subprocess.TimeoutExpired(process.args,timeout,
             output=bytes(chunks['stdout']),stderr=bytes(chunks['stderr']))
+    def check_cancelled():
+        if watch and model_cancelled():
+            raise ModelCancelled(output=bytes(chunks['stdout']),stderr=bytes(chunks['stderr']))
+    def wait_for(remaining):
+        return min(remaining,CANCEL_POLL_SECONDS) if watch else remaining
     with selectors.DefaultSelector() as selector:
         for name in chunks:
             pipe=getattr(process,name)
@@ -172,9 +185,10 @@ def bounded_communicate(process, *, input=None, timeout, _retain_child_status=Fa
                 selector.register(process.stdin,selectors.EVENT_WRITE,'stdin')
             else:process.stdin.close()
         while selector.get_map():
+            check_cancelled()
             remaining=deadline-time.monotonic()
             if remaining<=0:raise timed_out()
-            for key,_ in selector.select(remaining):
+            for key,_ in selector.select(wait_for(remaining)):
                 pipe=key.fileobj
                 if key.data=='stdin':
                     try:offset+=os.write(pipe.fileno(),payload[offset:offset+65536])
@@ -193,16 +207,24 @@ def bounded_communicate(process, *, input=None, timeout, _retain_child_status=Fa
                         collected.extend(data)
                         if key.data == 'stdout' and stdout_observer is not None:
                             stdout_observer(data)
+        check_cancelled()
         remaining=deadline-time.monotonic()
         if remaining<=0:raise timed_out()
         if _retain_child_status:
             while not provider_process_exited_unreaped(process):
+                check_cancelled()
                 remaining=deadline-time.monotonic()
                 if remaining<=0:raise timed_out()
                 time.sleep(min(.01,remaining))
         else:
-            try:process.wait(timeout=remaining)
-            except subprocess.TimeoutExpired:raise timed_out() from None
+            while True:
+                try:
+                    process.wait(timeout=wait_for(remaining))
+                    break
+                except subprocess.TimeoutExpired:
+                    check_cancelled()
+                    remaining=deadline-time.monotonic()
+                    if remaining<=0:raise timed_out() from None
     def decode(name):
         if time.monotonic()>=deadline:raise timed_out()
         pipe=getattr(process,name)
