@@ -199,7 +199,7 @@ close / markDeliverable / markHandoff`. 인벤토리는 `cua.initialize()` →
  "evidence_obs_id": "o21", "narration": "계산 결과 408을 확인했습니다"}
 ```
 
-#### 구현된 native 관측 continuation (2026-11-05 후보)
+#### 구현된 native 관측 continuation (rc.21)
 
 `observe.continuation_v1`을 제공하는 macOS backend는 첫 관측에서 생략한
 부분을 같은 연결에서 이어 읽는다. 첫 관측의 자식60개/2,500노드 제한을

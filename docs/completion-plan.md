@@ -1,5 +1,29 @@
 # 전체 목표의 완료 기준과 현재 작업
 
+
+## 2026-11-05 rc.21 배포 검증 완료
+
+수정 후보 eddb2de는 전체3,171검사에서 실패·오류0, 조건부 제외26으로 통과했다.
+앱·DMG Apple Accepted, 티켓·Gatekeeper·보안·최종 산출물 검사를 통과했다.
+localhost·june-mba·jiun-mini에 동일 번들을 설치했고 서명·스킬 연결·백그라운드
+실행·Dock 숨김·기존 권한 유지를 확인했다. 추가 사용자 조치는 없다.
+Vault 세션과 GitHub 공개 릴리스는 변경하지 않았다.
+
+설치본 native7검사(한글 NFC/NFD·암호 입력·클립보드·floating 드래그/크기 조절),
+같은 세션의 schema 수리, 문서 본문 상태 확인, 요청자 종료 시 로컬 모델 그룹
+정리도 통과했다. 새 CLI 관측 검증에서는 첫 관측에 없던 Item239를 같은
+session의 추가3페이지에서 찾았다. 안내1회·Flow 제출1회·수신 입력1회·모델0·
+exit0·소유 시험 앱 종료를 확인했다. 이 증거는 Save나 물리 사용자 타이핑
+보존을 뜻하지 않는다. 실패한 첫 rc.21 후보도 그대로 보존했다.
+
+배포 원본은 `reviews/tacto-rc21-candidate2-20261105/completion-report.json`,
+`fleet-installation-report.json`, `fleet-final-audit.json`, `installed-native.log`,
+`installed-observation-session.json`이다. 아래 rc.20/이전 후보 절은 시점별 기록이다.
+G0~G10 전체 목표는 계속 진행 중이다. 다음은 실제 TextEdit Save As의 스냅샷·
+저장 패널·새 파일/문서 URL 전이를 연결하는 G7 작업이다. 현재 저장 상태 증거를
+인과 증거로 바꾸어 부르지 않는다.
+
+
 ## 2026-11-05 G2: 관측에서 생략된 후보의 탐색 연결
 
 기존 token paging은 받은 후보만 나눴다. 실제240버튼 AppKit 창에서 첫 관측의
@@ -32,13 +56,13 @@ session은 입력 전 {"observe_next":true} 또는 지원되는 정확한 이름
 
 한계는 페이지당2,500노드/자식60, 깊이25, frontier4,096개다. 초과/미확인 상태를
 보고하며 물리 사용자 타이핑 보존·일반 사용자 앱 전체 성공률·Save 인과 증거로
-승격하지 않는다. 설치본은 여전히 rc.20이며 후보 전체 회귀/배포는 후속이다.
+승격하지 않는다. 이 변경은 위 rc.21 배포 검증에 포함됐다.
 rc.21 첫 후보의 전체3,171검사에서는 표시 진입점 목록 검사2개가 실패했다.
 새 continuation 진입점을 추가하면서 기존 검사 갱신을 놓쳤다. 조건을 삭제하지
 않고 읽기 전용 진입점을 명시했고 관련84검사가 통과했다. peer도 수정이 원래
 검사 의미를 보존함을 확인했다. 이 후보의 공증·설치는 시작하지 않았으며
 `reviews/tacto-rc21-20261105/failed-candidate-checkpoint.json`에 보존했다.
-수정된 별도 후보의 전체 회귀를 다시 실행한다.
+수정된 별도 후보는 위 전체 회귀·공증·설치 검증을 통과했다.
 
 원본·각 실패/성공·모델별 집계:
 `reviews/goal-resume-20261105-observation-paging/report.json`.
