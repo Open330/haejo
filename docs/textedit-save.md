@@ -125,8 +125,11 @@ backend는 해당 패널의 실제 절대 디렉터리·파일명·선택된 저
 
 in-process backend는 AX 객체 identity를 보관하고, signed helper는 연결에 귀속된
 token으로 동일 계약을 구현해야 한다. helper 사용 중 Python/PyObjC로 우회하지 않는다.
-`editing_mode`는 같은 문서에 귀속된 Format 메뉴나 저장 패널의 RTF 선택으로
-읽는다. RTF range export나 확장자는 원본 파일 형식의 증거가 아니다. 관측된 첨부가
+`editing_mode`는 Format 메뉴의 모드 전환 제목이나 저장 패널의 RTF 선택으로
+읽는다. 메뉴 witness에는 `menu_enabled`와 `title_current_verified`를 함께 남긴다.
+백그라운드에서 비활성화된 메뉴 제목은 이전 상태일 수 있으므로 둘 다 `false`이며,
+이때의 값은 모드 힌트다. 실제 저장 전에는 같은 문서에 연결된 저장 패널의 RTF 선택을
+독립적으로 다시 확인한다. RTF range export나 확장자는 원본 파일 형식의 증거가 아니다. 관측된 첨부가
 있으면 지원하지 않으며, 빈 AX 첨부 목록도 첨부 전체가 없다는 증명으로 보고하지 않는다.
 
 개발 중인 `SnapshotDriver`는 위 계약을 기존 네이티브 reader로 합성한다. 필요한

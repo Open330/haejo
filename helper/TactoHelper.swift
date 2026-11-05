@@ -7298,12 +7298,13 @@ func documentWindowSelection(_ target: String, obsID: String, index: Int)
 /// certificate of any file's on-disk format.
 let documentModeRichTitles: Set<String> = ["Make Plain Text", "일반 텍스트 만들기"]
 let documentModePlainTitles: Set<String> = ["Make Rich Text", "리치 텍스트 만들기"]
-/// Exactly one known Format command, enabled, decides the mode; anything else
+/// Exactly one known Format command supplies a mode hint; anything else
 /// is unavailable. Pure, so both drivers and tests share one rule.
 func documentModeFromFormatMenu(_ entries: [(title: String, enabled: Bool)]) -> (rich: Bool?, title: String?, reason: String) {
     let known = entries.filter { documentModeRichTitles.contains($0.title) || documentModePlainTitles.contains($0.title) }
     guard known.count == 1, let entry = known.first else { return (nil, nil, "format_menu_ambiguous_or_absent") }
-    guard entry.enabled else { return (nil, nil, "format_menu_disabled") }
+    // Disabled commands can retain a stale title. Preserve enablement in the
+    // witness so consumers can require an independent format check.
     return (documentModeRichTitles.contains(entry.title), entry.title, "")
 }
 func documentMode(_ msg: [String: Any]) -> [String: Any] {
@@ -7360,6 +7361,7 @@ func documentMode(_ msg: [String: Any]) -> [String: Any] {
         return ["type": "document_mode", "document_token": token,
                 "editing_mode": rich ? "rich_text" : "plain_text",
                 "witness": ["source": "format_menu", "menu_title": witnessTitle,
+                            "menu_enabled": found[0].enabled, "title_current_verified": found[0].enabled,
                             "main_window_before": true, "main_window_after": true],
                 "edited": edited, "source_format_verified": false]
     } catch let DocumentError.fail(detail) {

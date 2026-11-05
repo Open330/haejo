@@ -1147,13 +1147,15 @@ class HelperDriver:
                 or response['source_format_verified'] is not False
                 or response['edited'] not in (True, False, None)
                 or not isinstance(witness, dict)
-                or set(witness) != {'source','menu_title','main_window_before','main_window_after'}
+                or set(witness) != {'source','menu_title','menu_enabled','title_current_verified','main_window_before','main_window_after'}
+                or type(witness['menu_enabled']) is not bool
+                or witness['title_current_verified'] is not witness['menu_enabled']
                 or witness['source'] != 'format_menu' or witness['main_window_before'] is not True
                 or witness['main_window_after'] is not True or not isinstance(witness['menu_title'], str)):
             return unavailable
         from .native_document import document_mode_from_format_menu, DocumentModeUnavailable
         try:
-            mode, _ = document_mode_from_format_menu([(witness['menu_title'], True)])
+            mode, _ = document_mode_from_format_menu([(witness['menu_title'], witness['menu_enabled'])])
         except DocumentModeUnavailable:
             return unavailable
         return response if mode == response['editing_mode'] else unavailable

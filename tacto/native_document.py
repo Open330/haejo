@@ -40,16 +40,15 @@ FORMAT_MENU_PLAIN_TITLES = frozenset({'Make Rich Text', '리치 텍스트 만들
 def document_mode_from_format_menu(entries):
     """(editing_mode, title) from (title, enabled) pairs, or DocumentModeUnavailable.
 
-    Exactly one known Format command, enabled, decides; the same rule as the
-    helper's documentModeFromFormatMenu.
+    Exactly one known Format command supplies a mode hint. Disabled commands
+    may retain a stale title; callers must preserve enablement in the witness
+    and independently verify the format before committing a save.
     """
     known = [(title, enabled) for title, enabled in entries
              if title in FORMAT_MENU_RICH_TITLES or title in FORMAT_MENU_PLAIN_TITLES]
     if len(known) != 1:
         raise DocumentModeUnavailable('format_menu_ambiguous_or_absent')
-    title, enabled = known[0]
-    if enabled is not True:
-        raise DocumentModeUnavailable('format_menu_disabled')
+    title, _enabled = known[0]
     return ('rich_text' if title in FORMAT_MENU_RICH_TITLES else 'plain_text'), title
 
 
@@ -306,12 +305,15 @@ class TextEditDocumentReader:
                 raise DocumentModeUnavailable('window_not_ready') from exc
             if not is_main():
                 raise DocumentModeUnavailable('not_main_window')
-            mode, title = document_mode_from_format_menu(self._call('format_menu_entries', target))
+            entries = self._call('format_menu_entries', target)
+            mode, title = document_mode_from_format_menu(entries)
+            menu_enabled = next(enabled is True for label, enabled in entries if label == title)
             if not is_main() or not same_pin():
                 raise DocumentModeUnavailable('main_window_or_pin_changed')
             edited = self._call('read_attribute', pinned.window, 'AXEdited')
             return {'type': 'document_mode', 'document_token': document_token, 'editing_mode': mode,
                     'witness': {'source': 'format_menu', 'menu_title': title,
+                                'menu_enabled': menu_enabled, 'title_current_verified': menu_enabled,
                                 'main_window_before': True, 'main_window_after': True},
                     'edited': edited[1] if edited[0] == 0 and type(edited[1]) is bool else None,
                     'source_format_verified': False}

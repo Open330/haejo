@@ -125,6 +125,7 @@ class DocumentModeTests(unittest.TestCase):
                          (reply['editing_mode'], reply['witness']['menu_title'], reply['edited'],
                           reply['source_format_verified']))
         self.assertEqual({'source': 'format_menu', 'menu_title': 'Make Plain Text',
+                          'menu_enabled': True, 'title_current_verified': True,
                           'main_window_before': True, 'main_window_after': True}, reply['witness'])
         self.adapter.menu = [('리치 텍스트 만들기', True)]
         self.adapter.edited = (-25205, None)
@@ -132,8 +133,6 @@ class DocumentModeTests(unittest.TestCase):
         self.assertEqual(('plain_text', None), (reply['editing_mode'], reply['edited']))
 
     def test_unprovable_states_are_unavailable_not_guessed(self):
-        self.adapter.menu = [('Make Plain Text', False)]
-        self.assertEqual('format_menu_disabled', self.reason())
         self.adapter.menu = [('Make Plain Text', True), ('Make Rich Text', True)]
         self.assertEqual('format_menu_ambiguous_or_absent', self.reason())
         self.adapter.menu = []
@@ -167,6 +166,14 @@ class DocumentModeTests(unittest.TestCase):
         self.assertEqual(('rich_text', '일반 텍스트 만들기'), document_mode_from_format_menu([('일반 텍스트 만들기', True), ('Copy', True)]))
         with self.assertRaises(DocumentModeUnavailable):
             document_mode_from_format_menu([('Make plain text', True)])     # not an exact known title
+
+    def test_disabled_format_command_still_reports_read_only_editing_mode(self):
+        for title, expected in [('Make Plain Text', 'rich_text'), ('Make Rich Text', 'plain_text')]:
+            self.adapter.menu = [(title, False)]
+            reply = self.mode()
+            self.assertEqual(expected, reply['editing_mode'])
+            self.assertIs(reply['witness']['menu_enabled'], False)
+            self.assertIs(reply['witness']['title_current_verified'], False)
 
 
 class DriverSelectorTests(unittest.TestCase):
@@ -227,6 +234,7 @@ class HelperClientTests(unittest.TestCase):
     def good(self):
         return {'type': 'document_mode', 'document_token': 'tok', 'editing_mode': 'rich_text',
                 'witness': {'source': 'format_menu', 'menu_title': 'Make Plain Text',
+                          'menu_enabled': True, 'title_current_verified': True,
                             'main_window_before': True, 'main_window_after': True},
                 'edited': None, 'source_format_verified': False}
 
@@ -240,6 +248,14 @@ class HelperClientTests(unittest.TestCase):
                 reply = {**self.good(), **change}
                 self.assertEqual('document_mode_unavailable',
                                  self.client(reply).document_mode('com.apple.TextEdit', 'tok')['error'])
+
+    def test_disabled_hint_is_preserved_and_inconsistent_witness_is_refused(self):
+        reply = self.good()
+        reply['witness'].update(menu_enabled=False, title_current_verified=False)
+        self.assertEqual(reply, self.client(reply).document_mode('com.apple.TextEdit', 'tok'))
+        reply['witness']['title_current_verified'] = True
+        self.assertEqual('document_mode_unavailable',
+                         self.client(reply).document_mode('com.apple.TextEdit', 'tok')['error'])
 
     def test_no_capability_or_bad_request_sends_nothing(self):
         h = self.client(self.good(), caps=())
