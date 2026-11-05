@@ -37,11 +37,14 @@ _PIN_AX_REASONS = {'AXWindows':'windows_unreadable','AXSubrole':'window_subrole_
                 'AXDocument':'document_path_unreadable','AXValue':'text_value_unreadable',
                 'AXNumberOfCharacters':'text_count_unreadable','AXStringForRange':'text_range_unreadable',
                 'document children':'children_unreadable'}
-PIN_REASONS = frozenset(_PIN_DETAILS.values()) | frozenset(_PIN_AX_REASONS.values()) | {'user_aborted'}
+_PIN_OPERATIONAL = frozenset({'indicator_unavailable', 'target_busy', 'session_not_visible', 'target_not_found'})
+PIN_REASONS = _PIN_OPERATIONAL | frozenset(_PIN_DETAILS.values()) | frozenset(_PIN_AX_REASONS.values()) | {'user_aborted'}
 
 def pin_failure_reason(reply):
     if type(reply) is not dict or reply.get('type') != 'error':return None
     if reply.get('error') == 'aborted_by_user':return 'user_aborted'
+    error = reply.get('error')
+    if type(error) is str and error in _PIN_OPERATIONAL:return error
     if reply.get('error') != 'document_snapshot_unavailable':return None
     detail = reply.get('detail')
     if type(detail) is not str:return None

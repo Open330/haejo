@@ -91,6 +91,15 @@ class PinDiagnosticTests(unittest.TestCase):
             self.assertIn('pin_reason='+expected,str(error.exception))
             d.observe.assert_not_called();d.act.assert_not_called()
 
+    def test_operational_pin_errors_keep_the_actual_closed_cause(self):
+        for cause in ['indicator_unavailable','target_busy','session_not_visible','target_not_found']:
+            d=Mock(capabilities=CAPS)
+            d.document_text.return_value={'type':'error','error':cause,'detail':'PRIVATE'}
+            result=_document_observation(d,TARGET,PATH)
+            self.assertEqual(cause,result['pin_reason_code'])
+            self.assertNotIn('PRIVATE',str(result))
+            d.observe.assert_not_called();d.act.assert_not_called()
+
     def test_unknown_or_private_details_are_never_echoed_or_prefix_matched(self):
         from tacto.document_scope import pin_failure_reason
         for detail in ['PRIVATE','AXSubrole unavailable: -25202 PRIVATE','AXWindows unavailable\nPRIVATE',{},None]:

@@ -1,4 +1,4 @@
-"""Transient window geometry cannot bypass the visible Stop control."""
+"""Bounded geometry reads and independent user-stop diagnostics."""
 import json,pathlib,subprocess,tempfile,unittest,sys
 @unittest.skipUnless(sys.platform=='darwin','Swift/CoreGraphics required')
 class ControlFrameReadiness(unittest.TestCase):

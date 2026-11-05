@@ -4615,8 +4615,8 @@ func showControlPanel(forPID pid: pid_t, targets: [CGRect]) -> Bool {
         stop.toolTip = "Tacto · \(who) · Esc로 즉시 중단"
     }
     controlPanelLabel?.stringValue = "Tacto · \(who)"
-    // If the person changes Spaces or covers/closes the control, refuse work.
-    // Do not drag the panel into their new workspace or activate it.
+    // Report presentation only. Do not move the panel across Spaces or activate
+    // it; the caller can continue using the persistent app menu and Esc.
     return controlPanelOnScreen()
 }
 
@@ -4624,9 +4624,9 @@ func showControlPanel(forPID pid: pid_t, targets: [CGRect]) -> Bool {
 /// visible control for AX work. It is Tacto's own UI, not an OS capture proof.
 /// Actual image capture retains Screen Recording permission and macOS's own
 /// recording indicator. AX-only access never starts a capture stream merely
-/// to light an indicator. The panel stays outside target windows and refuses
-/// work when it cannot remain visible without covering them, unless the user
-/// explicitly disabled this optional banner in settings.
+/// to light an indicator. The panel stays outside target windows and
+/// neither delays nor blocks AX work when it cannot be shown. The persistent
+/// app menu, access log and Esc remain available independently.
 /// What the indicator's menu does when someone chooses to stop.
 ///
 /// `static let` rather than a global, and the position is load-bearing for the
@@ -4856,83 +4856,58 @@ func readyControlTargetFrames(timeout: TimeInterval = 0.5,
 /// The user can hide the optional stop panel. Esc and session checks always apply.
 ///
 func ensureVisibleControl(forPID pid: pid_t, windowless: Bool = false) -> Bool {
-    // AX access does not read pixels. Keep its visible stop control independent
-    // from Screen Recording; actual image APIs retain their permission checks.
     func sessionVisible() -> Bool {
         guard let session = CGSessionCopyCurrentDictionary() as? [String:Any] else { return false }
         return session[kCGSessionOnConsoleKey as String] as? Bool == true
             && session["CGSSessionScreenIsLocked"] as? Bool != true
     }
-
-    // The target's windows fill every screen (a maximized browser), so there
-    // is no corner outside them for the panel. The panel is optional — a
-    // person can switch it off in Settings — so continue as that setting
-    // does: the menu status, Esc and the session checks still apply.
-    // Covering the target instead could put the panel under a click.
+    func canProceed() -> Bool {
+        guard sessionVisible() else {lastIndicatorRefusal="session_not_visible";return false}
+        guard !abortState.isStopped else {lastIndicatorRefusal="aborted_by_user";return false}
+        lastIndicatorRefusal=""
+        return true
+    }
     func proceedWithoutPanel() -> Bool {
-        DispatchQueue.main.sync { controlPanel?.orderOut(nil) }
-        lastIndicatorMode = "menu_only_no_room"
-        return !abortState.isStopped && sessionVisible()
+        DispatchQueue.main.sync {controlPanel?.orderOut(nil)}
+        lastIndicatorMode = controlPanelHasNoRoom(controlPanelDiagnostic)
+            ? "menu_only_no_room" : "menu_only_panel_unavailable"
+        return canProceed()
     }
-
-    guard sessionVisible() else {
-        lastIndicatorRefusal="session_not_visible";return false
-    }
-    guard !abortState.isStopped else { lastIndicatorRefusal="aborted_by_user"; return false }
-    // Explicit user preference hides only the panel. Session and Esc guards remain.
+    guard canProceed() else {return false}
     let banner = DispatchQueue.main.sync { () -> Bool in
         _ = showControlIndicator(forPID:pid)
         return RuntimePublisher.shared.showBanner
     }
-    if !banner { lastIndicatorMode = "menu_only"; return !abortState.isStopped && sessionVisible() }
+    if !banner {lastIndicatorMode="menu_only";return canProceed()}
     func targetFrames() -> [CGRect]? {
-        guard let top = DispatchQueue.main.sync(execute:{ NSScreen.screens.first?.frame.maxY }) else { return nil }
-        // AX reads must stay off the main loop so the Stop control responds.
+        guard let top=DispatchQueue.main.sync(execute:{NSScreen.screens.first?.frame.maxY}) else {return nil}
         return controlTargetFrames(forPID:pid,primaryTop:top)
     }
-    guard let targets = readyControlTargetFrames(read:targetFrames, stopped:{ abortState.isStopped }) else {
+    // Presentation is optional. Try once; retries and WindowServer visibility
+    // must not delay or veto ordinary AX work. Pixel APIs keep their own grants.
+    guard let targets=readyControlTargetFrames(timeout:0,read:targetFrames,stopped:{abortState.isStopped}) else {
         controlPanelDiagnostic=["target_frames_available":false]
-        lastIndicatorRefusal = abortState.isStopped ? "aborted_by_user" : "control_panel_unavailable"
-        return false
+        return proceedWithoutPanel()
     }
-    guard sessionVisible() && !abortState.isStopped else {
-        lastIndicatorRefusal = abortState.isStopped ? "aborted_by_user" : "session_not_visible"
-        return false
+    guard canProceed() else {return false}
+    let shown=DispatchQueue.main.sync {showControlPanel(forPID:pid,targets:targets)}
+    if !shown && (controlPanelHasNoRoom(controlPanelDiagnostic) || controlPanelDiagnostic["active_space"] == false) {
+        return proceedWithoutPanel()
     }
-    let ready = DispatchQueue.main.sync {
-        showControlPanel(forPID: pid, targets:targets)
-    }
-    if ready { lastIndicatorMode = "panel"; return true }
-    if controlPanelHasNoRoom(controlPanelDiagnostic) { return proceedWithoutPanel() }
-    // WindowServer visibility arrives on a later main-loop turn. Poll only
-    // this panel's readiness; never activate it or send target input here.
-    let created = DispatchQueue.main.sync { controlPanel != nil }
-    guard created else { lastIndicatorRefusal = "control_panel_unavailable"; return false }
-    var shown = false
-    for _ in 0..<10 {
-        Thread.sleep(forTimeInterval:0.05)
-        guard sessionVisible() && !abortState.isStopped else { break }
-        guard let currentTargets = targetFrames() else {
-            controlPanelDiagnostic=["target_frames_available":false]; continue
-        }
-        shown = DispatchQueue.main.sync { showControlPanel(forPID: pid, targets:currentTargets) }
-        if shown { break }
-    }
-    if !shown && controlPanelHasNoRoom(controlPanelDiagnostic) { return proceedWithoutPanel() }
-    guard shown else { lastIndicatorRefusal = "control_panel_not_visible"; return false }
-    lastIndicatorMode = "panel"
-    return true
+    // A newly ordered panel can become visible on the next main-loop turn.
+    // Leave that presentation pending while the persistent menu and Esc work.
+    lastIndicatorMode = shown ? "panel" : "menu_only_panel_pending"
+    return canProceed()
 }
 
-/// Only "no free place outside the target windows" falls back to the menu.
-/// A panel that exists but is hidden, minimized or on another Space still
-/// refuses: that is a panel someone cannot see, not one with nowhere to go.
+/// Presentation diagnostic only. Optional panel placement never authorizes or
+/// blocks target work; session visibility and the user stop remain independent.
 func controlPanelHasNoRoom(_ diagnostic: [String: Bool]) -> Bool {
     diagnostic == ["frame_available": false]
 }
 
-/// How the last accepted action was shown: "panel", "menu_only" (the person
-/// switched the panel off) or "menu_only_no_room".
+/// Presentation mode for the last accepted action: panel, explicitly hidden,
+/// no room, unavailable, or pending. Presentation does not authorize input.
 var lastIndicatorMode = ""
 
 /// Why the last ensureVisibleControl refused. One message told everyone to

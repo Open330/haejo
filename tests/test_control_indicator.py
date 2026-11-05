@@ -239,14 +239,14 @@ print(String(data:try! JSONSerialization.data(withJSONObject:["compact":compact.
         self.assertEqual(0,result.returncode,result.stderr)
         self.assertEqual(dict(compact=True,inside=True,outside=True,normal=True,blocked=True),json.loads(result.stdout))
 
-    def test_only_a_panel_with_no_room_falls_back_to_the_menu(self):
+    def test_no_room_is_reported_as_a_distinct_menu_fallback(self):
         """A maximized target leaves no corner for the panel; the panel is
         optional, so the menu and Esc carry on. A panel that exists but cannot
         be seen still refuses."""
         import json, shutil, subprocess, tempfile
         if not shutil.which('swift'): self.skipTest('macOS Swift required')
         text=(ROOT/'helper/TactoHelper.swift').read_text()
-        code=text[text.index('func controlPanelHasNoRoom('):text.index('/// How the last accepted action was shown')]
+        code=text[text.index('func controlPanelHasNoRoom('):text.index('var lastIndicatorMode =')]
         harness='import Foundation\n'+code+r'''
 let cases:[[String:Bool]]=[["frame_available":false],["target_frames_available":false],
     ["created":true,"visible":false,"active_space":true],[:]]
@@ -263,18 +263,18 @@ print(String(data:try! JSONSerialization.data(withJSONObject:cases.map{controlPa
         fallback=fallback[:fallback.index('\n    }\n')]
         # Hiding the panel never skips the session, Esc or menu checks.
         self.assertIn('controlPanel?.orderOut(nil)',fallback)
-        self.assertIn('!abortState.isStopped && sessionVisible()',fallback)
+        self.assertIn('canProceed()',fallback)
         self.assertNotIn('activate',fallback)
-        self.assertEqual(2,body.count('controlPanelHasNoRoom(controlPanelDiagnostic)'))
+        self.assertIn('controlPanelHasNoRoom(controlPanelDiagnostic)',body)
 
-    def test_an_earlier_no_room_reason_cannot_excuse_a_panel_on_another_space(self):
+    def test_no_room_diagnostic_is_distinct_from_other_space(self):
         """Codex review of 6151abd: no room once, then room but the existing
         panel is on another Space. The second refusal must say so."""
         import shutil, subprocess, tempfile
         if not shutil.which('swift'): self.skipTest('macOS Swift required')
         text=(ROOT/'helper/TactoHelper.swift').read_text()
         head=text[text.index('func showControlPanel('):text.index('    if controlPanel == nil {',text.index('func showControlPanel('))]
-        rule=text[text.index('func controlPanelHasNoRoom('):text.index('/// How the last accepted action was shown')]
+        rule=text[text.index('func controlPanelHasNoRoom('):text.index('var lastIndicatorMode =')]
         harness=r'''import Foundation
 import CoreGraphics
 struct FakeScreen { var visibleFrame=CGRect(x:0,y:0,width:1200,height:800) }
@@ -311,8 +311,9 @@ print(first, firstNoRoom, second, controlPanelHasNoRoom(controlPanelDiagnostic),
         text=(ROOT/'helper/TactoHelper.swift').read_text()
         body=text[text.index('func ensureVisibleControl('):]
         body=body[:body.index('\n}\n')]
-        self.assertIn('showControlPanel(forPID: pid, targets:targets)',body)
-        self.assertIn('guard shown else',body)
+        self.assertIn('showControlPanel(forPID:pid,targets:targets)',body)
+        self.assertIn('"menu_only_panel_pending"',body)
+        self.assertNotIn('Thread.sleep',body)
         self.assertNotIn('ensureControlStream',body)
         self.assertNotIn('SCStream',body)
 
