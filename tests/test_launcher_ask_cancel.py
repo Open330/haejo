@@ -409,10 +409,11 @@ class WatcherLifecycleTests(unittest.TestCase):
         theirs.close()                       # the ask frame cannot be written
         driver = self.driver(mine)
         started = time.monotonic()
-        with model_cancellation(lambda: False), self.assertRaises(Exception) as caught:
+        from tacto.helper import HelperUnavailable
+        with model_cancellation(lambda: False), self.assertRaises(HelperUnavailable):
+            # The original transport error surfaces, not a masked TimeoutError.
             driver._ask_launcher_response('plan', provider='opencode', timeout_seconds=300)
-        self.assertNotIsInstance(caught.exception, ModelCancelled)
-        self.assertLess(time.monotonic() - started, 2, 'must not wait for the 300 s request timeout')
+        self.assertLess(time.monotonic() - started, 0.5, 'must not wait for the 300 s request timeout')
         self.assertEqual([], self.watchers())
 
     def test_unwritable_cancel_frame_closes_channel_without_blocking(self):
@@ -427,8 +428,26 @@ class WatcherLifecycleTests(unittest.TestCase):
         driver._sock = WouldBlock(mine)
         started = time.monotonic()
         # The peer reads the ask and never answers; cancellation is at once.
-        with model_cancellation(lambda: True), self.assertRaises(ModelCancelled):
+        import select
+        # Cancel only once the peer has the ask frame: a post-write cancel.
+        arrived = lambda: bool(select.select([theirs], [], [], 0)[0])
+        with model_cancellation(arrived), self.assertRaises(ModelCancelled):
             driver._ask_launcher_response('plan', provider='opencode', timeout_seconds=300)
         self.assertLess(time.monotonic() - started, 2)
         self.assertTrue(driver._poisoned, 'a cancel that could not be framed closes the channel')
         self.assertEqual([], self.watchers())
+
+    def test_already_cancelled_request_is_never_sent(self):
+        mine, theirs = socket.socketpair()
+        self.addCleanup(theirs.close)
+        for capabilities in (frozenset({'ask_cancel_v1'}), frozenset()):
+            with self.subTest(capabilities=sorted(capabilities)):
+                driver = self.driver(mine)
+                driver.launcher_capabilities = capabilities
+                with patch.object(driver, '_send') as send, model_cancellation(lambda: True):
+                    with self.assertRaises(ModelCancelled):
+                        driver._ask_launcher_response('plan', provider='opencode', timeout_seconds=300)
+                    with self.assertRaises(ModelCancelled):
+                        driver.ask_launcher_result('plan', provider='opencode', timeout_seconds=300)
+                send.assert_not_called()
+                self.assertFalse(getattr(driver, '_poisoned', False), 'the channel stays usable')

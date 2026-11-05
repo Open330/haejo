@@ -286,6 +286,10 @@ class InheritedHelperDriver:
             raise ValueError('image model requires an image')
         if getattr(self, "_poisoned", False):
             raise HelperUnavailable("model channel is permanently closed")
+        # A request already cancelled is never sent, whatever the launcher
+        # supports; the watcher only covers cancellation after the write.
+        from .model_budget import raise_if_model_cancelled
+        raise_if_model_cancelled()
         expired = threading.Event()
         deadline = time.monotonic() + timeout_seconds
         def expire():
