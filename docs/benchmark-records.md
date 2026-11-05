@@ -1,5 +1,32 @@
 # 비교 실행 기록
 
+## 2026-11-05 후보 문서 경로: 독립 동작 검증(성능 동등 비교 아님)
+
+실제 소유 TextEdit의 빈 문서에 `TACTO 비교 테스트 7781`을 입력하도록, 앞선
+대화가 없는 에이전트에게 후보 skill과 signed source CLI 경로만 제공했다.
+Codex 첫 시도는 계약 불완전으로 실패(본문 빈 값), 정리는 완료했다. 후속
+Codex 시도는 skill 읽기와 session1회로 완료했고 새 본문 상태 marker를 읽어
+추가 observe 없이 끝냈다. guide1회·schema 오류0회, 독립 oracle·정리 통과다.
+관측25.2초, 총입력71,787/cache64,640/새입력7,147/출력529다.
+
+별도 Claude(현재 PATH의 ASX shim, CLI 보고 모델claude-opus-5-5)도 같은 문서
+과제를 완료했다. Bash 명령2개로 session2회·guide1회를 사용했고 새 marker를
+확인했다. 관측43.1초, CLI 총입력80,935/cache읽기69,666/cache생성11,261/
+새입력11,269/출력1,737이다. 별도의 ~/.local/bin/claude 직접 비조작 요청은
+조직 접근 비활성으로 실패했다. 실행 경로가 다르므로 전체 Claude 불가라고
+일반화하지 않는다.
+
+두 성공은 같은 시각/설정/도구/바이너리의 교차 반복이 아니다. 요청 모델도
+Codex gpt-6.1-sol/medium과 Claude CLI default로 다르고 serving 모델은 미확인이다.
+시간·토큰의 동등성이나 후보 변경의 인과 효과를 주장하지 않는다. 이 시험의
+목적은 새 skill과 본문 확인 결과를 실제 서로 다른 에이전트가 사용하는지
+확인하는 것이다. 본문 일치는 Save나 해당 입력의 인과 영수증이 아니다.
+
+원본과 한계: `reviews/goal-resume-20261105-document-forward/report.json`(실패),
+`reviews/goal-resume-20261105-document-forward-contract/report.json`(Codex 성공),
+`reviews/goal-resume-20261105-claude-document-forward/report.json`(Claude 성공).
+
+
 ## 2026-11-05 rc.19 실제 앱 3쌍: 작업 성공과 시간 측정 한계
 
 Calculator→TextEdit 과제, 독립 cold-start 에이전트, 요청 gpt-6.1-sol/medium,

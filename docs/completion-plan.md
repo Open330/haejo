@@ -1,5 +1,51 @@
 # 전체 목표의 완료 기준과 현재 작업
 
+## 2026-11-05 후속: 입력 전 수리·본문 상태·실제 취소 경로
+
+후보 d696a6c/525fb61/ea2a103은 잘못된 selector/check/resource/evidence/binding을
+짧은 필드 안내로 돌려준다. 입력 전에 정적 계약이 이미 거절될 경우도 같은
+대화형 연결에서 고칠 수 있다. 기존 정책에서 허용한 계약은 더 엄격하게
+거절하지 않는다. 실제 signed 세션에서 잘못된 selector와 resource.scope를
+고친 뒤 읽기 완료, 안내1회·READY2회·모델0·쓰기0을 확인했다.
+
+고정 문서의 set_value가 commit_unverified이면 같은 native token으로 본문을
+한 번 읽어 `TACTO_DOCUMENT_STATE`를 내보낸다. 텍스트/토큰/경로는 marker에
+넣지 않으며 요청 본문 일치·남은 단계만 알려준다. Save·writer 귀속·실패 Flow
+성공·템플릿 저장을 주장하지 않는다. 실제 소유 TextEdit 입력1회, 독립 본문
+판정, 닫힘/임시 파일 제거를 확인했다. probe의 closed/completed 상태명 비교
+오류는 원본을 보존하고 읽기 증거로 바로잡았으며 입력을 다시 보내지 않았다.
+
+기본 skill은 rc.19의7,210→4,039바이트, 일반 문서 guide는 같은 경로에서
+2,729→1,709바이트다. host o200k_base 표본은 각각1,655→950토큰,
+576→369토큰이다. serving tokenizer나 전체 provider context의 절감률이 아니다.
+불필요한 공통 안내를 문서 guide에서 빼고 설치/복구/저장 세부를 단계별로 뒀다.
+
+실제 독립 Codex 문서 시험은 첫 시도에서 계약 정보 부족으로 입력 전에 실패했다.
+이 기록을 보존했다. 후속 시도는 skill 읽기+session1회, guide1회, marker true,
+독립 oracle와 정리 통과였다. 별도 Claude 시험도 실제 TextEdit 과제와 정리를
+통과했지만 Bash/Read 도구에서 session2회·guide1회를 사용했다. 모델·CLI 도구·
+시점·바이너리가 달라 성능 동등 비교가 아니다. Claude 직접 ~/.local/bin 경로의
+조직 접근 비활성 오류와, 성공한 ASX shim 경로를 구분한다. 원본은
+`reviews/goal-resume-20261105-document-forward*/` 및
+`reviews/goal-resume-20261105-claude-document-forward/`에 있다.
+
+G4 통합 dc93e3b/74f2a85/5011c4d/2bafb03은 요청별 취소, helper Stop 알림,
+감시 스레드 수명/비차단 전송, 시작 전 취소 거부를 연결했다. root의 통합140검사와
+서명 빌드가 통과했다. 그러나 실제 전체 signed 런처에서 cancel_id 없는 요청자의
+종료를 놓쳐 provider가 남는 실패를 발견했다. 0253fde는 EOF/HUP를 취소 프레임과
+독립 감시하고 client 종료를 sticky flag로 전달하며 shutdown 정리 시간을 보장한다.
+수정 전 실패는 보존했고, peer signed source3회와 root signed source1회 모두
+provider 그룹 부재·지연 쓰기 없음으로 통과했다(root0.202초). 새17검사도 통과했다.
+원격 생성/청구 중단, 실제 Esc 키 이벤트, 설치본 E2E는 이 증거로 주장하지 않는다.
+
+현재 설치본은 rc.19다. 이 후보를 rc.20으로 고정해 전체 회귀·공증·설치 검증한 뒤,
+부하가 겹치지 않는 Tacto/Sky 반복 비교를 진행한다. G2 관측 truncation과 일반
+플래너 연결, 실제 Finder/Save 및 시각/장기 복구, G0 동시 사용자 입력 등 전체
+미완료 항목은 유지한다. 상세 증거:
+`reviews/goal-resume-20261105-session-repair/efficiency-evidence.json` 및
+`reviews/goal-resume-20261105-signed-cancel-main-fixed/report.json`.
+
+
 ## 2026-11-05 rc.19 배포와 다음 구현 격차
 
 고정 소스1dd095c의 rc.19 앱·DMG는 Apple Accepted, 티켓과 Gatekeeper 검증,
