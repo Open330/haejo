@@ -39,6 +39,9 @@ final class NativeSavePanelReader {
     private var captureCount = 0
     private var columnRows: [Int: Int] = [:]
     private var validatedColumnRows: [Int: Int] = [:]
+    private var singleColumnWitnessed = 0
+    /// The most entries of a single folder column read to witness its folder.
+    static let singleColumnWitnessRows = 64
 
     init(readAttribute: @escaping AttributeReader,
          directoryResource: @escaping (AnyObject) throws -> NativeSaveDirectoryResource,
@@ -70,7 +73,8 @@ final class NativeSavePanelReader {
          "max_distinct_elements": maxNodes, "max_array_entries": maxNodes * 4,
          "peak_work_items": peakWork, "peak_distinct_elements": peakIdentities,
          "peak_array_entries": peakArrayEntries,
-         "active_column_index": activeColumn, "capture_count": captureCount]
+         "active_column_index": activeColumn, "capture_count": captureCount,
+         "single_column_entries_witnessed": singleColumnWitnessed]
         // Numeric diagnostics only. A count is the latest attempted array,
         // not proof that every row was validated or that the panel is stable.
         for (index, count) in columnRows {
@@ -82,6 +86,7 @@ final class NativeSavePanelReader {
     private func resetBudget() {
         remaining = maxNodes; arrayEntries = 0; identities = [:]; identityCount = 0
         activeColumn = -1; columnRows = [:]; validatedColumnRows = [:]; captureCount = 0
+        singleColumnWitnessed = 0
         deadline = ProcessInfo.processInfo.systemUptime + maxSeconds
     }
     private func track(_ element: AXUIElement) throws {
@@ -204,7 +209,7 @@ final class NativeSavePanelReader {
             if kind == "AXScrollArea" { columns.append(child) }
             else if kind != "AXScrollBar" { throw NativeSavePanelError.unavailable("unsupported column child") }
         }
-        guard (2...32).contains(columns.count) else {
+        guard (1...32).contains(columns.count) else {
             throw NativeSavePanelError.unavailable("folder column chain unavailable")
         }
         var resources: [NativeSaveDirectoryResource] = []
@@ -225,6 +230,11 @@ final class NativeSavePanelReader {
             let selected = try array(list, "AXSelectedChildren")
             if index == columns.count - 1 {
                 guard selected.isEmpty else { throw NativeSavePanelError.unavailable("terminal selection present") }
+                // A panel opened on a sidebar place (Downloads) can show only
+                // the current folder's column, with no selected parent row.
+                // Its entries' own native URLs name that folder; it is never
+                // inferred from the Where popup's label or an expected path.
+                if columns.count == 1 { resources.append(try singleColumnDirectory(list)) }
                 continue
             }
             let row = try unique(selected, "selected folder absent or ambiguous")
@@ -253,6 +263,52 @@ final class NativeSavePanelReader {
         }
         activeColumn = -1
         return (identities, resources)
+    }
+    /// The folder a lone column lists, from its entries' AXURL parents.
+    ///
+    /// Requires at least one entry, every sampled entry (first
+    /// `singleColumnWitnessRows`) to have exactly one URL field, and all their
+    /// parents to agree; then the parent URL must pass the same canonical
+    /// directoryResource check as a selected folder. An empty folder, or any
+    /// disagreement, stays unavailable.
+    private func singleColumnDirectory(_ list: AXUIElement) throws -> NativeSaveDirectoryResource {
+        let rows = try children(list, columnRowsObserved: true)
+        guard !rows.isEmpty else {
+            throw NativeSavePanelError.unavailable("single folder column has no entries to witness its folder")
+        }
+        var folder: URL?
+        var witnessed = 0
+        for row in rows.prefix(Self.singleColumnWitnessRows) {
+            guard try role(row) == "AXGroup" else {
+                throw NativeSavePanelError.unavailable("unsupported single column entry")
+            }
+            try parent(row, is: list)
+            var urls: [AnyObject] = []
+            for child in try children(row) where try role(child) == "AXTextField" {
+                if let url = try value(child, "AXURL", optional: true) { urls.append(url) }
+            }
+            let raw = try unique(urls, "single column entry URL absent or ambiguous")
+            guard let url = raw as? URL, url.isFileURL, url.path.hasPrefix("/") else {
+                throw NativeSavePanelError.unavailable("invalid single column entry URL")
+            }
+            // Exactly as AX gave it: standardizing would rewrite paths such
+            // as /private/tmp before the canonical resource check.
+            let parent = url.deletingLastPathComponent()
+            if let folder, folder.absoluteString != parent.absoluteString {
+                throw NativeSavePanelError.unavailable("single column entries disagree on their folder")
+            }
+            folder = parent
+            witnessed += 1
+        }
+        singleColumnWitnessed = witnessed
+        guard let folder else { throw NativeSavePanelError.unavailable("single column folder unavailable") }
+        try charge(); let resource = try directoryResource(folder as NSURL); try charge(0)
+        guard resource.path.hasPrefix("/"), !resource.path.hasPrefix("//"),
+              !resource.path.contains("\\"),
+              !resource.path.unicodeScalars.contains(where: { $0.value < 32 || $0.value == 127 }) else {
+            throw NativeSavePanelError.unavailable("invalid directory resource path")
+        }
+        return resource
     }
     private func capture(_ window: AXUIElement, requireFormat: Bool) throws -> NativeSavePanelWitness {
         captureCount += 1

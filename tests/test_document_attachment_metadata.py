@@ -29,12 +29,25 @@ def reply():
 
 
 class AttachmentChannelTests(unittest.TestCase):
+    def test_failure_reports_only_known_phase_codes_without_native_details(self):
+        driver = SimpleNamespace(capabilities={'evidence.document_attachment_metadata'},
+            _send=Mock(return_value={'type':'error','error':'document_attachment_metadata_unavailable',
+                'effect':'not_started','reason_code':'document_text_unavailable','detail':'PRIVATE'}))
+        result = HelperDriver.document_attachment_metadata(driver,'com.apple.TextEdit','token')
+        self.assertEqual('document_text_unavailable', result['reason_code'])
+        self.assertNotIn('PRIVATE', str(result))
+        driver._send.return_value['reason_code']='PRIVATE'
+        self.assertNotIn('PRIVATE', str(HelperDriver.document_attachment_metadata(driver,'com.apple.TextEdit','token')))
+
     def test_validated_envelope_and_inherited_channel(self):
         response = reply()
         driver = SimpleNamespace(capabilities={'evidence.document_attachment_metadata'}, _send=Mock(return_value=response))
         for cls in (HelperDriver, InheritedHelperDriver):
             self.assertEqual(cls.document_attachment_metadata(driver,'com.apple.TextEdit','token'),response)
         self.assertEqual(driver._send.call_count,2)
+        timed = {**response, 'coordination_elapsed_ms':27}
+        driver._send.return_value = timed
+        self.assertEqual(HelperDriver.document_attachment_metadata(driver,'com.apple.TextEdit','token'), timed)
         invalid = [{'authorizes_save':True},{'attachment_payload_verified':True},{'sampled_stable':False},
                    {'utf16_length':True},{'document_token':'other'},{'text_sha256':'bad'},
                    {'document_path':'relative'},{'extra':'payload'},{'occurrences':reply()['occurrences']*257}]

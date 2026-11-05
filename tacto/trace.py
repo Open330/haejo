@@ -157,13 +157,25 @@ class TracingDriver:
         # receipt or copied document body in the execution trace.
         return self._inner.document_snapshot(target, document_token=document_token)
 
+    def document_snapshot_for_commit(self, target, *, document_token, event):
+        method = getattr(self._inner, 'document_snapshot_for_commit', None)
+        if callable(method):
+            return method(target, document_token=document_token, event=event)
+        return self._inner.document_snapshot(target, document_token=document_token)
+
+    def document_mode(self, target, document_token):
+        # Connection-local evidence is passed through, never replayed as fact.
+        return self._inner.document_mode(target, document_token=document_token)
+
     def document_text(self, target, document_token=None, *, max_utf16_units=1000000,
-                      document_path=None):
+                      document_path=None, obs_id=None, window_element_index=None):
         # A live document identity token is not evidence a recorded trace can
         # replay, and complete bodies should not be copied into trace files.
         kwargs = {'document_token': document_token, 'max_utf16_units': max_utf16_units}
         if document_path is not None:
             kwargs['document_path'] = document_path
+        if obs_id is not None or window_element_index is not None:
+            kwargs.update(obs_id=obs_id, window_element_index=window_element_index)
         return self._inner.document_text(target, **kwargs)
 
     def __init__(self, inner, trace: Trace | None = None):
@@ -252,10 +264,11 @@ class TracingDriver:
             return self._record("act",scrub(request),scrub(result))
         return self._record("act", request, result)
 
-    def save_panel(self, obs_id, target, window_element_index, *, panel_token=None,
-                   document_token=None, require_format=False):
+    def save_panel(self, obs_id, target, window_element_index=None, *, panel_token=None,
+                   document_token=None, require_format=False, commit_element_index=None):
+        extra = {} if commit_element_index is None else {'commit_element_index':commit_element_index}
         return self._inner.save_panel(obs_id, target, window_element_index,
-            panel_token=panel_token, document_token=document_token, require_format=require_format)
+            panel_token=panel_token, document_token=document_token, require_format=require_format, **extra)
 
     def probe(self, obs_id, target, element_index):
         request = dict(obs_id=obs_id, target=target, element_index=element_index)
@@ -299,6 +312,7 @@ class TraceDriver:
         self.trace = trace
         self.capabilities = frozenset(trace.capabilities) - {"action.credential_paste", "action.approved_credential_input", "action.credential_input",
             "evidence.document_snapshot", "evidence.document_text",
+            "evidence.document_text.window_selector", "evidence.document_mode", "evidence.save_panel.commit_selector",
             "evidence.document_text.path_selector", "observe.document_token", "evidence.document_window_status",
             "evidence.save_panel", "action.click.save_panel_guard", "evidence.document_rtf_export", "evidence.document_attachment_metadata",
             "action.window_input", "window_input.window_bound", "window_input.host_authorization"}
@@ -306,6 +320,9 @@ class TraceDriver:
 
     def document_attachment_metadata(self, target, document_token, *, max_utf16_units=100000, timeout_seconds=3):
         return {'type':'error','error':'document_attachment_metadata_unavailable','effect':'not_started'}
+
+    def document_mode(self, target, document_token):
+        return {'type':'error', 'error':'document_mode_unavailable', 'effect':'not_started'}
 
     def document_window_status(self, target, document_token):
         return {'type':'error', 'error':'document_window_status_unavailable', 'effect':'not_started'}
@@ -354,8 +371,8 @@ class TraceDriver:
             request["submit_authorized"] = submit_authorized
         return self._take("act", request)
 
-    def save_panel(self, obs_id, target, window_element_index, *, panel_token=None,
-                   document_token=None, require_format=False):
+    def save_panel(self, obs_id, target, window_element_index=None, *, panel_token=None,
+                   document_token=None, require_format=False, commit_element_index=None):
         return {'type':'error', 'error':'save_panel_unavailable', 'effect':'not_started'}
 
     def probe(self, obs_id, target, element_index):

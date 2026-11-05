@@ -907,12 +907,24 @@ class HelperDriver:
                         "effect": "not_started", "detail": str(exc)}
         return answer
 
-    def save_panel(self, obs_id, target, window_element_index, *, panel_token=None,
-                   document_token=None, require_format=False):
-        """Read observation-bound settings; this never authorizes Save."""
+    def save_panel(self, obs_id, target, window_element_index=None, *, panel_token=None,
+                   document_token=None, require_format=False, commit_element_index=None):
+        """Read observation-bound settings; this never authorizes Save.
+
+        commit_element_index names the panel by its observed commit button
+        (exclusive with window_element_index): no new observation is taken, so
+        the click event's obs_id stays current, and the returned commit control
+        must be exactly that button.
+        """
+        by_commit = commit_element_index is not None
+        index = commit_element_index if by_commit else window_element_index
+        if by_commit and 'evidence.save_panel.commit_selector' not in self.capabilities:
+            return {'type': 'error', 'error': 'save_panel_unavailable', 'effect': 'not_started',
+                    'detail': 'helper does not select a save panel by its commit control'}
         if (not isinstance(obs_id, str) or not obs_id.strip() or len(obs_id) > 128
                 or not isinstance(target, str) or not target
-                or type(window_element_index) is not int or not 0 <= window_element_index < 5000
+                or (by_commit and window_element_index is not None)
+                or type(index) is not int or not 0 <= index < 5000
                 or type(require_format) is not bool
                 or (panel_token is not None and (not isinstance(panel_token, str)
                     or not panel_token or len(panel_token) > 128))
@@ -924,12 +936,19 @@ class HelperDriver:
             return {'type': 'error', 'error': 'save_panel_unavailable', 'effect': 'not_started',
                     'detail': 'helper lacks save-panel observation capability'}
         message = {'type': 'save_panel', 'target': target, 'obs_id': obs_id,
-                   'window_element_index': window_element_index, 'require_format': require_format}
+                   'commit_element_index' if by_commit else 'window_element_index': index,
+                   'require_format': require_format}
         if panel_token is not None:
             message['panel_token'] = panel_token
         if document_token is not None:
             message['document_token'] = document_token
-        return self._send(message)
+        reply = self._send(message)
+        if by_commit and isinstance(reply, dict) and reply.get('type') == 'save_panel':
+            action = (reply.get('commit_control') or {}).get('action') if isinstance(reply.get('commit_control'), dict) else None
+            if not isinstance(action, dict) or action.get('element_index') != commit_element_index:
+                return {'type': 'error', 'error': 'save_panel_unavailable', 'effect': 'not_started',
+                        'detail': 'observed commit control is not the requested button'}
+        return reply
 
     def document_rtf_export(self, target, document_token, *, max_utf16_units=1000000,
                             timeout_seconds=3):
@@ -990,6 +1009,13 @@ class HelperDriver:
         response = self._send({'type':'document_attachment_metadata', 'target':target,
             'document_token':document_token, 'max_utf16_units':max_utf16_units,
             'timeout_seconds':timeout_seconds})
+        if (isinstance(response, dict) and response.get('type') == 'error'
+                and response.get('error') == unavailable['error']
+                and response.get('reason_code') in {
+                    'request_invalid_or_pin_missing','document_identity_unavailable',
+                    'document_text_unavailable','attributed_metadata_unavailable',
+                    'metadata_changed_during_read','document_identity_changed'}):
+            return {**unavailable, 'reason_code':response['reason_code']}
         import re
         try:
             if not isinstance(response, dict) or response.get('type') != 'document_attachment_metadata':
@@ -999,7 +1025,7 @@ class HelperDriver:
                        'attachment_completeness_verified','attachment_payload_verified','authorizes_save'}
             count = response['utf16_length']
             rows = response['occurrences']
-            if (set(response) != allowed or response['document_token'] != document_token
+            if (set(response) - {'coordination_elapsed_ms'} != allowed or response['document_token'] != document_token
                     or type(count) is not int or not 0 <= count <= max_utf16_units
                     or response['evidence_kind'] != 'ax_attributed_attachment_metadata'
                     or response['sampled_stable'] is not True
@@ -1051,7 +1077,7 @@ class HelperDriver:
         return result
 
     def document_text(self, target, document_token=None, *, max_utf16_units=1000000,
-                      document_path=None):
+                      document_path=None, obs_id=None, window_element_index=None):
         """A pinned document's complete text, read over the signed channel.
 
         The same shape `Driver.document_text` answers with, and the same thing
@@ -1078,8 +1104,19 @@ class HelperDriver:
             if 'evidence.document_text.path_selector' not in getattr(self, 'capabilities', ()):
                 return {'type':'error', 'error':'document_snapshot_unavailable', 'effect':'not_started',
                         'detail':'helper does not support document path selection'}
+        from .protocol import DOCUMENT_WINDOW_SELECTOR_CAPABILITY, window_selector_problem
+        problem = window_selector_problem(obs_id, window_element_index,
+                                          document_token=document_token, document_path=document_path)
+        if problem or (obs_id is not None and target != 'com.apple.TextEdit'):
+            return {'type':'error', 'error':'document_snapshot_unavailable', 'effect':'not_started',
+                    'detail':problem or 'window selector requires TextEdit'}
+        if obs_id is not None and DOCUMENT_WINDOW_SELECTOR_CAPABILITY not in getattr(self, 'capabilities', ()):
+            return {'type':'error', 'error':'document_snapshot_unavailable', 'effect':'not_started',
+                    'detail':'helper does not support observed-window document selection'}
         message = {"type": "document_text", "target": target,
                    "max_utf16_units": max_utf16_units}
+        if obs_id is not None:
+            message.update(obs_id=obs_id, window_element_index=window_element_index)
         if document_token is not None:
             if not isinstance(document_token, str) or not document_token or len(document_token)>128:
                 return {"type": "error", "error": "document_snapshot_unavailable",
@@ -1088,6 +1125,38 @@ class HelperDriver:
         if document_path is not None:
             message['document_path'] = document_path
         return self._send(message)
+
+    def document_mode(self, target, document_token):
+        """A pinned document's editing mode from TextEdit's Format menu.
+
+        Read only; never a source-format certificate. Any other shape is refused.
+        """
+        unavailable = {'type':'error', 'error':'document_mode_unavailable', 'effect':'not_started'}
+        from .protocol import DOCUMENT_MODE_CAPABILITY
+        if (target != 'com.apple.TextEdit' or not isinstance(document_token, str)
+                or not document_token or len(document_token) > 128
+                or DOCUMENT_MODE_CAPABILITY not in getattr(self, 'capabilities', ())):
+            return unavailable
+        response = self._send({'type':'document_mode', 'target':target, 'document_token':document_token})
+        if not isinstance(response, dict) or response.get('type') != 'document_mode':
+            return response if isinstance(response, dict) and response.get('type') == 'error' else unavailable
+        witness = response.get('witness')
+        if (set(response) - {'coordination_elapsed_ms'} != {'type','document_token','editing_mode','witness','edited','source_format_verified'}
+                or response['document_token'] != document_token
+                or response['editing_mode'] not in ('rich_text', 'plain_text')
+                or response['source_format_verified'] is not False
+                or response['edited'] not in (True, False, None)
+                or not isinstance(witness, dict)
+                or set(witness) != {'source','menu_title','main_window_before','main_window_after'}
+                or witness['source'] != 'format_menu' or witness['main_window_before'] is not True
+                or witness['main_window_after'] is not True or not isinstance(witness['menu_title'], str)):
+            return unavailable
+        from .native_document import document_mode_from_format_menu, DocumentModeUnavailable
+        try:
+            mode, _ = document_mode_from_format_menu([(witness['menu_title'], True)])
+        except DocumentModeUnavailable:
+            return unavailable
+        return response if mode == response['editing_mode'] else unavailable
 
     def wait_until(self, target, predicate, timeout_ms=4000, poll_ms=250, *, search_pages=False):
         """As the in-process driver; search_pages only for presence predicates."""
@@ -1123,7 +1192,7 @@ class HelperDriver:
 # The L2 surface is transport-independent: observe/act/wait_until only need a
 # `_send`, so the inherited-socket driver borrows the spawn driver's
 # implementations rather than keeping a second copy in step with the first.
-for _name in ("release_targets", "foreground_begin", "foreground_end", "windows", "scope_window", "identity", "list_targets", "observe", "act", "credential_input", "credential_submit", "probe",
+for _name in ("document_mode", "release_targets", "foreground_begin", "foreground_end", "windows", "scope_window", "identity", "list_targets", "observe", "act", "credential_input", "credential_submit", "probe",
               "selection", "menu_state", "menu_items", "document_text", "document_window_status", "document_rtf_export", "document_attachment_metadata", "save_panel", "capture",
               "wait_until"):
     impl = getattr(HelperDriver, _name)

@@ -692,7 +692,8 @@ class Driver:
     # Query each backend independently; helperCapabilities may differ.
     capabilities = frozenset({
         "observe", "act", "probe", "selection",
-        "evidence.document_text", "evidence.visual",
+        "evidence.document_text", "evidence.document_text.window_selector", "evidence.document_mode",
+        "evidence.visual",
         "evidence.document_text.path_selector", "observe.document_token",
         "expect.role", "expect.label", "expect.attribute", "expect.attribute.subrole", "expect.attribute.url", "observe.subrole", "expect.enabled",
         "expect.no_modal", "expect.selection",
@@ -1251,24 +1252,67 @@ class Driver:
         """Stable identity namespace for contract bindings: the bundle id."""
         return target
 
+    def _document_reader_instance(self):
+        from .native_document import TextEditDocumentReader
+        from .native_document_ax import AXDocumentAdapter
+        if not hasattr(self, '_document_reader'):
+            self._document_reader = TextEditDocumentReader(AXDocumentAdapter(self._resolve))
+        return self._document_reader
+
     def document_text(self, target: str, document_token=None, *, max_utf16_units=1000000,
-                      document_path=None):
+                      document_path=None, obs_id=None, window_element_index=None):
         """Read a pinned document's complete text without changing focus.
 
         This is not the save receipt's document_snapshot capability: file
         format and final save-panel settings are not yet witnessed here.
+        obs_id + window_element_index pin the window the current observation
+        names (window and body, not its path), without closing other documents.
         """
-        from .native_document import TextEditDocumentReader, DocumentSnapshotError
-        from .native_document_ax import AXDocumentAdapter
-        if not hasattr(self, '_document_reader'):
-            self._document_reader = TextEditDocumentReader(AXDocumentAdapter(self._resolve))
-        try:
-            return self._document_reader.read(target, document_token=document_token,
-                                              max_utf16_units=max_utf16_units,
-                                              document_path=document_path)
-        except DocumentSnapshotError as exc:
+        from .native_document import DocumentSnapshotError
+        from .protocol import window_selector_problem
+        def refuse(detail):
             return {'type': 'error', 'error': 'document_snapshot_unavailable',
-                    'effect': 'not_started', 'detail': str(exc)}
+                    'effect': 'not_started', 'detail': detail}
+        problem = window_selector_problem(obs_id, window_element_index,
+                                          document_token=document_token, document_path=document_path)
+        if problem:
+            return refuse(problem)
+        window = None
+        if obs_id is not None:
+            latest = self._latest.get(target.lower())
+            if (latest is None or latest.obs_id != obs_id or getattr(latest, 'document_token', None) is not None
+                    or not 0 <= window_element_index < len(latest.elements)):
+                return refuse('window selector is not in the current observation')
+            window = latest.elements[window_element_index]
+            if _attr(window, 'AXRole') != 'AXWindow':
+                return refuse('window selector does not name a window')
+            from .native_process_identity import process_start_identity
+            try:
+                same = (self._resolve(target, launch=False) == latest.pid
+                        and process_start_identity(latest.pid) == latest.process_launch_identity
+                        and latest.process_launch_identity is not None)
+            except Exception:
+                same = False
+            if not same:
+                return refuse('window selector belongs to another process')
+        try:
+            return self._document_reader_instance().read(target, document_token=document_token,
+                                                         max_utf16_units=max_utf16_units,
+                                                         document_path=document_path, window=window)
+        except DocumentSnapshotError as exc:
+            return refuse(str(exc))
+
+    def document_mode(self, target: str, document_token):
+        """The pinned document's editing mode (rich/plain) from its Format menu."""
+        from .native_document import DocumentModeUnavailable, DocumentSnapshotError
+        try:
+            return self._document_reader_instance().mode(target, document_token)
+        except DocumentModeUnavailable as exc:
+            reason = exc.reason
+        except DocumentSnapshotError:
+            reason = 'native_read_failed'
+        return {'type': 'error', 'error': 'document_mode_unavailable', 'effect': 'not_started',
+                'reason_code': reason}
 
     def visual_read(self) -> dict:
         """Can this driver take a picture of a window, and may it act on one?

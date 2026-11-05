@@ -2,13 +2,15 @@
 from __future__ import annotations
 
 import os
+import hashlib
 import threading
 from copy import deepcopy
 from pathlib import Path
 
 from .artifact_receipt import ArtifactReceiptError
 from .rtf_receipt import FreshRTFReceipt
-from .commit_evidence import SavePanelCommitPreparation, save_panel_dispatch_parameters, _event_binding_matches
+from .commit_evidence import (SavePanelCommitPreparation, save_panel_dispatch_parameters,
+                              _event_binding_matches, CommitEvidence, ArtifactEvidence, DocumentSaveEvidence)
 
 
 TARGET = 'com.apple.TextEdit'
@@ -19,14 +21,17 @@ class TextEditReceiptUnavailable(ArtifactReceiptError):
     """The driver cannot independently witness the document being saved."""
 
 
-def _snapshot(driver, token=None):
-    result = driver.document_snapshot(TARGET, document_token=token)
+def _snapshot(driver, token=None, *, event=None):
+    commit_snapshot = getattr(driver, 'document_snapshot_for_commit', None)
+    result = (commit_snapshot(TARGET, document_token=token, event=event)
+              if event is not None and callable(commit_snapshot)
+              else driver.document_snapshot(TARGET, document_token=token))
     if (not isinstance(result, dict) or result.get('type') != 'document_snapshot'
             or not isinstance(result.get('document_token'), str)
             or not result['document_token']
             or not isinstance(result.get('text'), str)
             or result.get('text_complete') is not True
-            or result.get('source_format') != 'rtf'
+            or result.get('editing_mode') != 'rich_text'
             or 'document_path' not in result):
         raise TextEditReceiptUnavailable('complete supported document snapshot unavailable')
     if token is not None and result['document_token'] != token:
@@ -37,7 +42,7 @@ def _snapshot(driver, token=None):
         raise TextEditReceiptUnavailable('document path must be canonical absolute or None')
     # Do not retain a mutable backend response as the trusted expectation.
     snapshot = {key: result[key] for key in
-            ('document_token', 'text', 'text_complete', 'document_path', 'source_format')}
+            ('document_token', 'text', 'text_complete', 'document_path', 'editing_mode')}
     snapshot['save_panel'] = deepcopy(result.get('save_panel'))
     return snapshot
 
@@ -78,10 +83,15 @@ class TextEditReceipt:
 
     @property
     def commit_expected(self):
-        return self._receipt.commit_expected
+        return {**self._receipt.commit_expected, 'artifact_evidence_scope':'document_save',
+                'source_document_path': self._initial['document_path'],
+                'document_identity_sha256': self._document_identity()}
 
-    def _current(self):
-        current = _snapshot(self._driver, self._initial['document_token'])
+    def _document_identity(self):
+        return hashlib.sha256(self._initial['document_token'].encode()).hexdigest()
+
+    def _current(self, *, event=None):
+        current = _snapshot(self._driver, self._initial['document_token'], event=event)
         if current['text'] != self._initial['text']:
             raise ArtifactReceiptError('document text changed after save preparation')
         return current
@@ -105,11 +115,11 @@ class TextEditReceipt:
                 or type(action['element_index']) is not int
                 or action['element_index'] < 0):
             raise ArtifactReceiptError('save requires an observation-bound button click')
-        current = self._current()
+        current = self._current(event=event)
         if not _event_binding_matches(event, identifier, digest):
             raise ArtifactReceiptError('commit changed during preparation')
         if (current['document_path'] != self._initial['document_path']
-                or current['source_format'] != self._initial['source_format']):
+                or current['editing_mode'] != self._initial['editing_mode']):
             raise ArtifactReceiptError('source document changed before commit')
         panel = current['save_panel']
         if (not isinstance(panel, dict) or any(
@@ -134,13 +144,33 @@ class TextEditReceipt:
 
     def _after_document_path(self):
         # FreshRTFReceipt checks the returned path against its predetermined path.
+        # The native pin already validates window/body/process identity. After
+        # dispatch only text and the new URL are needed: do not re-read menus,
+        # attachments or observe again on every file-readback poll.
+        if ('evidence.document_text' in (getattr(self._driver, 'capabilities', ()) or ())
+                and callable(getattr(self._driver, 'document_text', None))):
+            from .document_snapshot import _body
+            current = _body(self._driver.document_text(TARGET,
+                            document_token=self._initial['document_token']),
+                            self._initial['document_token'])
+            if current['text'] != self._initial['text']:
+                raise ArtifactReceiptError('document text changed after save preparation')
+            return current['document_path']
         return self._current()['document_path']
 
     def after_commit(self, event, driver_result, context):
         if type(context) is not SavePanelCommitPreparation:
             raise ArtifactReceiptError('save requires a typed native dispatch attachment')
         save_panel_dispatch_parameters(event, context, getattr(self._driver, 'capabilities', ()))
-        return self._receipt.after_commit(event, driver_result, context.receipt_context)
+        proof = self._receipt.after_commit(event, driver_result, context.receipt_context)
+        if proof is None:
+            return None
+        if type(proof) is not CommitEvidence or type(proof.evidence) is not ArtifactEvidence:
+            raise ArtifactReceiptError('fresh save readback evidence unavailable')
+        artifact = proof.evidence
+        return CommitEvidence(proof.event_id, proof.action_digest,
+            DocumentSaveEvidence(artifact.receipt_id, artifact.path, artifact.sha256,
+                self._initial['document_path'], self._document_identity(), context.obs_id))
 
 
 def make_textedit_receipt(driver, *, target, directory, filename,

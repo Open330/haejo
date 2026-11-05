@@ -1,8 +1,12 @@
 # TextEdit 새 이름 저장의 호스트 증거
 
 `tacto.textedit_receipt.make_textedit_receipt`는 명시한 새 파일에 현재 문서의
-정확한 **텍스트**가 저장됐는지 확인하는 실행별 adapter다. CLI/Agent 연결은 있으나
-native backend가 아직 필요한 capability를 제공하지 않으므로 실앱 검증 저장은 미활성이다.
+정확한 **텍스트**가 저장됐는지 확인하는 실행별 adapter다. 개발 작업본의 CLI/Agent는
+서명된 네이티브 API를 조합해 이 adapter에 연결한다. 실제 TextEdit의 새 이름 저장은
+동일한 수정본으로3회 연속 통과했다. 소유 RTF 문서·비어 있지 않은 Downloads에서
+새 파일의 정확한 텍스트와 같은 문서의 URL 전이를 확인한 범위다. 전경 상태의
+기능 검증이며 배경 작업·서식·첨부 보존까지 증명하는 것은 아니다.
+설치본 rc.21에는 이 개발 작업본을 배포하지 않았다.
 
 읽기 전용 선행 기능인 in-process `Driver.document_text`는 실제 TextEdit에서
 검증했다. `evidence.document_text`는 완전 본문·canonical AXDocument 경로와
@@ -56,12 +60,26 @@ own NSSavePanel에서 실제 완료 콜백과 변경 후 클릭 거절을 시험
 절대 경로 `directory`, 단일 파일명 `filename='보고서.rtf'`를 전달한다.
 흐름 이름이나 모델 결과로 목적지를 추정하지 않는다. 저장 이름 변경, 덮어쓰기,
 다른 디렉터리, 일반 텍스트 문서에서 RTF로의 변환, RTFD/첨부 문서 등은 현재 지원하지 않는다.
+다른 폴더·파일 형식의 기존 레시피 실행에는 이 자동 adapter를 붙이지 않으며,
+adapter의 지원 범위만을 이유로 실행 준비를 실패시키지 않는다.
 
 반환 객체의 `prepare_commit`, `after_commit`, `commit_expected`를 `flow.replay`에
 명시적으로 전달한다. adapter는 1회용이다. 승인과 실제 UI 저장은 기존 실행기가
 담당하며 adapter는 파일을 생성하거나 내용을 수정하지 않는다.
 
 ## 공통 backend 계약
+
+개발 작업본의 선행 API는 다음과 같다. 모두 읽기 전용이며 앱을 활성화하지 않는다.
+
+| 목적 | API / capability | 범위 |
+|---|---|---|
+| 관측한 문서 창 고정 | `document_text(target, obs_id=..., window_element_index=...)` / `evidence.document_text.window_selector` | 현재 관측의 AXWindow 하나를 선택한다. `document_path`·`document_token`과 동시 사용하지 않는다. 이 창 핀은 같은 본문·창에서 Save As로 경로가 바뀌어도 유지된다. |
+| 편집 모드 조회 | `document_mode(target, document_token)` / `evidence.document_mode` | TextEdit의 같은 main 창에 속한 Format 메뉴에서 rich/plain을 읽는다. 창을 main으로 바꾸거나 메뉴를 열지 않는다. 영어·한국어 제목을 지원하며, 확인할 수 없으면 unavailable이다. |
+| 선택한 저장 버튼의 패널 조회 | `save_panel(obs_id, target, commit_element_index=..., document_token=..., require_format=True)` / `evidence.save_panel.commit_selector` | 같은 관측에서 버튼의 소속 창을 찾는다. 기존 `window_element_index` 방식과 상호배타적이며 새 관측을 만들지 않는다. |
+
+`SnapshotDriver`는 이 API들과 기존 본문·첨부 메타데이터 reader 및 저장 버튼 guard가
+모두 있을 때 `evidence.document_snapshot`을 제공한다. 네이티브 helper가 별도
+스냅샷 메시지를 구현하는 구조가 아니다. 필요한 API가 없는 backend에는 광고하지 않는다.
 
 capability `evidence.document_snapshot`과 `action.click.save_panel_guard`가 있어야 하며
 다음 API를 제공해야 한다.
@@ -74,7 +92,9 @@ driver.document_snapshot('com.apple.TextEdit', document_token=None)
 #   'text': '<exact complete plain text; empty string is valid>',
 #   'text_complete': True,
 #   'document_path': None,  # unsaved; otherwise canonical absolute local path
-#   'source_format': 'rtf',  # existing recipe does not convert plain text to RTF
+#   'editing_mode': 'rich_text',  # live editing mode, not original disk format
+#   'source_format_verified': False,
+#   'attachment_fidelity_verified': False,
 #   'save_panel': {  # required at prepare, optional in initial/after snapshot
 #       'panel_token': '<connection-owned native panel token>',
 #       'document_token': '<same opaque document identity>',
@@ -105,8 +125,15 @@ backend는 해당 패널의 실제 절대 디렉터리·파일명·선택된 저
 
 in-process backend는 AX 객체 identity를 보관하고, signed helper는 연결에 귀속된
 token으로 동일 계약을 구현해야 한다. helper 사용 중 Python/PyObjC로 우회하지 않는다.
-`source_format`은 확장자만 보고 추측해서는 안 된다. plain-text 값만으로 문서의
-첨부·지원하지 않는 컨테이너 유무를 판별할 수 없다면 backend는 거절해야 한다.
+`editing_mode`는 같은 문서에 귀속된 Format 메뉴나 저장 패널의 RTF 선택으로
+읽는다. RTF range export나 확장자는 원본 파일 형식의 증거가 아니다. 관측된 첨부가
+있으면 지원하지 않으며, 빈 AX 첨부 목록도 첨부 전체가 없다는 증명으로 보고하지 않는다.
+
+개발 중인 `SnapshotDriver`는 위 계약을 기존 네이티브 reader로 합성한다. 필요한
+capability가 모두 있을 때만 활성화하며, 본문·문서 경로를 앞뒤로 다시 읽는다.
+저장 직전에는 `document_snapshot_for_commit(..., event=event)`가 event의
+`obs_id`와 `commit_element_index`로 패널을 읽는다. 이때 새 `observe`를 호출하면
+클릭에 사용할 관측 맵을 교체하므로 호출하지 않는다. 이 경로는 위 실제 TextEdit 시행에서 확인했다.
 
 ## 실행 경계와 한계
 
@@ -120,10 +147,13 @@ prepare는 `SavePanelCommitPreparation`을 반환한다. 이 호스트 객체는
 동작 digest·관측 ID에 패널 token과 원래 receipt context를 결합한다. replay와 일반
 루프는 literal approval을 재사용해 native guarded click에 token을 전달한다.
 TextEditReceipt는 after 단계에서도 결합을 확인하고 내부 RTF receipt context를
-검증한다. AXPress가 `acted/unverified: cannot_complete`를 반환해도 독립 파일·문서
+검증한다. 결과는 `DocumentSaveEvidence`로, 저장 버튼의 관측 ID·고정된 문서 identity·
+저장 전 경로에서 새 경로로의 전이·새 파일의 정확한 텍스트 readback을 연결한다.
+이미 있는 파일의 상태만 확인하는 `SavedFileStateEvidence`는 이 증거를 대신하지 않는다.
+AXPress가 `acted/unverified: cannot_complete`를 반환해도 독립 파일·문서
 영수증이 정확하면 완료를 확인할 수 있다. 증거가 없거나 불일치하면 unknown으로
-중단하며 같은 Save를 다시 누르지 않는다. 순수 native helper의 snapshot capability는
-여전히 OFF이므로 이 연결 시험이 실제 TextEdit 전체 계약을 검증한 것은 아니다.
+중단하며 같은 Save를 다시 누르지 않는다. 위 실제 시행에서는 guarded Save를
+각각1회만 시도하고, 새 파일·문서 경로·본문 및 소유 창/파일의 정리를 확인했다.
 
 prepare는 저장 패널의 소유 문서 token·절대 디렉터리·파일명·RTF 형식이 고정된
 기대값과 일치하는지 검사한다. 패널 증거 누락이나 불일치는 Save 실행 전에 거절한다.
@@ -131,10 +161,10 @@ prepare는 저장 패널의 소유 문서 token·절대 디렉터리·파일명�
 `commit_control`에 대조한다. 다른 동작·다른 버튼·이전 관측·비활성/미관측 버튼은
 거절한다. general/replay는 같은 관측 ID를 event와 driver.act에 전달하고,
 receipt digest에도 관측 ID를 포함해 동일 인덱스의 다른 관측으로 바꿀 수 없게 한다.
-`Downloads`라는 폴더 라벨만으로 절대 경로를 대신할 수 없다. 이 계약은 아직
-native backend에서 구현·검증해야 하며, 검사 이후 실행 사이에 패널이 바뀌는 경쟁도
-backend의 최종 action precondition으로 막아야 한다.
-현재 adapter의 action 비교만으로 이 마지막 경쟁을 막았다고 주장하지 않는다.
+`Downloads`라는 폴더 라벨만으로 절대 경로를 대신할 수 없다. 최종 입력 전에는
+네이티브 저장 버튼 guard가 패널 설정과 token을 다시 검사한다. 이 경로는 소유
+NSSavePanel fixture와 위 실제 TextEdit 시행에서 검증했다.
+검사와 AXPress 사이까지 원자적인 작업으로 보장하는 것은 아니다.
 
 이 검증은 글꼴·스타일·레이아웃 등 rich-text 서식 전체의 보존을 증명하지 않는다.
 초기 문서가 기존 파일이어도 새 목적지는 반드시 없어야 한다. 원본 경로로 저장하거나
@@ -149,7 +179,11 @@ UUID 이름 역시 생산자 인과 증명을 제공하지 않는다. caller는 
 `tests/test_textedit_receipt.py`는 가짜 snapshot backend와 실제 임시 RTF/textutil로
 계약을 검증한다. 실제 TextEdit 또는 signed helper 지원을 입증하는 테스트는 아니다.
 
-Agent and direct CLI replay now prepare the host factory for the exact canonical built-in save recipe when the driver advertises `evidence.document_snapshot`. Live tracing forwards snapshots without recording their bodies as reusable evidence; recorded traces do not advertise this live capability. The native backend does not yet provide the capability, so this wiring alone does not make real CLI saves verified.
+Agent와 CLI replay는 정확한 내장 Save As 레시피에만 호스트 adapter를 연결한다.
+라이브 trace는 필요한 문서·패널 API를 전달하며 본문·연결 token을 재생 가능한
+증거로 저장하지 않는다. 기록 재생은 이 capability를 제공하지 않는다. 오류는
+`snapshot_body_unavailable`, `snapshot_editing_mode_unavailable`,
+`snapshot_save_panel_unavailable`처럼 실패 단계의 닫힌 코드만 실행기에 전달한다.
 
 
 File-reference URL support: Python and the signed helper resolve local file-reference URLs through Foundation after strict raw URL checks. An ordinary document path URL may name a missing file; a file reference must resolve at observation time and fails if unreachable. Neither an AXDocument path nor successful reference resolution guarantees that the file remains present after the read. The existing before/after document-path checks continue to reject changes during observation.

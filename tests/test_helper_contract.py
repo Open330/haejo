@@ -1021,6 +1021,8 @@ SIGNED_HELPER_ONLY = frozenset({
     # Token-bound Save and document attachments/lifecycle proofs are native-helper APIs.
     "action.menu.document_token_save", "evidence.document_attachment_metadata",
     "evidence.document_window_status",
+    # The direct driver has no native save_panel API/commit-button selector.
+    "evidence.save_panel.commit_selector",
     # Native readiness instrumentation and strict select-option wire validation.
     "diagnostic.readiness_preflight", "diagnostic.readiness_read_cost",
     "select_option.strict_parameters",

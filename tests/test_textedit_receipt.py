@@ -18,7 +18,7 @@ class SnapshotDriver:
         self.path = path
         self.snapshot = dict(type='document_snapshot', document_token='window-1',
                              text=text, text_complete=True, document_path=None,
-                             source_format='rtf')
+                             editing_mode='rich_text')
         self.calls = []
         self.dispatches = 0
         self.after_patch = {}
@@ -89,7 +89,7 @@ class TextEditReceiptTests(unittest.TestCase):
     def test_initial_snapshot_requires_complete_supported_exact_contract(self):
         original = dict(self.driver.snapshot)
         for update in ({'text_complete': False}, {'text': None}, {'document_token': ''},
-                       {'source_format': 'rtfd'}, {'source_format': 'text'},
+                       {'editing_mode': 'unknown'}, {'editing_mode': 'plain_text'},
                        {'document_path': 'relative'}, {'type': 'error'}):
             with self.subTest(update=update):
                 self.driver.snapshot = {**original, **update}
@@ -113,7 +113,7 @@ class TextEditReceiptTests(unittest.TestCase):
     def test_changed_identity_body_path_or_format_prevents_dispatch(self):
         original = dict(self.driver.snapshot)
         for update in ({'document_token': 'other'}, {'text': 'changed'},
-                       {'document_path': str(self.home / 'other.rtf')}, {'source_format': 'text'}):
+                       {'document_path': str(self.home / 'other.rtf')}, {'editing_mode': 'plain_text'}):
             with self.subTest(update=update):
                 self.driver.snapshot = dict(original)
                 adapter = self.adapter()
@@ -197,6 +197,12 @@ class TextEditReceiptTests(unittest.TestCase):
         self.assertEqual(self.driver.dispatches, 1)
         self.assertEqual(result.events[0]['state'], 'confirmed')
         self.assertEqual(len(result.commit_evidence), 1)
+        from tacto.commit_evidence import DocumentSaveEvidence
+        proof = next(iter(result.commit_evidence.values()))
+        self.assertIs(type(proof.evidence), DocumentSaveEvidence)
+        self.assertIsNone(proof.evidence.source_path)
+        self.assertEqual('o', proof.evidence.observation_id)
+        self.assertEqual(str(self.path), proof.evidence.path)
 
     def test_wrong_action_or_observation_cannot_prepare_a_save(self):
         cases = [({'name': 'click', 'element_index': 999}, 'o'),

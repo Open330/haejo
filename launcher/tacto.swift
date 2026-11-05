@@ -62,7 +62,7 @@ guard FileManager.default.isExecutableFile(atPath: python.path) else {
 // it holds screen content, which is exactly what must not be able to choose
 // what runs. Asking needs neither the helper channel nor a program name.
 let allowedTypes: Set<String> = ["ask_cancel","release_targets","foreground_begin","foreground_end","window_list","ping", "list_targets", "observe", "act",
-                                 "probe", "selection", "ask", "document_text", "document_window_status", "document_rtf_export", "document_attachment_metadata", "save_panel", "menu_state",
+                                 "probe", "selection", "ask", "document_text", "document_mode", "document_window_status", "document_rtf_export", "document_attachment_metadata", "save_panel", "menu_state",
                                  "menu_items", "capture", "readiness_read_cost", "readiness_preflight"]
 // The largest complete document this channel will carry, in UTF-16 units. The
 // same ceiling the helper enforces: a budget is a promise about how much this
@@ -179,7 +179,7 @@ let topLevelKeys: Set<String> = ["sensitive_input_authorized", "window_scope_id"
                                  "require_window", "window_identity", "reveal", "prompt", "image", "model", "json", "path",
                                  "expect", "element_index", "provider",
                                  "document_token", "document_path", "max_utf16_units", "timeout_seconds",
-                                 "window_index", "window_element_index", "panel_token", "require_format", "element_indices", "read_strategy", "titlebar_probe", "cancel_id", "continuation"]
+                                 "window_index", "window_element_index", "panel_token", "require_format", "element_indices", "read_strategy", "titlebar_probe", "cancel_id", "continuation", "commit_element_index"]
 
 // What a caller may claim its target still is. Reading one element's own
 // attributes is about a millisecond; re-walking Mail's tree to find out is
@@ -361,7 +361,10 @@ func vetted(_ msg: [String: Any]) -> String? {
             return "submit authorization is only for press_key Return"
         }
     }
-    if type != "save_panel" && ["window_element_index", "panel_token", "require_format"].contains(where: { msg[$0] != nil }) {
+    if type != "save_panel" && (["panel_token", "require_format", "commit_element_index"].contains(where: { msg[$0] != nil })
+            || (msg["window_element_index"] != nil && type != "document_text")) {
+        // document_text may name an observed window too; its own rule below
+        // requires obs_id with it and forbids a token or path alongside.
         return "저장 패널 필드는 save_panel 에만 허용됩니다"
     }
     if let raw = msg["save_panel_token"] {
@@ -373,7 +376,7 @@ func vetted(_ msg: [String: Any]) -> String? {
             return "invalid save panel dispatch guard"
         }
     }
-    if msg["document_token"] != nil && !["observe", "document_text", "document_window_status", "document_rtf_export", "document_attachment_metadata", "save_panel"].contains(type) {
+    if msg["document_token"] != nil && !["observe", "document_text", "document_mode", "document_window_status", "document_rtf_export", "document_attachment_metadata", "save_panel"].contains(type) {
         return "document_token 은 observe/document_text/save_panel 에만 허용됩니다"
     }
     if msg["document_path"] != nil && type != "document_text" {
@@ -450,9 +453,12 @@ func vetted(_ msg: [String: Any]) -> String? {
         }
     }
     if type == "save_panel" {
+        // Exactly one of: the panel's window, or its observed commit button.
+        let byCommit = msg["commit_element_index"] != nil
         guard let target = msg["target"] as? String, !target.isEmpty,
               let obsID = msg["obs_id"] as? String, !obsID.isEmpty, obsID.count <= 128,
-              let index = msg["window_element_index"], isInt(index),
+              byCommit != (msg["window_element_index"] != nil),
+              let index = msg[byCommit ? "commit_element_index" : "window_element_index"], isInt(index),
               let number = index as? NSNumber, number.intValue >= 0, number.intValue < 5000 else {
             return "save_panel 관측 형식 오류"
         }
@@ -466,7 +472,7 @@ func vetted(_ msg: [String: Any]) -> String? {
             guard target == "com.apple.TextEdit", let token = raw as? String,
                   !token.isEmpty, token.count <= 128 else { return "save_panel document_token 형식 오류" }
         }
-        for key in msg.keys where !["type", "target", "obs_id", "window_element_index", "panel_token", "require_format", "document_token"].contains(key) {
+        for key in msg.keys where !["type", "target", "obs_id", "window_element_index", "commit_element_index", "panel_token", "require_format", "document_token"].contains(key) {
             return "save_panel 에 허용되지 않은 필드"
         }
     }
@@ -499,9 +505,26 @@ func vetted(_ msg: [String: Any]) -> String? {
                 return "max_utf16_units 형식 오류"
             }
         }
+        if msg["obs_id"] != nil || msg["window_element_index"] != nil {
+            // One explicit window of the current observation, never with a
+            // token or path: the helper pins that window's body itself.
+            guard msg["document_token"] == nil, msg["document_path"] == nil,
+                  let obs = msg["obs_id"] as? String, !obs.isEmpty, obs.count <= 128,
+                  let raw = msg["window_element_index"], isInt(raw), let n = raw as? NSNumber,
+                  n.intValue >= 0, n.intValue < 5000 else {
+                return "document_text window selector 형식 오류"
+            }
+        }
         for key in msg.keys where !["type", "target", "document_token", "document_path",
-                                    "max_utf16_units"].contains(key) {
+                                    "max_utf16_units", "obs_id", "window_element_index"].contains(key) {
             return "document_text 에 허용되지 않은 필드: \(key)"
+        }
+    }
+    if type == "document_mode" {
+        guard Set(msg.keys) == Set(["type", "target", "document_token"]),
+              msg["target"] as? String == "com.apple.TextEdit",
+              let token = msg["document_token"] as? String, !token.isEmpty, token.count <= 128 else {
+            return "invalid document mode request"
         }
     }
     if type == "document_window_status" {

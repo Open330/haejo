@@ -99,6 +99,33 @@ class AXDocumentAdapter:
     def documents(self, target):
         return self.document_candidates(target)
 
+    def window_ready(self, target, window):
+        """No modal, sheet or unknown window state: the menu can describe it."""
+        from .native_window_ready import require_window_ready
+        pid, _ = self._process(target)
+        app = AXUIElementCreateApplication(pid)
+        require_window_ready(window, lambda: self._required(app, 'AXWindows'), self.read_attribute,
+                             self.equal, array_types=(list, tuple, NSArray))
+
+    def format_menu_entries(self, target, *, max_items=2000):
+        """(title, enabled) of the menu bar's first-level menu items, read closed."""
+        pid, _ = self._process(target)
+        bar = self._required(AXUIElementCreateApplication(pid), 'AXMenuBar')
+        entries, read = [], 0
+        for item in self._required(bar, 'AXChildren'):
+            for menu in (self.read_attribute(item, 'AXChildren')[1] or ()):
+                for entry in (self.read_attribute(menu, 'AXChildren')[1] or ()):
+                    read += 1
+                    if read > max_items:
+                        raise RuntimeError('menu read budget exceeded')
+                    error, title = self.read_attribute(entry, 'AXTitle')
+                    if error != 0 or not isinstance(title, str):
+                        continue
+                    if title in ('Make Plain Text', '일반 텍스트 만들기', 'Make Rich Text', '리치 텍스트 만들기'):
+                        enabled = self.read_attribute(entry, 'AXEnabled')
+                        entries.append((title, enabled[0] == 0 and enabled[1] is True))
+        return entries
+
     def document_candidates(self, target, *, document_path=None, window=None):
         pid, _ = self._process(target)
         app = AXUIElementCreateApplication(pid)

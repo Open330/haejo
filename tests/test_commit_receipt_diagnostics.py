@@ -4,6 +4,21 @@ from tacto.library import textedit_save
 from tacto.artifact_receipt import ArtifactReceiptError
 from tacto.existing_file_receipt import _refuse
 class ReceiptDiagnostics(unittest.TestCase):
+    def test_snapshot_preparation_preserves_closed_stage_code_without_private_details(self):
+        from tacto.document_snapshot import SnapshotUnavailable
+        class App:
+            capabilities={'action.menu.focused_document'}
+            def observe(self,*a,**k):return {'type':'observation','obs_id':'o','tree':'0 Window  Title: note.txt [focused]'}
+        flow=textedit_save().bind(document='/tmp/a/note.txt',name='note.txt')
+        for code in ('snapshot_save_panel_unavailable','PRIVATE_SENTINEL'):
+            def prepare(*args):raise SnapshotUnavailable(code)
+            result=replay(App(),flow,approvals={0:True},prepare_commit=prepare)
+            expected=code if code!='PRIVATE_SENTINEL' else 'snapshot_backend_unavailable'
+            self.assertFalse(result.ok)
+            self.assertIn(expected,str(result.log))
+            self.assertNotIn('PRIVATE_SENTINEL',str(result.log))
+            self.assertEqual([],result.events)
+
     def test_after_commit_discloses_only_closed_receipt_codes(self):
         class App:
             capabilities={'action.menu.focused_document'}

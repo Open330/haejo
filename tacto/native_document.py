@@ -22,6 +22,37 @@ class DocumentSnapshotError(ValueError):
     """A complete document witness could not be obtained."""
 
 
+class DocumentModeUnavailable(DocumentSnapshotError):
+    """The editing mode could not be witnessed; `reason` is a closed code."""
+
+    def __init__(self, reason):
+        super().__init__(reason)
+        self.reason = reason
+
+
+# TextEdit's Format command names the mode it would switch TO, so the title
+# that is present states the current mode. English and Korean only; any other
+# localization is unavailable rather than guessed.
+FORMAT_MENU_RICH_TITLES = frozenset({'Make Plain Text', '일반 텍스트 만들기'})
+FORMAT_MENU_PLAIN_TITLES = frozenset({'Make Rich Text', '리치 텍스트 만들기'})
+
+
+def document_mode_from_format_menu(entries):
+    """(editing_mode, title) from (title, enabled) pairs, or DocumentModeUnavailable.
+
+    Exactly one known Format command, enabled, decides; the same rule as the
+    helper's documentModeFromFormatMenu.
+    """
+    known = [(title, enabled) for title, enabled in entries
+             if title in FORMAT_MENU_RICH_TITLES or title in FORMAT_MENU_PLAIN_TITLES]
+    if len(known) != 1:
+        raise DocumentModeUnavailable('format_menu_ambiguous_or_absent')
+    title, enabled = known[0]
+    if enabled is not True:
+        raise DocumentModeUnavailable('format_menu_disabled')
+    return ('rich_text' if title in FORMAT_MENU_RICH_TITLES else 'plain_text'), title
+
+
 def validate_document_selection_path(path):
     if (type(path) is not str or not path or not path.startswith('/') or path.startswith('//')
             or '\\' in path or any(ord(ch) < 0x20 or ord(ch) == 0x7f for ch in path)):
@@ -180,7 +211,7 @@ class TextEditDocumentReader:
                 and self._adapter.equal(body, document.body)]
 
     def read(self, target='com.apple.TextEdit', document_token=None, max_utf16_units=1000000,
-             *, document_path=None):
+             *, document_path=None, window=None):
         if type(max_utf16_units) is not int or not 0 <= max_utf16_units <= 1000000:
             raise DocumentSnapshotError('max_utf16_units must be an integer from 0 to 1000000')
         if target != 'com.apple.TextEdit':
@@ -191,12 +222,14 @@ class TextEditDocumentReader:
             validate_document_selection_path(document_path)
             if document_token is not None:
                 raise DocumentSnapshotError('document path and token cannot be combined')
+        if window is not None and (document_token is not None or document_path is not None):
+            raise DocumentSnapshotError('document selectors cannot be combined')
         # Include lock contention in the same operation/caller deadline. Native
         # callbacks cannot be forcibly interrupted; late results are refused.
         with self._observation_scope():
-            return self._read(target, document_token, max_utf16_units, document_path)
+            return self._read(target, document_token, max_utf16_units, document_path, window)
 
-    def _read(self, target, token, budget, selected_path=None):
+    def _read(self, target, token, budget, selected_path=None, selected_window=None):
         pinned = None
         if token is not None:
             pinned = self._tokens.get(token)
@@ -204,10 +237,14 @@ class TextEditDocumentReader:
                 raise DocumentSnapshotError('unknown or expired document token')
         process = self._process(target)
         documents = self._documents(target, path=pinned.selected_path if pinned else selected_path,
-                                    window=pinned.window if pinned else None)
+                                    window=pinned.window if pinned else selected_window)
         if pinned is None:
             if len(documents) != 1:
-                raise DocumentSnapshotError('initial document selection is ambiguous or absent')
+                raise DocumentSnapshotError('initial document selection is ambiguous or absent'
+                                            if selected_window is None else
+                                            'selected window is not exactly one document')
+            # A window selection pins window and body, not a path, so a later
+            # Save As may change this document's URL without staling the pin.
             pinned = _Document(process, *documents[0], selected_path=selected_path)
         elif process != pinned.process or len(self._matches(documents, pinned)) != 1:
             del self._tokens[token]
@@ -236,6 +273,48 @@ class TextEditDocumentReader:
                 self._tokens.popitem(last=False)
         return dict(type='document_text', document_token=token, text=text.text,
                     text_complete=True, document_path=path)
+
+    def mode(self, target='com.apple.TextEdit', document_token=None):
+        """The pinned document's editing mode from TextEdit's Format menu.
+
+        Read only: closed-menu attributes, no menu opened, no focus change. The
+        menu describes the main window, so the pinned window must be main before
+        and after, ready (no modal/sheet), and the pin unchanged. This is an
+        editing mode, never a certificate of an on-disk format.
+        """
+        if target != 'com.apple.TextEdit' or not isinstance(document_token, str) or not document_token:
+            raise DocumentModeUnavailable('request_invalid_or_pin_missing')
+        with self._observation_scope():
+            pinned = self._tokens.get(document_token)
+            if pinned is None:
+                raise DocumentModeUnavailable('request_invalid_or_pin_missing')
+
+            def same_pin():
+                return (self._process(target) == pinned.process and len(self._matches(
+                    self._documents(target, window=pinned.window, path=pinned.selected_path), pinned)) == 1)
+
+            def is_main():
+                return self._call('read_attribute', pinned.window, 'AXMain') == (0, True)
+
+            if not same_pin():
+                raise DocumentModeUnavailable('pin_stale')
+            try:
+                self._call('window_ready', target, pinned.window)
+            except DocumentSnapshotError:
+                raise
+            except Exception as exc:
+                raise DocumentModeUnavailable('window_not_ready') from exc
+            if not is_main():
+                raise DocumentModeUnavailable('not_main_window')
+            mode, title = document_mode_from_format_menu(self._call('format_menu_entries', target))
+            if not is_main() or not same_pin():
+                raise DocumentModeUnavailable('main_window_or_pin_changed')
+            edited = self._call('read_attribute', pinned.window, 'AXEdited')
+            return {'type': 'document_mode', 'document_token': document_token, 'editing_mode': mode,
+                    'witness': {'source': 'format_menu', 'menu_title': title,
+                                'main_window_before': True, 'main_window_after': True},
+                    'edited': edited[1] if edited[0] == 0 and type(edited[1]) is bool else None,
+                    'source_format_verified': False}
 
     def window_for_token(self, target, token):
         """Return a current pinned window without reading any body text."""

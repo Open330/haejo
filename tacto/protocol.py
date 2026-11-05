@@ -195,6 +195,22 @@ def drag_reobservation(action, response, capabilities):
 
 
 REVEAL_CAPABILITY = 'observe.reveal'
+# document_text may pin the window an observation names (obs_id + index).
+DOCUMENT_WINDOW_SELECTOR_CAPABILITY = 'evidence.document_text.window_selector'
+# Read-only editing mode of a pinned TextEdit document, from its Format menu.
+DOCUMENT_MODE_CAPABILITY = 'evidence.document_mode'
+
+
+def window_selector_problem(obs_id, window_element_index, *, document_token=None, document_path=None):
+    """None when absent, or a valid current-observation window selector."""
+    if obs_id is None and window_element_index is None:
+        return None
+    if document_token is not None or document_path is not None:
+        return 'window selector cannot be combined with a document token or path'
+    if (not isinstance(obs_id, str) or not obs_id.strip() or len(obs_id) > 128
+            or type(window_element_index) is not int or not 0 <= window_element_index < 5000):
+        return 'window selector needs the current obs_id and a window element index'
+    return None
 # Explicit next page of what an observation omitted past its caps.
 CONTINUATION_CAPABILITY = 'observe.continuation_v1'
 

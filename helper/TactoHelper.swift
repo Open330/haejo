@@ -5698,7 +5698,8 @@ let helperCapabilities: [String] = [
     // a document contains and where it lives, never its source format or where
     // a save panel would put it.
     "diagnostic.readiness_read_cost", "diagnostic.readiness_preflight", "observe.window_identity", "session.window_scope", "session.foreground_lease", "session.release_targets", "observe.window_list",
-    "evidence.document_window_status", "evidence.document_text", "evidence.document_text.path_selector", "observe.document_token", "evidence.save_panel",
+    "evidence.document_window_status", "evidence.document_text", "evidence.document_text.path_selector",
+    "evidence.document_text.window_selector", "evidence.document_mode", "evidence.save_panel.commit_selector", "observe.document_token", "evidence.save_panel",
     "action.click.save_panel_guard", "evidence.document_rtf_export", "evidence.document_attachment_metadata",
 ] + experimentalForegroundCapabilities
 
@@ -6160,7 +6161,8 @@ func documentMatches(_ documents: [(window: AXUIElement, body: AXUIElement)],
 }
 
 func documentText(_ target: String, token requested: String?, budget: Int,
-                  selectedPath: String? = nil) -> [String: Any] {
+                  selectedPath: String? = nil,
+                  selectedWindow: (window: AXUIElement, pid: pid_t, stamp: Double)? = nil) -> [String: Any] {
     func refuse(_ detail: String) -> [String: Any] {
         ["type": "error", "error": "document_snapshot_unavailable",
          "effect": "not_started", "detail": detail]
@@ -6175,6 +6177,14 @@ func documentText(_ target: String, token requested: String?, budget: Int,
               !selectedPath.unicodeScalars.contains(where: { $0.value < 32 || $0.value == 127 }),
               documentIsCanonical(selectedPath) else { return refuse("invalid document path selector") }
     }
+    // An explicit window from the current observation (resolved by
+    // documentWindowSelection): a pin to that window and its body, not to a
+    // path, so a later Save As may change its URL. Other open documents stay
+    // open; nothing is closed to make it unique.
+    let chosenWindow = selectedWindow?.window
+    if selectedWindow != nil, requested != nil || selectedPath != nil {
+        return refuse("document selectors cannot be combined")
+    }
     do {
         var pinned: PinnedDocument?
         if let requested {
@@ -6184,11 +6194,15 @@ func documentText(_ target: String, token requested: String?, budget: Int,
             pinned = entry.document
         }
         let (p, stamp) = try documentProcessIdentity(target)
-        let documents = try documentEnumerate(p, selectedWindow: pinned?.window,
+        if let selectedWindow, selectedWindow.pid != p || selectedWindow.stamp != stamp {
+            return refuse("window selector belongs to another process")
+        }
+        let documents = try documentEnumerate(p, selectedWindow: pinned?.window ?? chosenWindow,
                                               selectedPath: pinned?.selectedPath ?? selectedPath)
         if pinned == nil {
             guard documents.count == 1 else {
-                return refuse("initial document selection is ambiguous or absent")
+                return refuse(chosenWindow == nil ? "initial document selection is ambiguous or absent"
+                                                  : "selected window is not exactly one document")
             }
             pinned = PinnedDocument(pid: p, stamp: stamp,
                                     window: documents[0].window, body: documents[0].body,
@@ -6428,8 +6442,10 @@ func documentWindowForToken(_ target: String, _ token: String) throws -> AXUIEle
 }
 
 func documentAttachmentMetadata(_ msg: [String:Any]) -> [String:Any] {
+    var phase = "request_invalid_or_pin_missing"
     func refuse() -> [String:Any] {
-        ["type":"error", "error":"document_attachment_metadata_unavailable", "effect":"not_started"]
+        ["type":"error", "error":"document_attachment_metadata_unavailable", "effect":"not_started",
+         "reason_code":phase]
     }
     guard Set(msg.keys).isSubset(of: ["type","target","document_token","max_utf16_units","timeout_seconds"]),
           msg["target"] as? String == "com.apple.TextEdit",
@@ -6445,6 +6461,7 @@ func documentAttachmentMetadata(_ msg: [String:Any]) -> [String:Any] {
         ProcessInfo.processInfo.systemUptime + timeout.doubleValue)
     defer { documentOperationDeadline = previousDeadline }
     do {
+        phase = "document_identity_unavailable"
         let path = try documentPath(pinned.window)
         func check() throws {
             try documentCheckAbort()
@@ -6470,6 +6487,7 @@ func documentAttachmentMetadata(_ msg: [String:Any]) -> [String:Any] {
             try check()
             return result
         }
+        phase = "document_text_unavailable"
         let text = try timed { try documentCompleteText(pinned.body, budget:budget.intValue) }
         let count = text.utf16.count
         var positions: [Int] = []
@@ -6481,7 +6499,12 @@ func documentAttachmentMetadata(_ msg: [String:Any]) -> [String:Any] {
             }
         }
         func snapshot() throws -> [[String:Any]] {
-            try timed {
+            // Records describe only observed object-replacement positions.
+            // With no such positions, an attributed-range request adds no
+            // records and needlessly depends on an optional AX attribute.
+            // The separate completeness/fidelity flags remain false.
+            if positions.isEmpty { return [] }
+            return try timed {
                 var range = CFRange(location:0, length:count)
                 guard let parameter = AXValueCreate(.cfRange, &range) else { throw DocumentError.fail("range unavailable") }
                 var raw: AnyObject?
@@ -6507,7 +6530,9 @@ func documentAttachmentMetadata(_ msg: [String:Any]) -> [String:Any] {
                 return rows
             }
         }
+        phase = "attributed_metadata_unavailable"
         let first = try snapshot()
+        phase = "metadata_changed_during_read"
         guard try timed({ try documentCompleteText(pinned.body, budget:budget.intValue) }) == text,
               (try snapshot() as NSArray).isEqual(to:first),
               try timed({ try documentCompleteText(pinned.body, budget:budget.intValue) }) == text else { return refuse() }
@@ -6518,6 +6543,7 @@ func documentAttachmentMetadata(_ msg: [String:Any]) -> [String:Any] {
                 "proves_no_intermediate_change":false, "source_format_verified":false,
                 "attachment_completeness_verified":false, "attachment_payload_verified":false,
                 "authorizes_save":false]
+        phase = "document_identity_changed"
         try check()
         return reply
     } catch { return refuse() }
@@ -6565,6 +6591,7 @@ struct PinnedSavePanel {
     let documentToken: String?
     let witness: NativeSavePanelWitness
 }
+
 var savePanelTokens: [(token: String, panel: PinnedSavePanel)] = []
 
 func saveDirectoryResource(_ raw: AnyObject) throws -> NativeSaveDirectoryResource {
@@ -6665,10 +6692,25 @@ func readSavePanel(_ msg: [String: Any], operationDeadline: Double? = nil) -> [S
             }
             document = pinned
         }
-        func context() throws {
+        func check() throws {
             try documentCheckAbort()
             guard ProcessInfo.processInfo.systemUptime < deadline,
-                  latestObsID == obsID, latestTargetPID == p, latestElements.count == map.count,
+                  latestObsID == obsID, latestTargetPID == p, latestElements.count == map.count else {
+                throw NativeSavePanelError.unavailable("native observation changed or expired")
+            }
+            // Local token revocation is cheap to check on every read. Keep
+            // full AX enumeration and process-start lookups at the boundaries.
+            if let document, let documentToken {
+                guard let pinned = documentTokens.first(where: { $0.token == documentToken })?.document,
+                      pinned.pid == document.pid, pinned.stamp == document.stamp,
+                      CFEqual(pinned.window, document.window), CFEqual(pinned.body, document.body) else {
+                    throw NativeSavePanelError.unavailable("document token changed or expired")
+                }
+            }
+        }
+        func context() throws {
+            try check()
+            guard
                   zip(latestElements, map).allSatisfy({ CFEqual($0, $1) }),
                   pid(forBundle: target) == p, nativeProcessStartIdentity(p) == start else {
                 throw NativeSavePanelError.unavailable("native observation changed or expired")
@@ -6687,7 +6729,7 @@ func readSavePanel(_ msg: [String: Any], operationDeadline: Double? = nil) -> [S
             }
         }
         func timedRead(_ element: AXUIElement, _ name: String) throws -> (AXError, AnyObject?) {
-            try context()
+            try check()
             let remaining = deadline - ProcessInfo.processInfo.systemUptime
             guard remaining > 0, AXUIElementSetMessagingTimeout(element, Float(min(1, remaining))) == .success else {
                 throw NativeSavePanelError.unavailable("AX timeout unavailable")
@@ -6697,7 +6739,7 @@ func readSavePanel(_ msg: [String: Any], operationDeadline: Double? = nil) -> [S
             guard AXUIElementSetMessagingTimeout(element, 0) == .success else {
                 throw NativeSavePanelError.unavailable("AX timeout reset failed")
             }
-            try context()
+            try check()
             return (error, result)
         }
         func validate() throws {
@@ -6708,7 +6750,7 @@ func readSavePanel(_ msg: [String: Any], operationDeadline: Double? = nil) -> [S
             }
             var matches = 0
             for item in items {
-                try context()
+                try check()
                 guard CFGetTypeID(item as CFTypeRef) == AXUIElementGetTypeID() else {
                     throw NativeSavePanelError.unavailable("non-native application window")
                 }
@@ -6718,13 +6760,17 @@ func readSavePanel(_ msg: [String: Any], operationDeadline: Double? = nil) -> [S
                 throw NativeSavePanelError.unavailable("save window no longer owned by application")
             }
         }
+        // Revalidate the full native document/map at operation boundaries.
+        // Per-attribute checks must not re-enumerate that document hundreds
+        // of times; the reader is read-only and the click has its own guard.
+        try context()
         let (roleError, roleValue) = try timedRead(window, "AXRole")
         guard roleError == .success, roleValue as? String == "AXWindow" else { return refuse("window element required") }
         var owner: pid_t = -1
         guard AXUIElementGetPid(window, &owner) == .success, owner == p else { return refuse("window owner changed") }
         try validate()
         let reader = try NativeSavePanelReader(readAttribute: timedRead,
-            directoryResource: saveDirectoryResource, check: context)
+            directoryResource: saveDirectoryResource, check: check)
         defer { budgetUsage = reader.budgetUsage }
         if let document { try reader.validateDocument(window, body: document.body) }
         var witness: NativeSavePanelWitness
@@ -6741,6 +6787,7 @@ func readSavePanel(_ msg: [String: Any], operationDeadline: Double? = nil) -> [S
         try reader.revalidate(window, witness: witness, requireFormat: requireFormat)
         if let document { try reader.validateDocument(window, body: document.body) }
         try validate()
+        try context()
         let token = requested ?? UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased()
         if requested == nil {
             savePanelTokens.append((token, PinnedSavePanel(pid:p, start:start, window:window,
@@ -7169,6 +7216,7 @@ func handle(_ msg: [String: Any]) -> [String: Any] {
     case "selection":
         return selectionOf(msg["target"] as? String ?? "")
     case "save_panel":
+        if msg["commit_element_index"] != nil { return readSavePanelForCommit(msg) }
         return readSavePanel(msg)
     case "document_window_status":
         return documentWindowStatus(msg)
@@ -7196,12 +7244,176 @@ func handle(_ msg: [String: Any]) -> [String: Any] {
             return ["type":"error", "error":"document_snapshot_unavailable",
                     "effect":"not_started", "detail":"invalid document path selector"]
         }
+        var selectedWindow: (window: AXUIElement, pid: pid_t, stamp: Double)? = nil
+        if msg["obs_id"] != nil || msg["window_element_index"] != nil {
+            guard let obsID = msg["obs_id"] as? String, !obsID.isEmpty, obsID.count <= 128,
+                  let raw = msg["window_element_index"], let index = documentIsWholeNumber(raw),
+                  index.intValue >= 0, index.intValue < 5000 else {
+                return ["type":"error", "error":"document_snapshot_unavailable",
+                        "effect":"not_started", "detail":"invalid window selector"]
+            }
+            switch documentWindowSelection(msg["target"] as? String ?? "", obsID: obsID, index: index.intValue) {
+            case .success(let chosen): selectedWindow = chosen
+            case .failure(let problem):
+                return ["type":"error", "error":"document_snapshot_unavailable",
+                        "effect":"not_started", "detail":problem.detail]
+            }
+        }
         return documentText(msg["target"] as? String ?? "",
                             token: msg["document_token"] as? String, budget: budget,
-                            selectedPath: msg["document_path"] as? String)
+                            selectedPath: msg["document_path"] as? String,
+                            selectedWindow: selectedWindow)
+    case "document_mode":
+        return documentMode(msg)
     default:
         return ["type": "error", "error": "unknown_message"]
     }
+}
+
+struct DocumentSelectionProblem: Error { let detail: String }
+/// A window named by the current observation, of the same running process.
+func documentWindowSelection(_ target: String, obsID: String, index: Int)
+        -> Result<(window: AXUIElement, pid: pid_t, stamp: Double), DocumentSelectionProblem> {
+    guard target == "com.apple.TextEdit", obsID == latestObsID,
+          latestTargetName.lowercased() == target.lowercased(), latestElements.indices.contains(index) else {
+        return .failure(DocumentSelectionProblem(detail: "window selector is not in the current observation"))
+    }
+    let element = latestElements[index]
+    guard str(element, kAXRoleAttribute as String) == kAXWindowRole as String else {
+        return .failure(DocumentSelectionProblem(detail: "window selector does not name a window"))
+    }
+    guard let (p, stamp) = try? documentProcessIdentity(target), p == latestTargetPID,
+          nativeProcessStartIdentity(p) == latestProcessStart else {
+        return .failure(DocumentSelectionProblem(detail: "window selector belongs to another process"))
+    }
+    return .success((element, p, stamp))
+}
+
+/// The pinned document's editing mode as TextEdit's own Format menu states it.
+///
+/// Read only: closed-menu AX attributes, no menu opened, no press, no focus or
+/// activation. The menu describes the app's main window, so the pinned window
+/// must be main before and after, with no modal or sheet; otherwise the mode is
+/// unavailable rather than guessed. This is the document's editing mode, not a
+/// certificate of any file's on-disk format.
+let documentModeRichTitles: Set<String> = ["Make Plain Text", "일반 텍스트 만들기"]
+let documentModePlainTitles: Set<String> = ["Make Rich Text", "리치 텍스트 만들기"]
+/// Exactly one known Format command, enabled, decides the mode; anything else
+/// is unavailable. Pure, so both drivers and tests share one rule.
+func documentModeFromFormatMenu(_ entries: [(title: String, enabled: Bool)]) -> (rich: Bool?, title: String?, reason: String) {
+    let known = entries.filter { documentModeRichTitles.contains($0.title) || documentModePlainTitles.contains($0.title) }
+    guard known.count == 1, let entry = known.first else { return (nil, nil, "format_menu_ambiguous_or_absent") }
+    guard entry.enabled else { return (nil, nil, "format_menu_disabled") }
+    return (documentModeRichTitles.contains(entry.title), entry.title, "")
+}
+func documentMode(_ msg: [String: Any]) -> [String: Any] {
+    func refuse(_ reason: String) -> [String: Any] {
+        ["type": "error", "error": "document_mode_unavailable", "effect": "not_started", "reason_code": reason]
+    }
+    guard Set(msg.keys) == Set(["type", "target", "document_token"]),
+          msg["target"] as? String == "com.apple.TextEdit",
+          let token = msg["document_token"] as? String, !token.isEmpty, token.count <= 128,
+          let pinned = documentTokens.first(where: { $0.token == token })?.document else {
+        return refuse("request_invalid_or_pin_missing")
+    }
+    let previousDeadline = documentOperationDeadline
+    documentOperationDeadline = min(previousDeadline ?? .infinity, ProcessInfo.processInfo.systemUptime + 6)
+    defer { documentOperationDeadline = previousDeadline }
+    do {
+        func samePin() throws -> Bool {
+            let (p, stamp) = try documentProcessIdentity("com.apple.TextEdit")
+            guard p == pinned.pid, stamp == pinned.stamp else { return false }
+            return documentMatches(try documentEnumerate(p, selectedWindow: pinned.window), pinned) == 1
+        }
+        func isMain() throws -> Bool { (try documentRequired(pinned.window, "AXMain") as? Bool) == true }
+        guard try samePin() else { return refuse("pin_stale") }
+        do { try nativeRequireWindowReady(pinned.window, pinned.pid) }
+        catch { return refuse("window_not_ready") }
+        guard try isMain() else { return refuse("not_main_window") }
+        let app = AXUIElementCreateApplication(pinned.pid)
+        let bar = try documentRequired(app, "AXMenuBar") as AnyObject
+        guard CFGetTypeID(bar) == AXUIElementGetTypeID() else { return refuse("menu_unavailable") }
+        let menuBar = unsafeBitCast(bar, to: AXUIElement.self)
+        var found: [(title: String, enabled: Bool)] = []
+        var reads = 0
+        for item in (try documentRequired(menuBar, kAXChildrenAttribute as String) as? [AXUIElement]) ?? [] {
+            for menu in (try documentRequired(item, kAXChildrenAttribute as String) as? [AXUIElement]) ?? [] {
+                for entry in (try documentRequired(menu, kAXChildrenAttribute as String) as? [AXUIElement]) ?? [] {
+                    reads += 1
+                    if reads > 2000 { return refuse("menu_read_budget_exceeded") }
+                    var titleOut: AnyObject?
+                    guard AXUIElementCopyAttributeValue(entry, kAXTitleAttribute as CFString, &titleOut) == .success,
+                          let title = titleOut as? String else { continue }
+                    guard documentModeRichTitles.contains(title) || documentModePlainTitles.contains(title) else { continue }
+                    let enabled = (try documentRequired(entry, kAXEnabledAttribute as String) as? Bool) == true
+                    found.append((title, enabled))
+                }
+            }
+        }
+        let decided = documentModeFromFormatMenu(found)
+        guard let rich = decided.rich, let witnessTitle = decided.title else { return refuse(decided.reason) }
+        guard try isMain(), try samePin() else { return refuse("main_window_or_pin_changed") }
+        try documentCheckAbort()
+        var editedOut: AnyObject?
+        let edited: Any = AXUIElementCopyAttributeValue(pinned.window, "AXEdited" as CFString, &editedOut) == .success
+            ? ((editedOut as? Bool).map { $0 as Any } ?? NSNull()) : NSNull()
+        return ["type": "document_mode", "document_token": token,
+                "editing_mode": rich ? "rich_text" : "plain_text",
+                "witness": ["source": "format_menu", "menu_title": witnessTitle,
+                            "main_window_before": true, "main_window_after": true],
+                "edited": edited, "source_format_verified": false]
+    } catch let DocumentError.fail(detail) {
+        if detail.hasPrefix("사용자가 중단해") {
+            return ["type": "error", "error": "aborted_by_user", "effect": "not_started"]
+        }
+        return refuse("native_read_failed")
+    } catch { return refuse("native_read_failed") }
+}
+
+/// The save panel named by its observed commit button, without a new observe.
+///
+/// The click event already fixed obs_id and the button index; observing again
+/// would replace the element map and stale that event. Derive the button's
+/// AXWindow from the SAME current map, delegate to readSavePanel, and require
+/// that the panel's own commit control is exactly the requested button.
+func readSavePanelForCommit(_ msg: [String: Any]) -> [String: Any] {
+    func refuse(_ detail: String) -> [String: Any] {
+        ["type":"error", "error":abortState.isStopped ? "aborted_by_user" : "save_panel_unavailable",
+         "effect":"not_started", "detail":detail]
+    }
+    guard msg["window_element_index"] == nil, let raw = msg["commit_element_index"],
+          let number = documentIsWholeNumber(raw), number.intValue >= 0,
+          let obsID = msg["obs_id"] as? String, obsID == latestObsID,
+          let target = msg["target"] as? String, latestTargetName.lowercased() == target.lowercased(),
+          number.intValue < latestElements.count else {
+        return refuse("commit selector is not in the current observation")
+    }
+    let commit = latestElements[number.intValue]
+    guard str(commit, kAXRoleAttribute as String) == kAXButtonRole as String else {
+        return refuse("commit selector does not name a button")
+    }
+    var node = commit
+    var windowIndex: Int?
+    for _ in 0..<32 {
+        guard let parent = axParentElement(node) else { break }
+        node = parent
+        if str(node, kAXRoleAttribute as String) == kAXWindowRole as String {
+            windowIndex = latestElements.firstIndex(where: { CFEqual($0, node) })
+            break
+        }
+    }
+    guard let windowIndex else { return refuse("commit button's window is not in the current observation") }
+    var forwarded = msg
+    forwarded.removeValue(forKey: "commit_element_index")
+    forwarded["window_element_index"] = windowIndex
+    let result = readSavePanel(forwarded)
+    guard result["type"] as? String == "save_panel" else { return result }
+    guard let control = result["commit_control"] as? [String: Any],
+          let action = control["action"] as? [String: Any],
+          (action["element_index"] as? NSNumber)?.intValue == number.intValue else {
+        return refuse("observed commit control is not the requested button")
+    }
+    return result
 }
 
 // The helper holds the permissions, so it must not be a general-purpose remote:

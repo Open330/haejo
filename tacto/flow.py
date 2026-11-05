@@ -1711,7 +1711,7 @@ def _receipt_public_codes() -> frozenset:
     """Every receipt's closed refusal codes — what replay may show of one."""
     import importlib
     codes = set()
-    for module in ("existing_file_receipt", "transcript_receipt", "delivery_receipt", "producer_file_receipt", "receipt_clock", "navigation_receipt"):
+    for module in ("existing_file_receipt", "transcript_receipt", "delivery_receipt", "producer_file_receipt", "receipt_clock", "navigation_receipt", "document_snapshot"):
         try:
             codes |= set(getattr(importlib.import_module(f".{module}", __package__),
                                  "PUBLIC_CODES", ()))

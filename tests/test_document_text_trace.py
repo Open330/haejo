@@ -4,6 +4,29 @@ from tacto.trace import Trace, TracingDriver, TraceDriver
 
 
 class DocumentTextTraceTests(unittest.TestCase):
+    def test_new_live_save_primitives_forward_without_retaining_body_or_tokens(self):
+        from unittest.mock import Mock
+        from tacto.document_snapshot import REQUIRED, SnapshotDriver, CAPABILITY
+        live = Mock()
+        live.capabilities = REQUIRED
+        trace = Trace()
+        wrapper = TracingDriver(live, trace)
+        self.assertIn(CAPABILITY, SnapshotDriver(wrapper).capabilities)
+        wrapper.document_text('com.apple.TextEdit', obs_id='current', window_element_index=3)
+        live.document_text.assert_called_once_with('com.apple.TextEdit', document_token=None,
+            max_utf16_units=1000000, obs_id='current', window_element_index=3)
+        wrapper.document_mode('com.apple.TextEdit', 'pin')
+        live.document_mode.assert_called_once_with('com.apple.TextEdit', document_token='pin')
+        wrapper.save_panel('current','com.apple.TextEdit', commit_element_index=7, document_token='pin')
+        live.save_panel.assert_called_once_with('current','com.apple.TextEdit',None,
+            commit_element_index=7, document_token='pin', panel_token=None, require_format=False)
+        self.assertEqual([], trace.events)
+        offline = TraceDriver(trace)
+        self.assertFalse(REQUIRED & offline.capabilities)
+        self.assertEqual('not_started', offline.document_mode('com.apple.TextEdit','pin')['effect'])
+        self.assertEqual('not_started', offline.save_panel('current','com.apple.TextEdit',commit_element_index=7)['effect'])
+        self.assertEqual(0, offline._i)
+
     def test_save_panel_and_guard_forward_live_and_never_become_replayable(self):
         from unittest.mock import Mock
         live = Mock()

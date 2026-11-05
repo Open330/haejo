@@ -5333,6 +5333,24 @@ def scenario_native_select_scroll_receiving_failure_fixture():
     return True
 
 
+def scenario_signed_textedit_save_as_transition():
+    """Owned actual TextEdit Save As, new file and pinned URL transition."""
+    from datetime import date
+    from pathlib import Path
+    from tacto.helper import InheritedHelperDriver
+    from examples.probes.signed_textedit_save_as import run_probe
+    assert InheritedHelperDriver.available(), 'signed launcher required'
+    output = Path(__file__).resolve().parents[1]/'reviews'/date.today().isoformat()/f'textedit-save-as-transition-{time.time_ns()}.json'
+    output.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    report = run_probe(InheritedHelperDriver())
+    with output.open('x') as stream:
+        json.dump(report, stream, ensure_ascii=False, indent=2)
+        stream.write('\n')
+    print('  actual TextEdit Save As report: '+str(output))
+    assert report['passed'], report.get('failure_code') or report.get('failure_class') or report.get('cleanup_status')
+    return True
+
+
 def scenario_native_observation_pages_fixed(provider='fixed'):
     """240 owned real controls, explicit continuation, independent callback count."""
     import runpy
@@ -5354,6 +5372,7 @@ def scenario_native_observation_pages_fixed(provider='fixed'):
 
 
 SCENARIOS = [
+    ('signed_textedit_save_as_transition (actual TextEdit, guarded new-file Save As)', scenario_signed_textedit_save_as_transition),
     ('native_observation_pages_fixed (240 owned AppKit controls, no model)', scenario_native_observation_pages_fixed),
     ('native_observation_pages_codex (240 owned AppKit controls, live Codex)', lambda: scenario_native_observation_pages_fixed('codex')),
     ('native_observation_pages_claude (240 owned AppKit controls, live Claude)', lambda: scenario_native_observation_pages_fixed('claude')),
@@ -5683,6 +5702,7 @@ _LOOKED = [False]
 #     ./launcher/tacto eval peer_authentication
 #     ./launcher/tacto eval an_abort_lasts
 ISOLATED = {
+    'signed_textedit_save_as_transition',
     'native_observation_pages_fixed', 'native_observation_pages_codex', 'native_observation_pages_claude',
     "signed_textedit_saved_state",
     "signed_popover_routing_refusal",
@@ -5773,6 +5793,7 @@ ISOLATED = {
 }
 
 SCENARIO_REQUIREMENTS: dict = {
+    'signed_textedit_save_as_transition': {'gui', 'native'},
     'native_observation_pages_fixed': {'gui', 'native'},
     'native_observation_pages_codex': {'gui', 'native', 'model'},
     'native_observation_pages_claude': {'gui', 'native', 'model'},

@@ -747,12 +747,12 @@ def run(driver, target: str, goal: str, ask_here, *, max_screens: int = 8,
         # value read, an `expect`, or a valid causal host receipt. Without that this is a
         # run that ended, and saying so is the honest report.
         res.ok = True
-        from .commit_evidence import CommitEvidence, DeliveryEvidence, ProducerArtifactEvidence
+        from .commit_evidence import CommitEvidence, DeliveryEvidence, ProducerArtifactEvidence, DocumentSaveEvidence
         causal_receipt = any(
             event.get('state') == 'confirmed'
             and type(res.commit_evidence.get(event.get('event_id'))) is CommitEvidence
             and type(res.commit_evidence[event['event_id']].evidence)
-                in (DeliveryEvidence, ProducerArtifactEvidence)
+                in (DeliveryEvidence, ProducerArtifactEvidence, DocumentSaveEvidence)
             and evidence_error({**event, 'commit_evidence': res.commit_evidence[event['event_id']]},
                                spec.expected if spec else {}) is None
             for event in res.events)
@@ -1242,8 +1242,12 @@ def run(driver, target: str, goal: str, ask_here, *, max_screens: int = 8,
             if consequential and prepare_commit is not None:
                 try:
                     commit_context = prepare_commit(deepcopy(event))
-                except Exception:
+                except Exception as exc:
                     res.why = "커밋 전 호스트 증거 준비에 실패했습니다"
+                    from .flow import _receipt_public_codes
+                    code = getattr(exc, 'public_code', None)
+                    if type(code) is str and code in _receipt_public_codes():
+                        res.why += f": {code}"
                     res.visits.append(visit)
                     return res
                 if stopped(visit):

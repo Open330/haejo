@@ -59,7 +59,7 @@ class FileMenuApp:
 
 
 class GeneralMenuCommitTests(unittest.TestCase):
-    def execute(self, app, receipt_mode="valid", *, guarded=False, repeat_commit=False, cancelled=None):
+    def execute(self, app, receipt_mode="valid", *, guarded=False, repeat_commit=False, cancelled=None, prepare_error=None):
         env = Envelope(quote="save note.txt", allows=frozenset({"read", "write_persistent"}), scope="item")
         spec = spec_for("save_file", env,
                         {"저장 위치": app.folder, "저장한 이름": "note.txt", "다시 읽은 내용": "hello"},
@@ -96,6 +96,8 @@ class GeneralMenuCommitTests(unittest.TestCase):
                                                    hashlib.sha256(app.path.read_bytes()).hexdigest()))
 
         def prepare(event):
+            if prepare_error is not None:
+                raise prepare_error
             if not guarded: return app.writes
             return SavePanelCommitPreparation(event['event_id'], event['action_digest'],
                 event['obs_id'], 'panel', app.writes)
@@ -104,6 +106,20 @@ class GeneralMenuCommitTests(unittest.TestCase):
                      ask_where=where, approve=lambda _: True,
                      prepare_commit=prepare, after_commit=after, cancelled=cancelled)
         return result, verify(spec, result, result.after_tree)
+
+    def test_preparation_failure_reports_closed_code_and_never_saves(self):
+        from tacto.document_snapshot import SnapshotUnavailable
+        for error, expected in ((SnapshotUnavailable('snapshot_save_panel_unavailable'),
+                                'snapshot_save_panel_unavailable'),
+                               (RuntimeError('PRIVATE_SENTINEL'), None)):
+            with self.subTest(error=type(error).__name__), tempfile.TemporaryDirectory() as folder:
+                app = FileMenuApp(folder)
+                result, receipt = self.execute(app, prepare_error=error)
+                self.assertFalse(result.ok)
+                self.assertEqual(0, app.writes)
+                self.assertNotIn('PRIVATE_SENTINEL', result.why)
+                if expected:
+                    self.assertIn(expected, result.why)
 
     def test_lost_save_response_is_resolved_by_event_bound_receipt(self):
         class LostResponse(FileMenuApp):

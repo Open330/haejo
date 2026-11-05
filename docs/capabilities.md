@@ -134,7 +134,7 @@ Codex·Claude CLI를 지원하며 두 백본의 실제 canvas 클릭을 확인�
 서명된 helper의 `evidence.document_rtf_export`는 기존 문서 token의 full AX
 range RTF bytes를 읽는다. 반복 text/export·identity/path·기한·2MiB 출력 제한과
 클라이언트 digest 검증을 실행한다. 원본 형식이나 첨부 완전성·저장 승인을
-보장하지 않으며 document_snapshot은 OFF다. native handler의 주입 시험을
+보장하지 않으며 range export만으로 document_snapshot을 제공하지 않는다. native handler의 주입 시험을
 통과했지만 첫 실제 TextEdit 시험은 process 부재로 문서 open 전에 거절됐다.
 [RTF range export 범위](textedit-save.md)를 참조한다.
 

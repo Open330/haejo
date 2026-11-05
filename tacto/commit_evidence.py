@@ -62,6 +62,21 @@ class SavedFileStateEvidence:
 
 
 @dataclass(frozen=True)
+class DocumentSaveEvidence:
+    """Guarded Save As + the same document's URL transition + new-file readback.
+
+    Host observations establish this transition, not kernel writer attribution
+    or rich-text/attachment fidelity.
+    """
+    receipt_id: str
+    path: str
+    sha256: str
+    source_path: str | None
+    document_identity_sha256: str
+    observation_id: str
+
+
+@dataclass(frozen=True)
 class ProducerArtifactEvidence:
     """Trusted host application callback + file readback, not kernel attestation."""
     receipt_id: str
@@ -133,7 +148,7 @@ class NavigationEvidence:
 class CommitEvidence:
     event_id: str
     action_digest: str
-    evidence: ArtifactEvidence | SavedFileStateEvidence | ProducerArtifactEvidence | DeliveryEvidence | TranscriptEvidence | NavigationEvidence
+    evidence: ArtifactEvidence | SavedFileStateEvidence | DocumentSaveEvidence | ProducerArtifactEvidence | DeliveryEvidence | TranscriptEvidence | NavigationEvidence
 
 
 @dataclass(frozen=True)
@@ -205,14 +220,31 @@ def evidence_error(event, expected=None):
     expected = expected or {}
     detail = proof.evidence
     effects = set(event['effects'])
-    if type(detail) in (ArtifactEvidence,SavedFileStateEvidence,ProducerArtifactEvidence):
+    if type(detail) in (ArtifactEvidence,SavedFileStateEvidence,DocumentSaveEvidence,ProducerArtifactEvidence):
         scope = expected.get('artifact_evidence_scope')
-        if scope not in (None,'artifact','saved_state','producer'):
+        if scope not in (None,'artifact','saved_state','document_save','producer'):
             return 'artifact_expectation_invalid'
         if type(detail) is SavedFileStateEvidence and scope != 'saved_state':
             return 'saved_state_expectation_missing'
         if scope == 'producer' and type(detail) is not ProducerArtifactEvidence:
             return 'artifact_producer_evidence_missing'
+        if scope == 'document_save' and type(detail) is not DocumentSaveEvidence:
+            return 'document_save_evidence_missing'
+        if type(detail) is DocumentSaveEvidence:
+            action = event.get('action', {})
+            if (scope != 'document_save' or event.get('target') != 'com.apple.TextEdit'
+                    or detail.observation_id != event.get('obs_id') or not _text(detail.observation_id)
+                    or not _digest(detail.document_identity_sha256)
+                    or detail.document_identity_sha256 != expected.get('document_identity_sha256')
+                    or 'source_document_path' not in expected
+                    or detail.source_path != expected['source_document_path']
+                    or detail.source_path == detail.path
+                    or detail.source_path is not None and (not _text(detail.source_path)
+                        or not PurePath(detail.source_path).is_absolute())
+                    or not isinstance(action, dict) or set(action) != {'name','element_index'}
+                    or action.get('name') != 'click' or type(action.get('element_index')) is not int
+                    or action['element_index'] < 0):
+                return 'document_save_transition_mismatch'
         if type(detail) is ProducerArtifactEvidence:
             if (not producer_identity_valid(detail.producer,detail.producer_pid,detail.producer_start_time,detail.nonce)
                     or type(detail.completion_sequence) is not int

@@ -1024,9 +1024,14 @@ class Agent:
             self.narrate(f"저장 결과 확인: {document}")
             return make_existing_text_receipt(self.driver, document_path=document)
         from .textedit_receipt import SNAPSHOT_CAPABILITY, TARGET, make_textedit_receipt
-        if (SNAPSHOT_CAPABILITY not in (getattr(self.driver, "capabilities", ()) or ())
-                or flow.target != TARGET or flow.name != "textedit_save_as"
+        if (flow.target != TARGET or flow.name != "textedit_save_as"
                 or not flow.steps or flow.steps[-1].binding is None):
+            return None
+        snapshot_driver = self.driver
+        if SNAPSHOT_CAPABILITY not in (getattr(snapshot_driver, "capabilities", ()) or ()):
+            from .document_snapshot import SnapshotDriver
+            snapshot_driver = SnapshotDriver(snapshot_driver)
+        if SNAPSHOT_CAPABILITY not in snapshot_driver.capabilities:
             return None
         from .library import textedit_save_as
         binding = flow.steps[-1].binding
@@ -1034,12 +1039,14 @@ class Agent:
         canonical = textedit_save_as().bind(filename=name, folder=folder)
         if canonical.to_json() != flow.to_json():
             return None
-        if folder != "Downloads":
-            raise ValueError("자동 저장 검증은 현재 Downloads의 새 RTF 파일만 지원합니다")
+        if folder != "Downloads" or not isinstance(name, str) or not name.endswith('.rtf'):
+            # Automatic evidence must not disable existing recipe operations
+            # outside this adapter's supported new-RTF projection.
+            return None
         from pathlib import Path
         directory = (Path.home() / "Downloads").resolve()
         self.narrate(f"저장 결과 확인: {directory / name}")
-        return make_textedit_receipt(self.driver, target=TARGET,
+        return make_textedit_receipt(snapshot_driver, target=TARGET,
                                      directory=str(directory), filename=name)
 
     @staticmethod
