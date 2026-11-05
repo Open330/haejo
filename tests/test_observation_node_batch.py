@@ -68,7 +68,8 @@ func render(_ previous:Bool)->([String],Int,Int,Int,[String:Int]) {
 data=[
  1:["AXRole":"AXWindow" as CFString,"AXTitle":"A, \"B\"\n한글" as CFString,
     "AXDocument":"file:///owned/e%CC%81.txt" as CFString,"AXEnabled":kCFBooleanTrue,
-    "AXChildren":[element(2),element(4),element(5)] as CFArray],
+    "AXChildren":[element(2),element(4),element(5)] as CFArray,
+    "AXCloseButton":element(4)],
  2:["AXRole":"AXSheet" as CFString,"AXEnabled":kCFBooleanTrue,"AXChildren":[element(3)] as CFArray,
     "AXDocument":"file:///owned/sheet-must-not-render.txt" as CFString],
  3:["AXRole":"AXButton" as CFString,"AXTitle":"Cancel\nNow" as CFString,"AXEnabled":kCFBooleanFalse,
@@ -104,9 +105,12 @@ print(String(data:try! JSONSerialization.data(withJSONObject:output),encoding:.u
             self.assertEqual(result.returncode,0,result.stderr)
         report=json.loads(result.stdout)
         batch=report['rows'][0]
-        self.assertEqual(batch['singles'],0)
+        # The window's three direct titlebar controls supplement AXChildren.
+        # Include these reads in the comparison, and verify the existing close
+        # child is not rendered again through its direct attribute.
+        self.assertEqual(batch['singles'],3)
         self.assertEqual(batch['batches'],5)
-        self.assertLess(batch['batches'],report['prior_singles']+report['prior_batches'])
+        self.assertLess(batch['singles']+batch['batches'],report['prior_singles']+report['prior_batches'])
         for row in report['rows']:
             self.assertEqual(row['metrics'], {
                 'packet_attempts':5,
