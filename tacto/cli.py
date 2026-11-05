@@ -68,7 +68,8 @@ if getattr(_runtime_package, "__tacto_runtime__", False) is not True:
 import json
 import re
 import sys
-from contextlib import ExitStack
+import threading
+from contextlib import ExitStack, contextmanager
 from contextvars import ContextVar
 
 from .agent import Agent
@@ -192,6 +193,35 @@ def _provider_from(argv):
             rest.append(token)
         i += 1
     return provider, rest
+
+
+@contextmanager
+def cooperative_stop(signals=None):
+    """A host stop for one general run: SIGTERM/SIGHUP cancel cooperatively.
+
+    The first signal sets the event, which stops an in-flight model request
+    (owned provider group, or the launcher's per-request cancel) and the run
+    at its next check. The handler then restores the previous disposition, so
+    a second signal behaves as before. Off the main thread nothing changes.
+    """
+    import signal
+    stop = threading.Event()
+    if threading.current_thread() is not threading.main_thread():
+        yield stop
+        return
+    chosen = tuple(signals or (signal.SIGTERM, signal.SIGHUP))
+    previous = {number: signal.getsignal(number) for number in chosen}
+    def handler(number, frame):
+        stop.set()
+        for each, disposition in previous.items():
+            signal.signal(each, disposition)
+    for number in chosen:
+        signal.signal(number, handler)
+    try:
+        yield stop
+    finally:
+        for number, disposition in previous.items():
+            signal.signal(number, disposition)
 
 
 def _general_limits_from(argv):
@@ -1508,11 +1538,13 @@ def _dispatch_command(cmd, rest):
                 def where(field, cands):
                     print(f"  🔎 보내기 전에 '{field}' 를 확인합니다")
                     return _ask2(where_is(field, cands), provider=provider)
-                return _run(driver, target, goal, here, envelope=env,
-                            timeout_seconds=general_limits["timeout_seconds"],
-                            max_screens=general_limits["max_screens"],
-                            witnesses=need, ask_where=where,
-                            approve=confirm, narrate=lambda m: print(f"  {m}"))
+                with cooperative_stop() as stop:
+                    return _run(driver, target, goal, here, envelope=env,
+                                timeout_seconds=general_limits["timeout_seconds"],
+                                max_screens=general_limits["max_screens"],
+                                witnesses=need, ask_where=where,
+                                approve=confirm, narrate=lambda m: print(f"  {m}"),
+                                cancelled=stop.is_set)
 
         judge = None
         if think is None or think:

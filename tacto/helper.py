@@ -20,7 +20,13 @@ import threading
 import os
 import subprocess
 import time
+import uuid
 from .environment import value as _environment_value
+
+# Host cancellation of a launcher-routed ask: watcher poll interval, and how
+# long the reply may take after the cancel (launcher grace 2 s plus cleanup).
+ASK_CANCEL_POLL_SECONDS = 0.05
+ASK_CANCEL_REPLY_GRACE_SECONDS = 4.0
 
 def _runtime_root(module_file, prefix):
     """Locate either a source package or the fixed standalone .venv layout."""
@@ -248,12 +254,15 @@ class InheritedHelperDriver:
                         resource.close()
                     except Exception:
                         pass
-            for attr in ("_sock", "_f", "capabilities", "helper_process_identity"):
+            for attr in ("_sock", "_f", "capabilities", "helper_process_identity", "launcher_capabilities"):
                 if hasattr(self, attr):
                     delattr(self, attr)
             self._ready = False
             type(self)._shared = None
             raise
+        launcher_caps = pong.get('launcher_capabilities')
+        self.launcher_capabilities = (frozenset(launcher_caps) if isinstance(launcher_caps, list)
+                                      and all(isinstance(c, str) for c in launcher_caps) else frozenset())
         self.capabilities = caps
         self._ready = True
 
@@ -291,6 +300,34 @@ class InheritedHelperDriver:
         timer.daemon = True
         timer.start()
         r = None
+        # Host cancellation of this one request: a per-request id, sent by a
+        # watcher only after the ask frame is written, never read by it. The
+        # main thread stays the channel's only reader, so the launcher's one
+        # reply (cancelled envelope, or an answer that raced) is still read.
+        from .model_budget import ModelCancelled, cancellation_probe
+        probe = cancellation_probe()
+        cancel_id = (uuid.uuid4().hex if probe is not None
+                     and 'ask_cancel_v1' in getattr(self, 'launcher_capabilities', ()) else None)
+        written, done, cancel_sent = threading.Event(), threading.Event(), threading.Event()
+        def watch():
+            if not written.wait(timeout_seconds) or done.is_set():
+                return
+            while not done.wait(ASK_CANCEL_POLL_SECONDS):
+                if probe():
+                    frame = (json.dumps({'type': 'ask_cancel', 'cancel_id': cancel_id}) + '\n').encode()
+                    try:
+                        self._sock.sendall(frame)
+                    except OSError:
+                        pass
+                    cancel_sent.set()
+                    # Bounded: the launcher's cooperative grace and cleanup.
+                    # A missing reply after that closes the channel for good.
+                    if not done.wait(ASK_CANCEL_REPLY_GRACE_SECONDS):
+                        expire()
+                    return
+        watcher = threading.Thread(target=watch, daemon=True) if cancel_id is not None else None
+        if watcher is not None:
+            watcher.start()
         def timeout_error():
             error = TimeoutError("model channel deadline exceeded")
             if isinstance(r, dict) and r.get("error") == "model_timeout":
@@ -303,14 +340,27 @@ class InheritedHelperDriver:
                 message['image'] = image
                 if model is not None:
                     message['model'] = model
-            r = self._send(message)
+            if cancel_id is not None:
+                message['cancel_id'] = cancel_id
+            r = self._send(message, after_write=written.set)
+            if cancel_sent.is_set() or r.get("error") == "model_cancelled":
+                return dict(r, _host_cancelled=True)
             if r.get("error") == "model_timeout":
                 expire()
                 raise timeout_error()
             return r
+        except HelperUnavailable:
+            if cancel_sent.is_set():
+                raise ModelCancelled('model channel closed after host cancellation') from None
+            raise
         finally:
+            done.set()
+            if watcher is not None:
+                watcher.join()
             timer.cancel()
             timer.join()
+            if cancel_sent.is_set() and expired.is_set():
+                raise ModelCancelled('model channel closed after host cancellation')
             if expired.is_set() or time.monotonic() >= deadline:
                 expire()
                 try:
@@ -323,6 +373,9 @@ class InheritedHelperDriver:
                      provider: str = "auto", *, timeout_seconds=420) -> str | None:
         response = self._ask_launcher_response(prompt, want_json, provider,
                                                timeout_seconds=timeout_seconds)
+        if response.get("_host_cancelled"):
+            from .model_budget import ModelCancelled
+            raise ModelCancelled()
         # The launcher's code for a refusal, kept for the caller's message.
         self.last_ask_error = response.get("error")
         return response.get("text") if response.get("type") == "answer" else None
@@ -343,6 +396,12 @@ class InheritedHelperDriver:
             response = getattr(exc, "provider_response", None)
             if not isinstance(response, dict) or "provider_result_v1" not in response:
                 raise
+        host_cancelled = bool(response.get("_host_cancelled"))
+        if host_cancelled and "provider_result_v1" not in response:
+            from .provider_result import CANCELLED_MESSAGE
+            return ProviderResult(str(uuid.uuid4()), provider, None if provider == "auto" else provider,
+                "launcher", "cancelled", None, ProviderError("ModelCancelled", CANCELLED_MESSAGE),
+                max(0, time.monotonic()-started))
         if "provider_result_v1" in response:
             result = parse_provider_result(response["provider_result_v1"])
             if result.requested_provider != provider:
@@ -350,10 +409,17 @@ class InheritedHelperDriver:
             if result.status == "ok" and (response.get("type") != "answer" or response.get("text") != result.text):
                 raise ValueError("provider response text mismatch")
             if result.status != "ok":
-                expected_error = "model_timeout" if result.status == "timeout" else "no_answer"
+                expected_error = {"timeout": "model_timeout", "cancelled": "model_cancelled"}.get(
+                    result.status, "no_answer")
                 if (response.get("type") != "error" or response.get("error") != expected_error
                         or response.get("text") is not None):
                     raise ValueError("provider error response mismatch")
+            if host_cancelled and result.status != "cancelled":
+                # An answer that raced the cancel is not accepted; its
+                # observed telemetry is kept, its text is not.
+                from .provider_result import CANCELLED_MESSAGE
+                result = replace(result, status="cancelled", text=None,
+                                 error=ProviderError("ModelCancelled", CANCELLED_MESSAGE))
             return replace(result, transport="launcher", elapsed_seconds=max(0, time.monotonic()-started))
         if image is not None:
             raise ValueError('image requests require a structured provider envelope')
@@ -374,7 +440,7 @@ class InheritedHelperDriver:
         except Exception:
             pass
 
-    def _send(self, msg: dict) -> dict:
+    def _send(self, msg: dict, *, after_write=None) -> dict:
         scope = getattr(self, '_window_scope', None)
         if scope is not None and msg.get('target'):
             if msg['target'] != scope[0]:
@@ -390,6 +456,8 @@ class InheritedHelperDriver:
         try:
             self._f.write(payload)
             self._f.flush()
+            if after_write is not None:
+                after_write()
             line = self._f.readline()
             if not line:
                 raise HelperUnavailable("권한 채널이 닫혔습니다")

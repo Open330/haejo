@@ -9,7 +9,8 @@ every question the screen loop asks.
 So the launcher runs this instead, in its own environment, and relays the text
 back. --result-envelope additionally returns observed model metadata; --json
 still controls the model answer format. Structured error/timeout envelopes exit
-zero so the relay can read their status. This process has no helper channel and no fd 3: it reads a prompt on
+zero so the relay can read their status. SIGUSR1 from the launcher is a host
+cancellation: the envelope reports status "cancelled" with observed usage. This process has no helper channel and no fd 3: it reads a prompt on
 stdin and writes an answer on stdout, and cannot touch the screen whatever the
 prompt tells it to do.
 """
@@ -37,13 +38,22 @@ def main() -> int:
         signal.signal(signal.SIGTERM, signal.SIG_IGN)
         raise _ProviderTermination()
 
+    # The launcher's cooperative host cancellation. The handler only records
+    # it; the provider loop polls the flag, stops the owned CLI group, and
+    # this process still writes the envelope with whatever usage it observed.
+    cancel = []
+    previous_cancel = signal.getsignal(signal.SIGUSR1)
+    signal.signal(signal.SIGUSR1, lambda signum, frame: cancel.append(signum))
     signal.signal(signal.SIGTERM, terminate)
     try:
-        return _main()
+        from .model_budget import model_cancellation
+        with model_cancellation(lambda: bool(cancel)):
+            return _main()
     except _ProviderTermination:
         return 128 + int(signal.SIGTERM)
     finally:
         signal.signal(signal.SIGTERM, previous)
+        signal.signal(signal.SIGUSR1, previous_cancel)
 
 
 def _main() -> int:

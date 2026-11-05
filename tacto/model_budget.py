@@ -58,6 +58,26 @@ def model_cancelled():
     return False
 
 
+def cancellation_probe():
+    """This context's cancellation as a plain callable, for a watcher thread.
+
+    ContextVars do not follow work into other threads; the probe carries the
+    current predicates explicitly. None when no cancellation scope is active.
+    """
+    predicates = _CANCEL.get()
+    if not predicates:
+        return None
+    def probe():
+        for predicate in predicates:
+            try:
+                if predicate():
+                    return True
+            except Exception:
+                return True
+        return False
+    return probe
+
+
 def raise_if_model_cancelled():
     if model_cancelled():
         raise ModelCancelled()

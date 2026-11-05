@@ -61,7 +61,7 @@ guard FileManager.default.isExecutableFile(atPath: python.path) else {
 // and hand back the text. That is the whole reason the child's PATH is fixed —
 // it holds screen content, which is exactly what must not be able to choose
 // what runs. Asking needs neither the helper channel nor a program name.
-let allowedTypes: Set<String> = ["release_targets","foreground_begin","foreground_end","window_list","ping", "list_targets", "observe", "act",
+let allowedTypes: Set<String> = ["ask_cancel","release_targets","foreground_begin","foreground_end","window_list","ping", "list_targets", "observe", "act",
                                  "probe", "selection", "ask", "document_text", "document_window_status", "document_rtf_export", "document_attachment_metadata", "save_panel", "menu_state",
                                  "menu_items", "capture", "readiness_read_cost", "readiness_preflight"]
 // The largest complete document this channel will carry, in UTF-16 units. The
@@ -179,7 +179,7 @@ let topLevelKeys: Set<String> = ["sensitive_input_authorized", "window_scope_id"
                                  "require_window", "window_identity", "reveal", "prompt", "image", "model", "json", "path",
                                  "expect", "element_index", "provider",
                                  "document_token", "document_path", "max_utf16_units", "timeout_seconds",
-                                 "window_index", "window_element_index", "panel_token", "require_format", "element_indices", "read_strategy", "titlebar_probe"]
+                                 "window_index", "window_element_index", "panel_token", "require_format", "element_indices", "read_strategy", "titlebar_probe", "cancel_id"]
 
 // What a caller may claim its target still is. Reading one element's own
 // attributes is about a millisecond; re-walking Mail's tree to find out is
@@ -220,6 +220,14 @@ let knownProviders: Set<String> = ["auto", "claude", "codex", "opencode", "gemin
     let d = n.doubleValue
     guard d.isFinite, d == d.rounded(.towardZero) else { return false }
     return abs(d) <= 9_007_199_254_740_992      // beyond this, not exact
+}
+
+/// A per-request id the child chose for one in-flight ask. Only the child on
+/// this private socketpair can send it, and a cancel naming any other id is
+/// ignored, so a stale cancel can never stop a later request.
+@Sendable func askCancelIDIsValid(_ raw: Any) -> Bool {
+    guard let id = raw as? String, (16...64).contains(id.utf8.count) else { return false }
+    return id.unicodeScalars.allSatisfy { ("a"..."z").contains($0) || ("0"..."9").contains($0) || $0 == "-" }
 }
 
 func vetted(_ msg: [String: Any]) -> String? {
@@ -410,6 +418,13 @@ func vetted(_ msg: [String: Any]) -> String? {
     if type == "probe" {
         guard msg["obs_id"] is String, msg["target"] is String,
               isInt(msg["element_index"] as Any) else { return "probe 형식 오류" }
+    }
+    if msg["cancel_id"] != nil, !["ask", "ask_cancel"].contains(type) {
+        return "cancel_id 는 ask 전용입니다"
+    }
+    if let raw = msg["cancel_id"], !askCancelIDIsValid(raw) { return "cancel_id 형식 오류" }
+    if type == "ask_cancel", Set(msg.keys) != Set(["type", "cancel_id"]) {
+        return "ask_cancel 형식 오류"
     }
     if type == "ask" {
         guard let p = msg["prompt"] as? String else { return "ask 에 prompt 없음" }
@@ -1114,15 +1129,25 @@ guard spawned == 0 else {
     return number.doubleValue
 }
 
-enum ModelProcessError: Error { case timeout, ioFailure, outputLimit }
+enum ModelProcessError: Error { case timeout, ioFailure, outputLimit, cancelled }
+
+/// How long the wrapper gets, after a cooperative SIGUSR1 cancel, to stop its
+/// owned CLI group and return its observed-usage envelope before SIGTERM/KILL.
+let modelCancelGrace: Double = 2.0
 let modelCleanupGroup = DispatchGroup()
 
 // Bound stdin, stdout (including inherited pipe writers), and process waiting.
 // Ask our Python wrapper to unwind its CLI runners before forced termination.
 // Cleanup stays off the relay thread. Noncooperative/detached descendants and
 // remote inference are not guaranteed cancelled by this outer watchdog.
-@Sendable func boundedModelProcess(_ proc: Process, prompt: String, timeout: Double) throws -> Data {
+@Sendable func boundedModelProcess(_ proc: Process, prompt: String, timeout: Double,
+                                   cancelled: () -> Bool = { false }) throws -> Data {
     let deadline = ProcessInfo.processInfo.systemUptime + timeout
+    // Host cancellation asks the wrapper (SIGUSR1) to stop its owned CLI group
+    // and report what it observed; the grace is bounded and never extends the
+    // request deadline. Remote generation is not claimed stopped.
+    var cancelSignalled = false
+    var cancelDeadline = Double.infinity
     let input = Pipe(), output = Pipe()
     proc.standardInput = input
     proc.standardOutput = output
@@ -1159,13 +1184,25 @@ let modelCleanupGroup = DispatchGroup()
     var sent = 0, result = Data()
     var outputEnded = false
     while true {
-        let remaining = deadline - ProcessInfo.processInfo.systemUptime
+        let now = ProcessInfo.processInfo.systemUptime
+        let remaining = deadline - now
+        if !cancelSignalled && cancelled() {
+            cancelSignalled = true
+            cancelDeadline = min(deadline, now + modelCancelGrace)
+            if proc.isRunning { kill(proc.processIdentifier, SIGUSR1) }
+        }
+        if cancelSignalled && now >= cancelDeadline { throw ModelProcessError.cancelled }
         if remaining <= 0 { throw ModelProcessError.timeout }
         if inputOpen && sent == bytes.count {
             try input.fileHandleForWriting.close()
             inputOpen = false
         }
-        if outputEnded && !proc.isRunning { return result }
+        if outputEnded && !proc.isRunning {
+            // A wrapper that died to the cancel signal itself (before its
+            // handler existed) returns no envelope: report the cancellation.
+            if cancelSignalled && proc.terminationReason == .uncaughtSignal { throw ModelProcessError.cancelled }
+            return result
+        }
         var fds = [pollfd(fd: outputEnded ? -1 : outputFD, events: Int16(POLLIN), revents: 0),
                    pollfd(fd: inputOpen ? inputFD : -1, events: Int16(POLLOUT), revents: 0)]
         let ready = poll(&fds, nfds_t(fds.count), Int32(max(1, min(50, remaining * 1000))))
@@ -1193,7 +1230,8 @@ let modelCleanupGroup = DispatchGroup()
 }
 
 func askModel(_ prompt: String, _ wantJSON: Bool, _ provider: String,
-              timeout: Double = 420, image: [String: Any]? = nil, model: String? = nil) throws -> [String: Any]? {
+              timeout: Double = 420, image: [String: Any]? = nil, model: String? = nil,
+              cancelled: () -> Bool = { false }) throws -> [String: Any]? {
     let proc = Process()
     proc.executableURL = python
     proc.arguments = ["-I", "-B", "-m", "tacto.ask_provider", "--result-envelope", "--timeout", String(timeout)]
@@ -1210,13 +1248,13 @@ func askModel(_ prompt: String, _ wantJSON: Bool, _ provider: String,
         guard let text = String(data: encoded, encoding: .utf8) else { throw ModelProcessError.ioFailure }
         input = text
     }
-    let data = try boundedModelProcess(proc, prompt: input, timeout: timeout)
+    let data = try boundedModelProcess(proc, prompt: input, timeout: timeout, cancelled: cancelled)
     if proc.terminationStatus == 124 { throw ModelProcessError.timeout }
     guard proc.terminationStatus == 0 else { return nil }
     guard let result = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
           result["requested_provider"] as? String == provider,
           let requestID = result["request_id"] as? String, !requestID.isEmpty,
-          let status = result["status"] as? String, ["ok", "error", "timeout"].contains(status) else {
+          let status = result["status"] as? String, ["ok", "error", "timeout", "cancelled"].contains(status) else {
         throw ModelProcessError.ioFailure
     }
     if status == "ok" {
@@ -1228,6 +1266,76 @@ func askModel(_ prompt: String, _ wantJSON: Bool, _ provider: String,
         }
     }
     return result
+}
+
+
+/// One relayed ask, answered with exactly one reply on `relayEnd`. While the
+/// model runs, this thread alone keeps reading the child's end into the same
+/// buffer; only leading ask_cancel frames are consumed, anything else stays
+/// queued, unread, for the relay loop.
+@Sendable func relayAsk(_ msg: [String: Any], timeout: Double, fromChild: inout Data) {
+    let prompt = msg["prompt"] as! String
+    let cancelID = msg["cancel_id"] as? String
+    var cancelRequested = false, probeChild = cancelID != nil
+    func childCancelled() -> Bool {
+        if cancelRequested { return true }
+        guard probeChild else { return false }
+        var channel = pollfd(fd: relayEnd, events: Int16(POLLIN), revents: 0)
+        if poll(&channel, 1, 0) > 0 {
+            if channel.revents & Int16(POLLIN) != 0 {
+                var chunk = [UInt8](repeating: 0, count: 65536)
+                let n = read(relayEnd, &chunk, chunk.count)
+                if n > 0 { fromChild.append(contentsOf: chunk[0..<n]) }
+                else if n == 0 { cancelRequested = true; return true }
+            } else if channel.revents & Int16(POLLHUP | POLLERR | POLLNVAL) != 0 {
+                // The requester is gone; nobody can accept this answer.
+                cancelRequested = true; return true
+            }
+        }
+        while let nl = fromChild.firstIndex(of: 0x0A) {
+            let line = fromChild[fromChild.startIndex..<nl]
+            guard let frame = (try? JSONSerialization.jsonObject(with: line)) as? [String: Any],
+                  askCancelFrameIsValid(frame) else {
+                probeChild = false; break
+            }
+            fromChild = fromChild[fromChild.index(after: nl)...]
+            if frame["cancel_id"] as? String == cancelID { cancelRequested = true; return true }
+        }
+        if fromChild.count > 8 * 1024 * 1024 { probeChild = false }
+        return false
+    }
+    let wantJSON = (msg["json"] as? Bool) ?? false
+    let provider = (msg["provider"] as? String) ?? "auto"
+    do {
+        if let result = try askModel(prompt, wantJSON, provider, timeout: timeout,
+            image: msg["image"] as? [String: Any], model: msg["model"] as? String,
+            cancelled: childCancelled) {
+            if result["status"] as? String == "ok" {
+                writeJSONLine(relayEnd, ["type": "answer", "text": result["text"]!,
+                                        "provider_result_v1": result])
+            } else {
+                let status = result["status"] as? String
+                writeJSONLine(relayEnd, ["type": "error",
+                    "error": status == "timeout" ? "model_timeout"
+                        : status == "cancelled" ? "model_cancelled" : "no_answer",
+                    "effect": "not_started", "provider_result_v1": result])
+            }
+        } else {
+            writeJSONLine(relayEnd, ["type": "error", "error": "no_answer",
+                                     "effect": "not_started"])
+        }
+    } catch {
+        let failure = error as? ModelProcessError
+        writeJSONLine(relayEnd, ["type": "error",
+                                 "error": failure == .timeout ? "model_timeout"
+                                    : failure == .cancelled ? "model_cancelled" : "no_answer",
+                                 "effect": "not_started"])
+    }
+}
+
+@Sendable func askCancelFrameIsValid(_ frame: [String: Any]) -> Bool {
+    frame["type"] as? String == "ask_cancel" && Set(frame.keys) == Set(["type", "cancel_id"])
+        && frame["cancel_id"].map(askCancelIDIsValid) == true
 }
 
 // MARK: - Relay
@@ -1252,32 +1360,13 @@ relayQueue.async {
                                      "effect": "not_started", "detail": why])
             continue
         }
+        if msg["type"] as? String == "ask_cancel" {
+            // The request it named has already been answered. Never reply:
+            // the child reads exactly one reply per request it sent.
+            continue
+        }
         if msg["type"] as? String == "ask" {
-            let prompt = msg["prompt"] as! String
-            let wantJSON = (msg["json"] as? Bool) ?? false
-            let provider = (msg["provider"] as? String) ?? "auto"
-            let timeout = modelTimeout(msg["timeout_seconds"])!
-            do {
-                if let result = try askModel(prompt, wantJSON, provider, timeout: timeout,
-                    image: msg["image"] as? [String: Any], model: msg["model"] as? String) {
-                    if result["status"] as? String == "ok" {
-                        writeJSONLine(relayEnd, ["type": "answer", "text": result["text"]!,
-                                                "provider_result_v1": result])
-                    } else {
-                        let timedOut = result["status"] as? String == "timeout"
-                        writeJSONLine(relayEnd, ["type": "error",
-                            "error": timedOut ? "model_timeout" : "no_answer",
-                            "effect": "not_started", "provider_result_v1": result])
-                    }
-                } else {
-                    writeJSONLine(relayEnd, ["type": "error", "error": "no_answer",
-                                             "effect": "not_started"])
-                }
-            } catch {
-                let timedOut = (error as? ModelProcessError) == .timeout
-                writeJSONLine(relayEnd, ["type": "error", "error": timedOut ? "model_timeout" : "no_answer",
-                                         "effect": "not_started"])
-            }
+            relayAsk(msg, timeout: modelTimeout(msg["timeout_seconds"])!, fromChild: &fromChild)
             continue
         }
         if helperGone {
@@ -1330,6 +1419,10 @@ relayQueue.async {
         }
         if requestedHelperMode == "warm" {
             forwarded["helper_transport"] = effectiveHelperMode
+        }
+        if msg["type"] as? String == "ping", reply["type"] as? String == "pong" {
+            // Launcher-owned protocol features, distinct from helper capabilities.
+            forwarded["launcher_capabilities"] = ["ask_cancel_v1"]
         }
         writeJSONLine(relayEnd, forwarded)
     }
