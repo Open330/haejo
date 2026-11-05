@@ -39,7 +39,12 @@ class Control:
     def bounding_box(self):
         return self.box
 
-    def evaluate(self, script, point):
+    def element_handle(self):
+        return self
+
+    def evaluate(self, script, point=None):
+        if 'isConnected' in script:return True
+        if 'el===original' in script:return point is self
         return self.hit
 
 
@@ -65,6 +70,9 @@ class Page:
         return {'navigator.language': 'en-US', 'navigator.userAgent': 'TestAgent/1'}[expression]
 
     viewport_size = {'width': 1280, 'height': 720}
+
+    def screenshot(self, *, clip):
+        return b'owned target pixels'
 
     def wait_for_timeout(self, ms):
         self.waits.append(ms)
@@ -195,7 +203,7 @@ class ProbeRunTests(unittest.TestCase):
         class Executor:
             def __init__(self, driver, target):
                 pass
-            def click(self, capture, proposal, authorize):
+            def click(self, capture, proposal, authorize, **kwargs):
                 if authorize(proposal, capture) is not True:
                     return {'effect': 'not_started'}
                 page.urls = [ZOOMED]
@@ -216,6 +224,14 @@ class ProbeRunTests(unittest.TestCase):
             saved = json.loads(output.read_text())
         self.assertEqual(json.loads(json.dumps(result)), saved)
         return result
+
+    def test_cli_failure_is_nonzero_and_success_is_zero(self):
+        import contextlib
+        import io
+        for passed in (False, True):
+            with patch.object(probe, 'run', return_value={'passed':passed}), contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(0 if passed else 1, probe.main([
+                    '--provider', 'codex', '--output', '/unused/result.json']))
 
     def test_one_authorized_click_passes_with_environment_metadata(self):
         result = self.run_probe()

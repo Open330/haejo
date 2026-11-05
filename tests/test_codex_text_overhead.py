@@ -1,4 +1,4 @@
-"""A text question to Codex carries no tool schemas; an image question is unchanged."""
+"""Text and image answers share a minimal question context; attachments remain intact."""
 import json
 from pathlib import Path
 import stat
@@ -6,7 +6,7 @@ import subprocess
 import unittest
 from unittest.mock import patch
 
-from tacto.codex_result import codex_result, _TEXT_ONLY_DISABLED
+from tacto.codex_result import codex_result, _QUESTION_DISABLED
 
 
 def stream():
@@ -36,7 +36,7 @@ class TextOnlyCodexTests(unittest.TestCase):
         pairs = {argv[i + 1] for i, a in enumerate(argv) if a == '-c'}
         for feature in ('shell_tool', 'unified_exec', 'computer_use', 'browser_use', 'plugins'):
             self.assertIn(f'features.{feature}=false', pairs)
-        self.assertEqual(len(_TEXT_ONLY_DISABLED), sum(p.startswith('features.') for p in pairs))
+        self.assertEqual(len(_QUESTION_DISABLED), sum(p.startswith('features.') for p in pairs))
         self.assertIn('web_search="disabled"', pairs)
         # The user's config.toml (their model and effort) is still loaded.
         self.assertNotIn('--ignore-user-config', argv)
@@ -45,14 +45,22 @@ class TextOnlyCodexTests(unittest.TestCase):
         self.assertEqual(0o600, mode)
         self.assertEqual('-', argv[-1])
 
-    def test_image_question_keeps_its_own_invocation(self):
+    def test_image_keeps_attachment_schema_and_uses_minimal_question_context(self):
         seen = []
         with patch('tacto.codex_result._run_codex', side_effect=self.launch(seen)), \
                 patch('tacto.provider_images.encode_image'), patch('tacto.provider_images.validate_model'):
             codex_result('q', image_bytes=b'png', model='m')
         argv = seen[0]
-        self.assertNotIn('-c', argv)
+        pairs = {argv[i + 1] for i, a in enumerate(argv) if a == '-c'}
+        self.assertIn('features.shell_tool=false', pairs)
+        self.assertIn('features.computer_use=false', pairs)
+        self.assertTrue(any(p.startswith('model_instructions_file=') for p in pairs))
         self.assertIn('--image', argv)
+        self.assertIn('--ignore-user-config', argv)
+        self.assertIn('--output-schema', argv)
+        self.assertEqual('m', argv[argv.index('--model') + 1])
+        self.assertIn('Do not use tools', seen[1][1])
+        self.assertEqual(0o600, seen[1][2])
 
 
 if __name__ == '__main__':

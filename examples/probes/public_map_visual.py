@@ -91,8 +91,9 @@ def browser_environment(page):
             'viewport':dict(viewport) if viewport else None}
 
 
-def run(provider, output, *, clock=time.monotonic):
+def run(provider, output, *, clock=time.monotonic, perturb_background=False):
     if provider not in ('codex','claude'):raise ValueError('unsupported_provider')
+    if type(perturb_background) is not bool:raise ValueError('invalid perturbation flag')
     from tacto.browser import BrowserDriver
     from tacto.visual import VisualError,capture_browser,plan_visual
     from tacto.visual_actions import VisualClickExecutor
@@ -105,7 +106,8 @@ def run(provider, output, *, clock=time.monotonic):
             'provider_side_effects_verified':False,'host_click_attempts':0,
             'oracle':'owned browser URL zoom +1 with unchanged center; not persistent output',
             'started_at_utc':datetime.now(timezone.utc).isoformat(timespec='seconds'),
-            'stage':'initialization','capture_attempts':[]}
+            'stage':'initialization','capture_attempts':[],
+            'controlled_background_perturbation':perturb_background}
     paths=sorted((ROOT/'tacto').glob('*.py'))+[Path(__file__).resolve()]
     def manifest():return {str(p.relative_to(ROOT)):hashlib.sha256(p.read_bytes()).hexdigest() for p in paths}
     before=None;driver=None;calls=[];began=clock()
@@ -121,8 +123,22 @@ def run(provider, output, *, clock=time.monotonic):
         initial=map_state(page.url)
         if initial[0]!=15:raise RuntimeError('initial_zoom_mismatch')
         report.update(initial_state=initial,browser_version=driver._browser.version)
+        # Pin the actual control before the model sees the full-page image.
+        # Clipped screenshots do not scroll or act on the element.
+        pinned=control.element_handle()
+        def target_state():
+            if (pinned is None or not control.evaluate('(el, original)=>el===original', pinned)
+                    or not pinned.evaluate('(el)=>el.isConnected')):
+                return None
+            box=pinned.bounding_box()
+            if box is None:return None
+            return {'box':box, 'pixels_sha256':hashlib.sha256(page.screenshot(clip=box)).hexdigest()}
+        target_before=target_state()
+        if target_before is None:raise RuntimeError('target_witness_unavailable')
+        report['target_before']=target_before
         report['stage']='capture'
         capture=capture_with_retry(driver,page,report,capture_browser,VisualError)
+        if target_state()!=target_before:raise RuntimeError('target_changed_during_capture')
         capture.save(output.with_suffix('.before.png'))
         report['capture']=capture.to_dict()
         report['stage']='planning'
@@ -131,9 +147,25 @@ def run(provider, output, *, clock=time.monotonic):
                 'Do not click search, location, login, sharing, editing or any other control.',
                 provider=provider,timeout=45)
         report['proposal']=proposal
+        if perturb_background:
+            # Calibration case: only the map tiles change, never the control.
+            tile=page.locator('.leaflet-tile-pane img').evaluate_all("""(nodes)=>{
+                const el=nodes.find(n=>{const r=n.getBoundingClientRect();
+                    return r.left>=350 && r.right<1100 && r.top>=100 && r.bottom<650});
+                if(!el)return null;
+                const r=el.getBoundingClientRect();el.style.opacity='0.5';
+                return {x:r.x,y:r.y,width:r.width,height:r.height};
+            }""")
+            if tile is None:raise RuntimeError('calibration_tile_unavailable')
+            report['background_perturbation']={'tile_opacity':0.5,'box':tile}
         report['stage']='dispatch'
+        def revalidate_target(proposal,original,fresh):
+            current=target_state();report['target_at_revalidation']=current
+            return (current is not None and current==target_before
+                    and authorize_click(page,control,initial,report,proposal))
         event=VisualClickExecutor(driver,'page').click(capture,proposal,
-            lambda proposal,current:authorize_click(page,control,initial,report,proposal))
+            lambda proposal,current:authorize_click(page,control,initial,report,proposal),
+            revalidate_target=revalidate_target)
         report['click_result']=event
         report['host_click_attempts']=int(event.get('effect') in ('unknown','dispatched'))
         if event.get('effect')!='dispatched':raise RuntimeError('pixel_click_not_dispatched')
@@ -164,10 +196,17 @@ def run(provider, output, *, clock=time.monotonic):
     return report
 
 
-if __name__=='__main__':
+def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--provider',choices=('codex','claude'),required=True)
     parser.add_argument('--output',type=Path,required=True)
-    args=parser.parse_args();result=run(args.provider,args.output)
+    parser.add_argument('--perturb-background',action='store_true',help='Calibration: change one map tile away from the control after planning')
+    args=parser.parse_args(argv);result=run(args.provider,args.output,perturb_background=args.perturb_background)
     print(json.dumps({k:result.get(k) for k in ('passed','provider','host_click_attempts',
         'http_status','initial_state','final_state','elapsed_seconds','error_class','source_subset_stable')}))
+
+    return 0 if result['passed'] else 1
+
+
+if __name__=='__main__':
+    raise SystemExit(main())

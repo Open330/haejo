@@ -56,6 +56,74 @@ class VisualActions(unittest.TestCase):
             self.assertEqual(('not_started', 'stale_capture'), (result['effect'], result['reason']))
         self.assertEqual(0, self.driver._page.evaluate('window.clicks'))
 
+    def test_target_witness_tolerates_only_changes_outside_its_pixels(self):
+        page = self.driver._page
+        region = {'x':0, 'y':0, 'width':80, 'height':80}
+        for changed_target in (False, True):
+            with self.subTest(changed_target=changed_target):
+                page.evaluate("ctx.fillStyle='red';ctx.fillRect(0,0,200,100)")
+                capture = self.capture()
+                target_pixels = page.screenshot(clip=region)
+                page.evaluate("ctx.fillStyle='blue';ctx.fillRect(%d,0,40,40)" % (0 if changed_target else 120))
+                calls = []
+                def revalidate(proposal, original, fresh):
+                    calls.append((original.capture_id, fresh.capture_id))
+                    return page.screenshot(clip=region) == target_pixels
+                event = VisualClickExecutor(self.driver).click(capture,
+                    {'action':'click', 'x':30, 'y':30}, lambda *args:True,
+                    revalidate_target=revalidate)
+                self.assertEqual('not_started' if changed_target else 'dispatched', event['effect'])
+                self.assertEqual(1, len(calls))
+                if not changed_target:self.assertIs(event['target_revalidated'], True)
+        self.assertEqual(1, page.evaluate('window.clicks'))
+
+    def test_target_witness_cannot_override_viewport_or_cancellation(self):
+        capture = self.capture()
+        self.driver._page.set_viewport_size({'width':900, 'height':600})
+        callback = unittest.mock.Mock(return_value=True)
+        event = VisualClickExecutor(self.driver).click(capture,
+            {'action':'click', 'x':30, 'y':30}, lambda *args:True,
+            revalidate_target=callback)
+        self.assertEqual('stale_capture', event['reason'])
+        callback.assert_not_called()
+        event = VisualClickExecutor(self.driver).click(self.capture(),
+            {'action':'click', 'x':30, 'y':30}, lambda *args:True,
+            cancelled=lambda:True, revalidate_target=callback)
+        self.assertEqual('cancelled', event['reason'])
+        callback.assert_not_called()
+        self.assertEqual(0, self.driver._page.evaluate('window.clicks'))
+
+    def test_target_revalidation_nonboolean_or_exception_does_not_click(self):
+        for answer in (1, 'yes', RuntimeError('test failure')):
+            with self.subTest(answer=type(answer).__name__):
+                capture = self.capture()
+                self.driver._page.evaluate("document.body.dataset.version = String(Math.random())")
+                def revalidate(proposal, original, fresh):
+                    original.viewport['width'] = -1
+                    if isinstance(answer, Exception):raise answer
+                    return answer
+                event = VisualClickExecutor(self.driver).click(capture,
+                    {'action':'click', 'x':30, 'y':30}, lambda *args:True,
+                    revalidate_target=revalidate)
+                self.assertEqual('not_started', event['effect'])
+                self.assertGreater(capture.viewport['width'], 0)
+        self.assertEqual(0, self.driver._page.evaluate('window.clicks'))
+
+    def test_run_visual_forwards_target_revalidation(self):
+        calls = []
+        def plan(capture, goal, history):
+            self.driver._page.evaluate("document.body.dataset.unrelated = 'changed'")
+            return {'action':'click', 'x':30, 'y':30}
+        def revalidate(proposal, original, fresh):
+            calls.append((proposal, original.capture_id, fresh.capture_id))
+            return True
+        result = run_visual(self.driver, 'page', 'click', plan, lambda *args:True,
+            lambda *args:self.driver._page.evaluate('window.clicks') == 1,
+            revalidate_target=revalidate)
+        self.assertEqual('DONE', result.state, result.reason)
+        self.assertEqual(1, len(calls))
+        self.assertIs(result.history[0]['target_revalidated'], True)
+
     def test_invalid_coordinates_and_denied_authorization(self):
         for x, y in ((-1, 1), (1e9, 1), (float('nan'), 1), (True, 1), (1, float('inf'))):
             event = VisualClickExecutor(self.driver).click(self.capture(), {'action': 'click', 'x': x, 'y': y}, lambda *args: True)

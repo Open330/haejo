@@ -164,12 +164,12 @@ def _run_codex(argv: list[str], prompt: str, timeout: float, process_observation
         return subprocess.CompletedProcess(argv, proc.returncode, stdout, stderr)
 
 
-# Features that only add tool schemas to a question answered in text.
-_TEXT_ONLY_DISABLED = ('computer_use', 'browser_use', 'plugins', 'multi_agent',
+# Features unnecessary for a direct text or attached-image answer.
+_QUESTION_DISABLED = ('computer_use', 'browser_use', 'plugins', 'multi_agent',
                        'image_generation', 'skill_search', 'goals', 'view_image',
                        'sleep_tool', 'tool_suggest', 'shell_tool', 'unified_exec',
                        'hooks', 'apps')
-_TEXT_ONLY_INSTRUCTIONS = ('Answer the request directly in plain text, exactly in '
+_QUESTION_INSTRUCTIONS = ('Answer the request directly in plain text, exactly in '
                            'the format it asks for. Do not use tools.\n')
 
 
@@ -215,24 +215,20 @@ def codex_result(prompt: str, *, model: str | None = None,
                     'required':['answer'],'additionalProperties':False}))
                 argv += ['--ignore-user-config',
                          '--image', str(image), '--output-schema', str(schema)]
-            else:
-                # A text question needs no tools. Without these, every Tacto
-                # question carried the full agent prompt and tool schemas:
-                # 15,368 input tokens for a one-word answer, 6,124 with them
-                # (codex-cli 0.162.1, 2026-10-12). `-c` keys a version does
-                # not know are ignored, so nothing here can fail a call; the
-                # user's own model and effort settings still apply.
-                # Outside the CLI root, which holds only the output file.
-                instructions = Path(owned.enter_context(tempfile.TemporaryDirectory(
-                    prefix='tacto-codex-instructions-'))) / 'instructions.md'
-                fd = os.open(instructions, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
-                with os.fdopen(fd, 'w') as stream:
-                    stream.write(_TEXT_ONLY_INSTRUCTIONS)
-                argv += [arg for feature in _TEXT_ONLY_DISABLED
-                         for arg in ('-c', f'features.{feature}=false')]
-                argv += ['-c', f'model_instructions_file={json.dumps(str(instructions))}',
-                         '-c', 'web_search="disabled"', '-c', 'tools.web_search=false',
-                         '-c', 'include_apply_patch_tool=false']
+            # Both text and image requests are direct answers, not coding
+            # agent sessions. Image attachments still use --image and their
+            # output schema; neither needs the full agent/tool instructions.
+            # These settings reduce context, not a guaranteed tool sandbox.
+            instructions = Path(owned.enter_context(tempfile.TemporaryDirectory(
+                prefix='tacto-codex-instructions-'))) / 'instructions.md'
+            fd = os.open(instructions, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+            with os.fdopen(fd, 'w') as stream:
+                stream.write(_QUESTION_INSTRUCTIONS)
+            argv += [arg for feature in _QUESTION_DISABLED
+                     for arg in ('-c', f'features.{feature}=false')]
+            argv += ['-c', f'model_instructions_file={json.dumps(str(instructions))}',
+                     '-c', 'web_search="disabled"', '-c', 'tools.web_search=false',
+                     '-c', 'include_apply_patch_tool=false']
             if model is not None:
                 argv += ['--model', model]
             argv += ['-']

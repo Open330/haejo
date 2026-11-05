@@ -26,13 +26,20 @@ def _number(value):
 
 
 class VisualClickExecutor:
-    """One-use captures, with host authorization and fresh pixel/DOM checks."""
+    """One-use captures with fresh checks.
+
+    Optional revalidate_target(proposal, original, fresh) is trusted host code.
+    It must bind the original target, geometry and receiving context across
+    captures; it may tolerate unrelated page changes. It is never model output.
+    Without it, any pixel or DOM change refuses the click.
+    """
 
     def __init__(self, driver, target="page"):
         self.driver = driver
         self.target = target
 
-    def click(self, capture: VisualCapture, proposal: dict, authorize, *, cancelled=None):
+    def click(self, capture: VisualCapture, proposal: dict, authorize, *, cancelled=None,
+              revalidate_target=None):
         if type(capture) is not VisualCapture:
             return {'action':'click','effect':'not_started','reason':'invalid_capture'}
         event = {"action": "click", "capture_id": capture.capture_id,
@@ -63,9 +70,16 @@ class VisualClickExecutor:
             if cancelled is not None and cancelled():
                 return denied("cancelled")
             fresh = capture_browser(self.driver, capture.obs_id, self.target)
-            if (fresh.sha256 != capture.sha256 or fresh.state_sha256 != capture.state_sha256
-                    or fresh.viewport != capture.viewport):
+            if fresh.viewport != capture.viewport:
                 return denied("stale_capture")
+            if fresh.sha256 != capture.sha256 or fresh.state_sha256 != capture.state_sha256:
+                # A dynamic page may change away from the intended target.
+                # Only a host-supplied target witness may accept that change;
+                # a model proposal or an authorization boolean is insufficient.
+                if (revalidate_target is None
+                        or revalidate_target(deepcopy(proposal), deepcopy(capture), deepcopy(fresh)) is not True):
+                    return denied("stale_capture")
+                event["target_revalidated"] = True
             if cancelled is not None and cancelled():
                 return denied("cancelled")
         except Exception as exc:
@@ -92,7 +106,7 @@ class VisualRunResult:
 
 
 def run_visual(driver, target, goal, planner, authorize, verify, *, max_steps=8,
-               timeout_seconds=60, cancelled=None):
+               timeout_seconds=60, cancelled=None, revalidate_target=None):
     """Replan after each click; only trusted host verify(capture,history) says DONE.
 
     planner(capture, goal, history) returns {action: click, x, y}, {action: done},
@@ -161,7 +175,8 @@ def run_visual(driver, target, goal, planner, authorize, verify, *, max_steps=8,
             return finish("UNVERIFIED", "planner_done_without_host_evidence")
         if isinstance(proposal, dict) and proposal == {"action": "stop"}:
             return finish("STOPPED", "planner_stopped")
-        event = executor.click(latest, proposal, authorize, cancelled=lambda: stopped() is not None)
+        event = executor.click(latest, proposal, authorize, cancelled=lambda: stopped() is not None,
+                               revalidate_target=revalidate_target)
         history.append(event)
         if event["effect"] == "not_started":
             return finish("REFUSED", event["reason"])
