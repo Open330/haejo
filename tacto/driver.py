@@ -1808,6 +1808,11 @@ class Driver:
     def act(self, obs_id: str, target: str, action: dict, expect: dict | None = None,
             risk_class: str = "none", intent_text: str = "",
             approved: bool = False):
+        if action.get('name') == 'menu' and 'text' in action:
+            # The in-process AX path cannot keep a prepared window alive
+            # through inline naming. Never silently press without the text.
+            return {'type':'error', 'error':'menu_text_unavailable', 'effect':'not_started',
+                    'detail':'이름을 함께 지정하려면 --helper로 실행하세요'}
         if action.get('name') == 'window_input' and (risk_class not in ('preapproved', 'confirm') or approved is not True):
             return {'type':'error', 'error':'window_input_authorization_required', 'effect':'not_started'}
         if action.get('name') == 'click_point' and (risk_class not in ('preapproved', 'confirm') or approved is not True):

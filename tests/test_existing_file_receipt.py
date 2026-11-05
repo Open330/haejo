@@ -217,7 +217,7 @@ class FocusedDocumentBoundaryTests(unittest.TestCase):
 
     def test_launcher_and_driver(self):
         launcher = (self.ROOT / 'launcher/tacto.swift').read_text()
-        self.assertIn('"menu":             (["name", "path"], ["focused_document"]),', launcher)
+        self.assertIn('"menu":             (["name", "path"], ["focused_document", "text"]),', launcher)
         driver = (self.ROOT / 'tacto/driver.py').read_text()
         self.assertIn('elif name == "menu" and "focused_document" in action:', driver)
 

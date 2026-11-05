@@ -1018,8 +1018,8 @@ SIGNED_HELPER_ONLY = frozenset({
     "press_key.safari_address_confirm",
     # LaunchServices reopen without activation; AXCancel on an open menu.
     "action.reopen_window", "action.close_menu",
-    # Token-bound Save and document attachments/lifecycle proofs are native-helper APIs.
-    "action.menu.document_token_save", "evidence.document_attachment_metadata",
+    # Token-bound Save, prepared menu text and document proofs are helper APIs.
+    "action.menu.document_token_save", "action.menu.prepared_text", "evidence.document_attachment_metadata",
     "evidence.document_window_status",
     # The direct driver has no native save_panel API/commit-button selector.
     "evidence.save_panel.commit_selector",

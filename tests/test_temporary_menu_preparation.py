@@ -193,6 +193,15 @@ class PreparedMenuTextTests(unittest.TestCase):
                          h.act('o1', 'com.apple.finder', {'name': 'menu', 'path': ['File', 'New Folder'], 'text': 'x'})['error'])
         launcher = (ROOT / 'launcher/tacto.swift').read_text()
         self.assertIn('"menu":             (["name", "path"], ["focused_document", "text"]),', launcher)
+        # A direct backend must not drop the name and create an unnamed folder.
+        import sys
+        if sys.platform == 'darwin':
+            from tacto.driver import Driver
+            direct=Driver.__new__(Driver)
+            response=direct.act('o1','com.apple.finder',{'name':'menu','path':['File','New Folder'],'text':'x'})
+            self.assertEqual('menu_text_unavailable',response['error'])
+            self.assertEqual('not_started',response['effect'])
+            self.assertIn('--helper',response['detail'])
 
 
 class PreparedMenuTextGuardTests(unittest.TestCase):
