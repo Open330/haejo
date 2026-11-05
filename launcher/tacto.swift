@@ -1276,32 +1276,41 @@ func askModel(_ prompt: String, _ wantJSON: Bool, _ provider: String,
 @Sendable func relayAsk(_ msg: [String: Any], timeout: Double, fromChild: inout Data) {
     let prompt = msg["prompt"] as! String
     let cancelID = msg["cancel_id"] as? String
-    var cancelRequested = false, probeChild = cancelID != nil
+    // Two independent signals. The requester leaving (EOF/HUP, or the
+    // launcher seeing its child exit) always cancels, with or without a
+    // cancel_id. Optional ask_cancel frames are consumed only while they are
+    // the leading frames; anything else stays queued for the relay loop.
+    var cancelRequested = false, probeFrames = cancelID != nil
     func childCancelled() -> Bool {
         if cancelRequested { return true }
-        guard probeChild else { return false }
+        if launcherClientExited.isSet { cancelRequested = true; return true }
         var channel = pollfd(fd: relayEnd, events: Int16(POLLIN), revents: 0)
-        if poll(&channel, 1, 0) > 0 {
-            if channel.revents & Int16(POLLIN) != 0 {
-                var chunk = [UInt8](repeating: 0, count: 65536)
-                let n = read(relayEnd, &chunk, chunk.count)
-                if n > 0 { fromChild.append(contentsOf: chunk[0..<n]) }
-                else if n == 0 { cancelRequested = true; return true }
-            } else if channel.revents & Int16(POLLHUP | POLLERR | POLLNVAL) != 0 {
-                // The requester is gone; nobody can accept this answer.
-                cancelRequested = true; return true
-            }
+        guard poll(&channel, 1, 0) > 0 else { return false }
+        if channel.revents & Int16(POLLHUP | POLLERR | POLLNVAL) != 0 {
+            // The requester is gone; nobody can accept this answer.
+            cancelRequested = true; return true
         }
+        guard channel.revents & Int16(POLLIN) != 0 else { return false }
+        if !probeFrames {
+            // Detect EOF without consuming a frame the relay loop still owns.
+            var byte: UInt8 = 0
+            if recv(relayEnd, &byte, 1, MSG_PEEK | MSG_DONTWAIT) == 0 { cancelRequested = true; return true }
+            return false
+        }
+        var chunk = [UInt8](repeating: 0, count: 65536)
+        let n = read(relayEnd, &chunk, chunk.count)
+        if n > 0 { fromChild.append(contentsOf: chunk[0..<n]) }
+        else if n == 0 { cancelRequested = true; return true }
         while let nl = fromChild.firstIndex(of: 0x0A) {
             let line = fromChild[fromChild.startIndex..<nl]
             guard let frame = (try? JSONSerialization.jsonObject(with: line)) as? [String: Any],
                   askCancelFrameIsValid(frame) else {
-                probeChild = false; break
+                probeFrames = false; break
             }
             fromChild = fromChild[fromChild.index(after: nl)...]
             if frame["cancel_id"] as? String == cancelID { cancelRequested = true; return true }
         }
-        if fromChild.count > 8 * 1024 * 1024 { probeChild = false }
+        if fromChild.count > 8 * 1024 * 1024 { probeFrames = false }
         return false
     }
     let wantJSON = (msg["json"] as? Bool) ?? false
@@ -1366,6 +1375,16 @@ final class HelperStopWatch: @unchecked Sendable {
     }
 }
 let helperStopWatch = HelperStopWatch()
+
+/// Set once the launcher has reaped its child: no reply can be read any more,
+/// so an in-flight ask is cancelled even if a queued frame hides the EOF.
+final class StickyFlag: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = false
+    func set() { lock.lock(); value = true; lock.unlock() }
+    var isSet: Bool { lock.lock(); defer { lock.unlock() }; return value }
+}
+let launcherClientExited = StickyFlag()
 let helperStopObserverStarted = NSLock()
 nonisolated(unsafe) var helperStopObserverRunning = false
 
@@ -1493,9 +1512,12 @@ relayQueue.async {
 }
 
 let status = waitForChildServicingMainRunLoop(childPID)
+launcherClientExited.set()
 // Give already scheduled watchdog cleanup its bounded grace before process exit.
 // This affects launcher shutdown, never the model response deadline.
-_ = modelCleanupGroup.wait(timeout: .now() + 1)
+// An ask cancelled by the child's exit needs the wrapper's cooperative grace
+// plus the forced cleanup; an idle group returns at once.
+_ = modelCleanupGroup.wait(timeout: .now() + modelCancelGrace + 1.5)
 // Closing the connection is what ends the helper — it serves one client and
 // exits when that client goes away, which is the whole of its lifetime now that
 // there is no parent to watch. This is the backstop for a helper that is wedged

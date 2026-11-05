@@ -315,6 +315,34 @@ class LauncherAskCancelTests(unittest.TestCase):
         self.assertFalse(self.marker.exists())
         self.assertEqual('pong', driver._send({'type': 'ping'})['type'])
 
+    def raw_ask_then_leave(self, *, queued_frame):
+        # A plain ask, no cancel_id (an ordinary run/decide), then the client
+        # disappears: optionally after queueing an unrelated frame first.
+        fake_cli(self.base / 'bin/opencode', self.ready, self.marker)
+        driver = self.start()
+        frame = {'type': 'ask', 'prompt': 'plan', 'json': True, 'provider': 'opencode', 'timeout_seconds': 30}
+        driver._sock.sendall((json.dumps(frame) + '\n').encode())
+        deadline = time.monotonic() + 15
+        while not self.ready.exists():
+            self.assertLess(time.monotonic(), deadline, 'provider never started')
+            time.sleep(.02)
+        if queued_frame:
+            driver._sock.sendall(b'{"type":"ping"}\n')
+        group = json.loads(self.ready.read_text())['group']
+        driver._f.close(); driver._sock.close()
+        until = time.monotonic() + 4
+        while not group_gone(group) and time.monotonic() < until:
+            time.sleep(.05)
+        self.assertTrue(group_gone(group), 'the requester left; its provider must stop')
+        time.sleep(1.6)
+        self.assertFalse(self.marker.exists())
+
+    def test_client_eof_cancels_request_without_cancel_id(self):
+        self.raw_ask_then_leave(queued_frame=False)
+
+    def test_client_hangup_cancels_even_behind_a_queued_frame(self):
+        self.raw_ask_then_leave(queued_frame=True)
+
     def test_helper_stop_needs_no_client_cancellation_scope(self):
         result, elapsed, driver = self.run_with_status(post_pid='helper', scoped=False)
         self.assertEqual('cancelled', result.status)
