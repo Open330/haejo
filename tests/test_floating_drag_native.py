@@ -10,6 +10,7 @@ import time
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
+LAUNCHER = ROOT / 'launcher/tacto'
 
 
 @unittest.skipUnless(sys.platform == 'darwin' and os.environ.get('TACTO_RUN_NATIVE_DRAG_TESTS') == '1',
@@ -56,7 +57,7 @@ class FloatingDragNative(unittest.TestCase):
                     time.sleep(.05)
                 front = NSWorkspace.sharedWorkspace().frontmostApplication().processIdentifier()
                 pointer = Quartz.CGEventGetLocation(Quartz.CGEventCreate(None))
-                result = subprocess.run([str(ROOT / 'launcher/tacto'), 'drag', target, '--helper', '--json',
+                result = subprocess.run([str(LAUNCHER), 'drag', target, '--helper', '--json',
                                          '--window', 'Tacto Drag Fixture', '--from', '40', '80',
                                          '--to', '180', '100', '--duration', '0.2'],
                                         capture_output=True, text=True, timeout=40)
@@ -72,7 +73,7 @@ class FloatingDragNative(unittest.TestCase):
                 self.assertEqual('down', events[0]['kind'])
                 self.assertEqual('up', events[-1]['kind'])
                 self.assertEqual(1, len({e['window'] for e in events}))
-                resized = subprocess.run([str(ROOT / 'launcher/tacto'), 'resize', target, '--helper',
+                resized = subprocess.run([str(LAUNCHER), 'resize', target, '--helper',
                                           '--window', 'Tacto Drag Fixture', '--width', '600', '--height', '360'],
                                          capture_output=True, text=True, timeout=30)
                 if interactive_grip:
