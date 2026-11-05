@@ -22,6 +22,9 @@ session은 입력 전 {"observe_next":true} 또는 지원되는 정확한 이름
 모두4,000 host 토큰 이내다. 단회 시간 감소나 전체 제품 절감률로 일반화하지 않는다.
 [측정 기록](benchmark-records.md)에 원시 usage의 미관측 범위까지 남겼다.
 
+별도 실제 CLI session은 관측3페이지 추가·안내1회·Flow 제출1회로 누락된
+버튼 입력1회를 완료했다. replay의 새 관측/이름 검색까지 실제 연결로 검증했다.
+
 뒤쪽 결과의 literal presence를 기다릴 때는 runtime이 추가 페이지를 읽는다.
 실제 direct/signed 각각4페이지에서 결과를 찾아 모델 추가 호출·재입력 없이
 검증했다. 전체 before/after tree 비교는 부분 페이지를 변화로 오판할 수 있어
