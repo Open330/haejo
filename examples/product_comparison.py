@@ -42,6 +42,8 @@ _AGENT_EXECUTABLE = "codex"
 _AGENT_REQUESTED_EXECUTABLE = "codex"
 _SKY_SKILL_FILE = None
 _COLD_START = False
+_REQUESTED_MODEL = None
+_REQUESTED_REASONING_EFFORT = None
 
 CALC = "com.apple.calculator"
 NO_SHORTCUTS = ("Do not use a command-line calculator, Python, AppleScript/osascript, "
@@ -98,6 +100,11 @@ def _run_agent(argv, prompt, timeout, diagnostics):
     Process diagnostics grant neither GUI authority nor comparison eligibility.
     """
     from tacto.codex_result import _run_codex
+    argv = list(argv)
+    if _REQUESTED_MODEL is not None:
+        argv[2:2] = ['--model', _REQUESTED_MODEL]
+    if _REQUESTED_REASONING_EFFORT is not None:
+        argv[2:2] = ['-c', 'model_reasoning_effort=' + json.dumps(_REQUESTED_REASONING_EFFORT)]
     if not _COLD_START:
         return _run_codex([_AGENT_EXECUTABLE, *argv[1:]], prompt, timeout, diagnostics, cwd="/tmp")
     if len(argv) < 2 or argv[1] != 'exec' or any(arg in ('resume','fork','--last') for arg in argv[2:]):
@@ -1467,6 +1474,9 @@ def run_one(task: Task, arm: str, timeout: int = 600) -> dict:
     if _FIXTURE_WORKER is not None:
         result['fixture_worker_metadata'] = _WORKER_METADATA
     result['agent_requested_executable'] = _AGENT_REQUESTED_EXECUTABLE
+    result['agent_requested_model'] = _REQUESTED_MODEL
+    result['agent_requested_reasoning_effort'] = _REQUESTED_REASONING_EFFORT
+    result['agent_serving_model_verified'] = False
     result['agent_executable'] = _AGENT_EXECUTABLE
     result['agent_cli_cwd'] = context_evidence['workspace'] if context_evidence else '/tmp'
     result['cold_start_requested'] = _COLD_START
@@ -1503,7 +1513,7 @@ def run_one(task: Task, arm: str, timeout: int = 600) -> dict:
 
 
 def main(argv=None) -> int:
-    global _AGENT_EXECUTABLE, _AGENT_REQUESTED_EXECUTABLE, _FIXTURE_WORKER, _WORKER_METADATA, _SKY_SKILL_FILE, _COLD_START
+    global _AGENT_EXECUTABLE, _AGENT_REQUESTED_EXECUTABLE, _FIXTURE_WORKER, _WORKER_METADATA, _SKY_SKILL_FILE, _COLD_START, _REQUESTED_MODEL, _REQUESTED_REASONING_EFFORT
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     from comparison_fixture_worker import WORKER_TASKS
     ap.add_argument('--fixture-worker-task', choices=WORKER_TASKS, default='textedit_edit_owned', help=argparse.SUPPRESS)
@@ -1518,6 +1528,9 @@ def main(argv=None) -> int:
     ap.add_argument('--cold-start', action='store_true', help='fresh exec, ephemeral session, empty private workspace; global/system context and server cache remain unverified')
     ap.add_argument('--sky-skill-file', help='host-selected absolute bundled Computer Use SKILL.md path; no installation changes')
     ap.add_argument('--agent-executable', help='host-selected absolute Codex CLI path; does not change PATH')
+    ap.add_argument('--model', help='same requested Codex model for both arms; omitted preserves CLI default, not serving-model verification')
+    ap.add_argument('--reasoning-effort', choices=('minimal', 'low', 'medium', 'high', 'xhigh'),
+                    help='same requested reasoning effort for both arms')
     ap.add_argument('--timeout', type=int, default=600,
                     help='per-arm model timeout in seconds (same for both arms)')
     ap.add_argument("--reps", type=int, default=1)
@@ -1546,6 +1559,10 @@ def main(argv=None) -> int:
     checks.add_argument('--check-owned-scoped-save',action='store_true',help='native document-token Save and exact saved-state receipt')
     checks.add_argument('--check-owned-scoped-cli-save',action='store_true',help='installed scoped CLI built-in Save with disk-state check')
     args = ap.parse_args(argv)
+    if args.model is not None and (not args.model.strip() or len(args.model) > 200 or any(ord(c) < 32 for c in args.model)):
+        ap.error('--model requires a nonempty model name without control characters')
+    _REQUESTED_MODEL = args.model
+    _REQUESTED_REASONING_EFFORT = args.reasoning_effort
     _COLD_START = args.cold_start
     if args.sky_skill_file is not None:
         guide = Path(args.sky_skill_file)
@@ -1652,6 +1669,10 @@ def main(argv=None) -> int:
                 forwarded += ['--sky-skill-file', _SKY_SKILL_FILE]
             if args.agent_executable:
                 forwarded += ['--agent-executable', args.agent_executable]
+            if args.model is not None:
+                forwarded += ['--model', args.model]
+            if args.reasoning_effort is not None:
+                forwarded += ['--reasoning-effort', args.reasoning_effort]
             return main(forwarded)
         finally:
             _FIXTURE_WORKER = None
@@ -1770,6 +1791,9 @@ def main(argv=None) -> int:
             arms = args.arms if (rep + TASKS.index(task)) % 2 == 0 else list(reversed(args.arms))
             for arm in arms:
                 r = run_one(task, arm, timeout=args.timeout)
+                r.setdefault('agent_requested_model', _REQUESTED_MODEL)
+                r.setdefault('agent_requested_reasoning_effort', _REQUESTED_REASONING_EFFORT)
+                r.setdefault('agent_serving_model_verified', False)
                 results.append(r)
                 r["rep"] = rep
                 with out.open("a") as f:

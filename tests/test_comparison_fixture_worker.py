@@ -290,9 +290,13 @@ class ChainTaskTests(unittest.TestCase):
              patch.dict(os.environ,{'TACTO_HELPER_FD':'','TACTO_LAUNCHER':'','TACTO_HELPER_TOKEN':''}), \
              patch('comparison_fixture_worker.FixtureWorker',return_value=worker) as factory, \
              patch.object(comparison,'_locked',return_value=False), \
-             patch.object(comparison,'run_one',side_effect=lambda *a,**kw: (self.assertTrue(comparison._COLD_START) or result)) as run, \
+             patch.object(comparison,'run_one',side_effect=lambda *a,**kw: (
+                 self.assertTrue(comparison._COLD_START) or
+                 self.assertEqual('test-model',comparison._REQUESTED_MODEL) or
+                 self.assertEqual('medium',comparison._REQUESTED_REASONING_EFFORT) or result)) as run, \
              patch('sys.stdout',io.StringIO()):
-            code=comparison.main(['--external-owned-worker',sys.executable,'--only','calc_to_textedit','--arms','tacto','--cold-start'])
+            code=comparison.main(['--external-owned-worker',sys.executable,'--only','calc_to_textedit','--arms','tacto','--cold-start',
+                                  '--model','test-model','--reasoning-effort','medium'])
         self.assertEqual(2,code)
         self.assertEqual('calc_to_textedit',factory.call_args.kwargs['task'])
         self.assertEqual('calc_to_textedit',run.call_args.args[0].name)

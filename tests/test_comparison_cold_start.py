@@ -7,6 +7,18 @@ from tacto.comparison_tokens import reported_turn_tokens
 
 
 class ColdStartTests(unittest.TestCase):
+    def test_requested_model_and_effort_reach_both_launch_modes(self):
+        for cold in (False, True):
+            with self.subTest(cold=cold), patch.object(comparison, '_COLD_START', cold), \
+                 patch.object(comparison, '_REQUESTED_MODEL', 'test-model'), \
+                 patch.object(comparison, '_REQUESTED_REASONING_EFFORT', 'medium'), \
+                 patch('tacto.codex_result._run_codex', return_value=subprocess.CompletedProcess([], 0, '', '')) as run:
+                for arm in ('tacto', 'sky'):
+                    comparison._run_agent(['codex', 'exec', '-'], comparison._arm_prompt('owned task', arm), 5, [])
+                    argv = run.call_args.args[0]
+                    self.assertEqual('test-model', argv[argv.index('--model') + 1])
+                    self.assertIn('model_reasoning_effort="medium"', argv)
+
     def test_both_arms_launch_in_distinct_empty_ephemeral_workspaces(self):
         directories=[]
         def execute(argv,prompt,timeout,records,*,cwd):
