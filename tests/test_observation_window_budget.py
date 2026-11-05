@@ -26,6 +26,25 @@ def parents(lines, elements):
 
 
 class PythonObservationWindowBudgetTests(unittest.TestCase):
+    def test_direct_window_controls_missing_from_children_are_observed_once(self):
+        from tacto import driver
+        obs=driver.Observation.__new__(driver.Observation)
+        obs.pid,obs.elements,obs.lines=1,[],[]
+        obs.visited,obs.truncated=0,False
+        def attr(node,key):
+            if key=='AXRole':return 'AXWindow' if node==0 else 'AXButton'
+            if key=='AXChildren':return [1,2] if node==0 else []
+            return True if key=='AXEnabled' else None
+        controls={'AXCloseButton':3,'AXMinimizeButton':2,'AXZoomButton':3}
+        with patch.object(driver,'_attr',side_effect=attr), \
+             patch.object(driver,'_elem_label',side_effect=lambda node,**kw:f'Title: control-{node}'), \
+             patch.object(driver,'_secondary_actions',return_value=[]), \
+             patch.object(driver,'_window_control_element',side_effect=lambda node,key:controls.get(key) if node==0 else None):
+            obs.walk(0)
+        self.assertEqual([0,1,2,3],obs.elements)
+        self.assertEqual(4,obs.visited)
+        self.assertFalse(obs.truncated)
+
     def test_resuming_nested_frontier_preserves_parents_and_click_ancestor(self):
         from tacto import driver
         from tacto.flow import Selector
@@ -169,6 +188,7 @@ func attr(_ node: Int, _ key: String) -> Any? {
  return key == "AXEnabled" ? true : false
 }
 func secondaryActionsOf(_ node: Int) -> [String] { [] }
+func windowControlElement(_ node:Int,_ key:String)->Int? {nil}
 var readSecondaryActions = true
 var walkSeen: Set<Int>? = nil
 func documentURLSyntaxPath(_ text: String) -> String? { nil }

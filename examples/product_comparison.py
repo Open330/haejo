@@ -1692,6 +1692,9 @@ def main(argv=None) -> int:
             print(json.dumps({k:status.get(k) for k in ('type','error','state','reason_code','same_process_verified')}))
             observation = _driver().observe('com.apple.TextEdit', document_token=reply['document_token'])
             print(json.dumps({'type':observation.get('type'), 'buttons':[line for line in observation.get('tree','').splitlines() if re.match(r'^\s*\d+ Button(?:\s|$)',line)]}))
+            if observation.get('type') == 'observation':
+                probe = _driver().probe(observation['obs_id'], 'com.apple.TextEdit', 0)
+                print(json.dumps({'window_control_attributes':probe.get('window_control_attributes')}))
         return 0 if reply.get('type') == 'document_text' else 2
     if args.check_owned_textedit_save or args.check_owned_document_observe or args.check_owned_document_observe_escaped or args.check_owned_document_run or args.check_owned_scoped_save or args.check_owned_scoped_cli_save:
         if _locked() is not False:

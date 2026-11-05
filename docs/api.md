@@ -35,6 +35,13 @@ error는 원래 reason/diagnostic을 JSON으로 출력하고 exit1이다. 연결
 실패는 기존 helper/doctor 진단을 따른다. JSON의 obs_id/index는 그 관측의
 값이며 별도 CLI 호출의 입력 허가나 선택 목록 pin을 이어 주지 않는다.
 
+macOS observations also include the window's direct AXCloseButton,
+AXMinimizeButton and AXZoomButton when absent from AXChildren. Controls appear
+once under their window, using the normal node budget and selectors. A signed
+`probe` of an observed Window additionally reports `window_control_attributes`
+with each attribute's AX error and element presence. This is discovery metadata;
+it does not certify that a control is enabled or that a close occurred.
+
 CLI(`tacto …`)가 하는 일은 모두 Python에서도 할 수 있습니다. 이 문서는 공개 진입점과 그 약속을
 정리합니다. 흐름 전체의 설명은 [`recipes.md`](recipes.md), IR 작성 가이드는
 [`../skill/SKILL.md`](../skill/SKILL.md)에 있습니다.

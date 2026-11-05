@@ -306,6 +306,11 @@ final class ObservationRevealScan {
 
 /// One line per element, in the exact format the Python `Selector` parses:
 /// `<indent><index> <Role>  Key: value, Key2: value [disabled] [selected]`
+func windowControlElement(_ window:AXUIElement,_ key:String) -> AXUIElement? {
+    guard let raw=attr(window,key),CFGetTypeID(raw)==AXUIElementGetTypeID() else {return nil}
+    return unsafeBitCast(raw,to:AXUIElement.self)
+}
+
 func walk(_ el: AXUIElement, depth: Int, out: inout [String],
           elements: inout [AXUIElement], visited: inout Int,
           truncated: inout Bool, nodeLimit: Int = maxTreeNodes,
@@ -417,6 +422,14 @@ func walk(_ el: AXUIElement, depth: Int, out: inout [String],
         out.append(String(repeating: "  ", count: depth + 1)
                    + "… (\(children.count - maxChildrenPerNode)개 더 있음"
                    + (revealed > 0 ? "; 찾는 항목 \(revealed)개 표시" : "") + ")")
+    }
+    if role == kAXWindowRole as String {
+        for key in ["AXCloseButton","AXMinimizeButton","AXZoomButton"] {
+            if let control=windowControlElement(el,key), !elements.contains(control) {
+                walk(control,depth:depth+1,out:&out,elements:&elements,visited:&visited,
+                     truncated:&truncated,nodeLimit:nodeLimit,deferred:deferred,metrics:metrics,reveal:reveal)
+            }
+        }
     }
 }
 
@@ -1869,7 +1882,20 @@ func probe(_ obsID: String, _ target: String, _ index: Int) -> [String: Any] {
     }
     var role = str(el, kAXRoleAttribute as String) ?? "?"
     if role.hasPrefix("AX") { role = String(role.dropFirst(2)) }
-    return ["type": "probe", "line": "  \(index) \(role)  " + label(el)]
+    var reply:[String:Any] = ["type": "probe", "line": "  \(index) \(role)  " + label(el)]
+    if role == "Window" {
+        // Direct titlebar controls can exist even when omitted from AXChildren.
+        // Discovery only: presence does not mean enabled or invoked.
+        var controls:[String:Any] = [:]
+        for (name,key) in [("close",kAXCloseButtonAttribute),("minimize",kAXMinimizeButtonAttribute),("zoom",kAXZoomButtonAttribute)] {
+            var value:CFTypeRef?
+            let error=AXUIElementCopyAttributeValue(el,key as CFString,&value)
+            controls[name] = ["ax_error":Int(error.rawValue),
+                              "element_present":value.map {CFGetTypeID($0)==AXUIElementGetTypeID()} ?? false]
+        }
+        reply["window_control_attributes"] = controls
+    }
+    return reply
 }
 
 /// Read-only cold traversal. The response is never an input binding/permit.

@@ -623,6 +623,21 @@ class Observation:
                               + (f"; 찾는 항목 {shown}개 표시" if shown else "") + ")")
 
 
+        if role == 'AXWindow':
+            for key in ('AXCloseButton', 'AXMinimizeButton', 'AXZoomButton'):
+                control = _window_control_element(el, key)
+                if control is not None and not any(CFEqual(control, known) for known in self.elements):
+                    self.walk(control, depth + 1, node_limit=node_limit, deferred=deferred)
+
+
+def _window_control_element(window, key):
+    value = _attr(window, key)
+    try:
+        return value if value is not None and CFGetTypeID(value) == AXUIElementGetTypeID() else None
+    except (TypeError, ValueError):
+        return None
+
+
 # What `secondary_action` will actually carry. An AX action name goes straight
 # to AXUIElementPerformAction, so the launcher enumerates what may cross, and
 # an observation that advertised anything else would be describing a refusal.
