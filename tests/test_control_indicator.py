@@ -381,11 +381,13 @@ print(String(data: try! JSONSerialization.data(withJSONObject: out, options: [.s
                           "role unreadable": False, "role missing": False, "role read times out": False,
                           "list unreadable": False, "list malformed": False}, json.loads(result.stdout))
 
-    def test_only_menu_requests_may_use_the_windowless_gate(self):
+    def test_only_observation_and_menu_requests_may_use_the_windowless_gate(self):
         text = (ROOT / "helper/TactoHelper.swift").read_text()
         calls = [line.strip() for line in text.splitlines()
                  if "ensureVisibleControl(forPID: p" in line]
         self.assertEqual(sorted(calls), sorted([
+            # Continuation is a read-only observation of an existing window.
+            "guard ensureVisibleControl(forPID: p, windowless: true) else { return indicatorRefusal() }",
             "guard ensureVisibleControl(forPID: p, windowless: true) else {",
             'guard ensureVisibleControl(forPID: p, windowless: ["menu", "open_folder", "reopen_window", "close_menu"].contains((action["name"] as? String) ?? "")) else {',
             "guard ensureVisibleControl(forPID: p) else {",
@@ -430,7 +432,7 @@ print(String(data: try! JSONSerialization.data(withJSONObject: out, options: [.s
         self.assertIn("'\\(permissionHolderName)' 가 켜져 있는지", body)
         self.assertIn('case "menu_item_not_on_screen":', body)
         self.assertIn('"reason": reason', body)
-        self.assertEqual(3, text.count("return indicatorRefusal("))
+        self.assertEqual(4, text.count("return indicatorRefusal("))
 
     def test_the_held_stream_keeps_nothing(self):
         # It is lit by really capturing, so it takes the least it can: the
