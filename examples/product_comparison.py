@@ -1406,7 +1406,7 @@ def run_one(task: Task, arm: str, timeout: int = 600) -> dict:
         elif item.get("type") == "command_execution":
             cmd = item.get("command", "")
             if not isinstance(cmd,str):cmd=""
-            if re.search(r"(^|[\s'\"/])tacto\s", cmd):
+            if re.search(r"(^|[\s'\"/])tacto['\"]?(?=\s|$)", cmd):
                 if event.get('type') == 'item.completed':
                     from tacto.preparation_diagnostic import diagnostic_lines
                     # Tool-reported diagnostics, not a completion oracle or

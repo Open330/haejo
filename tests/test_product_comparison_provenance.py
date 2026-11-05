@@ -155,6 +155,21 @@ class Provenance(unittest.TestCase):
         self.assertTrue(result['tool_item_usage']['complete_unique_counts'])
         self.assertFalse(result['comparison_eligible'])
 
+    def test_quoted_launcher_paths_are_counted_and_rejected_in_sky_arm(self):
+        import json
+        for command in ('"/owned runtime/launcher/tacto" observe fixture --helper',
+                        "'/owned runtime/launcher/tacto' observe fixture --helper",
+                        'tacto --help'):
+            events=[{'type':'item.completed','item':{'id':'one','type':'command_execution',
+                                                     'command':command}},
+                    {'type':'turn.completed','usage':{}}]
+            stdout='\n'.join(json.dumps(event) for event in events)
+            with self.subTest(command=command):
+                row=self.execute(stdout=stdout)
+                self.assertEqual({'shell:tacto':1},row['calls'])
+                self.assertEqual('passed',row['status'])
+                self.assertEqual('invalid',self.execute(stdout=stdout,arm='sky')['status'])
+
     def test_abnormal_or_unfinished_stream_does_not_claim_complete_counts(self):
         import json
         start={'type':'item.started','item':{'id':'one','type':'command_execution','command':'tacto list'}}
