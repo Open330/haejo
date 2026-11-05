@@ -66,3 +66,37 @@ def feedback(exc):
     if isinstance(exc, OSError):
         return 'file: could not read/write this path; check its parent directory and access.'
     return 'schema: invalid Flow; check name, target, steps and object fields. No input values are echoed.'
+
+
+def contract_field_error(contract, path):
+    """Closed authoring hints for contracts the existing policy already blocks."""
+    from .contract import EFFECTS, DATA_CLASSES, PROVENANCE, RESOURCE_SCOPES, REVERSIBILITY, policy
+    def problem(field, hint):
+        return FlowFieldError('incomplete or malformed contract',path+'.'+field,hint)
+    def names(value, allowed):
+        return isinstance(value,(list,tuple)) and all(type(v) is str and v in allowed for v in value)
+    if not names(contract.effects,EFFECTS) or not contract.effects:
+        return problem('effects','Use effects such as read, write_ephemeral or write_persistent; no action names.')
+    if not names(contract.data_classes,DATA_CLASSES):
+        return problem('data_classes','Use a list of data classes: none, personal, credential, financial, health, biometric or telemetry.')
+    if type(contract.resource.scope) is not str or contract.resource.scope not in RESOURCE_SCOPES:
+        return problem('resource.scope','Use entry, item, collection, account or all. One document is item, not document.')
+    if type(contract.reversibility) is not str or contract.reversibility not in REVERSIBILITY:
+        return problem('reversibility','Use reversible, recoverable, irreversible or unknown.')
+    if contract.destination.kind not in ('none','same_app','same_origin','third_party'):
+        return problem('destination.kind','Use none, same_app, same_origin or third_party.')
+    for index,evidence in enumerate(contract.evidence):
+        if type(evidence.source) is not str or evidence.source not in PROVENANCE:
+            return problem(f'evidence[{index}].source','Use user_intent for the actual user request; other sources cannot authorize it.')
+    if not isinstance(contract.unknowns,(list,tuple)) or any(type(v) is not str for v in contract.unknowns):
+        return problem('unknowns','Use a list of unresolved field names, or an empty list when those facts are known.')
+    writes=bool(set(contract.effects)&{'write_ephemeral','write_persistent'})
+    if writes and contract.resource.scope=='unknown':
+        return problem('resource.scope','State the actual scope: entry, item, collection, account or all. One document is item.')
+    if writes and contract.reversibility=='unknown':
+        return problem('reversibility','State whether this requested edit is reversible, recoverable or irreversible.')
+    if writes and contract.destination.kind in ('same_origin','third_party') and not contract.destination.identity:
+        return problem('destination.identity','Name the requested destination from the task and current observation.')
+    if policy(contract).risk=='blocked':
+        return problem('unknowns','Resolve effects, resource, destination and reversibility from the task/observation; use run for judgment.')
+    return None

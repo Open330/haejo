@@ -129,6 +129,12 @@ def prepare_session_flow(flow, target):
                                  'Provide defaults for every {{name}}; session accepts no -p flags.') from exc
     if flow.target != target:
         raise FlowFieldError('session_target_mismatch', 'target', 'Bound parameters must keep the session target.')
+    from .flow_errors import contract_field_error
+    for index, step in enumerate(every_step(flow.steps)):
+        if step.safety is not None:
+            problem = contract_field_error(step.safety, 'steps['+str(index)+'].safety')
+            if problem is not None:
+                raise problem
     return flow, template
 
 

@@ -55,3 +55,29 @@ class FieldFeedbackTests(unittest.TestCase):
         self.assertEqual(before,doc)
         self.assertEqual('PRIVATE_VALUE',flow.steps[0].safety.evidence[0].value)
         self.assertEqual('entry',flow.steps[-1].safety.resource.scope)
+
+
+class ContractFeedbackTests(unittest.TestCase):
+    def test_blocked_static_contracts_are_correctable_before_execution(self):
+        from tacto.flow_session import prepare_session_flow
+        cases=[({'resource':{'scope':'PRIVATE_DOCUMENT'}},'resource.scope','item'),
+               ({'resource':{'scope':'unknown'}},'resource.scope','item'),
+               ({'reversibility':'unknown'},'reversibility','reversible'),
+               ({'effects':['PRIVATE_EFFECT']},'effects','write_persistent'),
+               ({'data_classes':['PRIVATE_CLASS']},'data_classes','none'),
+               ({'evidence':[{'source':'PRIVATE','field':'PRIVATE','value':'PRIVATE'}]},'evidence[0].source','user_intent'),
+               ({'unknowns':['PRIVATE'],'destination':{'kind':'third_party'}},'destination.identity','destination')]
+        for change,field,hint in cases:
+            doc=calculator_example();doc['steps']=[{'action':'set_value','selector':{'identifier':'body'},'params':{'value':'PRIVATE'},'safety':{'effects':['write_persistent'],'reversibility':'reversible','resource':{'scope':'item'},**change}}]
+            flow=Flow.from_json(json.dumps(doc))
+            with self.assertRaises(ValueError) as caught:prepare_session_flow(flow,flow.target)
+            message=feedback(caught.exception)
+            self.assertTrue(message.startswith('steps[0].safety.'+field+':'),message)
+            self.assertIn(hint,message);self.assertNotIn('PRIVATE',message)
+
+    def test_read_with_unknown_scope_and_valid_confirmation_policy_are_unchanged(self):
+        from tacto.flow_session import prepare_session_flow
+        for effects in (['read'],['write_persistent']):
+            doc={'name':'task','target':'app','steps':[{'action':'read' if effects==['read'] else 'set_value','selector':{'identifier':'body'},'params':{} if effects==['read'] else {'value':'text'},'safety':{'effects':effects,'reversibility':'unknown' if effects==['read'] else 'reversible','resource':{'scope':'unknown' if effects==['read'] else 'item'}}}]}
+            flow=Flow.from_json(json.dumps(doc));prepared,_=prepare_session_flow(flow,'app')
+            self.assertEqual(flow.to_json(),prepared.to_json())
