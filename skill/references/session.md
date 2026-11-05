@@ -3,8 +3,13 @@
 `tacto session <bundle-id> --helper [--document /absolute/path] [--guide] [--timings] [--idle-timeout 1..600]`
 observes one app, reads one newline-terminated Flow JSON record from stdin,
 replays it on the same signed connection, and exits. The default input wait is
-90 seconds. The input record is bounded to 1 MiB. EOF, cancellation, invalid
-JSON, extra records in the input buffer, or a changed target end the session.
+90 seconds. The input record is bounded to 1 MiB. In an interactive terminal,
+invalid JSON/schema, target or parameter defaults return a short error and
+`TACTO_SESSION_READY`: send the
+corrected JSON on the same session. No input has been dispatched and the guide
+and observation are not repeated. Corrections share the original input deadline.
+Piped invalid JSON, EOF, cancellation, extra records in the input buffer, or a
+changed target end the session.
 A failed flow is never rerun by the session.
 
 For agent tools, start with `exec_command`, `tty: true`, and

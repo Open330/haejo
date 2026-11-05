@@ -13,6 +13,78 @@ from tests.test_flow_safety_defaults import Calculator
 
 
 class FlowSessionTests(unittest.TestCase):
+    def test_target_and_parameter_repairs_prepare_once_and_keep_template(self):
+        from tacto.flow_session import read_session_flow,prepare_session_flow
+        target='com.apple.calculator'
+        doc={'name':'read','target':target,'params':{'id':None},'steps':[{
+            'action':'read','selector':{'identifier':'{{id}}'},
+            'safety':{'effects':['read'],'reversibility':'reversible'}}]}
+        wrong={**doc,'target':'PRIVATE_TARGET'}
+        corrected={**doc,'params':{'id':'StandardInputView'}}
+        messages=[]
+        with patch('tacto.flow_session.os.isatty',return_value=True), \
+             patch('tacto.flow_session.read_flow_line',side_effect=[json.dumps(wrong),json.dumps(doc),json.dumps(corrected)]):
+            flow,template=read_session_flow(42,5,messages.append,
+                prepare=lambda parsed:prepare_session_flow(parsed,target))
+        self.assertEqual('StandardInputView',flow.steps[0].selector.identifier)
+        self.assertIn('{{id}}',template)
+        self.assertIn('target:','\n'.join(messages));self.assertIn('params:','\n'.join(messages))
+        self.assertNotIn('PRIVATE_TARGET','\n'.join(messages))
+
+    def test_windows_corrections_share_one_input_reader(self):
+        from tacto.flow_session import read_session_flow
+        reader=Mock(side_effect=[b'{}\n',(json.dumps(calculator_example())+'\n').encode()])
+        with patch('tacto.flow_session.sys.platform','win32'), \
+             patch('tacto.flow_session.os.isatty',return_value=True), \
+             patch('tacto.flow_session._windows_reader',return_value=reader) as factory:
+            flow=read_session_flow(42,5,lambda message:None)
+        self.assertEqual('com.apple.calculator',flow.target)
+        factory.assert_called_once_with(42)
+        self.assertEqual(2,reader.call_count)
+
+    def test_interactive_schema_repair_reuses_observation_and_dispatches_once(self):
+        app=Calculator();app.close=Mock();make=Mock(return_value=app)
+        runner=Mock(return_value=0);messages=[]
+        master,slave=pty.openpty();writers=[]
+        def emit(message):
+            messages.append(message)
+            if message.startswith('TACTO_SESSION_READY send'):
+                os.write(master,b'{"private":"PRIVATE_SENTINEL"}\n')
+            elif message.startswith('session_invalid_flow:'):
+                self.assertEqual([],app.calls)
+                runner.assert_not_called()
+                payload=(json.dumps(calculator_example())+'\n').encode()
+                def write_correction():
+                    offset=0
+                    while offset<len(payload):offset+=os.write(master,payload[offset:])
+                writer=threading.Thread(target=write_correction,daemon=True)
+                writers.append(writer);writer.start()
+        try:
+            with os.fdopen(os.dup(slave)) as stream:
+                result=run_session(['com.apple.calculator','--helper','--guide'],make_driver=make,
+                                   run_flow=runner,stdin=stream,emit=emit)
+        finally:
+            for writer in writers:writer.join(2)
+            os.close(master);os.close(slave)
+        self.assertEqual(0,result);make.assert_called_once();runner.assert_called_once()
+        self.assertEqual(1,app.observations)
+        self.assertEqual(1,sum(m.startswith('TACTO_FLOW_GUIDE') for m in messages))
+        self.assertEqual(2,sum(m.startswith('TACTO_SESSION_READY') for m in messages))
+        self.assertNotIn('PRIVATE_SENTINEL','\n'.join(messages))
+        app.close.assert_called_once()
+
+    def test_repair_keeps_original_deadline_and_eof_does_not_loop(self):
+        from tacto.flow_session import read_session_flow
+        with patch('tacto.flow_session.os.isatty',return_value=True), \
+             patch('tacto.flow_session.time.monotonic',side_effect=[100,101,104]), \
+             patch('tacto.flow_session.read_flow_line',side_effect=['{}',TimeoutError()]) as read:
+            with self.assertRaises(TimeoutError):read_session_flow(3,5,lambda message:None)
+            self.assertEqual([4,1],[call.args[1] for call in read.call_args_list])
+        with patch('tacto.flow_session.read_flow_line',side_effect=ValueError('session_input_closed')) as read:
+            with self.assertRaisesRegex(ValueError,'session_input_closed'):
+                read_session_flow(3,5,lambda message:None)
+            read.assert_called_once()
+
     def test_stored_comparisonless_skip_keeps_legacy_load_and_execution(self):
         from tacto.flow import Flow, replay
         doc=calculator_example()

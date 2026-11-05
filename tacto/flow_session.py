@@ -64,11 +64,12 @@ def _windows_reader(fd, *, depth=2):
     return read
 
 
-def read_flow_line(fd, timeout, *, platform=None):
+def read_flow_line(fd, timeout, *, platform=None, reader=None):
     deadline = time.monotonic() + timeout
     data = bytearray()
     windows = (platform or sys.platform) == "win32"
-    reader = _windows_reader(fd) if windows else None
+    if windows and reader is None:
+        reader = _windows_reader(fd)
     while True:
         remaining = deadline - time.monotonic()
         if remaining <= 0:
@@ -91,6 +92,44 @@ def read_flow_line(fd, timeout, *, platform=None):
             if tail.strip():
                 raise ValueError('session_accepts_one_flow')
             return line.decode('utf-8')
+
+
+def read_session_flow(fd, timeout, emit, *, prepare=None):
+    """Repair interactive schema errors before dispatch on the same connection."""
+    deadline = time.monotonic() + timeout
+    reader = _windows_reader(fd) if sys.platform == 'win32' else None
+    while True:
+        # Framing, EOF and budget errors are terminal; only a complete JSON line
+        # rejected by Flow parsing can be corrected without starting over.
+        raw = read_flow_line(fd, max(0, deadline - time.monotonic()), reader=reader)
+        try:
+            flow = Flow.from_json(raw, strict_checks=True)
+            return prepare(flow) if prepare is not None else flow
+        except (ValueError, TypeError, KeyError, RecursionError) as exc:
+            if not os.isatty(fd):
+                raise
+            from .flow_errors import feedback
+            record_failure('session_invalid_flow', 'load')
+            emit('session_invalid_flow: ' + feedback(exc))
+            emit('TACTO_SESSION_READY correct the JSON on this same session; no UI input was sent. The original input deadline still applies.')
+
+
+def prepare_session_flow(flow, target):
+    from .flow_errors import FlowFieldError
+    if flow.target != target:
+        raise FlowFieldError('session_target_mismatch', 'target', 'Match the target of this session.')
+    if any(step.action in ('decide', 'visual') for step in every_step(flow.steps)):
+        raise FlowFieldError('session_requires_deterministic_flow', 'steps', 'Use deterministic steps here; use run for model judgment.')
+    template = flow.to_json(compact=True)
+    if flow.params or flow.tables or flow.derived:
+        try:
+            flow = flow.bind()
+        except (ValueError, TypeError, KeyError, ArithmeticError) as exc:
+            raise FlowFieldError('session_invalid_parameters', 'params',
+                                 'Provide defaults for every {{name}}; session accepts no -p flags.') from exc
+    if flow.target != target:
+        raise FlowFieldError('session_target_mismatch', 'target', 'Bound parameters must keep the session target.')
+    return flow, template
 
 
 def run_session(args, *, make_driver, run_flow, stdin, emit):
@@ -174,34 +213,15 @@ def run_session(args, *, make_driver, run_flow, stdin, emit):
                 emit(json.dumps(observation, ensure_ascii=False))
                 emit('TACTO_SESSION_READY send one compact Flow JSON line, then newline; target=' + target)
                 timing['input_ready_seconds'] = time.monotonic() - started
-                flow = Flow.from_json(read_flow_line(stdin.fileno(), timeout), strict_checks=True)
+                flow, template = read_session_flow(stdin.fileno(), timeout, emit,
+                                                   prepare=lambda parsed: prepare_session_flow(parsed, target))
                 timing['flow_received_seconds'] = time.monotonic() - started
         except (ValueError, TypeError, KeyError, TimeoutError, RecursionError) as exc:
             # A flow may contain personal text. Do not echo malformed input or
-            # decoder excerpts; invalid input ends this session before acting.
+            # decoder excerpts; terminal framing/transport errors end the session.
             from .flow_errors import feedback
             record_failure('session_input_timeout' if isinstance(exc, TimeoutError) else 'session_invalid_flow', 'load')
             emit('session_invalid_flow: ' + feedback(exc))
-            return 2
-        if flow.target != target:
-            record_failure('session_target_mismatch', 'load')
-            emit('session_target_mismatch')
-            return 2
-        if any(step.action in ('decide', 'visual') for step in every_step(flow.steps)):
-            record_failure('session_requires_deterministic_flow', 'load')
-            emit('session_requires_deterministic_flow; use run for model judgment')
-            return 2
-        template = flow.to_json(compact=True)
-        if flow.params or flow.tables or flow.derived:
-            try:
-                flow = flow.bind()
-            except (ValueError, TypeError, KeyError, ArithmeticError) as exc:
-                record_failure('session_invalid_parameters', 'load')
-                emit('session_invalid_parameters: provide params defaults for every {{name}}; session accepts no -p flags')
-                return 2
-        if flow.target != target:
-            record_failure('session_target_mismatch', 'load')
-            emit('session_target_mismatch')
             return 2
         # A session is one operation, not a daemon or a source of reusable
         # observation IDs. replay reobserves on this same authenticated channel.
