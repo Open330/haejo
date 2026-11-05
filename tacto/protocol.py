@@ -25,6 +25,7 @@ ACTION_PARAMS = {
     "upload": frozenset({"scope", "attachment_digest"}),
     "press_key": frozenset({"key"}), "menu": frozenset({"path", "focused_document"}),
     "drag": frozenset({"from", "to", "duration", "via"}),
+    "resize_window": frozenset({"width", "height"}),
     "scroll": frozenset({"direction", "pages"}),
     "secondary_action": frozenset({"action"}),
     "goto": frozenset({"url"}),

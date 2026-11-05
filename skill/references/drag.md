@@ -1,5 +1,19 @@
 # Drag inside an observed macOS window
 
+For window size changes, use `tacto resize <bundle-id> --helper
+--window "Now Playing Overlay" --width 600 --height 360` (dimensions in points).
+This first uses AXSize without activation or mouse input. If AXSize is unavailable
+before any write, it sends one bottom-right resize stroke to the same window,
+including borderless/nonactivating overlays, while allowing the expected size
+change. It keeps the real pointer and foreground unchanged. It reports the
+original/resulting geometry and `size_verified` only
+after both accessibility and the window server show the requested size. A fixed
+or app-constrained size reports `resize_unavailable` or `resize_not_verified`;
+inspect the actual size before any further action. An older helper needs updating.
+The resize grip must implement bottom-right resizing; a posted stroke alone is
+not a successful size change. This does not establish why an app restores a
+different position after relaunch.
+
 Use `tacto drag <bundle-id> --helper --from X Y --to X Y` for a requested
 single drag. Coordinates are **points relative to the observed window's top-left**,
 including its titlebar; they are not screen coordinates or Retina pixels.

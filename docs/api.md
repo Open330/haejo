@@ -1,5 +1,24 @@
 # Python API
 
+`tacto resize <bundle-id> --helper --window "Now Playing Overlay" --width 600
+--height 360` resizes the selected window in points, without activation or a
+keyboard-focus requirement. It uses AXSize first; when the size is not settable,
+it sends one window-bound bottom-right resize stroke, allowing window geometry
+to change during that stroke. The signed helper advertises
+`action.resize_window`; its action is `resize_window` with a Window selector and
+`width`/`height` parameters. A reusable Flow can declare the requested temporary
+window layout change through its usual safety contract.
+
+The runtime sends AXSize once, or one grip stroke if AXSize was unavailable before
+input, then briefly polls receiving geometry. Success
+requires the observed AX window and its owned window-server ID to show the
+requested dimensions. `size_verified` and `before`/`after` geometry report that
+result; they do not prove application content layout or a saved preference.
+An app-enforced minimum/maximum or an unconfirmed write/stroke returns
+`resize_not_verified` with unknown effect. The command does not retry writes or
+use global HID events. `input_route` identifies `ax_window_size` or
+`window_resize_drag`; the latter requires a working bottom-right resize grip.
+
 Vault 위임 로그인은 `CredentialStore`에 앱·사이트·Vault item과
 `fill`/`login` 수준을 한 번 등록하고 `run_login(store, name, driver)`로 실행한다.
 비밀값을 Flow 매개변수로 넘기지 않는다. CLI는 `tacto auth login NAME --helper`이며,

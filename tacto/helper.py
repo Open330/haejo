@@ -592,6 +592,8 @@ class HelperDriver:
 
     def act(self, obs_id, target, action, expect=None, risk_class="none",
             intent_text="", approved=False, *, save_panel_token=None, submit_authorized=False, credential_origin=None, sensitive_input=False):
+        if action.get('name') == 'resize_window' and 'action.resize_window' not in getattr(self,'capabilities',()):
+            return {'type':'error','error':'resize_unavailable','effect':'not_started'}
         if 'input_method' in action:
             if (action.get('name')!='set_value' or action['input_method']!='paste'
                     or 'action.credential_paste' not in getattr(self,'capabilities',())

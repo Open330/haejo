@@ -635,9 +635,9 @@ def _main(argv=None):
     # Everything that touches the screen, stopped before it can misreport a
     # sandbox as a missing permission. Reading and writing recipes, and
     # learning one, still work in a sandbox.
-    if cmd in ("windows", "doctor", "apps", "launch", "activate", "open-url", "first-run", "observe", "session", "batch", "document-attachments", "capture", "drag", "hover", "vroid-drag", "vroid-focus", "run", "replay", "do", "eval"):
+    if cmd in ("windows", "doctor", "apps", "launch", "activate", "open-url", "first-run", "observe", "session", "batch", "document-attachments", "capture", "drag", "resize", "hover", "vroid-drag", "vroid-focus", "run", "replay", "do", "eval"):
         if sys.platform == "win32":
-            if cmd in ("windows", "doctor", "launch", "activate", "open-url", "first-run", "document-attachments", "capture", "drag",
+            if cmd in ("windows", "doctor", "launch", "activate", "open-url", "first-run", "document-attachments", "capture", "drag", "resize",
                        "hover", "vroid-drag", "vroid-focus"):
                 print(f"{cmd} is macOS-only; see docs/windows.md")
                 return 2
@@ -1028,6 +1028,13 @@ def _dispatch_command(cmd, rest):
     if cmd == "drag":
         from .native_drag import main as drag_main
         return drag_main(rest, _make_driver(rest))
+    if cmd == 'resize':
+        from .window_resize import main as resize_main
+        driver = _make_driver(rest)
+        try:
+            return resize_main(rest, driver)
+        finally:
+            driver.close()
     if cmd == "hover":
         from .native_hover import main as hover_main
         return hover_main(rest, _make_driver(rest))

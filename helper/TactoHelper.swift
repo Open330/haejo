@@ -2416,6 +2416,13 @@ func prepareBackgroundWindow(_ obsID: String, _ target: String, _ element: AXUIE
             }
         }
         let binding=try capture()
+        if drag?.resizing == true,
+           let hit=elementAtPoint(binding.point,pid:pid),
+           ["AXButton","AXCheckBox","AXRadioButton","AXSlider","AXTextField","AXTextArea",
+            "AXPopUpButton","AXComboBox","AXTable","AXRow","AXCell","AXScrollArea"]
+            .contains(str(hit,kAXRoleAttribute as String) ?? "") {
+            throw NativeWindowInputError.refused("resize grip is an interactive control")
+        }
         let routing: ((NativeWindowBinding, Bool) throws -> Void)?
         if windowInput != nil || point != nil || elementClicks != 0 { routing = { binding, _ in try requireNativeWindowTarget(binding, scope: scope) } }
         else if submitKey { routing = { binding, _ in try requireNativeSubmitTarget(binding, scope: scope) } }
@@ -2437,13 +2444,21 @@ func prepareBackgroundWindow(_ obsID: String, _ target: String, _ element: AXUIE
                 // app's keyboard-focused window. Binding validation already
                 // checks ownership, geometry and readiness; do not walk the
                 // same readiness tree a second time or reject non-key panels.
-                validate:{try scope.withBindingContext {try validateNativeWindowBinding(binding,scope:scope)}},
+                validate:{
+                    if drag.resizing {
+                        guard (try? windowInputCGFrame(binding.windowID,pid)) != nil else {
+                            throw NativeWindowInputError.refused("resize window disappeared")
+                        }
+                    } else {try scope.withBindingContext {try validateNativeWindowBinding(binding,scope:scope)}}
+                },
                 sameProcess:{nativeProcessStartIdentity(pid)==start && (try? windowInputCGFrame(binding.windowID,pid)) != nil},
                 windowUnchanged:{
-                    guard try windowInputCGFrame(binding.windowID,pid)==binding.windowBounds else {
+                    if drag.resizing {return}
+                    let current=try windowInputCGFrame(binding.windowID,pid)
+                    guard drag.resizing || current==binding.windowBounds else {
                         throw NativeWindowInputError.refused("drag window moved or disappeared")
                     }
-                })
+                },geometry:drag.resizing ? {try windowInputCGFrame(binding.windowID,pid)} : nil)
         } else {
         result = try dispatchNativeWindowPreparation(binding, deadline: deadline,
             stopped: { abortState.isStopped }, context: context,
@@ -3311,6 +3326,45 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
                     "effect": axActionFailureEffect(err),
                     "detail": "AXPress failed (\(err.rawValue)); do not retry an uncertain effect"]
         }
+    case "resize_window":
+        guard Set(action.keys)==Set(["name","element_index","width","height"]),
+              let window=element(),str(window,kAXRoleAttribute as String)==kAXWindowRole,
+              let width=action["width"] as? NSNumber,let height=action["height"] as? NSNumber,
+              CFGetTypeID(width) != CFBooleanGetTypeID(),CFGetTypeID(height) != CFBooleanGetTypeID(),
+              width.doubleValue.isFinite,height.doubleValue.isFinite,
+              width.doubleValue>0,height.doubleValue>0,width.doubleValue<=16384,height.doubleValue<=16384 else {
+            return ["type":"error","error":"invalid_window_size","effect":"not_started"]
+        }
+        let requested=CGSize(width:width.doubleValue,height:height.doubleValue)
+        let result=nativeResizeWindow(window,pid:p,size:requested)
+        if result["error"] as? String != "resize_unavailable" || result["effect"] as? String != "not_started" {return result}
+        guard let before=result["before"] as? [String:Double],let w=before["width"],let h=before["height"],
+              w>4,h>4,requested.width>4,requested.height>4,
+              let leaseStart=latestProcessStart,nativeProcessStartIdentity(p)==leaseStart else {return result}
+        let from=CGPoint(x:w-2,y:h-2),to=CGPoint(x:requested.width-2,y:requested.height-2)
+        if from==to {return ["type":"acted","action":"resize_window","size_verified":true,"changed":false,
+            "input_route":"window_resize_drag","before":before,"after":before]}
+        let resizeLease=TactoScopeLease()
+        guard waitForResource(resizeLease,"global-input",deadline:deadline) else {return parallelRefusal("input_busy")}
+        defer {withExtendedLifetime(resizeLease) {}}
+        let stroke=prepareBackgroundWindow(obsID,target,window,p,deadline:deadline,point:from,
+            drag:NativeWindowDrag(path:[from,to],duration:0.3,resizing:true))
+        guard stroke["type"] as? String=="acted" else {return stroke}
+        // The drag is sent once. Observe size only; never resend an uncertain gesture.
+        var received:[String:Double]?
+        let settle=ProcessInfo.processInfo.systemUptime+0.8
+        repeat {
+            if let id=nativeWindowID(window),let frame=try? windowInputCGFrame(id,p) {
+                received=["x":frame.minX,"y":frame.minY,"width":frame.width,"height":frame.height]
+                if abs(frame.width-requested.width)<0.5 && abs(frame.height-requested.height)<0.5 {break}
+            }
+            Thread.sleep(forTimeInterval:0.025)
+        } while ProcessInfo.processInfo.systemUptime<settle
+        let verified=received.map {abs($0["width"]!-requested.width)<0.5 && abs($0["height"]!-requested.height)<0.5} ?? false
+        return ["type":verified ? "acted":"error","action":"resize_window","size_verified":verified,
+            "input_route":"window_resize_drag","before":before,"after":received as Any? ?? NSNull(),
+            "changed":received.map {$0 != before} as Any? ?? NSNull(),"effect":verified ? "applied":"unknown",
+            "error":verified ? NSNull():"resize_not_verified"]
     case "set_value":
         guard let el = element(), let v = action["value"] as? String else {
             return ["type": "error", "error": "action_failed",
@@ -5355,7 +5409,7 @@ let helperCapabilities: [String] = [
     "expect.role", "expect.label", "expect.attribute", "expect.attribute.subrole", "expect.attribute.url", "observe.subrole", "expect.enabled",
     "expect.no_modal", "expect.selection",
     "effect",                       // errors say whether an effect is possible
-    "action.credential_paste", "observe.labels_v1", "action.approved_credential_input", "action.credential_input", "action.click.deadline_uptime", "action.prepare_window", "action.prepare_window.background", "action.click", "action.set_value", "action.type_text", "action.read",
+    "action.resize_window", "action.credential_paste", "observe.labels_v1", "action.approved_credential_input", "action.credential_input", "action.click.deadline_uptime", "action.prepare_window", "action.prepare_window.background", "action.click", "action.set_value", "action.type_text", "action.read",
     "press_key.safari_address_confirm",
     "action.menu", "action.scroll", "action.secondary_action",
     // Finder only: show an existing folder without activating Finder.
@@ -6684,7 +6738,7 @@ func handle(_ msg: [String: Any]) -> [String: Any] {
     // keyboard routes share one bounded dispatch resource across workers.
     let inputLease = TactoScopeLease()
     let actionName = (msg["action"] as? [String:Any])?["name"] as? String ?? ""
-    if kind == "act", (msg["sensitive_input_authorized"] != nil || msg["credential_origin"] != nil || !["click","set_value","type_text","read"].contains(actionName)),
+    if kind == "act", (msg["sensitive_input_authorized"] != nil || msg["credential_origin"] != nil || !["click","set_value","type_text","read","resize_window"].contains(actionName)),
        !waitForResource(inputLease,"global-input",deadline:msg["click_deadline_uptime"] as? Double) {
         return abortState.isStopped ? ["type":"error","error":"aborted_by_user","effect":"not_started"] : ["type":"error","error":"input_busy","effect":"not_started","retryable":true]
     }

@@ -82,6 +82,21 @@ for mode in ["success","cancel","post_error","drift","dead_process","late"] {
   }
  }
 }
+// Resize may grow past the original bounds and rebase each window-relative
+// event after the receiving app changes origin/size. Regular drag stays strict.
+let resize=NativeWindowDrag(path:[CGPoint(x:298,y:198),CGPoint(x:398,y:298)],duration:0.2,resizing:true)
+let resizedStroke=try buildNativeWindowDrag(binding,drag:resize)
+precondition(resizedStroke.events.last!.location==CGPoint(x:98,y:498))
+var resizeClock=10.0,resizePosted=0
+let transformed=CGRect(x:-280,y:220,width:400,height:300)
+_=try dispatchNativeWindowDrag(binding,drag:resize,deadline:20,stopped:{false},context:{},validate:{},
+ now:{resizeClock},readInput:{_ in NativeUserInputState(foreground:99,pointer:.zero,focused:nil)},
+ pointer:{.zero},foreground:{99},post:{event,_ in
+  let local=getLocation(event)
+  precondition(local==CGPoint(x:event.location.x-transformed.minX,y:event.location.y-transformed.minY))
+  resizePosted+=1
+ },geometry:{transformed},sleep:{resizeClock+=max(0.0001,$0)})
+precondition(resizePosted==resizedStroke.events.count)
 print("DRAG_PASS")
 '''
         with tempfile.TemporaryDirectory() as directory:

@@ -97,6 +97,7 @@ let actionSchema: [String: (required: Set<String>, optional: Set<String>)] = [
     "click":            (["name"], ["element_index", "point", "window_index"]),
     "click_point":      (["name", "element_index", "point"], []),
     "drag":             (["name", "element_index", "from", "to", "duration"], ["via"]),
+    "resize_window":    (["name", "element_index", "width", "height"], []),
     // The global pointer, no buttons; restored afterwards (PointerHover.swift).
     "hover":            (["name", "element_index", "to", "duration", "hold"], ["via", "capture"]),
     "vroid_focus":      (["name", "element_index", "title"], []),
@@ -685,6 +686,10 @@ func vetted(_ msg: [String: Any]) -> String? {
                     return "window_index 형식 오류"
                 }
             case "input_method": if name != "set_value" || v as? String != "paste" {return "invalid paste input"}
+            case "width", "height":
+                guard name == "resize_window",let number=v as? NSNumber,
+                      CFGetTypeID(number) != CFBooleanGetTypeID(),number.doubleValue.isFinite,
+                      number.doubleValue>0,number.doubleValue<=16384 else {return "invalid window size"}
             case "value": if !(v is String) { return "value 형식 오류" }
             case "text":
                 guard let t = v as? String, isPlainText(t) else {

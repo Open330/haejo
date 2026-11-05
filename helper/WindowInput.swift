@@ -213,6 +213,64 @@ struct NativeWindowBinding {
     }
 }
 
+/// Resize one already observed window through AX, without mouse routing or
+/// activation. One identity check before the write and one receiving geometry
+/// check afterward; no full-tree readiness walk or per-frame PID polling.
+func nativeResizeWindow(_ window:AXUIElement,pid:pid_t,size:CGSize)->[String:Any] {
+    func failure(_ code:String,_ effect:String)->[String:Any] {
+        ["type":"error","error":code,"effect":effect]
+    }
+    guard size.width.isFinite,size.height.isFinite,size.width>0,size.height>0,
+          size.width<=16384,size.height<=16384 else {return failure("invalid_window_size","not_started")}
+    guard AXUIElementSetMessagingTimeout(window,0.5) == .success else {return failure("resize_unavailable","not_started")}
+    defer {_=AXUIElementSetMessagingTimeout(window,0)}
+    guard (try? windowInputPID(window))==pid,
+          (try? windowInputRole(window))==kAXWindowRole,
+          let windowID=nativeWindowID(window),
+          let before=try? windowInputCGFrame(windowID,pid),
+          let axBefore=try? windowInputFrame(window),axBefore==before else {
+        return failure("resize_target_unavailable","not_started")
+    }
+    var settable=DarwinBoolean(false)
+    guard AXUIElementIsAttributeSettable(window,kAXSizeAttribute as CFString,&settable) == .success,
+          settable.boolValue else {
+        return ["type":"error","error":"resize_unavailable","effect":"not_started",
+                "before":["x":Double(before.minX),"y":Double(before.minY),"width":Double(before.width),"height":Double(before.height)]]
+    }
+    func rect(_ frame:CGRect)->[String:Double] {
+        ["x":frame.minX,"y":frame.minY,"width":frame.width,"height":frame.height]
+    }
+    func matches(_ frame:CGRect)->Bool {abs(frame.width-size.width)<0.5 && abs(frame.height-size.height)<0.5}
+    if matches(before) {return ["type":"acted","action":"resize_window","size_verified":true,
+        "changed":false,"input_route":"ax_window_size","window_id":windowID,"before":rect(before),"after":rect(before)]}
+    var requested=size
+    guard let encoded=AXValueCreate(.cgSize,&requested) else {return failure("invalid_window_size","not_started")}
+    let error=AXUIElementSetAttributeValue(window,kAXSizeAttribute as CFString,encoded)
+    // Even a timed-out provider can have performed the write. Never resend.
+    let deadline=ProcessInfo.processInfo.systemUptime+1.0
+    var after:CGRect?,visible:CGRect?
+    repeat {
+        after=try? windowInputFrame(window)
+        if let after,matches(after) {
+            visible=try? windowInputCGFrame(windowID,pid)
+            if let visible,matches(visible) {break}
+        }
+        Thread.sleep(forTimeInterval:0.025)
+    } while ProcessInfo.processInfo.systemUptime<deadline
+    guard let after,matches(after),let visible,
+          abs(visible.width-after.width)<0.5,abs(visible.height-after.height)<0.5 else {
+        var result=failure("resize_not_verified","unknown")
+        result["ax_error"]=error.rawValue
+        result["size_verified"]=false
+        result["before"]=rect(before)
+        if let after {result["after"]=rect(after)}
+        result["requested"]=["width":size.width,"height":size.height]
+        return result
+    }
+    return ["type":"acted","action":"resize_window","size_verified":true,"changed":true,
+            "input_route":"ax_window_size","window_id":windowID,"before":rect(before),"after":rect(after)]
+}
+
 enum WindowInputSPI {
     typealias AXWindow = @convention(c) (AXUIElement, UnsafeMutablePointer<CGWindowID>) -> Int32
     typealias SetLocation = @convention(c) (CGEvent, CGPoint) -> Void
@@ -1430,6 +1488,7 @@ func nativeSheetSubmitReady(tops: [AXUIElement], sheet: AXUIElement, read: AXRea
 struct NativeWindowDrag {
     let path: [CGPoint]
     let duration: Double
+    var resizing = false
 }
 struct NativeWindowStroke {
     let events: [CGEvent]
@@ -1443,9 +1502,10 @@ func buildNativeWindowDrag(_ binding: NativeWindowBinding, drag: NativeWindowDra
         throw NativeWindowInputError.refused("invalid drag path or duration")
     }
     let bounds = binding.windowBounds
-    for point in drag.path {
+    for (index,point) in drag.path.enumerated() {
         guard point.x.isFinite, point.y.isFinite, point.x >= 0, point.y >= 0,
-              point.x < bounds.width, point.y < bounds.height else {
+              point.x<=16384,point.y<=16384,
+              (drag.resizing && index>0 || point.x < bounds.width && point.y < bounds.height) else {
             throw NativeWindowInputError.refused("drag point outside observed window")
         }
     }

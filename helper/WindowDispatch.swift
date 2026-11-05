@@ -542,7 +542,8 @@ func dispatchNativeWindowDrag(_ binding:NativeWindowBinding,drag:NativeWindowDra
     pointer:()->CGPoint?={CGEvent(source:nil)?.location},
     foreground:()->pid_t?=nativeFrontmostProcessPID,
     post:(CGEvent,pid_t)throws->Void=nativePIDPost,
-    sameProcess:()->Bool={true},windowUnchanged:()throws->Void={},sleep:(Double)->Void={Thread.sleep(forTimeInterval:$0)}) throws -> NativeWindowPreparation {
+    sameProcess:()->Bool={true},windowUnchanged:()throws->Void={},
+    geometry:(()throws->CGRect)?=nil,sleep:(Double)->Void={Thread.sleep(forTimeInterval:$0)}) throws -> NativeWindowPreparation {
     var attempted=0,held=false
     var lastPoint=binding.point
     var stroke:NativeWindowStroke?
@@ -577,6 +578,11 @@ func dispatchNativeWindowDrag(_ binding:NativeWindowBinding,drag:NativeWindowDra
                     throw NativeWindowInputError.refused("user input changed during drag")
                 }
                 try windowUnchanged();try ready()
+                if let geometry {
+                    let frame=try geometry()
+                    let (setLocation,_)=try WindowInputSPI.locationFunctions()
+                    setLocation(event,CGPoint(x:event.location.x-frame.minX,y:event.location.y-frame.minY))
+                }
                 lastPoint=event.location
                 attempted+=1
                 if event.type == .leftMouseDown { held=true }
@@ -604,7 +610,8 @@ func dispatchNativeWindowDrag(_ binding:NativeWindowBinding,drag:NativeWindowDra
         if held,sameProcess(),let up=stroke?.events.last {
             up.location=lastPoint
             if let (setLocation,_) = try? WindowInputSPI.locationFunctions() {
-                setLocation(up,CGPoint(x:lastPoint.x-binding.windowBounds.minX,y:lastPoint.y-binding.windowBounds.minY))
+                let frame=(try? geometry?()) ?? binding.windowBounds
+                setLocation(up,CGPoint(x:lastPoint.x-frame.minX,y:lastPoint.y-frame.minY))
                 attempted+=1;try? post(up,binding.pid)
             }
         }

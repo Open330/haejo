@@ -21,12 +21,31 @@ down/drag/up 수신, 전경·전역 커서 보존을 검증한다. 관련 비밀
 보내는 drag에 키보드 포커스를 요구하지 않는다. 동일 readiness tree의 중복
 순회도 제거한다. 키보드 입력의 포커스 계약은 별도로 유지한다.
 
-남은 완료 기준(P0): 실제 보고 앱 식별, nonactivating/utility panel의 AX
-subrole·focus 제약 검증, 창 크기 변화 자체를 허용하는 입력 또는 AX 크기
-설정 경로와 수신 측 실제 크기 증거, 재시작 좌표 변화 원인 확인, 새 서명
+보고 앱은 사용자가 Lyrics / `Now Playing Overlay`로 식별했다. 실제 소유
+nonactivating utility panel에서 signed helper drag의 수신·전경/커서 보존을
+확인했다. 별도 `tacto resize` / `resize_window`는 AXSize를 한 번 설정하고
+AX·CG 크기 반영을 확인한다. AXSize가 쓰기 전에 지원 불가로 확인되면,
+같은 창의 우하단 grip에 한 번의 window-bound resize stroke를 보낸다. 이때
+예상되는 geometry 변화는 허용하고 이벤트의 창 상대좌표만 현재 frame으로
+환산한다. 키보드 focus나 전역 HID 입력은 사용하지 않는다. 우하단이 실제
+버튼·입력란 같은 조작 요소이면 그 콘텐츠에 resize를 보내지 않는다.
+일반 panel의 AX resize와 borderless non-key custom resize 모두 600×360
+크기가 수신 측 AppKit 기록에서도 일치했다. 첫 실행에서
+AX 크기만 먼저 바뀌고 CG 반영이 늦어 검증 실패한 기록을 보존하며, 새 전송
+없이 반영을 기다리는 경로로 수정했다.
+
+실제 Lyrics는 june-mba에서 실행 중이며 `Now Playing Overlay`가 layer 3으로
+관측됐다. 개발용 signed CLI/helper를 별도 임시 runtime에서 검증했다.
+321×294 요청은 앱의 화면 하단 clamp로 321×288만 적용되어 성공으로 세지
+않았다. 후속 명시적 원래 크기 복원은 301×274로 확인됐다. 테스트 전후
+전역 커서 좌표는 달랐으므로 이 실앱 실행에 커서 보존 성공을 주장하지 않는다.
+임시 runtime은 제거했으며 설치 앱은 변경하지 않았다.
+
+남은 완료 기준(P0): 실제 Lyrics의 기대 크기를 화면 제약 내에서 반복 검증,
+Lyrics 가운데 정렬 수신 검증, 재시작 좌표 변화 원인 확인, 새 서명
 설치본에서 재검증. 기존 창 내부 drag는 매 이벤트의 bounds 불변을 요구하므로
-창 자체 resize 성공으로 계산하지 않는다. 아래 전체 목표와 비교 평가의
-미완료 범위도 그대로 유지한다.
+창 테두리 드래그 resize 성공으로 계산하지 않는다. 아래 전체 목표와 비교
+평가의 미완료 범위도 그대로 유지한다.
 
 > 제품·측정 라벨·식별자는 현재 Tacto 이름으로 정규화했습니다. 당시 측정 수치와 성공·실패는 유지하며, 새 서명 배포를 검증했다는 뜻은 아닙니다.
 
