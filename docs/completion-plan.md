@@ -1,23 +1,37 @@
 # 전체 목표의 완료 기준과 현재 작업
 
-## 2026-11-05 G2: 관측에서 생략된 후보 연결 작업 중
+## 2026-11-05 G2: 관측에서 생략된 후보의 탐색 연결
 
-후보 token paging은 받은 후보만 나누므로, native 관측의 자식60개 제한 뒤에
-생략된 후보는 플래너가 요청할 수 없었다. 실제 소유 AppKit240버튼 창에서
-첫 관측 truncated=true, Item239 누락, 다음 cursor 없음, 입력0·수신 count0으로
-이 한계를 재현했다. 소유 앱은 종료했고 입력 표본은 UNCHANGED_SAMPLED다.
-원본은 `reviews/goal-resume-20261105-observation-paging/before-direct-fixed.json`이다.
+기존 token paging은 받은 후보만 나눴다. 실제240버튼 AppKit 창에서 첫 관측의
+자식60개 제한 뒤 Item239가 사라지고 다음 후보를 요청할 수도 없음을 재현했다.
+입력0·수신 count0의 실패 기록을 보존했다. 후속은 cap을 키우지 않고 생략된
+부분을 명시적으로 이어 읽는다. 각 페이지의 obs_id/요소 번호는 새로 부여하며
+창·조상 문맥을 유지한다. 오래된 cursor나 바뀐 목록은 이전 위치로 추측하지 않는다.
 
-후속 구현은 명시적인 읽기 전용 관측 continuation이다. cursor는 runtime만
-보유하고 모델에는 다음 항목 관측 후보만 제공한다. 기존 시간·취소·화면 수
-예산 안에서 다음 관측을 요청하며 이전 페이지의 요소 번호와 합치지 않는다.
-native 드라이버·서명 helper continuation을 통합했고 관련31검사가 통과했다.
-실제240버튼 창에서 direct와 signed launcher의 고정 판단 시험 모두 Item239
-버튼을 정확히1회 누르고 독립 수신 기록·결과 읽기·정리·입력 표본을 통과했다.
-일반 플래너뿐 아니라 session의 입력 전 {"observe_next":true}도 같은 연결에서
-최대8페이지·원래 deadline으로 지원한다. 실제 모델 검증은 진행 중이다.
-이 후보는 rc.20 설치본에 포함되지 않는다.
-240버튼 시험은 소유 AppKit 검증이며 사용자 실제 앱의 전체 성공률이 아니다.
+일반 플래너와 session 모두 연결했다. cursor는 runtime만 보유한다.
+session은 입력 전 {"observe_next":true} 또는 지원되는 정확한 이름 검색을
+같은 연결·원래 입력 deadline·합산8회 안에서 요청한다. 알려진 이름이면
+{"find_in_observation":"exact label"}로 페이지 왕복을 줄인다. 고정 문서는
+같은 token과 Document 경로 검증을 유지한다. 검색 일치 수/미완료를 모델에
+알려 못 찾음과 관측 제한을 구분한다. 이 탐색은 앱 입력이나 완료 증거가 아니다.
+
+실제 direct/signed 고정 판단 시험 모두 누락된 Item239 입력 정확히1회,
+독립 앱 수신 JSON·결과 읽기·입력 표본 UNCHANGED_SAMPLED·소유 앱 종료를
+통과했다. 실제 Codex와 Claude도 각각 성공했다. 같은 fixture/목표에서 이름
+검색을 연결한 후 두 모델의 logical 요청은 각각9→7회였다. 작업 프롬프트는
+모두4,000 host 토큰 이내다. 단회 시간 감소나 전체 제품 절감률로 일반화하지 않는다.
+[측정 기록](benchmark-records.md)에 원시 usage의 미관측 범위까지 남겼다.
+
+뒤쪽 결과의 literal presence를 기다릴 때는 runtime이 추가 페이지를 읽는다.
+실제 direct/signed 각각4페이지에서 결과를 찾아 모델 추가 호출·재입력 없이
+검증했다. 전체 before/after tree 비교는 부분 페이지를 변화로 오판할 수 있어
+이 탐색을 켜지 않는다. trace 래퍼도 continuation과 presence 옵션을 전달·기록한다.
+
+한계는 페이지당2,500노드/자식60, 깊이25, frontier4,096개다. 초과/미확인 상태를
+보고하며 물리 사용자 타이핑 보존·일반 사용자 앱 전체 성공률·Save 인과 증거로
+승격하지 않는다. 설치본은 여전히 rc.20이며 후보 전체 회귀/배포는 후속이다.
+원본·각 실패/성공·모델별 집계:
+`reviews/goal-resume-20261105-observation-paging/report.json`.
 
 ## 2026-11-05 rc.20 설치 검증 완료
 

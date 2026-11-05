@@ -198,15 +198,20 @@ class TracingDriver:
     def list_targets(self):
         return self._record("list_targets", {}, self._inner.list_targets())
 
-    def observe(self, target, mode="tree_full", require_window=True, *, document_token=None, reveal=None):
+    def observe(self, target, mode="tree_full", require_window=True, *, document_token=None, reveal=None,
+                continuation=None, _settle_after_action=True):
+        extra = {} if reveal is None else {"reveal": list(reveal)}
+        if continuation is not None:
+            extra['continuation'] = continuation
+        if not _settle_after_action:
+            extra['_settle_after_action'] = False
         if document_token is not None:
             # A live document token and its scoped body cannot be made into
             # reusable recorded evidence. Never fall back to an app-wide read.
             return self._inner.observe(target, mode, require_window=require_window,
-                                       document_token=document_token)
+                                       document_token=document_token, **extra)
         # Preserve compatibility with drivers whose default is implicit; a
         # reveal is part of what was asked, so it is part of the recording.
-        extra = {} if reveal is None else {"reveal": list(reveal)}
         result = (self._inner.observe(target, mode, **extra) if require_window else
                   self._inner.observe(target, mode, require_window=False, **extra))
         return self._record("observe", {"target": target, "mode": mode,
@@ -275,10 +280,11 @@ class TracingDriver:
         result = method(target) if method else {"type": "error", "error": "unsupported_selection"}
         return self._record("selection", {"target": target}, result)
 
-    def wait_until(self, target, predicate, timeout_ms=4000, poll_ms=250):
-        result = self._inner.wait_until(target, predicate, timeout_ms, poll_ms)
+    def wait_until(self, target, predicate, timeout_ms=4000, poll_ms=250, *, search_pages=False):
+        options = {'search_pages': True} if search_pages else {}
+        result = self._inner.wait_until(target, predicate, timeout_ms, poll_ms, **options)
         return self._record("wait_until", {"target": target, "timeout_ms": timeout_ms,
-                                          "poll_ms": poll_ms}, result)
+                                          "poll_ms": poll_ms, **options}, result)
 
     def handle(self, msg):
         return self._record("handle", {"msg": msg}, self._inner.handle(msg))
@@ -326,11 +332,14 @@ class TraceDriver:
     def list_targets(self):
         return self._take("list_targets", {})
 
-    def observe(self, target, mode="tree_full", require_window=True, *, document_token=None, reveal=None):
+    def observe(self, target, mode="tree_full", require_window=True, *, document_token=None, reveal=None,
+                continuation=None, _settle_after_action=True):
         if document_token is not None:
             return {'type':'error', 'error':'document_snapshot_unavailable', 'effect':'not_started'}
         return self._take("observe", {"target": target, "mode": mode, "require_window": require_window,
-                                      **({} if reveal is None else {"reveal": list(reveal)})})
+                                      **({} if reveal is None else {"reveal": list(reveal)}),
+                                      **({} if continuation is None else {'continuation': continuation}),
+                                      **({} if _settle_after_action else {'_settle_after_action': False})})
 
     def act(self, obs_id, target, action, expect=None, risk_class="none",
             intent_text="", approved=False, *, save_panel_token=None, submit_authorized=False):
@@ -361,9 +370,10 @@ class TraceDriver:
     def selection(self, target):
         return self._take("selection", {"target": target})
 
-    def wait_until(self, target, predicate, timeout_ms=4000, poll_ms=250):
+    def wait_until(self, target, predicate, timeout_ms=4000, poll_ms=250, *, search_pages=False):
+        options = {'search_pages': True} if search_pages else {}
         result = self._take("wait_until", {"target": target, "timeout_ms": timeout_ms,
-                                          "poll_ms": poll_ms})
+                                          "poll_ms": poll_ms, **options})
         if result.get("type") == "observation" and not predicate(result["tree"]):
             return {"type": "error", "error": "trace_divergence", "detail": "predicate changed"}
         return result

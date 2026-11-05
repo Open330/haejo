@@ -10,6 +10,25 @@ from tacto.flow_session import read_session_flow, run_session
 
 
 class SessionObservationPagingTests(unittest.TestCase):
+    def test_pinned_presence_wait_reads_tail_under_same_token_and_keeps_latest_indices(self):
+        from tacto.document_scope import DocumentScopedDriver
+        from tests import test_document_scoped_driver as cases
+        inner = cases.ScopedDriverTests().inner()
+        inner.capabilities = {*inner.capabilities, 'observe.continuation_v1'}
+        first = dict(inner.observe.return_value, next_observation_cursor='oc123')
+        tail = dict(inner.observe.return_value, obs_id='tail',
+                    tree='0 Window Document: "/owned/document.txt"\n  4 TextArea Value: done')
+        inner.observe.side_effect = [first, first, tail]  # constructor pin-read, fresh wait, continuation
+        driver = DocumentScopedDriver(inner, cases.TARGET, cases.PATH)
+        reply = driver.wait_until(cases.TARGET, lambda tree: 'Value: done' in tree, search_pages=True)
+        self.assertEqual('tail', reply['obs_id'])
+        self.assertEqual('tail', driver._obs_id)
+        self.assertEqual(1, reply['observation_pages_checked'])
+        self.assertEqual('pin', inner.observe.call_args.kwargs['document_token'])
+        self.assertFalse(inner.observe.call_args.kwargs['_settle_after_action'])
+        inner.document_text.assert_called_once()
+        inner.act.assert_not_called()
+
     def test_pinned_document_continuation_keeps_one_token_and_current_indices(self):
         from tacto.document_scope import DocumentScopedDriver
         inner = Mock(capabilities={'evidence.document_text.path_selector', 'observe.document_token'})

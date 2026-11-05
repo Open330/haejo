@@ -41,6 +41,47 @@ def find_last(goal, cands, history):
 
 
 class GeneralObservationPagingTests(unittest.TestCase):
+    def test_presence_expectation_opts_in_but_legacy_driver_call_stays_compatible(self):
+        from tests import test_general_finishes as finish
+        for caps in (set(), {'observe.continuation_v1'}):
+            app = finish.Counter()
+            app.capabilities = caps
+            original = app.wait_until
+            with patch.object(app, 'wait_until', wraps=original) as wait:
+                plan, _ = finish.planner({'actions': [('click', 'Increment')],
+                    'expect': 'total 1', 'finishes': True})
+                result = run(app, 'counter', 'increment once', plan)
+            self.assertTrue(result.verified, result.why)
+            self.assertEqual({'search_pages': True} if caps else {}, wait.call_args.kwargs)
+
+    def test_trace_keeps_presence_search_option_and_rejects_changed_request(self):
+        from tacto.trace import TracingDriver, TraceDriver
+        from unittest.mock import Mock
+        app = Mock(capabilities={'observe.continuation_v1'})
+        app.wait_until.return_value = {'type': 'observation', 'tree': 'owned result'}
+        live = TracingDriver(app)
+        live.wait_until('owned', lambda tree: 'result' in tree, search_pages=True)
+        self.assertTrue(app.wait_until.call_args.kwargs['search_pages'])
+        recorded = TraceDriver(live.trace)
+        self.assertEqual('observation', recorded.wait_until('owned', lambda t: 'result' in t, search_pages=True)['type'])
+        replay = TraceDriver(live.trace)
+        self.assertEqual('error', replay.wait_until('owned', lambda t: True)['type'])
+
+    def test_recorded_continuation_can_be_replayed_offline_with_original_cursor(self):
+        from tacto.trace import TracingDriver, TraceDriver
+        from unittest.mock import Mock
+        app = Mock(capabilities={'observe.continuation_v1'})
+        app.observe.side_effect = [
+            {'type': 'observation', 'tree': 'first', 'next_observation_cursor': 'oc123'},
+            {'type': 'observation', 'tree': 'tail'}]
+        live = TracingDriver(app)
+        first = live.observe('owned')
+        live.observe('owned', continuation=first['next_observation_cursor'], _settle_after_action=False)
+        self.assertEqual({'continuation': 'oc123', '_settle_after_action': False}, app.observe.call_args.kwargs)
+        replay = TraceDriver(live.trace)
+        first = replay.observe('owned')
+        self.assertEqual('tail', replay.observe('owned', continuation=first['next_observation_cursor'], _settle_after_action=False)['tree'])
+
     def test_exact_name_lookup_replaces_page_scan_and_uses_fresh_native_index(self):
         class SearchApp(PagedApp):
             capabilities = {'observe.reveal'}

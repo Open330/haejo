@@ -32,12 +32,14 @@ def run_probe(driver, *, provider='fixed', budget=4000):
     counter = tiktoken.get_encoding('o200k_base').encode_ordinary
     sources = [*ROOT.glob('tacto/*.py'), *ROOT.glob('helper/*.swift'),
                Path(__file__), ROOT/'tests/fixtures/NativeObservationPagesFixture.swift',
+               ROOT/'examples/eval.py', ROOT/'launcher/tacto.swift', ROOT/'launcher/tacto',
                ROOT/'helper/Tacto Helper.app/Contents/MacOS/TactoHelper']
     hashes = lambda: {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest()
                        for p in sources if p.is_file()}
     report = {'passed': False, 'evaluation_kind': 'fixed_owned_appkit' if provider == 'fixed' else 'live_model_owned_appkit',
               'provider_requested': provider, 'transport': type(driver).__name__,
               'prompt_budget': budget, 'serving_tokenizer_verified': False,
+              'source_manifest_scope': 'listed Python/native sources, eval harness, fixture, signed launcher/helper; dependencies/compiler/OS not frozen',
               'comparison_eligible': False, 'physical_typing_preservation_verified': False,
               'plans': [], 'prompt_tokens': [], 'native_actions': []}
     original_ask = ask_module.ask
@@ -49,7 +51,7 @@ def run_probe(driver, *, provider='fixed', budget=4000):
         kwargs['_request_guard'] = measured_guard
         return original_ask(question, *args, **kwargs)
 
-    original_observe, original_act = driver.observe, driver.act
+    original_observe, original_act, original_wait = driver.observe, driver.act, driver.wait_until
     def observe(*args, **kwargs):
         value = original_observe(*args, **kwargs)
         report.setdefault('observations', []).append({
@@ -66,7 +68,14 @@ def run_probe(driver, *, provider='fixed', budget=4000):
         value = original_act(*args, **kwargs)
         entry.update(status='returned', result=value)
         return value
-    driver.observe, driver.act = observe, act
+    def wait(*args, **kwargs):
+        value = original_wait(*args, **kwargs)
+        report.setdefault('presence_waits', []).append({
+            'search_pages': kwargs.get('search_pages', False), 'type': value.get('type'),
+            'pages_checked': value.get('observation_pages_checked', 0),
+            'result_visible': 'Picked Item239 count 1' in value.get('tree', '')})
+        return value
+    driver.observe, driver.act, driver.wait_until = observe, act, wait
     process = None
     audit = None
     started = time.monotonic()
@@ -107,6 +116,8 @@ def run_probe(driver, *, provider='fixed', budget=4000):
                         if found:
                             answer = {'actions': [{'candidate': found, 'do': 'read' if selected['count'] else 'click'}],
                                       'finishes': bool(selected['count'])}
+                            if not selected['count']:
+                                answer['expect'] = 'Picked Item239 count 1'
                         else:
                             more = next((c for c in cands if c.get('_observation_page')), None)
                             if more is None:
@@ -144,6 +155,10 @@ def run_probe(driver, *, provider='fixed', budget=4000):
                     and report['audit']['status'] == 'UNCHANGED_SAMPLED'
                     and all(n <= budget for n in report['prompt_tokens'])
                     and report['observations'][0]['target_present'] is False)
+                if provider == 'fixed':
+                    report['passed'] = report['passed'] and any(
+                        wait['search_pages'] and wait['pages_checked'] > 0 and wait['result_visible']
+                        for wait in report.get('presence_waits', []))
             finally:
                 process.terminate()
                 process.wait(timeout=10)
@@ -151,7 +166,7 @@ def run_probe(driver, *, provider='fixed', budget=4000):
     except Exception as error:
         report.update(passed=False, error_class=type(error).__name__)
     finally:
-        driver.observe, driver.act = original_observe, original_act
+        driver.observe, driver.act, driver.wait_until = original_observe, original_act, original_wait
         report['source_after'] = hashes()
         report['source_unchanged'] = report['source_before'] == report['source_after']
         report['passed'] = report['passed'] and report['source_unchanged'] and report.get('owned_fixture_exited', False)

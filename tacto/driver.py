@@ -723,6 +723,7 @@ class Driver:
         "action.press_key", "press_key.no_escape",
         "press_key.element_bound",
         "observe.reveal",
+        "observe.continuation_v1",
     })
 
     def __init__(self):

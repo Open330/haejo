@@ -1457,7 +1457,8 @@ def run(driver, target: str, goal: str, ask_here, *, max_screens: int = 8,
                 got = driver.observe(target, "tree_full") if pre_satisfied and any(
                     a.get("do") not in ("read", "set_value") for a in visit.actions) else None
                 if got is None or (got.get("type") == "observation" and visit.expect not in got["tree"]):
-                    got = driver.wait_until(target, lambda t: visit.expect in t)
+                    options = {'search_pages': True} if 'observe.continuation_v1' in capabilities else {}
+                    got = driver.wait_until(target, lambda t: visit.expect in t, **options)
             except Exception as exc:
                 got = {"type": "error", "error": "observation_failed", "detail": str(exc)}
             if stopped(visit):

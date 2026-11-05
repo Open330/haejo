@@ -141,7 +141,7 @@ class DocumentScopedDriver:
         return self._inner.identity(target)
 
     def observe(self, target, mode='tree_full', require_window=True, *, document_token=None, reveal=None,
-                continuation=None):
+                continuation=None, _settle_after_action=True):
         if reveal is not None:
             # Modern backends apply the same document token before walking or
             # revealing. Looking past a cap stays inside the already pinned file.
@@ -155,6 +155,8 @@ class DocumentScopedDriver:
             options = {} if continuation is None else {'continuation': continuation}
             if reveal is not None:
                 options['reveal'] = reveal
+            if not _settle_after_action:
+                options['_settle_after_action'] = False
             reply = self._inner.observe(target,mode,require_window=require_window,document_token=self._token, **options)
         except Exception:return _refuse('native_read_failed')
         if (not isinstance(reply,dict) or reply.get('type') != 'observation'
@@ -206,14 +208,24 @@ class DocumentScopedDriver:
             return _refuse('document_identity_changed')
         return reply
 
-    def wait_until(self,target,predicate,timeout_ms=4000,poll_ms=250):
+    def wait_until(self,target,predicate,timeout_ms=4000,poll_ms=250, *, search_pages=False):
         deadline=time.monotonic()+timeout_ms/1000
+        pages_checked = 0
         while True:
             reply=self.observe(target)
             if reply.get('type')!='observation':return reply
             if predicate(reply['tree']):return reply
-            if time.monotonic()>=deadline:return {'type':'timeout','last_obs':reply}
-            time.sleep(poll_ms/1000)
+            if search_pages and 'observe.continuation_v1' in self.capabilities:
+                from .observation_wait import match_in_pages
+                page, read = match_in_pages(self.observe, target, predicate, reply,
+                                           deadline=deadline, document_token=self._token)
+                pages_checked += read
+                if page is not None:
+                    return {**page, 'observation_pages_checked': pages_checked}
+            if time.monotonic()>=deadline:
+                return {'type':'timeout','last_obs':reply,
+                        **({'observation_pages_checked': pages_checked} if search_pages else {})}
+            time.sleep(min(poll_ms/1000, max(0, deadline-time.monotonic())))
 
     def close(self):
         return self._inner.close()
