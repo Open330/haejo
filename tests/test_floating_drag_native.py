@@ -26,7 +26,7 @@ class FloatingDragNative(unittest.TestCase):
         self.run_panel(borderless=True,interactive_grip=True)
 
     def run_panel(self, borderless, interactive_grip=False):
-        from AppKit import NSWorkspace
+        from AppKit import NSWorkspace, NSRunningApplication
         import Quartz
         with tempfile.TemporaryDirectory(prefix='tacto-floating-drag-') as directory:
             base = Path(directory)
@@ -47,6 +47,15 @@ class FloatingDragNative(unittest.TestCase):
                 deadline = time.monotonic() + 10
                 while not (base / 'slider.txt').exists():
                     self.assertLess(time.monotonic(), deadline)
+                    time.sleep(.05)
+                # The fixture starts its executable directly, not through
+                # LaunchServices. A drawn window can precede bundle registration;
+                # wait for that read-only launch receipt before requesting input.
+                while True:
+                    running = NSRunningApplication.runningApplicationWithProcessIdentifier_(process.pid)
+                    if running and running.bundleIdentifier() == target and running.isFinishedLaunching():
+                        break
+                    self.assertLess(time.monotonic(), deadline, 'fixture bundle registration incomplete')
                     time.sleep(.05)
                 while True:
                     rows = Quartz.CGWindowListCopyWindowInfo(Quartz.kCGWindowListOptionOnScreenOnly, 0)
