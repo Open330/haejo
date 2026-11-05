@@ -866,3 +866,46 @@ organization_access_disabled error; zero reported usage on that failed request
 is not a completed-task cost saving. The signed tool-free Claude request earlier
 in this record succeeded through a different route. No Claude/Sky GUI success
 rate or paired timing is invented for this prepared mode.
+
+
+## 2026-11-05: rc.17 모델 arm과 조정자 점유 해제 후 실제 두 앱 과제
+
+Calculator에서 23×19를 계산하고 평가용 TextEdit 문서에 437을 입력했다.
+요청 모델 gpt-6.1-sol, reasoning medium, arm당 180초, 새 ephemeral 세션과
+빈 작업 폴더를 사용했다. 각 arm은 별도 signed source fixture worker와 새
+소유 문서로 준비했다. Tacto 모델 arm은 설치 rc.17(c28b1d9)을 사용했고,
+setup/oracle/cleanup 조정자는 후보 source 41854a2였다. exact-DMG 전체
+qualification 또는 순수 설치본 evaluator 실행으로 해석하지 않는다.
+
+최초 `reviews/2026-11-05/product-comparison-20261105-141607.jsonl`은 Tacto가
+24.7초 뒤 target_busy/not_started로 실패했고 Sky는 준비 실패로 미실행이었다.
+조정자의 연결이 앱 lease를 유지한 채 독립 에이전트를 기다리는 충돌을 확인해,
+RPC 응답 전에 release_targets로 점유를 넘기도록 수정했다. 연결·문서 pin은
+유지하되 이전 관찰과 대기 중 선택·저장패널 정보는 무효화한다. 별도 결함으로
+coordination_elapsed_ms 진단 필드 때문에 정상 문서 상태 응답을 버리던 Python
+검사도 수정했다. 관련53검사는 실패 없이 종료했고1개는 조건부 제외다.
+Claude 피어의 점유 해제 정적 검토에는 높은 우선 지적이 없었다. 이는 native
+실행 증거와 별개이며 후보 기능을 설치 rc.17에 소급 포함하지 않는다.
+
+수정 뒤 새 각1회, Tacto 먼저/Sky 나중의 실제 결과:
+
+| arm | 과제 판정 | 초 | 전체 입력 | cache read | 새 입력 | 출력 | fixture 정리 |
+|---|---|---:|---:|---:|---:|---:|---|
+| Tacto | 계산·본문 모두437 | 71.3 | 238,425 | 213,504 | 24,921 | 1,625 | 완료 |
+| Sky | 계산·본문 모두437 | 27.3 | 101,598 | 91,520 | 10,078 | 536 | close control 미발견, 미완료 |
+
+두 agent exit0, source/설치 runtime/실제 CODEX_HOME config/CLI 전후 해시는
+동일했고 실행 구간 앱 활성화 전환은 관측되지 않았다. Tacto는 Calculator
+Flow schema 오류 뒤 세션을 재시작했고, TextEdit set_value의 commit_unverified
+뒤에는 재입력 없이 새 세션으로437을 읽었다. 두 번의 세션 재시작과 안내·관찰
+반복을 원본에서 확인했다. 이 표본에서 Tacto가 더 느리고 입력·출력도 많았다.
+각 단계 시간이 계측되지 않아 두 재시작이 전체 시간 차이의 얼마를 차지했는지는
+확정하지 않는다. 명시 Save는 요구하지 않았으며 저장의 생산자 인과 증거도 아니다.
+
+원본은 `reviews/2026-11-05/product-comparison-20261105-142645.jsonl`과
+`product-comparison-20261105-142804.jsonl`, sidecar와 요약은
+`reviews/goal-resume-20261105-real-app-comparison/report.json`이다.
+`comparison_eligible=false`를 유지한다. 실제 serving 모델·숨은 context·서버
+cache·전체 책임 그래프·사용자 typing/caret 보존·실제 청구는 미검증이다.
+한 쌍과 고정 순서로 범용 속도/토큰 우위나 인과적 개선률을 주장하지 않는다.
+Sky 정리 실패와 별도 빈 문서 lifecycle의 CG 잔존 실패도 보존한다.
