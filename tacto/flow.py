@@ -1144,7 +1144,7 @@ class Flow:
                 for key in ("equals", "contains", "absent", "attribute", "absent_role"):
                     if pc.get(key) is not None and not isinstance(pc[key], str):
                         raise FlowFieldError(
-                            'check value must be text', path+'.'+where+'.'+key,
+                            where+'.'+key+' must be text', path+'.'+where+'.'+key,
                             'Use text for '+key+'; compare with equals:"expected text".')
                 group=pc.get('all_of',[])
                 if (not isinstance(group,list) or len(group)>32 or depth>8
