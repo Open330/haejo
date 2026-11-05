@@ -126,6 +126,16 @@ class GeneralObservationPagingTests(unittest.TestCase):
         for obs in ({'truncated': True}, {'next_observation_cursor': ''}, {'next_observation_cursor': False}):
             self.assertIsNone(continuation_candidate(obs))
 
+    def test_observation_affordance_is_not_offered_as_a_commit_witness(self):
+        from tacto.general import _witness
+        page = continuation_candidate({'next_observation_cursor': 'private-cursor'})
+        with patch('tacto.general._probe') as probe, patch('tacto.general._probe_response') as read:
+            def ask(*args):
+                self.fail('A page request is not a readable recipient/body witness')
+            self.assertIsNone(_witness(object(), {'obs_id': 'owned'}, 'owned', 'recipient', [page], ask, lambda _: None))
+        probe.assert_not_called()
+        read.assert_not_called()
+
 
 if __name__ == '__main__':
     unittest.main()

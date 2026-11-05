@@ -266,7 +266,7 @@ def _witness(driver, obs, target: str, field_name: str, cands: list,
     """
     if ask_where is None:
         return None
-    readable = [c for c in cands if "read" in c.get("can", ())]
+    readable = [c for c in cands if not c.get('_observation_page') and "read" in c.get("can", ())]
     if not readable:
         return None
     # WHERE a fact is shown is a question about the screen's layout; its
