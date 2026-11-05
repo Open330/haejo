@@ -5333,7 +5333,30 @@ def scenario_native_select_scroll_receiving_failure_fixture():
     return True
 
 
+def scenario_native_observation_pages_fixed(provider='fixed'):
+    """240 owned real controls, explicit continuation, independent callback count."""
+    import runpy
+    from datetime import date
+    from pathlib import Path
+    from tacto.helper import InheritedHelperDriver
+    assert InheritedHelperDriver.available(), 'signed launcher required'
+    root = Path(__file__).resolve().parents[1]
+    output = root/'reviews'/date.today().isoformat()/f'native-observation-pages-{provider}-{time.time_ns()}.json'
+    output.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    with output.open('x') as stream:
+        probe = runpy.run_path(str(root/'examples/probes/native-observation-pages.py'))
+        result = probe['run_probe'](InheritedHelperDriver(), provider=provider)
+        json.dump(result, stream, ensure_ascii=False, indent=2)
+        stream.write('\n')
+    print('  native observation pages report: ' + str(output))
+    assert result['passed'], result.get('why') or result.get('error_class') or 'independent receiving/audit failed'
+    return True
+
+
 SCENARIOS = [
+    ('native_observation_pages_fixed (240 owned AppKit controls, no model)', scenario_native_observation_pages_fixed),
+    ('native_observation_pages_codex (240 owned AppKit controls, live Codex)', lambda: scenario_native_observation_pages_fixed('codex')),
+    ('native_observation_pages_claude (240 owned AppKit controls, live Claude)', lambda: scenario_native_observation_pages_fixed('claude')),
     ("signed_provider_envelope (isolated model telemetry, no UI)", scenario_signed_provider_envelope),
     ("native_coordinate_fixture (isolated signed window click)", scenario_native_coordinate_fixture),
     ("native_select_model_fixture (isolated model and owned AppKit popup)", scenario_native_select_model_fixture),
@@ -5660,6 +5683,7 @@ _LOOKED = [False]
 #     ./launcher/tacto eval peer_authentication
 #     ./launcher/tacto eval an_abort_lasts
 ISOLATED = {
+    'native_observation_pages_fixed', 'native_observation_pages_codex', 'native_observation_pages_claude',
     "signed_textedit_saved_state",
     "signed_popover_routing_refusal",
     "signed_popover_prepared_receipt",
@@ -5749,6 +5773,9 @@ ISOLATED = {
 }
 
 SCENARIO_REQUIREMENTS: dict = {
+    'native_observation_pages_fixed': {'gui', 'native'},
+    'native_observation_pages_codex': {'gui', 'native', 'model'},
+    'native_observation_pages_claude': {'gui', 'native', 'model'},
     "signed_textedit_saved_state": {"gui", "native"},
     "signed_popover_routing_refusal": {"gui", "native"},
     "signed_popover_prepared_receipt": {"gui", "native"},

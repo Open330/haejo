@@ -163,8 +163,10 @@ def main():
     with os.fdopen(descriptor, 'w') as stream:
         try:
             from tacto.driver import Driver
-            from tacto.helper import HelperDriver
-            driver = Driver() if args.transport == 'direct' else HelperDriver()
+            from tacto.helper import InheritedHelperDriver
+            if args.transport == 'helper' and not InheritedHelperDriver.available():
+                raise RuntimeError('Use launcher/tacto eval native_observation_pages_fixed for the signed path')
+            driver = Driver() if args.transport == 'direct' else InheritedHelperDriver()
             try:
                 report = run_probe(driver, provider=args.provider, budget=args.budget)
             finally:
