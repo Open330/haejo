@@ -11,6 +11,42 @@ ROOT = Path(__file__).resolve().parents[1]
 
 @unittest.skipUnless(sys.platform == 'darwin' and shutil.which('xcrun'), 'macOS Swift required')
 class SwiftWindowInputTests(unittest.TestCase):
+    def test_real_owned_floating_panel_metadata(self):
+        harness = r'''import Foundation
+import AppKit
+import ApplicationServices
+import Darwin
+let app=NSApplication.shared
+app.setActivationPolicy(.accessory)
+let panel=NSWindow(contentRect:NSRect(x:200,y:200,width:240,height:120),
+ styleMask:[.titled],backing:.buffered,defer:false)
+panel.isReleasedWhenClosed=false
+panel.level = .floating
+panel.orderFrontRegardless()
+RunLoop.current.run(until:Date().addingTimeInterval(0.15))
+defer {panel.close()}
+let windowID=CGWindowID(panel.windowNumber)
+let entries=CGWindowListCopyWindowInfo(.optionAll,0) as! [[String:Any]]
+let entry=entries.first {($0[kCGWindowNumber as String] as? NSNumber)?.uint32Value==windowID}!
+precondition((entry[kCGWindowLayer as String] as! NSNumber).intValue==3)
+let frame=try windowInputCGFrame(windowID,getpid())
+precondition(frame.width==240 && frame.height>=120)
+do {
+ _=try windowInputCGFrame(windowID,getpid()+1)
+ fatalError("wrong owner admitted")
+} catch NativeWindowInputError.refused {}
+print("REAL_FLOATING_PANEL_PASS")
+'''
+        with tempfile.TemporaryDirectory(prefix='tacto-floating-panel-') as directory:
+            source,binary=Path(directory)/'main.swift',Path(directory)/'check'
+            source.write_text(harness)
+            built=subprocess.run(['xcrun','swiftc',str(source),str(ROOT/'helper/WindowInput.swift'),
+                str(ROOT/'helper/FrontmostProcess.swift'),'-o',str(binary)],capture_output=True,text=True,timeout=90)
+            self.assertEqual(0,built.returncode,built.stderr)
+            result=subprocess.run([str(binary)],capture_output=True,text=True,timeout=15)
+            self.assertEqual(0,result.returncode,result.stderr)
+            self.assertEqual('REAL_FLOATING_PANEL_PASS',result.stdout.strip())
+
     def test_popup_visibility_refuses_unknown_and_proves_absence_from_complete_list(self):
         harness = r'''import Foundation
 import ApplicationServices
@@ -19,6 +55,21 @@ let valid:[String:Any]=[kCGWindowNumber as String:17,kCGWindowOwnerPID as String
 let absent=try nativePopupVisibility(17,42,read:{[]})
 let visible=try nativePopupVisibility(17,42,read:{[valid]})
 precondition(!absent && visible)
+var floating=valid
+floating[kCGWindowLayer as String]=CGWindowLevelForKey(.floatingWindow)
+let floatingVisible=try nativePopupVisibility(17,42,read:{[floating]})
+precondition(floatingVisible)
+floating[kCGWindowBounds as String]=["X":10,"Y":20,"Width":300,"Height":200]
+let floatingFrame=try windowInputCGFrame(17,42,read:{[floating]})
+precondition(floatingFrame==CGRect(x:10,y:20,width:300,height:200))
+for layer in [-1,1,4,24,25,1000] {
+ var unsupported=floating
+ unsupported[kCGWindowLayer as String]=layer
+ do {
+  _=try windowInputCGFrame(17,42,read:{[unsupported]})
+  fatalError("unsupported layer admitted")
+ } catch NativeWindowInputError.refused {}
+}
 for mode in ["nil","duplicate","owner","layer","numeric_bool","missing_id","zero_id"] {
  var entry=valid
  if mode=="owner" {entry[kCGWindowOwnerPID as String]=99}

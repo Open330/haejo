@@ -26,6 +26,10 @@ verify the effect before continuing. Use the normal session guide for Flow
 framing; no extra approval is needed for an already-authorized temporary edit.
 
 Requires the signed helper capabilities `action.drag` and `drag.window_bound`.
+Owned on-screen normal and floating app windows (macOS layers 0 and 3) are
+supported by window binding. Layer 3 alone is not a reason to abandon Tacto.
+An older helper may reject it with `CG window ownership or visibility mismatch`;
+update that helper and re-observe before another undispatched gesture.
 The target is its app's focused window; the app may be in front or in the background.
 The helper sends a continuous left-button stroke to that window; it does not
 activate apps, move the global pointer, or provide cross-app file dragging.

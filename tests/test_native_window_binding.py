@@ -119,6 +119,15 @@ class NativeWindowBindingTests(unittest.TestCase):
             with self.assertRaises(dataclasses.FrozenInstanceError):
                 result.pid = 5
 
+    def test_owned_floating_window_can_be_bound_and_revalidated(self):
+        b = Backend()
+        b.cg[0]['layer'] = 3
+        result = self.capture(b)
+        self.assertIs(binding.validate_binding(result), result)
+        b.cg[0]['pid'] = 9
+        with self.assertRaises(binding.NativeWindowBindingError):
+            binding.validate_binding(result)
+
     def test_invalid_input_rejected_before_mac_imports(self):
         with patch.object(binding, '_load_backend') as load:
             for element, pid, launch in [(None,4,None),('x',True,None),('x',0,None),

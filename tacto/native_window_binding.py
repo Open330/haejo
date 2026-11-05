@@ -207,7 +207,11 @@ def _capture(element, pid, requested_launch, backend, point_kind="element_center
     if len(matches) != 1:
         raise NativeWindowBindingError('CG window not unique')
     info = matches[0]
-    if info['pid'] != pid or info['onscreen'] != True or info['layer'] != 0 or _rect(info['bounds']) != bounds:
+    # Ordinary app panels use the macOS floating level (3). Their layer does
+    # not invalidate the already pinned AX owner/window and hit-test identity.
+    if (info['pid'] != pid or info['onscreen'] != True
+            or type(info['layer']) is not int or info['layer'] not in (0, 3)
+            or _rect(info['bounds']) != bounds):
         raise NativeWindowBindingError('CG window ownership or geometry mismatch')
     x, y, w, h = bounds
     ex, ey, ew, eh = rect

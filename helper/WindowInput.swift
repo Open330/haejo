@@ -553,9 +553,10 @@ private func windowInputNumber(_ value: Any?) throws -> Double {
 }
 
 func windowInputCGFrame(_ windowID: CGWindowID, _ pid: pid_t,
-                                scope: NativeWindowReadScope? = nil) throws -> CGRect {
+                                scope: NativeWindowReadScope? = nil,
+                                read: (() -> [[String: Any]]?)? = nil) throws -> CGRect {
     try scope?.ready()
-    guard let windows = CGWindowListCopyWindowInfo(.optionAll, 0) as? [[String: Any]] else {
+    guard let windows = read != nil ? read!() : CGWindowListCopyWindowInfo(.optionAll, 0) as? [[String: Any]] else {
         throw NativeWindowInputError.refused("CG window metadata unavailable")
     }
     var matches: [[String: Any]] = []
@@ -567,7 +568,8 @@ func windowInputCGFrame(_ windowID: CGWindowID, _ pid: pid_t,
     guard matches.count == 1 else { throw NativeWindowInputError.refused("CG window not unique") }
     let entry = matches[0]
     guard try windowInputNumber(entry[kCGWindowOwnerPID as String]) == Double(pid),
-          try windowInputNumber(entry[kCGWindowLayer as String]) == 0,
+          [Double(CGWindowLevelForKey(.normalWindow)), Double(CGWindowLevelForKey(.floatingWindow))]
+            .contains(try windowInputNumber(entry[kCGWindowLayer as String])),
           let onScreen = entry[kCGWindowIsOnscreen as String] as? NSNumber,
           CFGetTypeID(onScreen) == CFBooleanGetTypeID(), onScreen.boolValue,
           let bounds = entry[kCGWindowBounds as String] as? [String: Any] else {
@@ -599,7 +601,8 @@ func nativePopupVisibility(_ windowID:CGWindowID,_ pid:pid_t,
     guard matches.count<=1 else {throw NativeWindowInputError.refused("popup window not unique")}
     guard let entry=matches.first else {return false}
     guard try windowInputNumber(entry[kCGWindowOwnerPID as String])==Double(pid),
-          try windowInputNumber(entry[kCGWindowLayer as String])==0,
+          [Double(CGWindowLevelForKey(.normalWindow)), Double(CGWindowLevelForKey(.floatingWindow))]
+            .contains(try windowInputNumber(entry[kCGWindowLayer as String])),
           let visible=entry[kCGWindowIsOnscreen as String] as? NSNumber,
           CFGetTypeID(visible)==CFBooleanGetTypeID(),visible.boolValue else {
         throw NativeWindowInputError.refused("popup ownership or visibility mismatch")
