@@ -1,11 +1,12 @@
 # 지원 경로와 검증 범위
 
-2026-10-04 개발 snapshot. 기능을 제공하는 것, 실제 결과를 확인한 것,
-범용 앱에서 안정적으로 동작하는 것은 서로 다른 기준이다.
+2026-10-04 기본 snapshot과 2026-11-05 관측 후속 범위다. 기능 제공, 실제 결과
+확인, 범용 앱에서의 안정성은 서로 다른 기준이다. 최신 배포 상태와 미완료
+항목은 [현재 작업](completion-plan.md)에 있다.
 
 | 기능 | macOS 접근성 / signed helper | 별도 Chromium 페이지 | 시각 API |
 | --- | --- | --- | --- |
-| 관측 | AX tree·probe·selection | CDP AX tree·DOM identity·probe | 브라우저 CSS viewport PNG; signed helper의 소유 native 창 캡처 실측 |
+| 관측 | AX tree·probe·selection; 후보 빌드의 명시적 continuation·이름 검색은 아래 범위 참조 | CDP AX tree·DOM identity·probe | 브라우저 CSS viewport PNG; signed helper의 소유 native 창 캡처 실측 |
 | 전체 문서 본문 | TextEdit 완전 본문·문서 token·경로, direct/signed 실측; 추가 경로 선택·token 범위 관측은 주입 회귀 검증, 다중 실문서 검증은 남음; 형식·최종 저장 미검증 | 별도 API 없음 | 이미지로 전체 본문을 증명하지 않음 |
 | 클릭·입력 | 접근성 요소; host 승인된 Window-bound point와 opaque window input 별도 제공 | 관측한 DOM 요소 | browser host 좌표; native 명시한 scope에서 fresh image와 창 결합·host 승인·결과 검증 |
 | 스크롤 | helper capability 확인 | 대상의 scroll container, 행동 후 재관찰 | 별도 좌표 scroll API 없음 |
@@ -15,6 +16,15 @@
 | native 선택 | signed helper: owned AppKit PopUpButton 및 측정된 NSComboBox의 열기→label 선택 실제 통과; ComboBox는 물리 popup 창·행을 고정한 클릭과 수신 전이를 검증. 다른 AXComboBox 구조는 unsupported | 해당 없음 | 해당 없음 |
 | flow 재생 | 동일 backend·대상 binding | 동일 origin·대상 binding | 좌표 click을 자동 flow로 학습하지 않음 |
 | 저장·전송 완료 | 앱별 host receipt 연결 필요 | 호스트가 제공한 event-bound receipt 필요 | 이미지나 모델의 done은 완료 증거가 아님 |
+
+2026-11-05 관측 후속: `observe.continuation_v1`은 생략된 AX 부분을 같은 연결에서
+다음 페이지로 읽는다. 일반 플래너와 session에서 사용할 수 있고, 정확한 이름은
+기존 reveal 관측으로 바로 찾는다. literal presence 검증은 모델을 다시 부르지
+않고 남은 페이지를 읽을 수 있다. direct/signed 실제240버튼 창과 Codex/Claude
+시험, CLI 세션의 입력1회 수신을 확인했다. 일반 사용자 앱의 전체 성공률이나
+물리 타이핑 보존을 뜻하지 않는다. 페이지·깊이·큐 한계와 요청 예산은
+[프로토콜](../PROTOCOL.md#구현된-native-관측-continuation-2026-11-05-후보)에
+명시한다. 현재 설치본과 후보 빌드는 [완료 범위](completion-plan.md)에서 구분한다.
 
 브라우저 드라이버는 기존 Chrome/Safari 사용자 세션에 자동 연결하지 않는다.
 `tacto do`는 현재 macOS 경로이며, 브라우저와 시각 API는 Python에서 명시적으로

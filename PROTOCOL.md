@@ -199,6 +199,48 @@ close / markDeliverable / markHandoff`. 인벤토리는 `cua.initialize()` →
  "evidence_obs_id": "o21", "narration": "계산 결과 408을 확인했습니다"}
 ```
 
+#### 구현된 native 관측 continuation (2026-11-05 후보)
+
+`observe.continuation_v1`을 제공하는 macOS backend는 첫 관측에서 생략한
+부분을 같은 연결에서 이어 읽는다. 첫 관측의 자식60개/2,500노드 제한을
+일괄 확대하지 않는다. 생략분이 있으면 응답에 `next_observation_cursor`가 있다.
+
+```jsonc
+{"type":"observe","target":"com.apple.finder"}
+// → observation, obs_id, tree, next_observation_cursor
+{"type":"observe","target":"com.apple.finder",
+ "continuation":"oc0123456789abcdef0123456789abcdef"}
+// → 새 observation/obs_id/요소 번호, continuation 메타데이터,
+//   남은 부분이 있을 때만 next_observation_cursor
+```
+
+cursor는 발급 관측·대상 프로세스·문서 token·창 범위에 묶인1회용 값이다.
+새 관측이나 action 뒤에는 이전 cursor를 사용하지 않는다. 바뀐 목록은
+`continuation_stale`, 종료되거나 바뀐 프로세스는 `continuation_target_changed`,
+오래된 cursor는 `continuation_unknown_or_expired`로 반환한다. 페이지끼리
+요소 번호를 합치지 않으며 새 페이지의 실제 창·조상 문맥으로 다시 해석한다.
+필요한 대상은 새 관측으로 다시 찾는다. `reveal`/`window_identity`와 같은
+요청에 continuation을 섞지 않는다.
+
+`continuation` 메타데이터는 page, entries_remaining, frontier_queue_capped,
+depth_limit_dropped와 limits를 제공한다. 페이지당2,500노드/자식60, 깊이25,
+frontier4,096개이며 초과나 미확인은 전체 목록을 읽었다는 증거가 아니다.
+읽기 시간은 기존 AX 호출 특성을 따르며 caller의 deadline은 호출 사이에 확인한다.
+
+일반 플래너와 CLI `session`은 cursor를 모델에 노출하지 않는다. session의
+`TACTO_OBSERVATION_MORE`가 있을 때만 `{"observe_next":true}`로 다음 관측을
+요청한다. 이름 검색이 제공되고 정확한 이름을 알면
+`{"find_in_observation":"exact label"}`로 기존 `reveal` 관측을 요청할 수 있다.
+둘 다 앱 입력 없이 동작하며 session에서 합산8회·원래 입력 deadline을 공유한다.
+고정 문서의 검색도 같은 document_token과 Document 경로 검증을 유지한다.
+
+Python `wait_until(..., search_pages=True)`는 글자 존재 확인처럼 **포함형**인
+predicate에만 사용한다. 첫 페이지에서 찾지 못하면 추가 관측을 최대8회 읽는다.
+전체 before/after tree 비교에 사용하면 부분 페이지를 변화로 오판할 수 있으므로
+기본값은 false다. 이 읽기는 모델 호출·입력·저장/전송 영수증을 만들지 않는다.
+검증 범위와 원본은 [현재 작업](docs/completion-plan.md),
+[측정 기록](docs/benchmark-records.md)에 구분한다.
+
 ### 3.3 에이전트 루프 (L3)
 
 ```
