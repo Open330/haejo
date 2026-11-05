@@ -3738,11 +3738,12 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
             if let one = element as? String { path.append([one]) }
             else if let many = element as? [String], !many.isEmpty { path.append(many) }
             else { return ["type": "error", "error": "action_failed",
-                           "effect": "not_started",
+                           "effect": "not_started", "reason_code": "menu_path_invalid",
                            "detail": "menu path 형식 오류"] }
         }
         if path.isEmpty || path.count > 6 {
-            return ["type": "error", "error": "action_failed",
+            return ["type": "error", "error": "action_failed", "effect": "not_started",
+                    "reason_code": "menu_path_invalid",
                     "detail": "menu path 길이가 올바르지 않습니다"]
         }
         // This used to raise the app first, because an app validates its menus
@@ -3753,6 +3754,7 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
         let wasFront = isFrontmost(pid: p)
         guard let (item, walked) = menuItem(pid: p, path: path) else {
             return ["type": "error", "error": "action_failed", "effect": "not_started",
+                    "reason_code": "menu_item_not_unique", "target_was_front": wasFront,
                     "detail": "메뉴를 유일하게 찾지 못했습니다"]
         }
         guard let enabled = attr(item, kAXEnabledAttribute as String),
@@ -3766,8 +3768,8 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
             // Said here rather than fixed by raising the app: which of those
             // two it is decides whether asking the person is worth it.
             return ["type": "error", "error": "action_failed",
-                    "effect": "not_started",
-                    "needs_foreground": !wasFront,
+                    "effect": "not_started", "reason_code": "menu_item_disabled",
+                    "needs_foreground": !wasFront, "target_was_front": wasFront,
                     "detail": "메뉴 '\(walked.joined(separator: " > "))' 가 비활성 상태입니다"
                               + (wasFront ? "" : " (이 앱이 앞에 있지 않아 그렇게 보일 수 있습니다)")]
         }
@@ -3792,6 +3794,7 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
             }
             guard why.isEmpty else {
                 return ["type": "error", "error": "action_failed", "effect": "not_started",
+                        "reason_code": "menu_focused_document_mismatch",
                         "detail": "포커스된 문서가 승인한 파일이 아니어서 누르지 않았습니다 (\(why))"]
             }
             // The check took time; stop and the deadline are asked again
@@ -3804,7 +3807,9 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
         let menuError = AXUIElementPerformAction(item, kAXPressAction as CFString)
         if menuError != .success {
             return ["type": "error", "error": "action_failed",
-                    "effect": axActionFailureEffect(menuError), "detail": "메뉴 실행 실패"]
+                    "effect": axActionFailureEffect(menuError), "reason_code": "menu_press_failed",
+                    "ax_error": Int(menuError.rawValue), "target_was_front": wasFront,
+                    "detail": "메뉴 실행 실패"]
         }
         // Some commands make the app bring itself forward (Finder's Go > Go to
         // Folder…, measured 2026-10-08). Not prevented — the press was the

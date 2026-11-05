@@ -194,6 +194,22 @@ AX 조회 자체의 오류도 구분한다. AttributeUnsupported/NoValue만 미�
 응답 정지 실측(비공개 로컬 기록: `reviews/2026-09-19/menu-unresponsive-direct-20260920-a/report.json`; 공개 원본 미포함): 소유 AppKit 자식 프로세스만 SIGSTOP한 상태에서 Python direct 메뉴 조회가1.008초에 `menu_read_failed`로 반환되고, SIGCONT 후 정상 조회로 복구됐다. 비상8초 복구 타이머는 사용되지 않았다. exact child 정리와 독립 입력 감사를 포함한다. 이 검사는 signed helper의 응답 정지 실측으로 합산하지 않는다.
 
 
+## 배경 앱의 응답자 체인 메뉴와 key equivalent (2026-11-05 실측)
+
+`menu` act의 거절은 이제 `reason_code`로 구분된다: `menu_path_invalid`, `menu_item_not_unique`, `menu_item_disabled`(`needs_foreground`와 `target_was_front` 포함), `menu_focused_document_mismatch`, `menu_press_failed`(원시 `ax_error`와 `target_was_front` 포함). path 길이 거절에는 누락됐던 `effect: not_started`도 붙였다. 사람이 읽는 `detail` 문구는 그대로이며, 판정에는 문구 대신 `reason_code`를 쓴다.
+
+배경에 있는 TextEdit의 File > Save As…는 실행할 수 있는 비활성화 없는 경로가 확인되지 않았다. 측정 범위는 다음과 같다(소유한 RTF 하나만 사용, `examples/probes/background_menu_key_equivalent.py`, 비공개 로컬 기록 `reviews/2026-11-05/background-menu-key-equivalent-1793882425509131000.json`):
+
+- 배경 상태 3회: 소유 창이 TextEdit의 `AXFocusedWindow`이자 `AXMain`이었고, 메뉴 항목은 `AXEnabled=false`였다.
+- 전달 대조군: 같은 창에 바인딩해 pid로 보낸 Right 키는 매번 소유 문서의 caret을 1칸 옮겼다. 따라서 키 이벤트는 앱에 도달한다.
+- key equivalent: 메뉴 항목의 관측값(`AXMenuItemCmdChar`=`S`, `AXMenuItemCmdModifiers`=3, 즉 ⌥⇧⌘S)에서 이벤트를 만들고, keyCode는 현재 키보드 배열에서 유일하게 대응하는 키로 구했다. 이 이벤트를 같은 방식으로 보냈을 때 3초 안에 시트가 생기지 않았다(3/3). 활성화 기록도 없었다(focus witness의 activation 0).
+- 전경 대조군(`--foreground-control`, 측정 전용 활성화): TextEdit이 앞에 있고 소유 창이 focused일 때 같은 이벤트는 0.63초 만에 소유 창에 저장 시트를 열었다. 시트는 Cancel AXPress로 닫았다. 따라서 이벤트 형식은 맞고, 차이는 앱이 비활성이라는 점뿐이다.
+- 별도로 root run22에서는 disabled 항목에 AXPress를 허용해 봤다. 응답은 `acted`였지만 패널이 열리지 않아 postcondition_timeout으로 끝났다. 이 실험용 완화는 되돌렸다.
+
+결론: 응답자 체인으로 검증되는 문서 명령(Save As 등)은 배경에서 메뉴 AXPress로도, 관측 key equivalent의 창 바인딩 전달로도 실행되지 않는다. helper는 기존대로 `menu_item_disabled` + `needs_foreground`로 실행 전에 거절한다. 포커스를 가져오는 우회(activate, AXFrontmost 쓰기, 전역 CGEvent)는 추가하지 않았다. key equivalent 경로도 제품에 넣지 않았다. 이벤트가 전달됐다는 응답(ack)만으로는 앱이 명령을 받았다는 증거가 되지 않기 때문이다. 남은 선택지는 사람이 동의한 전경 전환(`tacto activate … --window`)이다. 패널 없이 Apple Event로 저장하는 방식은 Save As 패널 흐름과 의미가 다르고 별도 Automation 권한이 필요하므로 이 범위 밖이다.
+
+측정 범위의 한계: TextEdit 하나, macOS 27.2, 이 키보드 배열 하나에서 측정했다. 다른 앱의 직접 target 메뉴 항목은 배경에서도 동작할 수 있다(`background-menu-refusal.py`). 이번 실행에서는 `open -g`가 TextEdit을 앞으로 가져오지 않았지만(앞 앱이 Finder로 유지), 같은 날 다른 실행에서는 `open -g` 직후 TextEdit이 앞에 관측됐다. 그래서 probe는 open 뒤 소유 전경 창이 한 번 앞을 가져간 다음부터 witness를 켠다.
+
 ## General의 명시적 창 준비
 
 2026-10-01의 추가 owned 실험에서는 프로세스에 주소를 지정한 AppKit activation

@@ -150,7 +150,13 @@ def run_probe(driver):
                     entry = {key:row[key] for key in ('status','step','action','stage','error') if key in row}
                     detail = row.get('detail')
                     if isinstance(detail, dict):
-                        entry['detail'] = {key:detail[key] for key in ('type','error','effect','detail','needs_foreground','reason_code','ax_error') if key in detail}
+                        # Enough to tell which refusal it was (reason_code / detail),
+                        # never document content.
+                        entry['detail'] = {key:detail[key] for key in
+                            ('type','error','effect','reason_code','needs_foreground',
+                             'target_was_front','ax_error','detail') if key in detail}
+                        if isinstance(entry['detail'].get('detail'), str):
+                            entry['detail']['detail'] = entry['detail']['detail'][:400]
                     elif isinstance(detail, str):
                         entry['detail'] = detail[:400]
                     report['flow_log'].append(entry)
