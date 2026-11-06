@@ -1,0 +1,453 @@
+{
+  "scope": "Observed follow-up profiling; no general causal or billing claim",
+  "requested_model": "gpt-6.1-sol",
+  "requested_reasoning_effort": "medium",
+  "timeout_seconds": 180,
+  "measured_before_source": "dc7d25ab3c827daa1ad1520026a50ca2e31a49ed",
+  "measured_after_source": "db900006049185bc41386381818f5e2851a63c8d",
+  "final_source": "85b5702c49f93d02d5683cd4894679d8e9e04c26",
+  "final_tested_source": "1f8ff2e274ad81b56d8c3656710088284f1c8241",
+  "final_scope_restriction": "Immediate expect polling is click-only; text/key/menu settling retained. No extra end-to-end speedup claimed for this restriction.",
+  "final_native_confirmation": {
+    "passed": true,
+    "runs": 6,
+    "scope": "click expect and repeated reads"
+  },
+  "native_binaries_identical": true,
+  "agent_config_identical": true,
+  "runtime_path_lengths_identical": true,
+  "replay_profile": {
+    "scope": "same declarative Flow, signed native binaries and Python 3.11; alternating paired model-free Calculator replay; not agent end-to-end",
+    "models_called": 0,
+    "native_binaries_identical": true,
+    "python_version": "3.11.16",
+    "runs_per_arm_per_scenario": 3,
+    "summary": {
+      "expect": {
+        "before": {
+          "replay_median_seconds": 6.993951,
+          "runs": 3
+        },
+        "after": {
+          "replay_median_seconds": 1.938181,
+          "runs": 3
+        }
+      },
+      "reads": {
+        "before": {
+          "replay_median_seconds": 3.408497,
+          "runs": 3
+        },
+        "after": {
+          "replay_median_seconds": 0.281335,
+          "runs": 3
+        }
+      },
+      "unchecked": {
+        "before": {
+          "replay_median_seconds": 7.003958,
+          "runs": 3
+        },
+        "after": {
+          "replay_median_seconds": 6.990513,
+          "runs": 3
+        }
+      }
+    },
+    "replay_seconds": {
+      "expect": {
+        "before": [
+          7.12545,
+          6.993951,
+          6.923562
+        ],
+        "after": [
+          1.938181,
+          1.951807,
+          1.794757
+        ]
+      },
+      "reads": {
+        "before": [
+          3.409323,
+          3.388693,
+          3.408497
+        ],
+        "after": [
+          0.239152,
+          0.311123,
+          0.281335
+        ]
+      },
+      "unchecked": {
+        "before": [
+          6.955276,
+          7.003958,
+          7.02382
+        ],
+        "after": [
+          7.064836,
+          6.990513,
+          6.964364
+        ]
+      }
+    },
+    "limitations": [
+      "Alternating three pairs per scenario on one Mac; not a fleet latency claim.",
+      "Same Flow inputs were prepared before timing; this is not agent authoring or billing.",
+      "Unchecked steps retain the fixed settling behavior; no result cache or omitted observations."
+    ]
+  },
+  "cohorts": {
+    "before": {
+      "arms": {
+        "tacto": {
+          "runs": 3,
+          "passed": 3,
+          "seconds_median": 43.8,
+          "input_total": 383418,
+          "uncached_input_total": 36026,
+          "output_total": 2494,
+          "repair_total": 0,
+          "foreground_changed_runs": 0
+        }
+      },
+      "rows": [
+        {
+          "arm": "tacto",
+          "rep": 0,
+          "status": "passed",
+          "seconds": 43.8,
+          "tokens": {
+            "input_tokens": 134366,
+            "cached_input_tokens": 117632,
+            "uncached_input_tokens": 16734,
+            "output_tokens": 851,
+            "billing_verified": false
+          },
+          "repair_count": 0,
+          "activated_bundles": [],
+          "background_qualified": true,
+          "source_changed": false,
+          "cleanup": "completed",
+          "calculator_replay_seconds": 5.74909,
+          "calculator_flow_bytes": 655,
+          "calculator_flow_received_seconds": 7.06256987497909,
+          "calculator_call_counts": {
+            "act": 6,
+            "observe": 6,
+            "wait_until": 1
+          }
+        },
+        {
+          "arm": "tacto",
+          "rep": 1,
+          "status": "passed",
+          "seconds": 43.9,
+          "tokens": {
+            "input_tokens": 134310,
+            "cached_input_tokens": 124544,
+            "uncached_input_tokens": 9766,
+            "output_tokens": 837,
+            "billing_verified": false
+          },
+          "repair_count": 0,
+          "activated_bundles": [],
+          "background_qualified": true,
+          "source_changed": false,
+          "cleanup": "completed",
+          "calculator_replay_seconds": 5.839381,
+          "calculator_flow_bytes": 655,
+          "calculator_flow_received_seconds": 5.781733708980028,
+          "calculator_call_counts": {
+            "act": 6,
+            "observe": 6,
+            "wait_until": 1
+          }
+        },
+        {
+          "arm": "tacto",
+          "rep": 2,
+          "status": "passed",
+          "seconds": 40.1,
+          "tokens": {
+            "input_tokens": 114742,
+            "cached_input_tokens": 105216,
+            "uncached_input_tokens": 9526,
+            "output_tokens": 806,
+            "billing_verified": false
+          },
+          "repair_count": 0,
+          "activated_bundles": [],
+          "background_qualified": true,
+          "source_changed": false,
+          "cleanup": "completed",
+          "calculator_replay_seconds": 4.835218,
+          "calculator_flow_bytes": 674,
+          "calculator_flow_received_seconds": 5.8676394170033745,
+          "calculator_call_counts": {
+            "act": 6,
+            "observe": 5,
+            "wait_until": 2
+          }
+        }
+      ],
+      "execution": {
+        "harness_exit": 2,
+        "evidence_stable": true,
+        "source_commit": "dc7d25ab3c827daa1ad1520026a50ca2e31a49ed",
+        "profiling_request_same_for_both_Tacto_cohorts": true,
+        "strict_equivalence_not_verified": true
+      }
+    },
+    "after": {
+      "arms": {
+        "tacto": {
+          "runs": 3,
+          "passed": 3,
+          "seconds_median": 35.0,
+          "input_total": 339377,
+          "uncached_input_total": 27825,
+          "output_total": 2423,
+          "repair_total": 0,
+          "foreground_changed_runs": 1
+        },
+        "sky": {
+          "runs": 3,
+          "passed": 3,
+          "seconds_median": 30.0,
+          "input_total": 404121,
+          "uncached_input_total": 55705,
+          "output_total": 1696,
+          "repair_total": 0,
+          "foreground_changed_runs": 0
+        }
+      },
+      "rows": [
+        {
+          "arm": "tacto",
+          "rep": 0,
+          "status": "passed",
+          "seconds": 34.2,
+          "tokens": {
+            "input_tokens": 109528,
+            "cached_input_tokens": 100864,
+            "uncached_input_tokens": 8664,
+            "output_tokens": 813,
+            "billing_verified": false
+          },
+          "repair_count": 0,
+          "activated_bundles": [
+            "com.apple.systempreferences"
+          ],
+          "background_qualified": false,
+          "source_changed": false,
+          "cleanup": "completed",
+          "calculator_replay_seconds": 0.722663,
+          "calculator_flow_bytes": 737,
+          "calculator_flow_received_seconds": 6.746945124992635,
+          "calculator_call_counts": {
+            "act": 6,
+            "observe": 1,
+            "wait_until": 6
+          }
+        },
+        {
+          "arm": "sky",
+          "rep": 0,
+          "status": "passed",
+          "seconds": 30.0,
+          "tokens": {
+            "input_tokens": 116630,
+            "cached_input_tokens": 91136,
+            "uncached_input_tokens": 25494,
+            "output_tokens": 455,
+            "billing_verified": false
+          },
+          "repair_count": 0,
+          "activated_bundles": [],
+          "background_qualified": true,
+          "source_changed": false,
+          "cleanup": "completed",
+          "calculator_replay_seconds": null
+        },
+        {
+          "arm": "sky",
+          "rep": 1,
+          "status": "passed",
+          "seconds": 29.9,
+          "tokens": {
+            "input_tokens": 143270,
+            "cached_input_tokens": 132864,
+            "uncached_input_tokens": 10406,
+            "output_tokens": 596,
+            "billing_verified": false
+          },
+          "repair_count": 0,
+          "activated_bundles": [],
+          "background_qualified": true,
+          "source_changed": false,
+          "cleanup": "completed",
+          "calculator_replay_seconds": null
+        },
+        {
+          "arm": "tacto",
+          "rep": 1,
+          "status": "passed",
+          "seconds": 38.0,
+          "tokens": {
+            "input_tokens": 114910,
+            "cached_input_tokens": 105344,
+            "uncached_input_tokens": 9566,
+            "output_tokens": 800,
+            "billing_verified": false
+          },
+          "repair_count": 0,
+          "activated_bundles": [],
+          "background_qualified": true,
+          "source_changed": false,
+          "cleanup": "completed",
+          "calculator_replay_seconds": 0.808406,
+          "calculator_flow_bytes": 738,
+          "calculator_flow_received_seconds": 9.257532834017184,
+          "calculator_call_counts": {
+            "act": 6,
+            "observe": 1,
+            "wait_until": 6
+          }
+        },
+        {
+          "arm": "tacto",
+          "rep": 2,
+          "status": "passed",
+          "seconds": 35.0,
+          "tokens": {
+            "input_tokens": 114939,
+            "cached_input_tokens": 105344,
+            "uncached_input_tokens": 9595,
+            "output_tokens": 810,
+            "billing_verified": false
+          },
+          "repair_count": 0,
+          "activated_bundles": [],
+          "background_qualified": true,
+          "source_changed": false,
+          "cleanup": "completed",
+          "calculator_replay_seconds": 0.840262,
+          "calculator_flow_bytes": 737,
+          "calculator_flow_received_seconds": 6.607492249982897,
+          "calculator_call_counts": {
+            "act": 6,
+            "observe": 1,
+            "wait_until": 6
+          }
+        },
+        {
+          "arm": "sky",
+          "rep": 2,
+          "status": "passed",
+          "seconds": 35.0,
+          "tokens": {
+            "input_tokens": 144221,
+            "cached_input_tokens": 124416,
+            "uncached_input_tokens": 19805,
+            "output_tokens": 645,
+            "billing_verified": false
+          },
+          "repair_count": 0,
+          "activated_bundles": [],
+          "background_qualified": true,
+          "source_changed": false,
+          "cleanup": "completed",
+          "calculator_replay_seconds": null
+        }
+      ],
+      "execution": {
+        "harness_exit": 2,
+        "evidence_stable": true,
+        "source_commit": "db900006049185bc41386381818f5e2851a63c8d",
+        "profiling_request_same_for_both_Tacto_cohorts": true,
+        "strict_equivalence_not_verified": true
+      }
+    }
+  },
+  "observed_reduction_percent": {
+    "seconds_median": 20.091324200913242,
+    "input_total": 11.486419521253566,
+    "uncached_input_total": 22.764114805973467,
+    "output_total": 2.846832397754606
+  },
+  "limitations": [
+    "Three runs per arm; sequential before/after; server cache and load not controlled.",
+    "One after Tacto trial activated System Settings; retained and not background-qualified; cause unverified. Excluding it leaves two after trials with median 36.5 seconds.",
+    "Tacto after input is lower than Sky, while time and output are higher.",
+    "Token counts are reported parent CLI usage; billing and serving-model identity unverified.",
+    "Strict product equivalence not established; harness exit 2 retained.",
+    "Model-free replay profile and fresh agent authoring results measure different scopes.",
+    "Agent end-to-end profile preceded the final click-only restriction; final candidate validated separately.",
+    "Calculator Flow bytes median rose 655 to 737; Flow received offset median rose 5.87 to 6.75 seconds. More explicit checks have an authoring cost; total speedup is not universal."
+  ],
+  "background_qualified_summary": {
+    "before_tacto": {
+      "runs": 3,
+      "seconds_median": 43.8,
+      "input_mean": 127806,
+      "uncached_input_mean": 12008.666666666666,
+      "output_mean": 831.3333333333334
+    },
+    "after_tacto": {
+      "runs": 2,
+      "seconds_median": 36.5,
+      "input_mean": 114924.5,
+      "uncached_input_mean": 9580.5,
+      "output_mean": 805
+    },
+    "after_sky": {
+      "runs": 3,
+      "seconds_median": 30.0,
+      "input_mean": 134707,
+      "uncached_input_mean": 18568.333333333332,
+      "output_mean": 565.3333333333334
+    }
+  },
+  "primary_time_comparison": "Qualified median: before 3 trials 43.8s vs after 2 trials 36.5s (~16.7% observed reduction). All-three after median 35.0s is secondary.",
+  "output_improvement_claimed": false,
+  "regression": {
+    "tests": 3275,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 27,
+    "source_unchanged": true,
+    "first_attempt_failure_count": 1,
+    "first_attempt_failure": "300ms owned-process timeout telemetry test; original failure retained",
+    "same_test_recheck_passed": 5,
+    "final_full_suite_after_build_completed": true
+  },
+  "preflight_failure": {
+    "scope": "controller setup before any model task",
+    "error": "Quartz unavailable in initial controller interpreter",
+    "retained": true,
+    "resolved_by": "same Python 3.11 controller for both measured cohorts",
+    "included_as_task_trial": false
+  },
+  "deployment": {
+    "version": "v1.0.0-rc.24",
+    "source_commit": "85b5702c49f93d02d5683cd4894679d8e9e04c26",
+    "hosts": 3,
+    "same_bundle_verified": true,
+    "permissions_retained": true,
+    "needs_user_permissions": false,
+    "dock_hidden": true,
+    "app_and_dmg_notarization": "Accepted",
+    "artifact_checks_passed": 12,
+    "security_findings": 0,
+    "installed_native_tests_passed": 7,
+    "session_repair_readback_cancel_paging_passed": true,
+    "public_release_changed": false,
+    "vault_session_modified": false,
+    "installed_performance_confirmation": {
+      "expect": 1.971379,
+      "reads": 0.326577
+    }
+  }
+}

@@ -215,6 +215,14 @@ replay(driver, flow, approvals=None, narrate=None, escalate=None, budget=0, *,
 
 기본값 그대로면 **모델을 한 번도 부르지 않습니다.** 판단은 콜백을 준 곳에서만 일어납니다.
 
+`postcondition`이 없는 클릭에 `expect`를 지정했고 그 문구가 행동 전에는 없었다면,
+4초의 폴링 기한으로 즉시 새 관측을 읽는다. 문구가 보이면 고정 1초 대기를 채우지
+않고 진행한다. 이미 보이던 `expect`, 텍스트·키 입력·메뉴의 `expect`, 결과 조건이
+없는 단계는 기존 settle을 유지한다. 텍스트 입력의 자동 완성·자동 수정이 끝났다는
+뜻으로 이 클릭 최적화를 사용하지 않는다. 구조화된 `postcondition`의 의미는 같다.
+`read`는 입력이 아니므로 settle 시각을 갱신하지 않는다. 앞선 쓰기의 남은 settle은
+보존하고, 이후 관측도 캐시가 아닌 새 관측이다.
+
 rc.11부터는 `Step('authenticate', params={'grant':'work-login'})`를
 지원한다. 이미 등록한 위임 이름만 저장하고 성공 후 새 관찰에서 다음 단계를
 실행한다. 이 단계에는 selector/safety/비밀값을 넣지 않는다. 기본 등록소는 로컬
