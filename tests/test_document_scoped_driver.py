@@ -39,6 +39,19 @@ class ScopedDriverTests(unittest.TestCase):
         self.assertEqual('owned',result.log[-1]['captured']['body'])
         for call in inner.observe.call_args_list:self.assertEqual('pin',call.kwargs['document_token'])
 
+    def test_selector_without_ancestor_resolves_only_the_connection_document(self):
+        from tacto.flow import Selector
+        inner=self.inner()
+        inner.observe.return_value['tree'] += ', Identifier: First Text View'
+        driver=DocumentScopedDriver(inner,TARGET,PATH)
+        observed=driver.observe(TARGET)
+        index,_=Selector(role='TextArea',identifier='First Text View').resolve(observed['tree'])
+        self.assertEqual(1,index)
+        self.assertEqual('acted',driver.act('fresh',TARGET,{'name':'read','element_index':index})['type'])
+        inner.act.reset_mock()
+        self.assertEqual('error',driver.act('fresh',TARGET,{'name':'read','element_index':99})['type'])
+        inner.act.assert_not_called()
+
     def test_cli_replay_uses_scoped_driver_and_bad_flags_never_construct(self):
         from tacto.cli import _run_flow
         from tacto.flow import Flow,Step

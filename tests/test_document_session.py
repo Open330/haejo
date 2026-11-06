@@ -56,6 +56,19 @@ class DocumentSessionTests(unittest.TestCase):
         self.assertEqual(1,inner.document_text.call_count)
         inner.close.assert_called_once()
 
+    def test_save_guide_retains_scope_without_loading_parameterization_guide(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            saved=Path(tmp)/'saved.json'
+            inner=self.inner()
+            code,_,messages=self.run_session(inner,args=[TARGET,'--helper','--document',PATH,
+                                                         '--guide','--save',str(saved)])
+            self.assertEqual(0,code)
+            guide=next(m for m in messages if m.startswith('TACTO_FLOW_GUIDE'))
+            template=json.loads(guide.splitlines()[1])
+            self.assertEqual(PATH,template['selector_defaults']['ancestor'])
+            self.assertEqual(PATH,template['check_defaults']['field']['ancestor'])
+            self.assertNotIn('Reusable template:',guide)
+
     def test_guide_edit_keeps_named_selector_and_unverified_persistence(self):
         from tacto.command_help import session_guide
         doc=json.loads(session_guide(TARGET,document=PATH).splitlines()[1])

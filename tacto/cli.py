@@ -15,7 +15,7 @@ Usage:
   tacto document-attachments <canonical path> --helper
       (read live attachment positions/references; does not verify payload bytes)
   tacto list              # list saved flows (+ where the IR lives)
-  tacto show <name>       # print a flow's IR (JSON)
+  tacto show <name> [--compact]  # inspect Flow JSON; compact omits parser defaults
   tacto compile "<intent>"        # STAGE 1: intent -> Flow IR (uses a model)
       (--verify runs the result once and lets the model fix what failed)
   tacto do "<intent>"     # STAGE 1+2+3 (add --learn to author unknown tasks)
@@ -1133,10 +1133,22 @@ def _dispatch_command(cmd, rest):
         return 0 if result.get("type") == "menu_state" else 1
 
     if cmd == "show":
-        if not rest:
-            print("usage: show <flow-name>")
+        if (len(rest) not in (1, 2) or rest[0].startswith('-')
+                or (len(rest) == 2 and rest[1] != '--compact')):
+            print("usage: show <flow-name> [--compact]")
             return 2
-        print(_load_recipe(rest[0]).to_json())
+        try:
+            if '/' in rest[0] or rest[0].endswith('.json'):
+                from .flow import Flow
+                with open(rest[0], encoding='utf-8') as source:
+                    flow = Flow.from_json(source.read())
+            else:
+                flow = _load_recipe(rest[0])
+        except (OSError, ValueError, TypeError, KeyError) as exc:
+            from .flow_errors import feedback
+            print('invalid_flow: ' + feedback(exc), file=sys.stderr)
+            return 2
+        print(flow.to_json(compact=len(rest) == 2))
         return 0
 
     if cmd == "candidates":

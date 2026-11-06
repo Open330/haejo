@@ -47,7 +47,7 @@ def calculator_example(*, compact=True):
 
 
 
-def session_guide(target, *, reusable=False, document=None):
+def session_guide(target, *, reusable=False, document=None, save=False):
     """Trusted authoring instructions; never derived from UI content."""
     template = {
         "schema": 2, "name": "task", "target": target,
@@ -70,7 +70,9 @@ def session_guide(target, *, reusable=False, document=None):
             'Operator displays use spaces and +, − (U+2212), ×, ÷. '
         )
     if document is not None:
-        template['selector_defaults'] = {'role':'TextArea','identifier':'First Text View','ancestor':document}
+        template['selector_defaults'] = {'role':'TextArea','identifier':'First Text View'}
+        if reusable or save:
+            template['selector_defaults']['ancestor'] = document
         template['check_defaults']['field'] = dict(template['selector_defaults'])
         template['safety_defaults'] = {'effects':['read'],'reversibility':'reversible',
                                        'resource':{'object_type':'document','scope':'item'}}
@@ -81,7 +83,9 @@ def session_guide(target, *, reusable=False, document=None):
             'postcondition:{"equals":"<requested text>"}; safety:{"effects":["write_persistent"],'
             '"evidence":[{"source":"user_intent","field":"asked","value":"<actual user request>","covers":["write_persistent"]}]}. '
             'Quote the actual edit request; do not invent coverage. '
-            'selector_defaults already pins this document as ancestor; do not add ancestor to steps. Use selector keys identifier/title/desc, not description. '
+            + ('selector_defaults already pins this document as ancestor; do not add ancestor to steps. '
+               if reusable or save else 'Omit ancestor on this pinned connection. ')
+            + 'Use selector keys identifier/title/desc, not description. '
             'After an uncertain edit, TACTO_DOCUMENT_STATE checks the body once on this same connection. '
             'matches_requested_text:true with remaining_steps:0 verifies the requested visible text; no extra read session or retyping is needed. '
             'False/null or remaining steps require inspection; the marker never confirms Save or attributes the write. '
@@ -125,6 +129,12 @@ def command_help(command, args):
     if (not any(arg in ("--help", "-h", "help") for arg in args)
             or any(arg not in allowed for arg in args)):
         return None
+    if command == "show":
+        return (
+            'usage: tacto show <name | flow.json> [--compact]\n'
+            'Inspect replayable Flow JSON without changing the saved file.\n'
+            '--compact omits parser defaults and indentation for agent context.'
+        )
     if command == "batch":
         return (
             'usage: tacto batch <flow.json> --helper [--max-jobs 1..1000] [--idle-timeout 1..600] [--timings] [--repair-packet /absolute/new.json] [--auto-repair codex|claude] [--max-repairs 1..10] [--repair-timeout 1..120]\n'

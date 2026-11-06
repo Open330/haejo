@@ -10,6 +10,19 @@ from examples.repeat_benchmark import prompt
 
 
 class BenchmarkRuntimeTests(unittest.TestCase):
+    def test_shipped_skill_requirements_match_isolated_current_runtime_help(self):
+        import subprocess,sys
+        root=Path(__file__).resolve().parents[1]
+        real_run=subprocess.run
+        def probe(argv,**kwargs):
+            self.assertNotIn('--helper',argv)
+            return real_run([sys.executable,*argv[1:]],**kwargs)
+        with patch('examples.benchmark_runtime.subprocess.run',side_effect=probe):
+            result=guide_runtime_compatibility({'runtime_root':root},
+                                               guide_evidence(root/'skill/SKILL.md'))
+        self.assertTrue(result['compatible'],result)
+        self.assertIn('show',result['commands'])
+
     def runtime(self, root):
         for name in ['launcher/tacto','helper/Tacto Helper.app/Contents/MacOS/TactoHelper',
                      '.venv/bin/python','skill/SKILL.md',

@@ -125,10 +125,28 @@ var mode="open", reads=0
 var documentOperationDeadline:Double?=nil
 func CGPreflightScreenCaptureAccess()->Bool {fatalError("metadata must not require capture authorization")}
 func CGWindowListCopyWindowInfo(_ option:CGWindowListOption,_ relative:CGWindowID)->CFArray? {
+ if option == .optionOnScreenOnly {
+  if mode=="retired-list-error" {return nil}
+  if mode=="retired-list-malformed" {return [[kCGWindowNumber as String:10001]] as CFArray}
+  if mode=="retired-list-overflow" {return Array(repeating:[kCGWindowOwnerPID as String:42,kCGWindowNumber as String:10002],count:8193) as CFArray}
+  if mode=="retired-list-present" || (mode=="retired-visibility-drift" && reads==2) {return [[kCGWindowOwnerPID as String:42,kCGWindowNumber as String:10001]] as CFArray}
+  return [[kCGWindowOwnerPID as String:43,kCGWindowNumber as String:10001],
+          [kCGWindowOwnerPID as String:42,kCGWindowNumber as String:10002]] as CFArray
+ }
  precondition(option == .optionAll)
  if mode=="cg-error" {return nil}
  if mode=="cg-malformed" {return [[kCGWindowNumber as String:true]] as CFArray}
- return ["offspace","no-capture-present"].contains(mode) ? [[kCGWindowOwnerPID as String:42,kCGWindowNumber as String:10001]] as CFArray:[] as CFArray
+ if mode=="retired-visible" {return [[kCGWindowOwnerPID as String:42,kCGWindowNumber as String:10001,kCGWindowIsOnscreen as String:true]] as CFArray}
+ if mode=="retired-nonboolean" {return [[kCGWindowOwnerPID as String:42,kCGWindowNumber as String:10001,kCGWindowIsOnscreen as String:0]] as CFArray}
+ if mode=="other-global-windows" {return [[kCGWindowOwnerPID as String:43,kCGWindowNumber as String:10001], [kCGWindowOwnerPID as String:42,kCGWindowNumber as String:10002]] as CFArray}
+ if ["retired","retired-drift","retired-no-path"].contains(mode) {return [[kCGWindowOwnerPID as String:42,kCGWindowNumber as String:10001,kCGWindowIsOnscreen as String:false]] as CFArray}
+ return ["offspace","no-capture-present","retired-missing-key","retired-list-error","retired-list-malformed","retired-list-overflow","retired-list-present","retired-visibility-drift","ax-ipc-error"].contains(mode) ? [[kCGWindowOwnerPID as String:42,kCGWindowNumber as String:10001]] as CFArray:[] as CFArray
+}
+func AXUIElementCopyAttributeValue(_ element:AXUIElement,_ attribute:CFString,_ value:UnsafeMutablePointer<CFTypeRef?>)->AXError {
+ precondition(CFEqual(element,own) && attribute as String == "AXRole")
+ if ["retired","retired-visible","retired-nonboolean","retired-missing-key","retired-list-error","retired-list-malformed","retired-list-overflow","retired-list-present","retired-visibility-drift","retired-no-path"].contains(mode) || (mode=="retired-drift" && reads==1) {return .invalidUIElement}
+ if mode=="ax-ipc-error" {return .cannotComplete}
+ value.pointee="AXWindow" as CFString;return .success
 }
 func documentIsWholeNumber(_ raw:Any?)->NSNumber? {
  guard let n=raw as? NSNumber,CFGetTypeID(n) != CFBooleanGetTypeID(),!CFNumberIsFloatType(n as CFNumber) else {return nil};return n
@@ -147,7 +165,7 @@ func documentRequired(_ el:AXUIElement,_ name:String)throws->Any {
   if mode=="overflow" {return Array(repeating:own,count:129)}
   if mode=="drift" {return reads==1 ? [own]:[AXUIElement]()}
   if mode=="late" {Thread.sleep(forTimeInterval:0.01)}
-  return ["closed","offspace","no-capture","no-capture-present","cg-error","cg-malformed","no-id"].contains(mode) ? [AXUIElement]() : mode=="reopened" ? [other] : mode=="duplicate" ? [own,other] : [own]
+  return ["closed","offspace","no-capture","no-capture-present","cg-error","cg-malformed","no-id","retired","retired-drift","retired-visible","retired-nonboolean","retired-missing-key","retired-list-error","retired-list-malformed","retired-list-overflow","retired-list-present","retired-visibility-drift","other-global-windows","retired-no-path","ax-ipc-error"].contains(mode) ? [AXUIElement]() : mode=="reopened" ? [other] : mode=="duplicate" ? [own,other] : [own]
  }
  precondition(name=="AXSubrole","body or unexpected attribute was read")
  return mode=="rolechanged" ? "AXDialog":"AXStandardWindow"
@@ -164,19 +182,31 @@ mode="closed";reads=0;let closed=documentWindowStatus(request);precondition(clos
 precondition(closed["same_process_verified"] as? Bool == true && documentTokens.count==1)
 mode="no-capture";reads=0
 precondition(documentWindowStatus(request)["state"] as? String == "closed")
-for kind in ["gone","restart","readerror","overflow","drift","reopened","duplicate","patherror","pathchanged","abort","rolechanged","late","offspace","no-capture-present","cg-error","cg-malformed"] {
+mode="retired";reads=0
+precondition(documentWindowStatus(request)["state"] as? String == "closed" && reads==2)
+for kind in ["retired-missing-key","other-global-windows"] {
+ mode=kind;reads=0;precondition(documentWindowStatus(request)["state"] as? String == "closed" && reads==2)
+}
+for kind in ["gone","restart","readerror","overflow","drift","reopened","duplicate","patherror","pathchanged","abort","rolechanged","late","offspace","no-capture-present","cg-error","cg-malformed","retired-drift","retired-visible","retired-nonboolean","retired-list-error","retired-list-malformed","retired-list-overflow","retired-list-present","retired-visibility-drift","ax-ipc-error"] {
  mode=kind;reads=0;documentOperationDeadline=kind=="late" ? ProcessInfo.processInfo.systemUptime+0.005:nil
  let old=documentOperationDeadline
  let result=documentWindowStatus(request)
  precondition(result["type"] as? String == "error","\(kind) \(result)")
  precondition(result["state"]==nil && documentTokens.count==1 && documentOperationDeadline==old)
- if kind=="offspace" {precondition(result["reason_code"] as? String == "global_window_still_present")}
+ if kind=="offspace" {precondition(result["reason_code"] as? String == "global_window_still_present_ax_valid")}
+ if kind=="retired-visible" || kind=="retired-list-present" {precondition(result["reason_code"] as? String == "global_window_still_present_ax_invalid_onscreen")}
+ if kind=="retired-nonboolean" {precondition(result["reason_code"] as? String == "global_window_still_present_ax_invalid_metadata_unknown")}
+ if kind=="ax-ipc-error" {precondition(result["reason_code"] as? String == "global_window_still_present_ax_error")}
  if kind=="restart" {precondition(result["reason_code"] as? String == "process_changed")}
  if kind=="readerror" {precondition(result["reason_code"] as? String == "native_read_failed")}
 }
 mode="no-id";documentOperationDeadline=nil
 let held=documentTokens
  documentTokens=[("own",PinnedDocument(pid:42,stamp:10,window:own,selectedPath:"/private/tmp/own.txt",lifecycleWindowID:nil))]
+precondition(documentWindowStatus(request)["type"] as? String == "error")
+documentTokens=held
+mode="retired-no-path";reads=0
+documentTokens=[("own",PinnedDocument(pid:42,stamp:10,window:own,selectedPath:nil,lifecycleWindowID:10001))]
 precondition(documentWindowStatus(request)["type"] as? String == "error")
 documentTokens=held
 mode="closed";documentOperationDeadline=nil

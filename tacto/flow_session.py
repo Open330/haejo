@@ -289,7 +289,8 @@ def run_session(args, *, make_driver, run_flow, stdin, emit):
             with flow_input_mode(stdin.fileno()):
                 if '--guide' in args or '--reuse-guide' in args:
                     from .command_help import session_guide
-                    emit(session_guide(target, reusable='--reuse-guide' in args, document=document))
+                    emit(session_guide(target, reusable='--reuse-guide' in args,
+                                       document=document, save=save_path is not None))
                 if window_id is not None:
                     emit(f'TACTO_WINDOW_SCOPE {window_id}: read/set_value/type_text and supported AXPress only; menus/keys/pointer require a separate app-wide session. Do not save the live window ID in the Flow.')
                 show_observation()

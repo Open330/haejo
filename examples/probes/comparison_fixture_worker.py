@@ -13,6 +13,11 @@ import time
 WORKER_TASKS = ('textedit_edit_owned', 'calc_to_textedit')
 MAX_FRAME = 65536
 OPERATIONS = frozenset(('check', 'prepare', 'setup', 'oracle', 'empty_oracle', 'evidence', 'cleanup', 'shutdown'))
+SETUP_REASONS = frozenset(('calculator_bootstrap_environment_unavailable',
+    'calculator_background_launch_failed','calculator_observation_unavailable',
+    'calculator_bootstrap_activated_app','comparison_setup_menu_unverified',
+    'comparison_setup_clear_unverified','calculator_initial_state_unverified',
+    'previous_owned_fixture_not_cleaned','owned_fixture_not_prepared'))
 
 
 def serve(comparison, incoming, outgoing, task='textedit_edit_owned'):
@@ -72,7 +77,8 @@ def serve(comparison, incoming, outgoing, task='textedit_edit_owned'):
                 value = {'fixture_left_as_is': bool(comparison._SIGNED_OWNED)}
             response = {'id': sequence, 'ok': True, 'value': value}
         except Exception as exc:
-            response = {'id': sequence, 'ok': False, 'error': type(exc).__name__}
+            reason = str(exc) if type(exc) is RuntimeError and str(exc) in SETUP_REASONS else type(exc).__name__
+            response = {'id': sequence, 'ok': False, 'error': reason}
         # RPC readiness is a handoff boundary, not an ongoing app transaction.
         # Retain document pins in this helper, but yield app/window ownership so
         # the independent agent can act before the next oracle/cleanup request.
@@ -132,6 +138,8 @@ class FixtureWorker:
             self.poisoned = True
             raise RuntimeError('fixture_worker_transport_unverified') from None
         if not reply['ok']:
+            if isinstance(reply['error'], str) and reply['error'] in SETUP_REASONS:
+                raise RuntimeError('fixture_worker_operation_failed:' + reply['error'])
             raise RuntimeError('fixture_worker_operation_failed')
         return reply['value']
 

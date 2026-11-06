@@ -20,6 +20,18 @@ spec.loader.exec_module(comparison)
 
 
 class ProtocolTests(unittest.TestCase):
+    def test_setup_failure_keeps_only_closed_diagnostic_codes(self):
+        for reason,expected in [('comparison_setup_menu_unverified','comparison_setup_menu_unverified'),
+                                ('PRIVATE document text','RuntimeError')]:
+            host=Mock()
+            host._driver.return_value.capabilities={'session.release_targets'}
+            host._driver.return_value.release_targets.return_value={'type':'targets_released','observation_invalidated':True}
+            host.signed_owned_setup.side_effect=RuntimeError(reason)
+            out=io.StringIO()
+            self.assertEqual(0,serve(host,io.StringIO('{"id":1,"op":"setup"}\n'),out))
+            self.assertEqual(expected,json.loads(out.getvalue())['error'])
+            self.assertNotIn('PRIVATE',out.getvalue())
+
     def test_each_rpc_yields_targets_before_reply_even_after_setup_failure(self):
         host=Mock(_SIGNED_OWNED={})
         driver=host._driver.return_value

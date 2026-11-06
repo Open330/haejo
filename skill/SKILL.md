@@ -30,7 +30,7 @@ belongs to that provider; do not route around it through Tacto.
   session. `TACTO_DOCUMENT_STATE` can verify the requested body on that same
   connection after uncertain input; it does not verify Save. Read
   [documents](references/documents.md) only for Save or attachments.
-- **Saved flow:** `tacto list`, `tacto show <name>`, `tacto replay <name> --helper`.
+- **Saved flow:** `tacto list`, `tacto show <name> --compact`, `tacto replay <name> --helper`.
   For repeated runs use `tacto batch <name> --helper` and [batch](references/batch.md).
   Read [reuse](references/reuse.md) only to save/parameterize a new template.
 - **Concurrent windows:** `tacto windows <bundle-id> --helper`, then

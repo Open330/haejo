@@ -42,8 +42,15 @@ class FeedbackTests(unittest.TestCase):
         self.assertIn('never an object; omit it when the app has one window',plain)
         self.assertNotIn('ancestor',_json.dumps(_json.loads(plain.splitlines()[1])))
         document=session_guide('com.apple.TextEdit',document='/owned/a.txt')
-        self.assertIn('already pins this document as ancestor; do not add ancestor to steps',document)
-        self.assertEqual('/owned/a.txt',_json.loads(document.splitlines()[1])['selector_defaults']['ancestor'])
+        self.assertNotIn('/owned/a.txt',document)
+        template=_json.loads(document.splitlines()[1])
+        self.assertNotIn('ancestor',template['selector_defaults'])
+        self.assertNotIn('ancestor',template['check_defaults']['field'])
+        for options in ({'reusable':True},{'save':True}):
+            retained=session_guide('com.apple.TextEdit',document='/owned/a.txt',**options)
+            template=_json.loads(retained.splitlines()[1])
+            self.assertEqual('/owned/a.txt',template['selector_defaults']['ancestor'])
+            self.assertEqual('/owned/a.txt',template['check_defaults']['field']['ancestor'])
 
     def test_reuse_guide_is_conditional(self):
         self.assertNotIn('Reusable template:',session_guide('app'))

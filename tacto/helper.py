@@ -167,6 +167,8 @@ DOCUMENT_WINDOW_STATUS_REASONS = frozenset({
     'window_enumeration_unavailable','window_role_unavailable','window_changed',
     'document_path_changed','document_path_ambiguous_or_reopened','global_windows_unavailable',
     'global_window_identity_malformed','global_window_still_present','window_snapshot_changed','deadline_or_abort',
+    'global_window_still_present_ax_invalid','global_window_still_present_ax_valid','global_window_still_present_ax_error',
+    'global_window_still_present_ax_invalid_metadata_unknown','global_window_still_present_ax_invalid_onscreen',
 })
 
 

@@ -6680,7 +6680,50 @@ func documentWindowStatus(_ msg: [String:Any]) -> [String:Any] {
                         throw DocumentError.fail("global window identity malformed")
                     }
                     if owner.int32Value == pinned.pid && number.uint32Value == windowID {
-                        throw DocumentError.fail("window still exists outside AX enumeration")
+                        // Retired AX objects can leave offscreen WindowServer
+                        // entries. Require a path-bound pin, absent document,
+                        // explicit offscreen metadata and invalid AX object on
+                        // both reads. Hidden/off-space valid objects and IPC
+                        // failures still cannot prove closure.
+                        var role: CFTypeRef?
+                        let error = AXUIElementCopyAttributeValue(pinned.window,
+                            kAXRoleAttribute as CFString, &role)
+                        if error == .invalidUIElement {
+                            if pinned.selectedPath != nil {
+                                var offscreen = false
+                                if let raw = info[kCGWindowIsOnscreen as String] {
+                                    guard let visible = raw as? NSNumber,
+                                          CFGetTypeID(visible) == CFBooleanGetTypeID() else {
+                                        throw DocumentError.fail("invalid AX window visibility unknown")
+                                    }
+                                    offscreen = !visible.boolValue
+                                } else {
+                                    // This key is optional. Do not infer false:
+                                    // independently enumerate onscreen IDs.
+                                    guard let visible = CGWindowListCopyWindowInfo(.optionOnScreenOnly, 0) as? [[String:Any]],
+                                          visible.count <= 8192 else { throw DocumentError.fail("global windows unavailable") }
+                                    var found = false
+                                    for item in visible {
+                                        try documentCheckAbort()
+                                        guard let owner = documentIsWholeNumber(item[kCGWindowOwnerPID as String]),
+                                              let number = documentIsWholeNumber(item[kCGWindowNumber as String]),
+                                              owner.int64Value > 0, owner.int64Value < Int64(Int32.max),
+                                              number.int64Value > 0, number.int64Value <= Int64(UInt32.max) else {
+                                            throw DocumentError.fail("global window identity malformed")
+                                        }
+                                        if owner.int32Value == pinned.pid && number.uint32Value == windowID { found = true }
+                                    }
+                                    offscreen = !found
+                                }
+                                if offscreen { continue }
+                                throw DocumentError.fail("invalid AX window remains onscreen")
+                            }
+                            throw DocumentError.fail("global window remains with invalid AX element")
+                        }
+                        if error == .success {
+                            throw DocumentError.fail("global window remains with valid AX element")
+                        }
+                        throw DocumentError.fail("global window remains with unreadable AX element")
                     }
                 }
             }
@@ -6709,6 +6752,11 @@ func documentWindowStatus(_ msg: [String:Any]) -> [String:Any] {
                      "global windows unavailable":"global_windows_unavailable",
                      "global window identity malformed":"global_window_identity_malformed",
                      "window still exists outside AX enumeration":"global_window_still_present",
+                     "global window remains with invalid AX element":"global_window_still_present_ax_invalid",
+                     "global window remains with valid AX element":"global_window_still_present_ax_valid",
+                     "global window remains with unreadable AX element":"global_window_still_present_ax_error",
+                     "invalid AX window visibility unknown":"global_window_still_present_ax_invalid_metadata_unknown",
+                     "invalid AX window remains onscreen":"global_window_still_present_ax_invalid_onscreen",
                      "document read deadline elapsed":"deadline_or_abort",
                      "사용자가 중단해 문서 읽기를 멈췄습니다":"deadline_or_abort"]
         return refuse(codes[detail] ?? "native_read_failed")

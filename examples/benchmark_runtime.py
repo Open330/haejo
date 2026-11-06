@@ -102,7 +102,7 @@ def guide_runtime_compatibility(runtime, guide):
     if not isinstance(requirement,dict):raise ValueError('guide runtime requirements must be an object')
     commands=requirement.get('command_help')
     if (requirement.get('schema')!=1 or not isinstance(commands,list)
-            or not all(isinstance(c,str) and c in ('session','batch','repair') for c in commands)):
+            or not all(isinstance(c,str) and c in ('session','batch','repair','show') for c in commands)):
         raise ValueError('unsupported guide runtime requirements')
     required_flags=requirement.get('command_flags',{})
     if (not isinstance(required_flags,dict) or any(
