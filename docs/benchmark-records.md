@@ -1,5 +1,77 @@
 # 비교 실행 기록
 
+## 2026-11-06 후속 작성량·저장 Flow 검사·창 닫힘 수정
+
+Peer와 남은 비용을 검토해, 일회성 TextEdit --document guide에 중복되던 문서
+경로 두 곳을 제거했다. 연결이 문서를 이미 고정하므로 selector/check에는 식별자만
+쓴다. --save와 --reuse-guide의 ancestor는 그대로 유지한다. 사용자 요청의 증거
+문구나 완료/저장 영수증 의미는 바꾸지 않았다.
+
+저장 Flow는 `show <name> --compact`로 기존 축약 직렬화를 읽을 수 있다. 기본
+`show <name>` 출력은 바꾸지 않았다. 명시한 JSON 파일도 같은 파서로 읽기만 하며
+파일을 수정하거나 UI를 실행하지 않는다. 스킬은 저장 Flow 단계의 명령 한 곳만
+바꾸고, runtime requirements와 실제 isolated-help 검사도 맞췄다.
+
+실제 signed CLI로 내장14개를 확인했다. 기본 출력은 before/after14개 모두 byte가
+같고, 축약 출력도 모두 동일한 Flow 의미로 파싱됐다. 출력 총량70,237→23,250B로
+66.9% 줄었다. o200k_base 참고 토큰은17,501→5,929(66.1% 감소)이며 실제 청구나
+모델 전체 입력 절감률은 아니다. 1회성 guide는1,887→1,684B, 경로 반복2→0이다.
+Save/reuse 안내는 기존 경로 고정을 유지했다. 가이드 준수 편집 Flow의 재구성
+832→676B는 추정이며, 실제 agent Flow 원문은 보관하지 않았다.
+
+초기 비교 시도9행은 fixture setup 실패와 연쇄로 not_run이었다. 모델 작업은
+실행하지 않았고 이 행들을 성능 집계에 넣지 않았다. 첫 실패의 세부 사유가 당시
+RPC에서 지워져 그 원인은 미확정으로 남긴다. 이후 닫힌 허용 목록의 준비 오류
+코드를 보존해 연쇄 실패를 구분하도록 했다.
+
+별도 native 진단에서 빈 문서 생성·읽기는 성공했지만, 닫힌 문서의 폐기된 AX
+객체와 WindowServer 잔존 항목을 혼동해 cleanup이 멈추는 문제를 재현했다.
+Apple의 [optional window keys](https://developer.apple.com/documentation/coregraphics/optional-window-list-keys)
+계약에 따라 onscreen 키가 없다는 이유만으로 false로 보지 않는다. 경로가 고정된
+문서가 AX 전체에서 없고, 원래 AX 객체가 정확히 invalid이며, 명시적 false 또는
+별도 onscreen 전체 목록에서 해당 창이 없을 때만 처리한다. 두 번의 관측과 같은
+프로세스/스냅샷 조건을 유지한다. 유효한 off-space 창, IPC 오류, 표시 중인 창,
+잘못된 metadata나 조회 실패는 닫힘으로 보지 않는다. 이름·픽셀은 읽지 않는다.
+
+실기기 TextEdit 단독과 Calculator→TextEdit lifecycle 모두 open→닫힘 애니메이션의
+onscreen 거부→closed→임시 파일 제거를 확인했다. 초기9행의 setup 원인을 이
+cleanup 수정으로 소급해 확정하지 않는다. 실패 시도에서 실제 열려 있던 빈
+fixture2개도 제작자 inode와 빈 본문을 확인한 뒤 닫고 정리했다. 사용자 문서는
+닫지 않았다.
+
+guide 효과를 분리하려고 양쪽 runtime에 같은 수정 native와 같은 외부 worker를
+사용했다. before CLI/guide는 공개 소스6cf0781과 같고 native만 공통 수정했다
+(로컬4d48c20). after 검사 소스35995a3은 공개 소스9b25439과 같은 tree다. 기존
+rc.24 binary 대 rc.25 binary의 순수 비교라고 주장하지 않는다. 같은 길이 runtime
+경로, 같은 CLI/config, 요청 gpt-6.1-sol/medium, 180초 제한, 새 문맥을 사용했다.
+before Tacto3회 후 after Tacto/Sky3쌍을 순서 교대해 실행했다.
+
+| 도구·시점 | 작업/정리 | 시간 중앙값 | 입력 합계 | 비캐시 입력 합계 | 출력 합계 |
+|---|---:|---:|---:|---:|---:|
+| Tacto 이전 안내 | 3/3 | 38.5초 | 381,278 | 53,086 | 2,563 |
+| Tacto 새 안내 | 3/3 | 38.7초 | 338,969 | 39,705 | 2,306 |
+| Sky 후속 대조 | 3/3 | 33.0초 | 409,511 | 39,079 | 1,829 |
+
+9건 모두 대상 결과·정리·소스 불변·전경 전환0을 확인했다. schema 수리는0이다.
+TextEdit 실제 Flow 바이트는 before1,078/1,022/1,022, after866/866/866으로 중앙값
+15.3% 감소했다. TextEdit Flow 수신 시각 중앙값은 양쪽8.32초로 같았다. 입력은
+11.1%, 비캐시 입력25.2%, 출력10.0% 감소했지만 **시간 개선은 확인하지 못했다**.
+Sky는 여전히 더 빠르고 출력도 적으며, 새 Tacto의 비캐시 입력도 Sky보다 조금
+크다. 순차 소표본·서버 부하/cache 미통제이며 serving model·실제 청구·전체 TCC
+격리·strict 제품 동등성은 미입증이다. harness exit2도 보존했다. 정적 show 절감은
+신규 작성 과제에서 show를 사용하지 않았으므로 이 표의 효과와 섞지 않는다.
+
+최종 전체3,283검사는 실패·오류0, 조건부 제외27, 소스 불변으로 통과했다. 스킬
+validator와 실제 requirements 검사, native 창 상태의 visible/optional/비Boolean/
+다른 pid·ID/2회째 변화 반례도 통과했다. rc.25 앱·DMG는 Apple 공증·staple·Gatekeeper와 산출물/보안 검사를 통과했다.
+대상 Mac 3대 중 2대에 설치해 같은 서명 번들·스킬 연결·기존 권한·백그라운드
+실행·Dock 숨김을 검증했다. 로컬 설치본의 native7검사와 세션 수리·본문 readback·
+취소·관측 paging도 통과했다. 나머지 1대는 Tailscale 오프라인·SSH 연결 불가로
+설치하지 못해 전체 배포는 미완료다. 공개 release와 Vault 세션은 변경하지 않았다.
+
+[공개 집계](benchmarks/2026-11-06-authoring-size-perf.json). 원본·초기 실패·진단·정적
+측정 스크립트는 로컬 `reviews/perf-authoring-20261106-evidence/`에 보존했다.
+
 ## 2026-11-06 후속 성능: 입력 뒤 고정 대기와 읽기 대기
 
 동료와 코드를 독립 검토해 Calculator 관측의 약 0.9초가 native AX tree 읽기보다

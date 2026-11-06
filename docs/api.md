@@ -204,6 +204,14 @@ restart journals. No daemon or shared external socket is created.
 - `Flow.runtime_names()` 는 실행 중에만 생기는 이름(capture, 판단)입니다. `bind()`는 이 이름을 채우지 않고 남겨 둡니다.
 - `tacto.flow.every_step(steps)` 는 분기 안까지 포함한 모든 단계를 순서대로 돌려줍니다.
 
+`tacto show <name | flow.json>`는 기존 전체 IR을 표시한다. 저장 Flow를 에이전트
+문맥에 넣을 때는 `--compact`를 사용하면 파서 기본값과 들여쓰기를 생략한다.
+파일 읽기는 실행·저장·원본 변경을 하지 않으며 기본 출력은 그대로다.
+
+일회성 `session --document ... --guide`는 연결의 문서 고정을 사용하므로 모델이
+ancestor 경로를 반복할 필요가 없다. `--save`와 `--reuse-guide`는 기존 ancestor를
+유지한다. 저장된 Flow의 재생에는 여전히 안내된 `--document` 범위를 사용한다.
+
 ## 재실행 — `replay`
 
 ```python

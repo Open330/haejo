@@ -1,0 +1,793 @@
+{
+  "scope": "fresh authoring comparison with common fixed native helper and host fixture worker; observational, not strict causal/billing proof",
+  "task": "calc_to_textedit",
+  "requested_model": "gpt-6.1-sol",
+  "requested_reasoning_effort": "medium",
+  "timeout_seconds": 180,
+  "public_before_cli_guide_source": "6cf0781",
+  "public_after_source": "9b25439",
+  "common_native_source": "9b25439",
+  "exact_local_before_commit": "4d48c20",
+  "exact_local_after_tested_commit": "35995a3",
+  "after_tree_matches_public_source": true,
+  "native_binaries_identical": true,
+  "agent_config_identical": true,
+  "runtime_path_lengths_identical": true,
+  "cohorts": {
+    "before": {
+      "arms": {
+        "tacto": {
+          "runs": 3,
+          "passed": 3,
+          "seconds_median": 38.5,
+          "input_total": 381278,
+          "uncached_input_total": 53086,
+          "output_total": 2563,
+          "repair_total": 0,
+          "foreground_changed_runs": 0
+        }
+      },
+      "rows": [
+        {
+          "arm": "tacto",
+          "rep": 0,
+          "status": "passed",
+          "seconds": 53.8,
+          "activations": [],
+          "source_changed": false,
+          "cleanup": "completed",
+          "tokens": {
+            "input_tokens": 151514,
+            "cached_input_tokens": 133760,
+            "uncached_input_tokens": 17754,
+            "output_tokens": 933,
+            "billing_verified": false
+          },
+          "repairs": 0,
+          "sessions": [
+            {
+              "flow_input_attempts": 1,
+              "flow_input_utf8_bytes": 756,
+              "flow_received_seconds": 14.241766707971692,
+              "input_ready_seconds": 0.42176008300157264,
+              "replay_done_seconds": 15.545426332973875
+            },
+            {
+              "flow_input_attempts": 1,
+              "flow_input_utf8_bytes": 1078,
+              "flow_received_seconds": 9.237643208005466,
+              "input_ready_seconds": 0.3653775409911759,
+              "replay_done_seconds": 9.541522291023284
+            }
+          ]
+        },
+        {
+          "arm": "tacto",
+          "rep": 1,
+          "status": "passed",
+          "seconds": 35.8,
+          "activations": [],
+          "source_changed": false,
+          "cleanup": "completed",
+          "tokens": {
+            "input_tokens": 114899,
+            "cached_input_tokens": 96640,
+            "uncached_input_tokens": 18259,
+            "output_tokens": 819,
+            "billing_verified": false
+          },
+          "repairs": 0,
+          "sessions": [
+            {
+              "flow_input_attempts": 1,
+              "flow_input_utf8_bytes": 737,
+              "flow_received_seconds": 6.667558874993119,
+              "input_ready_seconds": 0.2608804589835927,
+              "replay_done_seconds": 7.393250500026625
+            },
+            {
+              "flow_input_attempts": 1,
+              "flow_input_utf8_bytes": 1022,
+              "flow_received_seconds": 8.31864258297719,
+              "input_ready_seconds": 0.39328591601224616,
+              "replay_done_seconds": 8.605243499972858
+            }
+          ]
+        },
+        {
+          "arm": "tacto",
+          "rep": 2,
+          "status": "passed",
+          "seconds": 38.5,
+          "activations": [],
+          "source_changed": false,
+          "cleanup": "completed",
+          "tokens": {
+            "input_tokens": 114865,
+            "cached_input_tokens": 97792,
+            "uncached_input_tokens": 17073,
+            "output_tokens": 811,
+            "billing_verified": false
+          },
+          "repairs": 0,
+          "sessions": [
+            {
+              "flow_input_attempts": 1,
+              "flow_input_utf8_bytes": 737,
+              "flow_received_seconds": 6.882401582959574,
+              "input_ready_seconds": 0.2878791249822825,
+              "replay_done_seconds": 7.620291750004981
+            },
+            {
+              "flow_input_attempts": 1,
+              "flow_input_utf8_bytes": 1022,
+              "flow_received_seconds": 7.867912374960724,
+              "input_ready_seconds": 0.34466399997472763,
+              "replay_done_seconds": 8.174093291978352
+            }
+          ]
+        }
+      ],
+      "execution": {
+        "harness_exit": 2,
+        "evidence_stable": true,
+        "source_commit": "4d48c204322d8a94520495961e87bef509f22155",
+        "profiling_request_same_for_both_Tacto_cohorts": true,
+        "strict_equivalence_not_verified": true
+      }
+    },
+    "after": {
+      "arms": {
+        "tacto": {
+          "runs": 3,
+          "passed": 3,
+          "seconds_median": 38.7,
+          "input_total": 338969,
+          "uncached_input_total": 39705,
+          "output_total": 2306,
+          "repair_total": 0,
+          "foreground_changed_runs": 0
+        },
+        "sky": {
+          "runs": 3,
+          "passed": 3,
+          "seconds_median": 33.0,
+          "input_total": 409511,
+          "uncached_input_total": 39079,
+          "output_total": 1829,
+          "repair_total": 0,
+          "foreground_changed_runs": 0
+        }
+      },
+      "rows": [
+        {
+          "arm": "tacto",
+          "rep": 0,
+          "status": "passed",
+          "seconds": 43.8,
+          "activations": [],
+          "source_changed": false,
+          "cleanup": "completed",
+          "tokens": {
+            "input_tokens": 114745,
+            "cached_input_tokens": 108288,
+            "uncached_input_tokens": 6457,
+            "output_tokens": 771,
+            "billing_verified": false
+          },
+          "repairs": 0,
+          "sessions": [
+            {
+              "flow_input_attempts": 1,
+              "flow_input_utf8_bytes": 737,
+              "flow_received_seconds": 6.879763916018419,
+              "input_ready_seconds": 0.2870342910173349,
+              "replay_done_seconds": 7.5302368749980815
+            },
+            {
+              "flow_input_attempts": 1,
+              "flow_input_utf8_bytes": 866,
+              "flow_received_seconds": 14.293083791970275,
+              "input_ready_seconds": 0.39077579200966284,
+              "replay_done_seconds": 14.550341374997515
+            }
+          ]
+        },
+        {
+          "arm": "sky",
+          "rep": 0,
+          "status": "passed",
+          "seconds": 31.6,
+          "activations": [],
+          "source_changed": false,
+          "cleanup": "completed",
+          "tokens": {
+            "input_tokens": 121069,
+            "cached_input_tokens": 111232,
+            "uncached_input_tokens": 9837,
+            "output_tokens": 559,
+            "billing_verified": false
+          },
+          "repairs": 0,
+          "sessions": []
+        },
+        {
+          "arm": "sky",
+          "rep": 1,
+          "status": "passed",
+          "seconds": 35.0,
+          "activations": [],
+          "source_changed": false,
+          "cleanup": "completed",
+          "tokens": {
+            "input_tokens": 144228,
+            "cached_input_tokens": 122496,
+            "uncached_input_tokens": 21732,
+            "output_tokens": 614,
+            "billing_verified": false
+          },
+          "repairs": 0,
+          "sessions": []
+        },
+        {
+          "arm": "tacto",
+          "rep": 1,
+          "status": "passed",
+          "seconds": 38.7,
+          "activations": [],
+          "source_changed": false,
+          "cleanup": "completed",
+          "tokens": {
+            "input_tokens": 109457,
+            "cached_input_tokens": 94336,
+            "uncached_input_tokens": 15121,
+            "output_tokens": 775,
+            "billing_verified": false
+          },
+          "repairs": 0,
+          "sessions": [
+            {
+              "flow_input_attempts": 1,
+              "flow_input_utf8_bytes": 738,
+              "flow_received_seconds": 7.438761583995074,
+              "input_ready_seconds": 0.3843580840039067,
+              "replay_done_seconds": 8.324594417004846
+            },
+            {
+              "flow_input_attempts": 1,
+              "flow_input_utf8_bytes": 866,
+              "flow_received_seconds": 8.32326491601998,
+              "input_ready_seconds": 0.558413916034624,
+              "replay_done_seconds": 8.747455250006169
+            }
+          ]
+        },
+        {
+          "arm": "tacto",
+          "rep": 2,
+          "status": "passed",
+          "seconds": 35.5,
+          "activations": [],
+          "source_changed": false,
+          "cleanup": "completed",
+          "tokens": {
+            "input_tokens": 114767,
+            "cached_input_tokens": 96640,
+            "uncached_input_tokens": 18127,
+            "output_tokens": 760,
+            "billing_verified": false
+          },
+          "repairs": 0,
+          "sessions": [
+            {
+              "flow_input_attempts": 1,
+              "flow_input_utf8_bytes": 738,
+              "flow_received_seconds": 6.165763166965917,
+              "input_ready_seconds": 0.41662974999053404,
+              "replay_done_seconds": 7.099385707988404
+            },
+            {
+              "flow_input_attempts": 1,
+              "flow_input_utf8_bytes": 866,
+              "flow_received_seconds": 8.065918584004976,
+              "input_ready_seconds": 0.555259125016164,
+              "replay_done_seconds": 8.474651792028453
+            }
+          ]
+        },
+        {
+          "arm": "sky",
+          "rep": 2,
+          "status": "passed",
+          "seconds": 33.0,
+          "activations": [],
+          "source_changed": false,
+          "cleanup": "completed",
+          "tokens": {
+            "input_tokens": 144214,
+            "cached_input_tokens": 136704,
+            "uncached_input_tokens": 7510,
+            "output_tokens": 656,
+            "billing_verified": false
+          },
+          "repairs": 0,
+          "sessions": []
+        }
+      ],
+      "execution": {
+        "harness_exit": 2,
+        "evidence_stable": true,
+        "source_commit": "35995a3f5aa19563821bfdf78ecdcae52394185f",
+        "profiling_request_same_for_both_Tacto_cohorts": true,
+        "strict_equivalence_not_verified": true
+      }
+    }
+  },
+  "observed_reduction_percent": {
+    "seconds_median": -0.5194805194805197,
+    "input_total": 11.096627657509739,
+    "uncached_input_total": 25.206269072825226,
+    "output_total": 10.027311744049939
+  },
+  "latency_improvement_claimed": false,
+  "static_show": {
+    "builtin_count": 14,
+    "builtin_names_equal_before_after": true,
+    "all_exit_zero": true,
+    "all_default_identical_before_after": true,
+    "all_parsed_meaning_equal": true,
+    "totals": {
+      "default_bytes": 70237,
+      "compact_bytes": 23250,
+      "default_tokens": 17501,
+      "compact_tokens": 5929,
+      "bytes_reduction_percent": 66.9,
+      "tokens_reduction_percent": 66.1
+    },
+    "rows": [
+      {
+        "name": "calc_12x34",
+        "exit": {
+          "before": 0,
+          "after_default": 0,
+          "after_compact": 0
+        },
+        "default_bytes_before": 14575,
+        "default_bytes_after": 14575,
+        "default_identical": true,
+        "default_sha256": "74333d14152d2c59744b80eab5226c75089ea59dade19b4fc1ade4ac415fe73d",
+        "compact_bytes": 4596,
+        "parsed_equal": true,
+        "tokens_default": 3546,
+        "tokens_compact": 1082,
+        "bytes_reduction_percent": 68.5,
+        "tokens_reduction_percent": 69.5
+      },
+      {
+        "name": "calc_arith",
+        "exit": {
+          "before": 0,
+          "after_default": 0,
+          "after_compact": 0
+        },
+        "default_bytes_before": 8478,
+        "default_bytes_after": 8478,
+        "default_identical": true,
+        "default_sha256": "931afaa0534762cebce11470bfc13a67147d23e0f57bccfee76b6af324079037",
+        "compact_bytes": 3071,
+        "parsed_equal": true,
+        "tokens_default": 2175,
+        "tokens_compact": 799,
+        "bytes_reduction_percent": 63.8,
+        "tokens_reduction_percent": 63.3
+      },
+      {
+        "name": "calc_multiply",
+        "exit": {
+          "before": 0,
+          "after_default": 0,
+          "after_compact": 0
+        },
+        "default_bytes_before": 8178,
+        "default_bytes_after": 8178,
+        "default_identical": true,
+        "default_sha256": "9ad9e1651e93142df374f20a964a4fd651d05534f3d638fc36e9c079e57b9783",
+        "compact_bytes": 2871,
+        "parsed_equal": true,
+        "tokens_default": 2075,
+        "tokens_compact": 724,
+        "bytes_reduction_percent": 64.9,
+        "tokens_reduction_percent": 65.1
+      },
+      {
+        "name": "calendar_today",
+        "exit": {
+          "before": 0,
+          "after_default": 0,
+          "after_compact": 0
+        },
+        "default_bytes_before": 3022,
+        "default_bytes_after": 3022,
+        "default_identical": true,
+        "default_sha256": "2b52536b1269fedb0107eb0b72e659d04ffeb92b0677f7624203eee62fa34612",
+        "compact_bytes": 957,
+        "parsed_equal": true,
+        "tokens_default": 743,
+        "tokens_compact": 260,
+        "bytes_reduction_percent": 68.3,
+        "tokens_reduction_percent": 65.0
+      },
+      {
+        "name": "close_dialog",
+        "exit": {
+          "before": 0,
+          "after_default": 0,
+          "after_compact": 0
+        },
+        "default_bytes_before": 1829,
+        "default_bytes_after": 1829,
+        "default_identical": true,
+        "default_sha256": "95ab163385fa19456b9776fcd3dea492fc2d4e2844274106abb647f2a41cc0f1",
+        "compact_bytes": 547,
+        "parsed_equal": true,
+        "tokens_default": 471,
+        "tokens_compact": 142,
+        "bytes_reduction_percent": 70.1,
+        "tokens_reduction_percent": 69.9
+      },
+      {
+        "name": "finder_count_items",
+        "exit": {
+          "before": 0,
+          "after_default": 0,
+          "after_compact": 0
+        },
+        "default_bytes_before": 2544,
+        "default_bytes_after": 2544,
+        "default_identical": true,
+        "default_sha256": "8f90212c1ec80ff2a7eb267d8780ddb7c9f8fff7a536f4ac1ad4636d79f0a2db",
+        "compact_bytes": 822,
+        "parsed_equal": true,
+        "tokens_default": 638,
+        "tokens_compact": 221,
+        "bytes_reduction_percent": 67.7,
+        "tokens_reduction_percent": 65.4
+      },
+      {
+        "name": "finder_list_items",
+        "exit": {
+          "before": 0,
+          "after_default": 0,
+          "after_compact": 0
+        },
+        "default_bytes_before": 3095,
+        "default_bytes_after": 3095,
+        "default_identical": true,
+        "default_sha256": "581cb92fb14e400942723ad9769746e943ebb9c5f74844ab01d5a313d8a8acdf",
+        "compact_bytes": 999,
+        "parsed_equal": true,
+        "tokens_default": 766,
+        "tokens_compact": 270,
+        "bytes_reduction_percent": 67.7,
+        "tokens_reduction_percent": 64.8
+      },
+      {
+        "name": "finder_open_folder",
+        "exit": {
+          "before": 0,
+          "after_default": 0,
+          "after_compact": 0
+        },
+        "default_bytes_before": 1971,
+        "default_bytes_after": 1971,
+        "default_identical": true,
+        "default_sha256": "4559a8be5a2cc8adbc9bd01ec93d3763a42fdc3de4dd75a243b902567f5641f2",
+        "compact_bytes": 598,
+        "parsed_equal": true,
+        "tokens_default": 506,
+        "tokens_compact": 163,
+        "bytes_reduction_percent": 69.7,
+        "tokens_reduction_percent": 67.8
+      },
+      {
+        "name": "mail_inbox",
+        "exit": {
+          "before": 0,
+          "after_default": 0,
+          "after_compact": 0
+        },
+        "default_bytes_before": 3873,
+        "default_bytes_after": 3873,
+        "default_identical": true,
+        "default_sha256": "49b6da6a9c8008b9b1b681af2b8307d98e6a07dd9fac2e3e79f1edce87354e5b",
+        "compact_bytes": 1366,
+        "parsed_equal": true,
+        "tokens_default": 931,
+        "tokens_compact": 355,
+        "bytes_reduction_percent": 64.7,
+        "tokens_reduction_percent": 61.9
+      },
+      {
+        "name": "textedit_emphasize",
+        "exit": {
+          "before": 0,
+          "after_default": 0,
+          "after_compact": 0
+        },
+        "default_bytes_before": 3917,
+        "default_bytes_after": 3917,
+        "default_identical": true,
+        "default_sha256": "1c05773dac26e881d7cc9fec1b34ff7d7558e194dd87acc95d4273f951080231",
+        "compact_bytes": 1130,
+        "parsed_equal": true,
+        "tokens_default": 974,
+        "tokens_compact": 304,
+        "bytes_reduction_percent": 71.2,
+        "tokens_reduction_percent": 68.8
+      },
+      {
+        "name": "textedit_new_document",
+        "exit": {
+          "before": 0,
+          "after_default": 0,
+          "after_compact": 0
+        },
+        "default_bytes_before": 2302,
+        "default_bytes_after": 2302,
+        "default_identical": true,
+        "default_sha256": "2fd4d12dc75cd875058cde0c28465331d86616cee59e33d8444bf8ffef65de29",
+        "compact_bytes": 695,
+        "parsed_equal": true,
+        "tokens_default": 577,
+        "tokens_compact": 185,
+        "bytes_reduction_percent": 69.8,
+        "tokens_reduction_percent": 67.9
+      },
+      {
+        "name": "textedit_save",
+        "exit": {
+          "before": 0,
+          "after_default": 0,
+          "after_compact": 0
+        },
+        "default_bytes_before": 2069,
+        "default_bytes_after": 2069,
+        "default_identical": true,
+        "default_sha256": "e044c975ddcac332e43b4da20c1293f8d4c0a171c1c4f218e092a14450763cbe",
+        "compact_bytes": 816,
+        "parsed_equal": true,
+        "tokens_default": 517,
+        "tokens_compact": 209,
+        "bytes_reduction_percent": 60.6,
+        "tokens_reduction_percent": 59.6
+      },
+      {
+        "name": "textedit_save_as",
+        "exit": {
+          "before": 0,
+          "after_default": 0,
+          "after_compact": 0
+        },
+        "default_bytes_before": 11855,
+        "default_bytes_after": 11855,
+        "default_identical": true,
+        "default_sha256": "a8dbf75b4a1d38db5fb5c927a270c680e446e231fbe81a4cba2342da76a8db84",
+        "compact_bytes": 3920,
+        "parsed_equal": true,
+        "tokens_default": 2930,
+        "tokens_compact": 985,
+        "bytes_reduction_percent": 66.9,
+        "tokens_reduction_percent": 66.4
+      },
+      {
+        "name": "textedit_write_note",
+        "exit": {
+          "before": 0,
+          "after_default": 0,
+          "after_compact": 0
+        },
+        "default_bytes_before": 2529,
+        "default_bytes_after": 2529,
+        "default_identical": true,
+        "default_sha256": "ba446d71797ed73919e7440efd4fa03cd2abdfbeb6a5966fab74611a53b895de",
+        "compact_bytes": 862,
+        "parsed_equal": true,
+        "tokens_default": 652,
+        "tokens_compact": 230,
+        "bytes_reduction_percent": 65.9,
+        "tokens_reduction_percent": 64.7
+      }
+    ]
+  },
+  "static_guide": {
+    "fixture_path": {
+      "virtual": true,
+      "utf8_bytes": 64,
+      "sha256": "8b1c6293621d780576aac356f11113f8640a74073399b6400f9a3408a9eb17a5"
+    },
+    "calculator_guide_identical": true,
+    "before": {
+      "supports_save_keyword": false,
+      "calculator_guide_sha256": "4c472c83a3240e60d8e5cba12993ddbbd3d04c0a3941ea86b4c12f293a626744",
+      "variants": {
+        "one_time": {
+          "guide_bytes": 1887,
+          "guide_tokens": 411,
+          "path_occurrences_in_guide": 2,
+          "path_occurrences_in_template": 2,
+          "selector_defaults_ancestor": true,
+          "check_field_ancestor": true,
+          "reconstructed_edit_flow_bytes": 832,
+          "reconstructed_edit_flow_tokens": 201,
+          "reconstructed_parses": true,
+          "reconstructed_target": {
+            "role": "TextArea",
+            "identifier": "First Text View",
+            "ancestor_is_path": true,
+            "check_role": "TextArea",
+            "check_identifier": "First Text View"
+          }
+        },
+        "reuse": {
+          "guide_bytes": 2737,
+          "guide_tokens": 606,
+          "path_occurrences_in_guide": 2,
+          "path_occurrences_in_template": 2,
+          "selector_defaults_ancestor": true,
+          "check_field_ancestor": true,
+          "reconstructed_edit_flow_bytes": 832,
+          "reconstructed_edit_flow_tokens": 201,
+          "reconstructed_parses": true,
+          "reconstructed_target": {
+            "role": "TextArea",
+            "identifier": "First Text View",
+            "ancestor_is_path": true,
+            "check_role": "TextArea",
+            "check_identifier": "First Text View"
+          }
+        }
+      }
+    },
+    "after": {
+      "supports_save_keyword": true,
+      "calculator_guide_sha256": "4c472c83a3240e60d8e5cba12993ddbbd3d04c0a3941ea86b4c12f293a626744",
+      "variants": {
+        "one_time": {
+          "guide_bytes": 1684,
+          "guide_tokens": 363,
+          "path_occurrences_in_guide": 0,
+          "path_occurrences_in_template": 0,
+          "selector_defaults_ancestor": false,
+          "check_field_ancestor": false,
+          "reconstructed_edit_flow_bytes": 676,
+          "reconstructed_edit_flow_tokens": 161,
+          "reconstructed_parses": true,
+          "reconstructed_target": {
+            "role": "TextArea",
+            "identifier": "First Text View",
+            "ancestor_is_path": false,
+            "check_role": "TextArea",
+            "check_identifier": "First Text View"
+          }
+        },
+        "reuse": {
+          "guide_bytes": 2737,
+          "guide_tokens": 606,
+          "path_occurrences_in_guide": 2,
+          "path_occurrences_in_template": 2,
+          "selector_defaults_ancestor": true,
+          "check_field_ancestor": true,
+          "reconstructed_edit_flow_bytes": 832,
+          "reconstructed_edit_flow_tokens": 201,
+          "reconstructed_parses": true,
+          "reconstructed_target": {
+            "role": "TextArea",
+            "identifier": "First Text View",
+            "ancestor_is_path": true,
+            "check_role": "TextArea",
+            "check_identifier": "First Text View"
+          }
+        },
+        "save": {
+          "guide_bytes": 1887,
+          "guide_tokens": 411,
+          "path_occurrences_in_guide": 2,
+          "path_occurrences_in_template": 2,
+          "selector_defaults_ancestor": true,
+          "check_field_ancestor": true,
+          "reconstructed_edit_flow_bytes": 832,
+          "reconstructed_edit_flow_tokens": 201,
+          "reconstructed_parses": true,
+          "reconstructed_target": {
+            "role": "TextArea",
+            "identifier": "First Text View",
+            "ancestor_is_path": true,
+            "check_role": "TextArea",
+            "check_identifier": "First Text View"
+          }
+        }
+      }
+    },
+    "one_time_delta": {
+      "guide_bytes": -203,
+      "guide_tokens": -48,
+      "path_occurrences": -2
+    },
+    "reuse_retains_path": true,
+    "save_retains_path": true,
+    "before_has_no_save_keyword": true
+  },
+  "reconstructed_edit_flow_estimate": {
+    "kind": "ESTIMATE: guide-adherent reconstruction, not archived agent Flow text",
+    "evidence_value_utf8_bytes": 43,
+    "before_bytes": 832,
+    "after_bytes": 676,
+    "bytes_delta": -156,
+    "bytes_reduction_percent": 18.8,
+    "before_tokens": 201,
+    "after_tokens": 161,
+    "tokens_delta": -40,
+    "same_element_role_identifier": true
+  },
+  "reference_token_encoding": "o200k_base (tiktoken; reference count, not billing)",
+  "static_limits": [
+    "show outputs are code-defined builtins only; saved user flows were not read",
+    "token counts use o200k_base as a reference; they are not provider billing or the serving tokenizer",
+    "reconstructed edit Flow uses a fixed neutral evidence text; real agents quoted the task, so absolute savings depend on the path length and quoting",
+    "scope pinning safety without ancestor relies on the native document token walk, which this static run does not exercise",
+    "after worktree contains uncommitted helper/worker changes outside the measured sources; measured sources equal 13e1af5"
+  ],
+  "regression": {
+    "passed": true,
+    "source_unchanged": true,
+    "tests": 3283,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 27
+  },
+  "initial_unmeasured_attempts": {
+    "not_run_rows": 9,
+    "model_tasks_executed": 0,
+    "reason": "old fixture setup failed and later rows cascaded; original reason not recorded, still unverified",
+    "retained": true,
+    "excluded_from_performance_statistics": true
+  },
+  "native_lifecycle": {
+    "textedit_only": {
+      "passed": true,
+      "cleanup": "closed",
+      "artifact_removed": true
+    },
+    "calculator_to_textedit": {
+      "passed": true,
+      "cleanup": "closed",
+      "artifact_removed": true
+    },
+    "retired_ax_and_offscreen_required": true,
+    "optional_onscreen_key_uses_independent_window_list": true,
+    "new_permissions_required": false
+  },
+  "limits": [
+    "Three trials per arm, sequential before Tacto then after Tacto/Sky pairs; server cache/load not controlled.",
+    "Common native lifecycle fix was applied to both arms; this is a guide comparison, not a pure rc24-vs-rc25 binary comparison.",
+    "Output tokens and parent CLI-reported input reduced in this sample; time median 38.5 to 38.7 seconds gives no latency improvement.",
+    "Static --compact savings apply to saved Flow inspection; show was not used by this fresh task.",
+    "Reconstructed Flow bytes are estimates; actual agent input source was not archived.",
+    "Requested serving model, full TCC attribution, actual billing and strict product equivalence remain unverified; harness exit 2 retained."
+  ],
+  "deployment": {
+    "version": "v1.0.0-rc.25",
+    "source_commit": "9b25439a2957c37bb3071bfe7559fdb851d5df59",
+    "app_and_dmg_notarization_accepted": true,
+    "staple_gatekeeper_artifact_security_checks_passed": true,
+    "target_count": 3,
+    "installed_verified_count": 2,
+    "pending_count": 1,
+    "pending_reason": "network peer offline; SSH unavailable before installation",
+    "status": "partial_deployment",
+    "local_native_cases_passed": 7,
+    "local_session_repair_readback_cancel_paging_passed": true,
+    "public_release_changed": false,
+    "vault_session_modified": false
+  }
+}
