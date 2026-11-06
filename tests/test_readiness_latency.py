@@ -38,6 +38,15 @@ class ExpectReadinessTests(unittest.TestCase):
         self.assertTrue(result.ok, result.log)
         self.assertGreaterEqual(pad.presses[1] - pad.presses[0], 1.0)
 
+    def test_text_input_keeps_settle_for_autocomplete_before_next_input(self):
+        for action, params in (('type_text', {'text': '1'}), ('set_value', {'value': '1'})):
+            clock = Clock(); pad = Pad(clock, lag=0.6)
+            step = replace(press('one'), action=action, params=params, expect='Value: 1')
+            result = run(pad, clock, Flow('digits', 'pad', [step, press('two')]))
+            with self.subTest(action=action):
+                self.assertTrue(result.ok, result.log)
+                self.assertGreaterEqual(pad.presses[1] - pad.presses[0], 1.0)
+
     def test_unmet_expect_times_out_without_repeating_or_next_input(self):
         clock = Clock(); pad = Pad(clock)
         result = run(pad, clock, Flow('digits', 'pad', [

@@ -3245,10 +3245,10 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
                         res.record(status="error", step=i, stage="ready_wait",
                                    error=seen.get("error", "observation_unavailable"), detail=seen)
                         return res
-            # A newly expected result is a readiness witness too. Poll it
-            # immediately rather than sleeping a second before the same check.
-            # Already-visible text proves no change: keep the legacy settle.
-            expect_waited = (step.expect is not None
+            # A click's newly expected result can be checked immediately.
+            # Text/key/menu input keeps its settle for completion/correction;
+            # already-visible text also keeps the legacy settle.
+            expect_waited = (step.action == "click" and step.expect is not None
                              and step.expect not in (acted_on_tree or ""))
             if expect_waited:
                 obs = _replay_observation(driver.wait_until, flow.target,
