@@ -821,6 +821,10 @@ and policy still apply. No guide is emitted without the flag. With --timings,
 TACTO_SESSION_TIMINGS gives monotonic offsets for observation_ready_seconds,
 input_ready_seconds, flow_received_seconds, replay_done_seconds and
 session_done_seconds. Input waiting is not pure model inference.
+`flow_input_attempts`, `flow_input_corrections` and `flow_input_utf8_bytes` are
+integer counts/bytes, not offsets; no input values are emitted. Valid observation
+continuations are excluded from Flow attempts. Default session observations omit
+read-cost diagnostics; `--timings` retains them.
 
 Compact step {"click":"stable-id","equals":"result","skip_equals":"initial"}
 expands to an ordinary click selector and explicit postcondition/skip_if before

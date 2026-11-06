@@ -31,6 +31,34 @@ class FlowSessionTests(unittest.TestCase):
         self.assertIn('target:','\n'.join(messages));self.assertIn('params:','\n'.join(messages))
         self.assertNotIn('PRIVATE_TARGET','\n'.join(messages))
 
+    def test_authoring_metrics_count_repairs_without_input_values(self):
+        from tacto.flow_session import read_session_flow
+        metrics={};good=json.dumps(calculator_example());bad='{"private":"PRIVATE_SENTINEL"}'
+        with patch('tacto.flow_session.os.isatty',return_value=True), \
+             patch('tacto.flow_session.read_flow_line',side_effect=['{',bad,good]):
+            read_session_flow(42,5,lambda _:None,metrics=metrics)
+        self.assertEqual(3,metrics['flow_input_attempts'])
+        self.assertEqual(2,metrics['flow_input_corrections'])
+        self.assertEqual(len(('{'+bad+good).encode()),metrics['flow_input_utf8_bytes'])
+        self.assertNotIn('PRIVATE',str(metrics))
+
+    def test_default_observation_preserves_task_data_and_hides_only_diagnostics(self):
+        observe=Calculator.observe
+        def measured(app,*args,**kwargs):
+            data=observe(app,*args,**kwargs)
+            data.update(observation_timing_ms={'read':5},observation_metrics={'nodes':8},
+                        window_listing_diagnostic={'scope':'diagnostic'},coordination_elapsed_ms=2)
+            return data
+        for timed in (False,True):
+            with self.subTest(timed=timed),patch.object(Calculator,'observe',measured):
+                args=['com.apple.calculator','--helper']+(['--timings'] if timed else [])
+                code,app,_,messages=self.run_with(calculator_example(),args=args)
+                packet=json.loads(next(m for m in messages if m.startswith('{') and json.loads(m).get('type')=='observation'))
+                self.assertEqual(0,code);self.assertEqual('408',app.value)
+                self.assertIn('tree',packet);self.assertIn('obs_id',packet)
+                self.assertEqual(timed,'observation_metrics' in packet)
+                self.assertEqual(timed,'window_listing_diagnostic' in packet)
+
     def test_windows_corrections_share_one_input_reader(self):
         from tacto.flow_session import read_session_flow
         reader=Mock(side_effect=[b'{}\n',(json.dumps(calculator_example())+'\n').encode()])
@@ -154,7 +182,9 @@ class FlowSessionTests(unittest.TestCase):
         keys=('observation_ready_seconds','input_ready_seconds','flow_received_seconds',
               'replay_done_seconds','session_done_seconds')
         self.assertEqual(list(keys),list(sorted(keys,key=lambda k:timing[k])))
-        self.assertEqual(set(keys),set(timing))
+        self.assertEqual(set(keys)|{"flow_input_attempts","flow_input_utf8_bytes"},set(timing))
+        self.assertEqual(1,timing["flow_input_attempts"])
+        self.assertGreater(timing["flow_input_utf8_bytes"],0)
 
     def test_target_mismatch_and_malformed_json_are_before_input(self):
         for doc in ({**calculator_example(),'target':'another.app'}, {'private':'PERSONAL_TEXT'}):

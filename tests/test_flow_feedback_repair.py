@@ -35,6 +35,16 @@ class FeedbackTests(unittest.TestCase):
             with patch('tacto.cli._make_driver',side_effect=AssertionError('native startup')),contextlib.redirect_stderr(output):
                 self.assertEqual(2,main(['run',str(path),'--helper']))
             self.assertIn('params:',output.getvalue());self.assertNotIn('PRIVATE',output.getvalue())
+    def test_guide_states_ancestor_text_form_and_document_pin(self):
+        import json as _json
+        plain=session_guide('com.apple.calculator')
+        self.assertIn('selector.ancestor is an observed window/container title or identifier',plain)
+        self.assertIn('never an object; omit it when the app has one window',plain)
+        self.assertNotIn('ancestor',_json.dumps(_json.loads(plain.splitlines()[1])))
+        document=session_guide('com.apple.TextEdit',document='/owned/a.txt')
+        self.assertIn('already pins this document as ancestor; do not add ancestor to steps',document)
+        self.assertEqual('/owned/a.txt',_json.loads(document.splitlines()[1])['selector_defaults']['ancestor'])
+
     def test_reuse_guide_is_conditional(self):
         self.assertNotIn('Reusable template:',session_guide('app'))
         self.assertIn('Reusable template:',session_guide('app',reusable=True))

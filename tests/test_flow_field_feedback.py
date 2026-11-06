@@ -31,6 +31,18 @@ class FieldFeedbackTests(unittest.TestCase):
             self.assert_feedback({**base,check:{'all_of':[{'field':{'identifier':42},'equals':'PRIVATE'}]}},check+'.all_of[0].field.identifier','nonempty text')
             self.assert_feedback({**base,check:{'equals':['PRIVATE']}},check+'.equals','Use text')
 
+    def test_ancestor_wrong_type_names_the_text_form_without_echo(self):
+        base={'action':'read','selector':{'identifier':'result'}}
+        for wrong in ({'title':'PRIVATE'},'',['PRIVATE',{'identifier':'PRIVATE'}],7):
+            message=self.assert_feedback({**base,'selector':{'identifier':'result','ancestor':wrong}},
+                                         'selector.ancestor','title or identifier as text')
+            self.assertIn('not an object',message)
+        # click_ancestor names a role to climb to, not a window: unchanged hint.
+        self.assert_feedback({**base,'selector':{'identifier':'result','click_ancestor':{'PRIVATE':1}}},
+                             'selector.click_ancestor','nonempty text')
+        doc=calculator_example();doc['steps']=[{**base,'selector':{'identifier':'result','ancestor':['Calculator','main']}}]
+        Flow.from_json(json.dumps(doc),strict_checks=True)
+
     def test_constructor_fields_are_located_without_echoing_unknown_keys(self):
         base={'action':'read','selector':{'identifier':'result'}}
         for key in ('resource','destination'):

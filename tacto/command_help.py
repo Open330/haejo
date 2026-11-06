@@ -79,7 +79,7 @@ def session_guide(target, *, reusable=False, document=None):
             'postcondition:{"equals":"<requested text>"}; safety:{"effects":["write_persistent"],'
             '"evidence":[{"source":"user_intent","field":"asked","value":"<actual user request>","covers":["write_persistent"]}]}. '
             'Quote the actual edit request; do not invent coverage. '
-            'Use selector keys identifier/title/desc, not description. '
+            'selector_defaults already pins this document as ancestor; do not add ancestor to steps. Use selector keys identifier/title/desc, not description. '
             'After an uncertain edit, TACTO_DOCUMENT_STATE checks the body once on this same connection. '
             'matches_requested_text:true with remaining_steps:0 verifies the requested visible text; no extra read session or retyping is needed. '
             'False/null or remaining steps require inspection; the marker never confirms Save or attributes the write. '
@@ -104,7 +104,8 @@ def session_guide(target, *, reusable=False, document=None):
         + ("" if document is not None else
         "Adapt selectors, effects/resource and result to the user task. Selectors must be unique. "
         'AX-first, background by default: click invokes AXPress when supported; use set_value/read on observed elements. '
-        'Do not activate or use coordinates/screenshots first. Pin the observed window with ancestor (TextEdit: --document); '
+        'Do not activate or use coordinates/screenshots first. selector.ancestor is an observed window/container title or identifier '
+        'as text (or a list of text), never an object; omit it when the app has one window (TextEdit: --document); '
         'inspect --all-windows for missing controls. Activate only for a demonstrated foreground requirement. '
         'Compact click expands to action:click/selector.identifier; equals and skip_equals require '
         'check_defaults.field and expand to postcondition/skip_if. Put answers:true only on the result step. '

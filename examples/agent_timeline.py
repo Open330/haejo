@@ -12,6 +12,9 @@ def numeric_timings(value):
         'observation_ready_seconds', 'input_ready_seconds', 'flow_received_seconds',
         'replay_done_seconds', 'session_done_seconds', 'replay_seconds', 'run_flow_seconds')
         if type(value.get(key)) in (int, float) and math.isfinite(value[key]) and value[key] >= 0}
+    for key in ('flow_input_attempts','flow_input_corrections','flow_input_utf8_bytes'):
+        if type(value.get(key)) is int and 0 <= value[key] <= 2**63-1:
+            result[key] = value[key]
     calls = value.get('calls')
     if isinstance(calls, dict):
         result['calls'] = {name: {key: stats[key] for key in ('count', 'seconds', 'exceptions')

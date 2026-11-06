@@ -95,7 +95,7 @@ def read_flow_line(fd, timeout, *, platform=None, reader=None):
             return line.decode('utf-8')
 
 
-def read_session_flow(fd, timeout, emit, *, prepare=None, observe_next=None, find_observation=None):
+def read_session_flow(fd, timeout, emit, *, prepare=None, observe_next=None, find_observation=None, metrics=None):
     """Repair interactive schema errors before dispatch on the same connection."""
     deadline = time.monotonic() + timeout
     reader = _windows_reader(fd) if sys.platform == 'win32' else None
@@ -103,6 +103,7 @@ def read_session_flow(fd, timeout, emit, *, prepare=None, observe_next=None, fin
         # Framing, EOF and budget errors are terminal; only a complete JSON line
         # rejected by Flow parsing can be corrected without starting over.
         raw = read_flow_line(fd, max(0, deadline - time.monotonic()), reader=reader)
+        counted = False
         try:
             if observe_next is not None or find_observation is not None:
                 command = json.loads(raw)
@@ -124,12 +125,21 @@ def read_session_flow(fd, timeout, emit, *, prepare=None, observe_next=None, fin
                                              'Send one exact label as text, without a Flow or other commands.')
                     find_observation(label)
                     continue
+            if metrics is not None:
+                metrics['flow_input_attempts'] = metrics.get('flow_input_attempts', 0) + 1
+                metrics['flow_input_utf8_bytes'] = metrics.get('flow_input_utf8_bytes', 0) + len(raw.encode('utf-8'))
+                counted = True
             flow = Flow.from_json(raw, strict_checks=True)
             return prepare(flow) if prepare is not None else flow
         except (ValueError, TypeError, KeyError, RecursionError) as exc:
+            if metrics is not None and not counted:
+                metrics['flow_input_attempts'] = metrics.get('flow_input_attempts', 0) + 1
+                metrics['flow_input_utf8_bytes'] = metrics.get('flow_input_utf8_bytes', 0) + len(raw.encode('utf-8'))
             if not os.isatty(fd):
                 raise
             from .flow_errors import feedback
+            if metrics is not None:
+                metrics['flow_input_corrections'] = metrics.get('flow_input_corrections', 0) + 1
             record_failure('session_invalid_flow', 'load')
             emit('session_invalid_flow: ' + feedback(exc))
             emit('TACTO_SESSION_READY correct the JSON on this same session; no UI input was sent. The original input deadline still applies.')
@@ -233,12 +243,15 @@ def run_session(args, *, make_driver, run_flow, stdin, emit):
         def show_observation():
             # The live cursor belongs to this connection; authors see only
             # whether there are more candidates, never a reusable native token.
-            visible = {key: value for key, value in observation.items()
-                       if key != 'next_observation_cursor'}
+            hidden = {'next_observation_cursor'}
+            if '--timings' not in args:
+                hidden.update(('observation_timing_ms', 'observation_metrics',
+                               'window_listing_diagnostic', 'coordination_elapsed_ms'))
+            visible = {key: value for key, value in observation.items() if key not in hidden}
             more = bool(observation.get('next_observation_cursor'))
             if more:
                 visible['has_more_observation'] = True
-            emit(json.dumps(visible, ensure_ascii=False))
+            emit(json.dumps(visible, ensure_ascii=False, separators=(',', ':')))
             if more:
                 lookup = (' If the exact name is known, send {"find_in_observation":"exact label"} instead.'
                           if 'observe.reveal' in getattr(driver, 'capabilities', ()) else '')
@@ -284,7 +297,8 @@ def run_session(args, *, make_driver, run_flow, stdin, emit):
                 flow, template = read_session_flow(stdin.fileno(), timeout, emit,
                                                    prepare=lambda parsed: prepare_session_flow(parsed, target),
                                                    observe_next=additional_observation,
-                                                   find_observation=additional_observation)
+                                                   find_observation=additional_observation,
+                                                   metrics=timing if '--timings' in args else None)
                 timing['flow_received_seconds'] = time.monotonic() - started
         except (ValueError, TypeError, KeyError, TimeoutError, RecursionError) as exc:
             # A flow may contain personal text. Do not echo malformed input or

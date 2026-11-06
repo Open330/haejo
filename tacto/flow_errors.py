@@ -45,6 +45,7 @@ def step_error(exc, path):
             field = typed[1]+'.'+typed[2]
             hint = ('Use a nonnegative integer.' if typed[2]=='allow_nth'
                     else 'Use true or false.' if typed[2]=='in_focused_window'
+                    else 'Use an observed window/container title or identifier as text or a list of text, not an object; omit it for a single window.' if typed[2] == 'ancestor'
                     else 'Use nonempty text; name alternatives may be a list of text.' if typed[2] not in ('role','subrole')
                     else 'Use a fixed AX role/subrole name as text.')
         elif object_error:

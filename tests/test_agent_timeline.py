@@ -31,6 +31,12 @@ class AgentTimelineTests(unittest.TestCase):
         self.assertNotIn('SECRET',repr(result));self.assertNotIn('PRIVATE',repr(result))
         self.assertEqual({},numeric_timings({'replay_seconds':float('nan'),'session_done_seconds':True}))
 
+    def test_authoring_counters_are_integer_counts_not_time_offsets(self):
+        self.assertEqual({'flow_input_attempts':2,'flow_input_utf8_bytes':321},numeric_timings({
+            'flow_input_attempts':2,'flow_input_utf8_bytes':321,'flow_input_corrections':True}))
+        for value in (-1,1.0,'PRIVATE',2**64):
+            self.assertEqual({},numeric_timings({'flow_input_attempts':value}))
+
     def test_oversized_malformed_events_remain_bounded(self):
         timer=AgentTimeline(0,clock=lambda:0)
         timer.feed(b'x'*(1024*1024+1)+b'\nnull\n{invalid}\n')

@@ -11,7 +11,7 @@ and actions through SSH to that same host. Use Tacto from the first UI call.
 
 Default to accessibility selectors and background execution: `click` uses
 AXPress when supported; `set_value` and `read` address observed elements.
-Pin the intended window with `ancestor`, or TextEdit with `--document`.
+Pin the intended window with `ancestor` (its title as text), or TextEdit with `--document`.
 For missing controls inspect `--all-windows` before assuming foreground is
 needed. Use activation, screenshots or pointer input when the task/control
 needs them; [recovery](references/recovery.md) covers those transitions.
