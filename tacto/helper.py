@@ -826,7 +826,7 @@ class HelperDriver:
         if expect:
             msg["expect"] = expect
         r = self._send(msg)
-        if r.get("type") == "acted":
+        if r.get("type") == "acted" and action.get("name") != "read":
             self._last_action_at = time.monotonic()
         return r
 

@@ -64,8 +64,10 @@ def session_guide(target, *, reusable=False, document=None):
             "Calculator: start at 0. Prepend two reset steps, each "
             '{"click":["AllClear","Clear"],"safety":{"effects":["delete"]},"skip_equals":"0"}; '
             'the second also has "equals":"0". Clear removes the operand; next reset clears the expression. '
-            'Add observed digit/operator/Equals identifiers. Digit checks include the expression '
-            '(e.g. "2 × 3"); final Equals checks the computed result. '
+            'Use equals on EACH digit/operator step to avoid a fixed settle: '
+            '{"click":"Two","equals":"2"}, {"click":"Multiply","equals":"2 ×"}, '
+            '{"click":"Three","equals":"2 × 3"}. Final Equals checks the computed result. '
+            'Operator displays use spaces and +, − (U+2212), ×, ÷. '
         )
     if document is not None:
         template['selector_defaults'] = {'role':'TextArea','identifier':'First Text View','ancestor':document}

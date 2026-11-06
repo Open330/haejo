@@ -1910,7 +1910,8 @@ class Driver:
                     "effect": ("not_started" if isinstance(e, NotStarted)
                                else "unknown"),
                     "detail": str(e)}
-        self._last_action_at = time.monotonic()
+        if name != "read":
+            self._last_action_at = time.monotonic()
         return {"type": "acted", "action": name, "obs_id": obs_id,
                 "note": "not verified — observe again and check the result (D7)",
                 **(result or {})}

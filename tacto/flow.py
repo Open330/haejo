@@ -3245,8 +3245,21 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
                         res.record(status="error", step=i, stage="ready_wait",
                                    error=seen.get("error", "observation_unavailable"), detail=seen)
                         return res
-            if ready != "met":
+            # A newly expected result is a readiness witness too. Poll it
+            # immediately rather than sleeping a second before the same check.
+            # Already-visible text proves no change: keep the legacy settle.
+            expect_waited = (step.expect is not None
+                             and step.expect not in (acted_on_tree or ""))
+            if expect_waited:
+                obs = _replay_observation(driver.wait_until, flow.target,
+                                          lambda t: step.expect in t, timeout_ms=4000)
+            elif ready != "met":
                 obs = _replay_observation(driver.observe, flow.target, "tree_full")
+            if expect_waited and obs.get("type") == "timeout":
+                res.record(status="error", step=i, action=step.action,
+                           error="expect_not_met",
+                           detail=f"expect {step.expect!r} not in tree")
+                return res
             if obs["type"] != "observation":
                 res.record(status="error", step=i, stage="verify_observe",
                            error=obs.get("error", "observation_failed"), detail=obs)
