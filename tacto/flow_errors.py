@@ -36,11 +36,13 @@ def step_error(exc, path):
         # value nor an unknown field name is copied into public feedback.
         location = r'(?:selector|(?:postcondition|skip_if)(?:\.all_of\[[0-9]{1,2}\]){0,8}(?:\.field)?)'
         match = re.fullmatch('(' + location + r') needs known selector fields that name an element', message)
-        typed = re.fullmatch('(' + location + r')\.(role|identifier|title|desc|value|ancestor|click_ancestor|allow_nth|in_focused_window|subrole) has the wrong type', message)
+        typed = re.fullmatch('(' + location + r')\.(role|identifier|title|desc|value|ancestor|click_ancestor|allow_nth|in_focused_window|subrole|placeholder|near) has the wrong type', message)
         object_error = re.fullmatch('(' + location + r') must be an object(?:, not (?:str|int|float|bool|list|NoneType))?', message)
         boolean = re.fullmatch(r'(require_enabled|is_submit|into_sensitive_field|unverified_ok|answers) must be boolean', message)
         if match:
-            field, hint = match[1], 'Use role, identifier, title, desc or value; ancestor narrows the window. Use desc, not description.'
+            field, hint = match[1], ('Use role, identifier, title, desc, value or placeholder; ancestor narrows the container, '
+                                     'near picks the repeat closest to a text, allow_nth (0-based) picks among repeats. '
+                                     'Use desc, not description.')
         elif typed:
             field = typed[1]+'.'+typed[2]
             hint = ('Use a nonnegative integer.' if typed[2]=='allow_nth'

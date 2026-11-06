@@ -41,3 +41,12 @@ invocation: the opened-list pin belongs to that helper connection. A separate
 CLI invocation cannot resume that pin. For live option planning, use
 `tacto do '<selection goal>' --helper`, which observes between actions on the same
 channel. JSON is a diagnostic snapshot, not a session or input authorization.
+
+### Waiting for a state
+
+`tacto observe <app> --helper --until-text "<exact text>" [--timeout 30]` waits
+inside one command until that text appears (`--until-gone` until it
+disappears, `--until '<postcondition JSON>'` for a field check such as
+`{"field":{"identifier":"status"},"equals":"Done"}`). It prints the matching
+observation, or `until_timeout` with the last screen. Use it instead of a loop
+of separate observes.

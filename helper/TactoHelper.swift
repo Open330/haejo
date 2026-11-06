@@ -1363,6 +1363,14 @@ func observe(_ target: String, requireWindow: Bool = true, documentToken: String
         windows = windows.filter { nativeWindowID($0) == scope.id && CFEqual($0,scope.window) }
         guard windows.count == 1 else { return parallelRefusal("window_scope_lost") }
     }
+    // A menu bar app shows its menu, not a window, after `status_item`: read
+    // that open menu as the root so its items can be chosen like any element
+    // (2026-11-06: Tailscale's menu opened and observe still said no window).
+    var statusMenu = false
+    if windows.isEmpty, documentToken == nil, ParallelWindowState.shared.current == nil {
+        let open = openStatusMenus(p)
+        if !open.isEmpty { windows = open; statusMenu = true }
+    }
     if windows.isEmpty && requireWindow {
         return ["type": "error", "error": "no_window_content", "target": target,
                 "window_listing_diagnostic":windowListing.metadata]
@@ -1490,6 +1498,7 @@ func observe(_ target: String, requireWindow: Bool = true, documentToken: String
             "element_count": elements.count, "truncated": truncated,
             "observation_metrics":metrics.metadata]
     if let continuation { reply["next_observation_cursor"] = continuation }
+    if statusMenu { reply["status_menu_open"] = true }
     let walkMs = milliseconds(since: walkStart)
     // Reading only; nothing here opens a menu. A closed popup reports
     // no options because it HAS none until it is opened.
@@ -1546,6 +1555,26 @@ func observe(_ target: String, requireWindow: Bool = true, documentToken: String
 /// leaves `AXChildren` empty and the menu turns up elsewhere in the app,
 /// alongside the twenty-odd the menu bar already owns. So the way to find the
 /// one that just opened is to know which were already there.
+/// Menus open under the app's own menu bar icons. A closed status menu is
+/// either absent or has no on-screen frame, so only a shown one is returned.
+func openStatusMenus(_ p: pid_t) -> [AXUIElement] {
+    guard let bar = attr(AXUIElementCreateApplication(p), "AXExtrasMenuBar"),
+          CFGetTypeID(bar) == AXUIElementGetTypeID() else { return [] }
+    let items = (attr(bar as! AXUIElement, kAXChildrenAttribute as String) as? [AXUIElement]) ?? []
+    var open: [AXUIElement] = []
+    for item in items.prefix(16) {
+        for menu in ((attr(item, kAXChildrenAttribute as String) as? [AXUIElement]) ?? []).prefix(4)
+        where str(menu, kAXRoleAttribute as String) == "AXMenu" {
+            var size = CGSize.zero
+            if let raw = attr(menu, kAXSizeAttribute as String), CFGetTypeID(raw) == AXValueGetTypeID(),
+               AXValueGetValue(raw as! AXValue, .cgSize, &size), size.width > 0, size.height > 0 {
+                open.append(menu)
+            }
+        }
+    }
+    return open
+}
+
 func appMenus(_ p: pid_t, depth: Int = 7) -> [AXUIElement] {
     var found: [AXUIElement] = []
     func walk(_ node: AXUIElement, _ d: Int) {
@@ -3482,7 +3511,7 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
                 "effect": "not_started",
                 "detail": "사용자가 Esc로 중단했습니다"]
     }
-    guard ensureVisibleControl(forPID: p, windowless: ["menu", "open_folder", "reopen_window", "close_menu"].contains((action["name"] as? String) ?? "")) else {
+    guard ensureVisibleControl(forPID: p, windowless: ["menu", "open_folder", "reopen_window", "close_menu", "status_item"].contains((action["name"] as? String) ?? "")) else {
         return indicatorRefusal()
     }
     let name = action["name"] as? String ?? ""
@@ -4240,6 +4269,54 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
             reopened["note"] = "not verified — observe again; the app was observed in front after reopening"
         }
         return reopened
+    case "status_item":
+        // The app's own menu bar icon (AXExtrasMenuBar), pressed through AX
+        // without moving the pointer. Menu bar apps had no way in, so agents
+        // clicked the icon with osascript (BarShelf, 2026-10-24).
+        guard Set(action.keys).isSubset(of: ["name", "title"]),
+              action["title"] == nil || ((action["title"] as? String).map { !$0.isEmpty && $0.count <= 200 } ?? false) else {
+            return ["type": "error", "error": "action_failed", "effect": "not_started",
+                    "detail": "status_item 은 선택 인자 title(텍스트) 하나만 받습니다"]
+        }
+        let appElement = AXUIElementCreateApplication(p)
+        var items: [AXUIElement] = []
+        if let bar = attr(appElement, "AXExtrasMenuBar"), CFGetTypeID(bar) == AXUIElementGetTypeID(),
+           let raw = attr(bar as! AXUIElement, kAXChildrenAttribute as String) as? [AnyObject] {
+            items = raw.filter { CFGetTypeID($0) == AXUIElementGetTypeID() }.map { $0 as! AXUIElement }
+        }
+        guard !items.isEmpty else {
+            return ["type": "error", "error": "status_item_missing", "effect": "not_started",
+                    "detail": "이 앱은 메뉴바 아이콘을 AX로 내보내지 않습니다"]
+        }
+        func labels(_ item: AXUIElement) -> [String] {
+            [kAXTitleAttribute as String, kAXDescriptionAttribute as String, kAXHelpAttribute as String,
+             kAXIdentifierAttribute as String].compactMap { str(item, $0) }.filter { !$0.isEmpty }
+        }
+        let wanted = (action["title"] as? String)?.lowercased()
+        let matching = wanted == nil ? items : items.filter { labels($0).contains { $0.lowercased() == wanted } }
+        guard matching.count == 1 else {
+            let names = items.map { labels($0).first ?? "?" }.prefix(12).joined(separator: ", ")
+            return ["type": "error", "error": matching.isEmpty ? "status_item_missing" : "status_item_ambiguous",
+                    "effect": "not_started", "detail": "메뉴바 아이콘: \(names) — title 로 하나를 고르세요"]
+        }
+        guard !abortState.isStopped, ProcessInfo.processInfo.systemUptime < deadline else {
+            return ["type": "error", "error": "input_cancelled_or_expired", "effect": "not_started"]
+        }
+        let menusBefore = appMenus(p)
+        let pressed = AXUIElementPerformAction(matching[0], kAXPressAction as CFString)
+        if pressed != .success && pressed != AXError(rawValue: -25204) {
+            return ["type": "error", "error": "action_failed", "effect": axActionFailureEffect(pressed),
+                    "ax_error": Int(pressed.rawValue), "detail": "메뉴바 아이콘이 AXPress 를 받지 않았습니다"]
+        }
+        // A status menu tracks modally, so the press often answers -25204
+        // while the menu is open. Report what appeared, then observe.
+        usleep(300_000)
+        let opened = appMenus(p).contains { candidate in !menusBefore.contains(where: { CFEqual($0, candidate) }) }
+        var reply: [String: Any] = ["type": "acted", "action": name, "obs_id": obsID,
+                                    "reobserve_required": true, "menu_opened": opened,
+                                    "note": "not verified — observe again (a panel opens as a window, a menu as MenuItems)"]
+        if pressed != .success { reply["ax_error"] = Int(pressed.rawValue) }
+        return reply
     case "close_menu":
         // An open context or pop-up menu, closed the way AX offers (AXCancel
         // on the menu), not with Escape: Escape goes to whatever has the key
@@ -4250,7 +4327,8 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
             return ["type": "error", "error": "action_failed", "effect": "not_started",
                     "detail": "close_menu 는 인자를 받지 않습니다"]
         }
-        let openMenus = openContextMenus(pid: p)
+        // A menu opened from the app's menu bar icon (status_item) closes the same way.
+        let openMenus = openContextMenus(pid: p) + openStatusMenus(p)
         guard !openMenus.isEmpty else {
             return ["type": "error", "error": "action_failed", "effect": "not_started",
                     "detail": "열린 메뉴가 없습니다"]
@@ -4263,7 +4341,7 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
             failures += 1
         }
         Thread.sleep(forTimeInterval: 0.15)
-        let remaining = openContextMenus(pid: p).count
+        let remaining = openContextMenus(pid: p).count + openStatusMenus(p).count
         if failures == openMenus.count {
             return ["type": "error", "error": "action_failed", "effect": "unknown",
                     "detail": "메뉴가 AXCancel 을 받지 않았습니다", "menus_open": remaining]
@@ -5033,10 +5111,27 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
             return ["type": "error", "error": "action_failed",
                     "effect": "not_started", "detail": "허용되지 않은 AX action"]
         }
+        let menusBefore = a == "AXShowMenu" ? appMenus(p) : []
         let secondaryError = AXUIElementPerformAction(el, a as CFString)
         if secondaryError != .success {
+            if a == "AXShowMenu" && secondaryError != AXError(rawValue: -25206) {
+                // AXShowMenu often answers -25204 (cannot complete) while the
+                // menu it opened is still tracking; reported as a failure,
+                // agents re-ran a step that had worked (Notification Center
+                // widgets, six times on 2026-11-05). Look for the menu.
+                usleep(300_000)
+                let appeared = appMenus(p).contains { candidate in
+                    !menusBefore.contains(where: { CFEqual($0, candidate) })
+                }
+                if appeared {
+                    return ["type": "acted", "action": name, "obs_id": obsID,
+                            "reobserve_required": true, "ax_error": Int(secondaryError.rawValue),
+                            "note": "menu appeared although AXShowMenu returned an error — observe again"]
+                }
+            }
             return ["type": "error", "error": "action_failed",
-                    "effect": axActionFailureEffect(secondaryError), "detail": "secondary action failed"]
+                    "effect": axActionFailureEffect(secondaryError), "ax_error": Int(secondaryError.rawValue),
+                    "detail": "secondary action failed"]
         }
     default:
         return ["type": "error", "error": "action_failed",
@@ -5225,7 +5320,7 @@ final class ControlMenuTarget: NSObject {
     static let shared = ControlMenuTarget()
 
     @objc func stopNow(_ sender: Any?) {
-        abortState.stopNow()
+        abortState.stopNow("indicator_stop")
         note("tacto-helper: 표시 메뉴에서 중단했습니다")
         DispatchQueue.main.async {
             RuntimePublisher.shared.publish()
@@ -5611,7 +5706,8 @@ func sha256Hex(_ data: Data) -> String {
 /// inline: a window-sized PNG does not belong in a JSON frame, and a path the
 /// CLIENT chose would let a client make this process write wherever it liked.
 func captureWindow(_ obsID: String, _ target: String,
-                   windowIndex: Int?, deadline: Double) -> [String: Any] {
+                   windowIndex requestedWindowIndex: Int?, elementIndex: Int? = nil,
+                   deadline: Double) -> [String: Any] {
     func refuse(_ error: String, _ detail: String) -> [String: Any] {
         ["type": "error", "error": error, "effect": "not_started", "detail": detail]
     }
@@ -5632,6 +5728,19 @@ func captureWindow(_ obsID: String, _ target: String,
     let windows = realWindows(of: app)
     guard !windows.isEmpty else {
         return refuse("no_window_content", "this app has no AX window to capture")
+    }
+    var windowIndex = requestedWindowIndex
+    if let elementIndex {
+        // Same observation as the obs_id check above: the element is the
+        // Window line the caller selected, matched to the live window list.
+        guard elementIndex < latestElements.count else {
+            return refuse("stale_observation", "observe again before capturing")
+        }
+        let element = latestElements[elementIndex]
+        guard let place = windows.firstIndex(where: { CFEqual($0, element) }) else {
+            return refuse("window_not_observed", "element_index is not one of the app's windows")
+        }
+        windowIndex = place
     }
     let index = windowIndex ?? 0
     guard index >= 0, index < windows.count else {
@@ -5754,7 +5863,7 @@ func captureWindow(_ obsID: String, _ target: String,
     try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: path)
     let bytes = (try? Data(contentsOf: URL(fileURLWithPath: path))) ?? Data()
 
-    return ["type": "capture", "capture_id": "nv" + UUID().uuidString,
+    var reply: [String: Any] = ["type": "capture", "capture_id": "nv" + UUID().uuidString,
             "obs_id": obsID, "target": target, "pid": Int(p),
             "window_id": Int(windowID), "window_index": index,
             "path": path, "bytes": bytes.count,
@@ -5771,6 +5880,8 @@ func captureWindow(_ obsID: String, _ target: String,
             // quietly mean more than another.
             "evidence_kind": "visual_read", "authorizes_action": false,
             "commit_witness": false]
+    if let elementIndex { reply["element_index"] = elementIndex }
+    return reply
 }
 
 // The stop, and the moment this run began, behind one lock. They are read and
@@ -5783,11 +5894,13 @@ final class AbortState: @unchecked Sendable {
     private let lock = NSLock()
     private var stopped = false
     private var epoch: TimeInterval = 0
+    private var why = ""
 
     /// A new connection: a new launcher run, a new intention.
     func begin() {
         lock.lock(); defer { lock.unlock() }
         stopped = false
+        why = ""
         epoch = ProcessInfo.processInfo.systemUptime
     }
 
@@ -5824,7 +5937,7 @@ final class AbortState: @unchecked Sendable {
     /// rather than from `systemUptime` — which is the fix, not this comment.
     func note(at when: TimeInterval) {
         lock.lock(); defer { lock.unlock() }
-        if when >= epoch { stopped = true }
+        if when >= epoch { stopped = true; if why.isEmpty { why = "esc_key" } }
     }
 
     /// A stop that is not a queued event, so there is nothing to compare.
@@ -5835,9 +5948,18 @@ final class AbortState: @unchecked Sendable {
     /// does, and the click happened now, on it. Routing it through `note` with
     /// a manufactured timestamp would be asking a question whose answer is
     /// known.
-    func stopNow() {
+    func stopNow(_ source: String = "unspecified") {
         lock.lock(); defer { lock.unlock() }
         stopped = true
+        if why.isEmpty { why = source }
+    }
+
+    /// What stopped this run: esc_key | indicator_stop | lease_stopped |
+    /// session_reset | unspecified. An Esc is global, so esc_key also covers a
+    /// press made in another app while Tacto was working.
+    var source: String {
+        lock.lock(); defer { lock.unlock() }
+        return why.isEmpty ? "unspecified" : why
     }
 
     var isStopped: Bool {
@@ -5866,7 +5988,16 @@ func watchForAbort() {
     }
 }
 
+/// Name the stop's source on every aborted reply, at the two places replies leave.
+func withAbortSource(_ reply: [String: Any]) -> [String: Any] {
+    guard reply["error"] as? String == "aborted_by_user", reply["abort_source"] == nil else { return reply }
+    var named = reply
+    named["abort_source"] = abortState.source
+    return named
+}
+
 func respond(_ obj: [String: Any]) {
+    let obj = withAbortSource(obj)
     guard let data = try? JSONSerialization.data(withJSONObject: obj),
           let line = String(data: data, encoding: .utf8) else { return }
     print(line)
@@ -6010,6 +6141,8 @@ let helperCapabilities: [String] = [
     // main windows show exactly that file.
     "action.menu.focused_document", "action.menu.document_token_save", "action.menu.prepared_text",
     "action.select_option", "evidence.visual",
+    // capture accepts the observation's Window element index (element_index).
+    "capture.element_index",
     // Native menu items have a title and nothing behind it, so `value` must
     // agree with `option_label` rather than name something else.
     "select_option.label_only",
@@ -6049,7 +6182,7 @@ let helperCapabilities: [String] = [
     // Ask a running app to reopen its window (LaunchServices, activates=false;
     // whether it came forward is observed) and close an open context menu
     // with AXCancel instead of Escape.
-    "action.reopen_window", "action.close_menu",
+    "action.reopen_window", "action.close_menu", "action.status_item",
     "action.window_input", "window_input.window_bound", "window_input.host_authorization",
     // Not "press_key.navigation_only": this helper also takes Return, narrowly.
     "action.press_key", "press_key.no_escape",
@@ -7492,7 +7625,8 @@ func handle(_ msg: [String: Any]) -> [String: Any] {
                     "pid": Int($0.processIdentifier), "isRunning": true] as [String: Any] }
         return ["type": "targets", "apps": apps]
     case "capture":
-        guard Set(msg.keys).isSubset(of: ["type", "target", "obs_id", "window_index", "timeout_seconds"]),
+        guard Set(msg.keys).isSubset(of: ["type", "target", "obs_id", "window_index", "element_index", "timeout_seconds"]),
+              !(msg["window_index"] != nil && msg["element_index"] != nil),
               let target = msg["target"] as? String, !target.isEmpty,
               let obsID = msg["obs_id"] as? String, !obsID.isEmpty else {
             return ["type": "error", "error": "invalid_capture_request",
@@ -7508,6 +7642,18 @@ func handle(_ msg: [String: Any]) -> [String: Any] {
             }
             windowIndex = number.intValue
         }
+        var elementIndex: Int?
+        if let raw = msg["element_index"] {
+            // The observation's line number of a Window, which is what every
+            // caller holds; window_index is the place among the app's windows.
+            guard let number = raw as? NSNumber, CFGetTypeID(number) != CFBooleanGetTypeID(),
+                  number.doubleValue == Double(number.intValue),
+                  number.intValue >= 0, number.intValue < 100_000 else {
+                return ["type": "error", "error": "invalid_capture_request",
+                        "effect": "not_started", "detail": "element_index"]
+            }
+            elementIndex = number.intValue
+        }
         var timeout = 5.0
         if let raw = msg["timeout_seconds"] {
             guard let number = raw as? NSNumber, CFGetTypeID(number) != CFBooleanGetTypeID(),
@@ -7518,7 +7664,7 @@ func handle(_ msg: [String: Any]) -> [String: Any] {
             }
             timeout = number.doubleValue
         }
-        return captureWindow(obsID, target, windowIndex: windowIndex,
+        return captureWindow(obsID, target, windowIndex: windowIndex, elementIndex: elementIndex,
                              deadline: ProcessInfo.processInfo.systemUptime + timeout)
     case "menu_state", "menu_items":
         return readMenuState(msg)
@@ -8398,7 +8544,7 @@ let rendezvousDeadline: TimeInterval = 20
             guard let msg = (try? JSONSerialization.jsonObject(with: line))
                     as? [String: Any] else { continue }
             let reply = session.respond(msg,connection:fd)
-            if var out = try? JSONSerialization.data(withJSONObject: reply) {
+            if var out = try? JSONSerialization.data(withJSONObject: withAbortSource(reply)) {
                 out.append(0x0A)
                 writeAll(fd, out)
             }
@@ -8409,7 +8555,7 @@ let rendezvousDeadline: TimeInterval = 20
 // Serial driving lease replaces per-process ownership only in explicit modes.
 func resetPersistentSession(starting: Bool) {
     ModeEpoch.shared.rotate()
-    if !starting { abortState.stopNow() }
+    if !starting { abortState.stopNow("session_reset") }
     latestObsID = ""; latestElements = []; latestProcessStart = nil
     latestTargetPID = -1; latestTargetName = ""; latestDocumentToken = nil
     pendingSelect = nil; spentMenu = nil; documentTokens.removeAll(); savePanelTokens.removeAll()

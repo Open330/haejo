@@ -76,7 +76,7 @@ class NoWindowReasonTests(unittest.TestCase):
         self.assertIn("references/recovery.md", entry)
         skill = (root / "references/recovery.md").read_text()
         for reason in ("screen_locked", "app_hidden", "minimized", "no_visible_window",
-                       "window_offscreen", "menu_bar_app"):
+                       "window_offscreen", "menu_bar_app", "system_ui_surface"):
             self.assertIn(reason, skill)
 
 

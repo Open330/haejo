@@ -214,6 +214,10 @@ class ReplayTests(unittest.TestCase):
         self.assertEqual(1, len(app.calls))
         self.assertFalse(result.ok)
         self.assertEqual('missing_typed_host_commit_evidence', result.log[-1].get('detail'))
+        # The author's result check is read and reported, never upgrading the
+        # status or resending (june-mba usage review, 2026-11-06).
+        self.assertIs(True, result.log[-1].get('postcondition_observed'))
+        self.assertEqual('unverified', result.log[-1].get('status'))
 
     def test_without_the_semantic_route_there_is_no_built_in_receipt(self):
         app, result = self.run_flow(URL, capability=False)

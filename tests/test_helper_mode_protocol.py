@@ -77,7 +77,7 @@ import Foundation
 import AppKit
 let clientRequirement = "unused-test-requirement"
 enum PeerAuth { static func satisfies(fd:Int32, requirement:String) -> (Bool,String) { (false,"test") } }
-class AbortStub { var stops = 0; func stopNow() { stops += 1 } }
+class AbortStub { var stops = 0; func stopNow(_ source: String = "") { stops += 1 } }
 let abortState = AbortStub()
 func resetPersistentSession(starting:Bool) {}
 func handle(_ value:[String:Any]) -> [String:Any] { value }

@@ -28,14 +28,24 @@ def capture_window(driver, obs_id, target, *, window_index, timeout_seconds=5):
     if (not isinstance(obs_id, str) or not obs_id or not isinstance(target, str) or not target
             or type(window_index) is not int or window_index < 0):
         raise ValueError('an explicit observed window index and target are required')
+    # Callers hold the observation's Window line number. A helper that maps it
+    # to the live window list gets it as such; older ones take it as the
+    # window's place, which is right only for the first window
+    # (capture --window failed with window_index_out_of_range, 2026-10-20/24).
+    by_element = 'capture.element_index' in getattr(driver, 'capabilities', ())
     with tempfile.TemporaryDirectory(prefix='tacto-native-image-') as directory:
         path = Path(directory) / 'window.png'
-        reply = driver.capture(target, obs_id=obs_id, window_index=window_index,
-                               path=path, timeout_seconds=timeout_seconds)
+        if by_element:
+            reply = driver.capture(target, obs_id=obs_id, element_index=window_index,
+                                   path=path, timeout_seconds=timeout_seconds)
+        else:
+            reply = driver.capture(target, obs_id=obs_id, window_index=window_index,
+                                   path=path, timeout_seconds=timeout_seconds)
         if not isinstance(reply, dict) or reply.get('type') != 'capture':
             raise NativeVisualError('native_capture_failed:' + str(reply.get('error', 'invalid_reply')) if isinstance(reply, dict) else 'native_capture_failed:invalid_reply')
         if (reply.get('obs_id') != obs_id or reply.get('target') != target
-                or reply.get('window_index') != window_index
+                or (reply.get('element_index') != window_index if by_element
+                    else reply.get('window_index') != window_index)
                 or reply.get('image_mapping') != 'full_window_no_shadow'
                 or not _frame_valid(reply.get('window_frame'))
                 or any(type(reply.get(k)) is not int or reply[k] <= 0

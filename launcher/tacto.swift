@@ -120,6 +120,9 @@ let actionSchema: [String: (required: Set<String>, optional: Set<String>)] = [
     // opened by LaunchServices without activating Finder — no keys, no sheet.
     "open_folder":      (["name", "path"], []),
     "reopen_window":    (["name"], []),
+    // The app's own menu bar icon (AXExtrasMenuBar), pressed through AX; the
+    // optional title picks one icon when the app shows several.
+    "status_item":      (["name"], ["title"]),
     "close_menu":       (["name"], []),
     // Reads the screen and changes nothing, so it carries no target at all.
     // `element_index` is optional here, not forbidden: a read of one named
@@ -400,7 +403,8 @@ func vetted(_ msg: [String: Any]) -> String? {
         // One observed window, named by the observation that described it.
         // No path, no region, no display — the narrowing is the contract, so
         // the channel checks it rather than trusting the helper to.
-        guard Set(msg.keys).isSubset(of: ["type", "target", "obs_id", "window_index", "timeout_seconds"]),
+        guard Set(msg.keys).isSubset(of: ["type", "target", "obs_id", "window_index", "element_index", "timeout_seconds"]),
+              !(msg["window_index"] != nil && msg["element_index"] != nil),
               let target = msg["target"] as? String, !target.isEmpty,
               let obsID = msg["obs_id"] as? String, !obsID.isEmpty, obsID.count <= 128 else {
             return "capture 형식 오류"
@@ -410,6 +414,15 @@ func vetted(_ msg: [String: Any]) -> String? {
                   number.doubleValue == Double(number.intValue),
                   number.intValue >= 0, number.intValue < 64 else {
                 return "capture window_index 오류"
+            }
+        }
+        // The observed Window element's own index; the helper maps it to the
+        // window through the same observation (obs_id), so it names nothing new.
+        if let raw = msg["element_index"] {
+            guard let number = raw as? NSNumber, CFGetTypeID(number) != CFBooleanGetTypeID(),
+                  number.doubleValue == Double(number.intValue),
+                  number.intValue >= 0, number.intValue < 100_000 else {
+                return "capture element_index 오류"
             }
         }
         if let raw = msg["timeout_seconds"] {
@@ -725,6 +738,8 @@ func vetted(_ msg: [String: Any]) -> String? {
             case "duration":
                 guard ["drag","vroid_drag"].contains(name),let d=v as? NSNumber,CFGetTypeID(d) != CFBooleanGetTypeID(),
                       d.doubleValue.isFinite,d.doubleValue >= (name == "drag" ? 0.1 : 0.5),d.doubleValue<=2 else {return "invalid drag duration"}
+            case "title" where name == "status_item":
+                guard let t=v as? String, !t.isEmpty, t.utf8.count<=256 else { return "status_item title 형식 오류" }
             case "title":
                 guard let t=v as? String,t.utf8.count<=512,
                       (name=="vroid_drag" && t.contains(".vroid")) || (name=="vroid_focus" && (t=="VRoid Studio" || t=="VRoid Studio 2.14.0" || t.hasPrefix("VRoid Studio 2.14.0 - ") && t.contains(".vroid"))) else {return "invalid VRoid title"}

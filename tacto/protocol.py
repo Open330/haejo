@@ -34,6 +34,8 @@ ACTION_PARAMS = {
     # Any app: ask it to reopen its window (closed, or gone to another Space),
     # and close an open context menu with AXCancel instead of Escape.
     "reopen_window": frozenset(), "close_menu": frozenset(),
+    # Signed helper: press the app's own menu bar icon (optional exact title).
+    "status_item": frozenset({"title"}),
 }
 
 

@@ -126,7 +126,7 @@ print(concrete.to_json())
 |---|---|
 | `Flow` | `name, target, steps, schema, params, tables, derived, intents` |
 | `Step` | `action, selector, params, intent_text, expect, postcondition, safety, binding, unverified_ok, for_each, captures, skip_if, on_uncertain, answers, …` |
-| `Selector` | `role, identifier, title, desc, value, ancestor, allow_nth, in_focused_window, click_ancestor` |
+| `Selector` | `role, identifier, title, desc, value, placeholder, ancestor, near, allow_nth, in_focused_window, click_ancestor` |
 | `Capture` | `name, field, attribute, sensitive, optional, empty_ok, tail, many, limit` |
 | `Postcondition` | `field, equals, contains, absent, absent_role, attribute` |
 

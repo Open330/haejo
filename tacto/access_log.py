@@ -24,11 +24,13 @@ _METHODS = frozenset(('credential_input','credential_submit','observe', 'act', '
                      'readiness_read_cost', 'readiness_preflight'))
 _ACTIONS = frozenset(('click', 'click_point', 'double_click', 'drag', 'vroid_drag', 'vroid_focus',
                      'window_input', 'prepare_window', 'set_value', 'type_text', 'scroll',
-                     'secondary_action', 'menu', 'open_folder', 'reopen_window', 'close_menu',
+                     'secondary_action', 'menu', 'open_folder', 'reopen_window', 'close_menu', 'status_item',
                      'read', 'press_key', 'select_option', 'open_select', 'select_custom_option', 'upload'))
 MAX_FILE = 1024 * 1024
 MAX_TOTAL = 20 * 1024 * 1024
-MAX_FILES = 200
+# Receipts average a few KB; MAX_TOTAL is the real bound. A low file count let a
+# polling loop of short reads evict the whole retention window within a day.
+MAX_FILES = 5000
 MAX_AGE = 30 * 86400
 
 
@@ -83,6 +85,7 @@ class AccessLog:
         self.finished = False
         self.started = time.monotonic()
         self.sequence = 0
+        self.failure_recorded = False
         self.preferences = load_preferences((Path(root) if root is not None else log_directory()).parent)
         if not self.preferences['logging_enabled']:
             return
@@ -145,11 +148,17 @@ class AccessLog:
         for key in ('foreground_verified', 'window_verified', 'presentation_skipped', 'save_command_sent', 'repeat_write'):
             if type(result.get(key)) is bool:
                 fields[key] = result[key]
+        if fields.get('status') == 'failed' or 'error' in fields:
+            self.failure_recorded = True
         self.event('task_result', **fields)
 
     def finish(self, exit_code):
         if not self.finished:
             self.finished = True
+            if exit_code == 2 and not self.failure_recorded:
+                # Argument and validation refusals return before any task result; name
+                # them so a history row is not an unexplained exit code.
+                self.task_result({'status': 'failed', 'error': 'unreported_refusal', 'stage': 'command'})
             self.event('command_end', force=True, exit_code=exit_code)
 
     def close(self):

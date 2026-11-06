@@ -34,7 +34,7 @@ final class ModeLease: @unchecked Sendable {
         // Checking the owner and stopping must be one operation: a delayed
         // invalidation must not slip between release and a new owner's begin.
         lock.lock(); defer { lock.unlock() }
-        if owner == id { abortState.stopNow() }
+        if owner == id { abortState.stopNow("lease_stopped") }
     }
     func release(_ id: UUID) {
         lock.lock(); defer { lock.unlock() }

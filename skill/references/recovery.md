@@ -16,6 +16,10 @@ Inspect the verified/unverified result before requesting another compile.
 | `precondition_failed` | the target is `[disabled]` |
 | `postcondition_timeout` | reports the value actually read — usually the wrong field or format. The action itself was delivered, so this never means "nothing happened" |
 | `postcondition_already_true` | a `Return` step whose `equals` was already true before the press — nothing was pressed. Return commits, so a result that proves nothing is not taken; check the step's postcondition names what Return should change |
+| `commit_unverified` (generic app) | a save/install/delete/send click ran in an app that gives Tacto no host receipt, so the run cannot call it confirmed and exits 1. Do not resend. When the step has a `postcondition`, the result also carries `postcondition_observed` (true/false): the screen read the author asked for, taken once after the click |
+| `target_busy` | another Tacto command holds this app. The reply names `holder_pid`, `holder_process` and `held_seconds`; let that command finish (an idle `session` releases the app while it waits for its flow) |
+| `aborted_by_user` | a stop: `abort_source` says which — `esc_key` (Esc pressed anywhere), `indicator_stop`, `lease_stopped`, `session_reset`. A closed client is `client_disconnected`, not a stop |
+| `target_not_found` | the app is not running. The reply's `hint` names `tacto launch <bundle-id> --helper`; on a locked screen it carries `reason: screen_locked` instead, and launching waits for unlock |
 | `commit_unverified` with `destination_not_shown` | the loaded Safari page did not match the pinned URL. Observe without resending; for a newly authorized navigation, use the address-editing preparation in [Safari](safari.md) |
 | `target_uniqueness_unverified` | the target was found past a list's cap, but the scan did not reach the list's end, so another element of that name may exist; a step with consequences (delete, send, save…) was not run. Nothing was pressed. Narrow the list (a smaller folder, a search, a filter) or select the item by a path the app offers, then run again |
 | `target_seen_in_front` | an earlier step's app was observed in front afterwards (e.g. Finder after Go > Go to Folder…), so nothing more was sent to it — the person may be using it now. What the earlier step did stays done; use a path that keeps the app behind (for Finder folders, `open_folder`) |
@@ -96,9 +100,18 @@ for interpreting these refusals and the effect of earlier actions.
   was observed in front (`activated_target`); verify the window with a
   postcondition. If the app does not reopen a window, report that.
 - `menu_bar_app`: the app runs from a menu bar icon (an accessory app) and has
-  no window open. Tacto cannot click menu bar icons, and `reopen_window` or
-  `activate` does not open its panel, so do not retry them. Ask the person to
-  click the app's menu bar icon, then observe again.
+  no window open; `reopen_window` or `activate` does not open its panel. With
+  `--helper`, a flow step `{"action": "status_item"}` (or with
+  `"params": {"title": "<icon title>"}` when the app has several icons) presses
+  the app's own menu bar icon through accessibility, then observe again.
+  An icon that opens a menu is observed as that menu's `MenuItem`s (the reply
+  says `status_menu_open`); pick items like any element, and `close_menu`
+  closes it — the app then has no window again, which is the expected result.
+  An icon that opens a panel is observed as that window.
+  `status_item_missing` means the app does not expose its icon to accessibility.
+- `system_ui_surface`: Dock, Notification Center, Control Center and Stage
+  Manager are system processes without ordinary windows. Observe the bundle
+  that owns the open surface (widgets: `com.apple.notificationcenterui`).
 - A context menu left open (after `secondary_action` AXShowMenu): close it with
   `{"action": "close_menu"}` (with `--helper`), which sends AXCancel to the
   app's open menus. Escape is not available and is not a substitute.

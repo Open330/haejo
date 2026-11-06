@@ -99,18 +99,46 @@ enum TactoMode {
 // Never unlink lock files: existing waiters must keep the same inode.
 final class TactoScopeLease {
     private var descriptors: [String:(fd:Int32,shared:Bool)] = [:]
+    /// The client process this lease works for, written next to an exclusive
+    /// hold so a refused waiter can say who has the app and for how long.
+    var holderPID: Int32 = 0
+    private static func path(_ scope: String) -> String? {
+        let namespace = TactoMode.workerKey("tacto-resource-leases-v1", slot:0)
+        guard let directory = TactoMode.directory(namespace) else { return nil }
+        let key = SHA256.hash(data:Data(scope.utf8)).map { String(format:"%02x",$0) }.joined()
+        return directory+"/"+key+".lock"
+    }
     func take(_ scope: String, shared: Bool = false) -> Bool {
         if let held = descriptors[scope] { return !held.shared || shared }
-        let namespace = TactoMode.workerKey("tacto-resource-leases-v1", slot:0)
-        guard let directory = TactoMode.directory(namespace) else { return false }
-        let key = SHA256.hash(data:Data(scope.utf8)).map { String(format:"%02x",$0) }.joined()
-        let fd = open(directory+"/"+key+".lock",O_CREAT|O_RDWR|O_NOFOLLOW|O_CLOEXEC,0o600)
+        guard let file = TactoScopeLease.path(scope) else { return false }
+        let fd = open(file,O_CREAT|O_RDWR|O_NOFOLLOW|O_CLOEXEC,0o600)
         guard fd >= 0 else { return false }
         var info = stat()
         guard fstat(fd,&info) == 0, info.st_uid == getuid(),
               info.st_mode & S_IFMT == S_IFREG, info.st_mode & 0o777 == 0o600,
               flock(fd,(shared ? LOCK_SH : LOCK_EX)|LOCK_NB) == 0 else { close(fd); return false }
+        if !shared {
+            // Numbers only; never a command line or window text.
+            let note = "{\"pid\":\(holderPID > 0 ? holderPID : getpid()),\"helper_pid\":\(getpid()),\"since\":\(Int(Date().timeIntervalSince1970))}"
+            _ = ftruncate(fd, 0)
+            _ = note.withCString { pwrite(fd, $0, strlen($0), 0) }
+        }
         descriptors[scope] = (fd,shared); return true
+    }
+    /// Who holds `scope` exclusively, read from its note; nil when unknown.
+    static func holder(_ scope: String) -> [String:Any]? {
+        guard let file = path(scope),
+              let data = FileManager.default.contents(atPath: file), !data.isEmpty, data.count < 256,
+              let note = (try? JSONSerialization.jsonObject(with: data)) as? [String:Any],
+              let pid = note["pid"] as? Int, pid > 0, let since = note["since"] as? Int else { return nil }
+        guard kill(pid_t(pid), 0) == 0 || errno == EPERM else { return nil }
+        var info: [String:Any] = ["holder_pid": pid,
+                                  "held_seconds": max(0, Int(Date().timeIntervalSince1970) - since)]
+        var name = [CChar](repeating: 0, count: 256)
+        if proc_name(pid_t(pid), &name, UInt32(name.count)) > 0 {
+            info["holder_process"] = String(cString: name)
+        }
+        return info
     }
     deinit {
         for entry in descriptors.values { _ = flock(entry.fd,LOCK_UN); close(entry.fd) }

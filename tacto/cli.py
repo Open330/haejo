@@ -160,7 +160,10 @@ def _confirmer(argv):
     if "--yes" in argv or "-y" in argv:
         return lambda what: True
     if not _sys.stdin.isatty():
-        return lambda what: False
+        def no_terminal(what: str) -> bool:
+            return False
+        no_terminal.no_terminal = True
+        return no_terminal
     def ask(what: str) -> bool:
         print(f"\n  ⚠  {what}")
         try:
@@ -625,12 +628,22 @@ def _run_flow(flow, argv, walked: bool = False, *, _driver=None, _confirm=None, 
             print(f"failed — 변경 {len(result.commit_evidence)}건은 영수증으로 확인했지만, "
                   "이후 화면을 읽지 못해 작업을 중단했습니다.\n"
                   f"  detail: {last}")
+        elif last.get("target_terminated"):
+            print("stopped — 이 단계의 동작은 전달됐고, 그 뒤 대상 앱이 종료되었습니다. 같은 동작을 다시 보내지 마세요.\n"
+                  f"  detail: {last}")
         elif last.get("error") == "commit_unverified" and last.get("effect") == "unknown":
             # Missing receipt says nothing about whether a file exists, which
             # action wrote it, or whether this was a Save at all. Persistent
             # set_value and other consequential actions use this branch too.
+            observed = last.get("postcondition_observed")
             print("unverified — 변경 완료를 확인할 호스트 영수증이 없습니다. 실행 효과는 미확정입니다.\n"
-                  "  같은 동작을 다시 실행하지 말고 해당 대상의 현재 상태를 읽어 확인하세요.\n"
+                  + ("  단계의 postcondition 은 화면에서 확인됐습니다(호스트 영수증을 대신하지는 않음).\n"
+                     if observed is True else
+                     "  단계의 postcondition 이 시간 안에 화면에 나타나지 않았습니다.\n"
+                     if observed is False else
+                     "  postcondition 을 붙이면 실행 직후 화면 상태를 함께 읽어 보고합니다.\n"
+                     if "postcondition_observed" not in last else "")
+                  + "  같은 동작을 다시 실행하지 말고 해당 대상의 현재 상태를 읽어 확인하세요.\n"
                   f"  detail: {last}")
         else:
             print(f"failed: {last}")
@@ -977,8 +990,68 @@ def _dispatch_command(cmd, rest):
     if cmd == "observe":
         app = "<app.exe | pid:N>" if sys.platform == "win32" else "<bundle-id>"
         usage = (f"usage: observe {app} [--helper] [--json] [--all-windows | --document <absolute path>]"
-                 " [--reveal <exact label>]...")
+                 " [--reveal <exact label>]... [--until '<postcondition JSON>' | --until-text TEXT"
+                 " | --until-gone TEXT] [--timeout SECONDS]")
         structured = "--json" in rest
+        until = None
+        until_options = [flag for flag in ("--until", "--until-text", "--until-gone", "--timeout") if flag in rest]
+        if until_options:
+            # Wait inside one command instead of polling observe from outside:
+            # 77 separate observes in 24 s on 2026-11-04, each its own process.
+            values = {}
+            for flag in until_options:
+                k = rest.index(flag)
+                if rest.count(flag) != 1 or k + 1 >= len(rest):
+                    print(usage); return 2
+                values[flag] = rest[k + 1]
+                rest = rest[:k] + rest[k + 2:]
+            kinds = [flag for flag in ("--until", "--until-text", "--until-gone") if flag in values]
+            if len(kinds) != 1:
+                print(usage); return 2
+            try:
+                timeout_s = float(values.get("--timeout", "10"))
+                import math as _math
+                if not _math.isfinite(timeout_s) or not 0 < timeout_s <= 300:
+                    raise ValueError
+            except ValueError:
+                print("usage: --timeout SECONDS (0 < seconds <= 300)"); return 2
+            kind, raw = kinds[0], values[kinds[0]]
+            if kind == "--until-text":
+                until = lambda tree, text=raw: text in tree
+            elif kind == "--until-gone":
+                until = lambda tree, text=raw: text not in tree
+            else:
+                from .flow import Flow
+                from .flow_errors import feedback
+                try:
+                    condition = json.loads(raw)
+                    if not isinstance(condition, dict):
+                        raise ValueError("postcondition must be an object, not " + type(condition).__name__)
+                    # A typo here would otherwise wait out the whole timeout on a
+                    # check that can never pass.
+                    known = {"field", "equals", "contains", "absent", "attribute", "absent_role", "all_of"}
+                    unknown = sorted(set(condition) - known)
+                    problem = None
+                    if unknown:
+                        problem = f"unknown key; use only {', '.join(sorted(known))}"
+                    elif not any(condition.get(key) for key in ("equals", "contains", "absent", "absent_role", "all_of")):
+                        problem = "add equals, contains, absent, absent_role or all_of"
+                    if problem:
+                        print("invalid_until: " + problem); return 2
+                    probe = Flow.from_json(json.dumps({"schema": 2, "name": "until", "target": "until.check",
+                        "steps": [{"action": "read", "selector": {"role": "Window"},
+                                   "postcondition": condition}]}))
+                    until = probe.steps[0].postcondition.check
+                    field = probe.steps[0].postcondition.field
+                    if field is not None and not field._names_something():
+                        print("invalid_until: field names no element — add title, desc, identifier, value,"
+                              " subrole or placeholder next to role"); return 2
+                except json.JSONDecodeError as error:
+                    print(f"invalid_until: not JSON ({error.msg} at column {error.colno})"); return 2
+                except (ValueError, TypeError, KeyError) as error:
+                    print("invalid_until: " + feedback(error).replace("steps[0].", "")); return 2
+            if "--document" in rest or "--reveal" in rest:
+                print(usage); return 2
         from .window_scope import take_window_arg, bind_window
         try:rest,window_id=take_window_arg(rest)
         except ValueError as error:print(str(error));return 2
@@ -1024,10 +1097,29 @@ def _dispatch_command(cmd, rest):
         if window_id is not None:
             problem=bind_window(driver,targets[0],window_id)
             if problem is not None:print(json.dumps(problem));return 1
-        o = (_document_observation(driver,targets[0],document) if document is not None
-             else driver.observe(targets[0], "tree_full", reveal=reveal, **({"window_identity":True} if identities else {})) if reveal
-             else driver.observe(targets[0], "tree_full", window_identity=True) if identities
-             else driver.observe(targets[0], "tree_full"))
+        if until is not None:
+            import time as _time
+            started = _time.monotonic()
+            import inspect
+            share = {"yield_between": True} if window_id is None and "yield_between" in inspect.signature(driver.wait_until).parameters else {}
+            o = driver.wait_until(targets[0], until, timeout_ms=int(timeout_s * 1000), poll_ms=400, **share)
+            waited = round(_time.monotonic() - started, 2)
+            if o.get("type") == "timeout":
+                last = o.get("last_obs") or {}
+                o = {"type": "error", "error": "until_timeout", "effect": "not_started", "waited_s": waited,
+                     "detail": f"{timeout_s:g}초 안에 조건이 화면에 나타나지 않았습니다",
+                     **({"tree": last["tree"]} if structured and isinstance(last.get("tree"), str) else {})}
+                if not structured and isinstance(last.get("tree"), str):
+                    print(f"until_timeout: {o['detail']} (waited {waited}s) — 마지막 화면:")
+                    print(last["tree"] if "--all-windows" in rest else focused_window_view(last["tree"]))
+                    return 1
+            elif o.get("type") == "observation":
+                o = {**o, "waited_s": waited}
+        else:
+            o = (_document_observation(driver,targets[0],document) if document is not None
+                 else driver.observe(targets[0], "tree_full", reveal=reveal, **({"window_identity":True} if identities else {})) if reveal
+                 else driver.observe(targets[0], "tree_full", window_identity=True) if identities
+                 else driver.observe(targets[0], "tree_full"))
         if structured:
             try:
                 encoded=json.dumps(o,ensure_ascii=False,allow_nan=False)
@@ -1043,6 +1135,8 @@ def _dispatch_command(cmd, rest):
             if document is not None and o.get('pin_reason_code'):
                 suffix += f" (pin_reason={o['pin_reason_code']})"
             print(f"{o.get('error')}{suffix}: {o.get('detail','')}")
+            if o.get("hint"):
+                print(f"  hint: {o['hint']}")
             return 1
         if document is not None:
             print(o['tree'])

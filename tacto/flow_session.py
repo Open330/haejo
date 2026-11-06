@@ -256,6 +256,17 @@ def run_session(args, *, make_driver, run_flow, stdin, emit):
                 lookup = (' If the exact name is known, send {"find_in_observation":"exact label"} instead.'
                           if 'observe.reveal' in getattr(driver, 'capabilities', ()) else '')
                 emit('TACTO_OBSERVATION_MORE send {"observe_next":true} to inspect omitted candidates on this session; no UI input is sent.' + lookup)
+            if not more and window_id is None and document is None:
+                # Waiting for the author's JSON can take a minute. Holding the
+                # app meanwhile turned every other observe/capture on it into
+                # a 10 s target_busy (2026-11-05/06). The replay observes again
+                # on this connection, so nothing stale is acted on.
+                release = getattr(driver, 'release_targets', None)
+                if callable(release) and 'session.release_targets' in getattr(driver, 'capabilities', ()):
+                    try:
+                        release()
+                    except Exception:
+                        pass
             emit('TACTO_SESSION_READY send one compact Flow JSON line, then newline; target=' + target)
 
         def additional_observation(label=None):
@@ -278,6 +289,15 @@ def run_session(args, *, make_driver, run_flow, stdin, emit):
                 next_page = driver.observe(target, 'tree_full', **options)
             except Exception:
                 next_page = None
+            if (label is None and (not isinstance(next_page, dict) or next_page.get('type') != 'observation')):
+                # A stale page used to end the whole session (continuation_stale,
+                # AccessibilityInspector 2026-11-06). Look again from the top.
+                try:
+                    next_page = driver.observe(target, 'tree_full')
+                except Exception:
+                    next_page = None
+                if isinstance(next_page, dict) and next_page.get('type') == 'observation':
+                    emit('TACTO_OBSERVATION_RESTARTED the previous page expired; this is a fresh first page.')
             if not isinstance(next_page, dict) or next_page.get('type') != 'observation':
                 raise FlowFieldError('observation_continuation_failed', field,
                                      'The continuation expired or changed; start a fresh observation.')
@@ -323,7 +343,10 @@ def run_session(args, *, make_driver, run_flow, stdin, emit):
                     observed_state.append(readback)
             # Unlike _on_result this callback retains no resume authority.
             result_options['_result_observer'] = observe_result
-        result = run_flow(flow, flags, _driver=driver, _confirm=lambda description: False,
+        def no_approver(description):
+            return False
+        no_approver.no_approver = True
+        result = run_flow(flow, flags, _driver=driver, _confirm=no_approver,
                           **result_options)
         for readback in observed_state:
             emit(MARKER + json.dumps(readback, separators=(',', ':')))

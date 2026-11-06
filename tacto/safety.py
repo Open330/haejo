@@ -247,6 +247,9 @@ _EFFECT_EN = [
                        r"\bbypass\b", r"\bnot secure\b", r"\bsign out\b")),
 ]
 _EFFECT_RX = [(eff, [re.compile(p) for p in pats]) for eff, pats in _EFFECT_EN]
+# "이동" also names navigation ("폴더로 이동…", "다음 항목으로 이동"). Only a
+# destination of where to LOOK is exempt; "여기로 항목 이동" still moves data.
+_NAVIGATE_KO = re.compile(r"(?:폴더|위치|경로|페이지|탭|항목|행|줄|맨 위|맨 아래|처음|끝|다음|이전|홈|뒤|앞)\s*(?:으)?로\s*이동")
 
 
 def document_edit_effects(action: dict, target_line: str = "", *, target: str = "") -> set:
@@ -373,9 +376,20 @@ def effects_of(action: dict, target_line: str = "", *, target: str = "") -> tupl
     for eff, words in _EFFECT_KO:
         for w in words:
             if w in raw:
+                if w == "이동" and _NAVIGATE_KO.search(raw) and raw.count("이동") == len(_NAVIGATE_KO.findall(raw)):
+                    continue
                 return {eff}, f"'{w}'"
     for eff, rxs in _EFFECT_RX:
         for rx in rxs:
             if rx.search(low):
                 return {eff}, f"{rx.pattern}"
     return {"write_ephemeral"}, "화면 조작"
+
+
+def unanswered_confirmation(ask) -> str:
+    """Why a confirm step did not run, with the next step, for the refusal line."""
+    if ask is None or getattr(ask, "no_approver", False):
+        return " (이 실행 경로에는 확인 응답이 없습니다 — tacto run <flow.json> --yes 로 실행하면 진행합니다)"
+    if getattr(ask, "no_terminal", False):
+        return " (확인을 받을 터미널이 없습니다 — 같은 명령에 --yes 를 붙이면 진행합니다)"
+    return ""

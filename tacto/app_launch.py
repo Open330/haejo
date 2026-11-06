@@ -166,7 +166,13 @@ def launch_app(target, *, backend=None, timeout=10, clock=time.monotonic):
             return dict(error(problem), **_session_error(problem))
         path = backend.resolve(target)
         if path is None:
-            return error('application_not_installed')
+            # Already running from a path LaunchServices does not list: report
+            # that process instead of "not installed"; nothing is started.
+            running = backend.running(target)
+            if len(running) == 1 and running[0].get('path'):
+                path = running[0]['path']
+            else:
+                return error('application_not_installed')
         deadline = clock() + timeout
         request = None
         while True:
@@ -191,7 +197,12 @@ def launch_app(target, *, backend=None, timeout=10, clock=time.monotonic):
             if clock() >= deadline:
                 # LaunchServices is asynchronous; a timeout must never cause a
                 # second launch. The caller should observe before doing anything.
-                return error('launch_timeout', 'unknown')
+                timeout_reply = error('launch_timeout', 'unknown')
+                if len(apps) == 1:
+                    # The process exists but has not finished launching; say
+                    # so, so the next step is observe/activate, not a relaunch.
+                    timeout_reply.update(pid=apps[0]['pid'], application_running=True, ready=False)
+                return timeout_reply
             backend.pump(min(.05, max(0, deadline - clock())))
     except Exception:
         # Native lookup and asynchronous dispatch can fail without an NSError
@@ -306,7 +317,16 @@ def _activate_app(target, *, window=None, driver=None, backend=None,
             return dict(error(problem), **_session_error(problem))
         path = backend.resolve(target)
         if path is None:
-            return error('application_not_installed')
+            # A running copy LaunchServices does not list (a build in a temp
+            # folder, 2026-10-20) is still the app the caller named when it is
+            # the only process with that bundle id.
+            running = backend.running(target)
+            if len(running) == 1 and running[0].get('path'):
+                path = running[0]['path']
+            elif len(running) > 1:
+                return error('application_identity_ambiguous')
+            else:
+                return error('application_not_installed')
         apps = [app for app in backend.running(target) if app['path'] == path]
         if _process_unavailable(apps):
             return error('application_process_unavailable', hint=PROCESS_UNAVAILABLE_HINT)

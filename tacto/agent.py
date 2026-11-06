@@ -691,7 +691,7 @@ class Agent:
                 blocked.append(f"{what} — 이 단계는 직접 해주셔야 해요")
                 continue
             if decision.risk == "blocked":
-                blocked.append(f"{what} — 무슨 일이 일어날지 확정할 수 없어 실행하지 않습니다")
+                blocked.append(f"{what} — 무슨 일이 일어날지 확정할 수 없어 실행하지 않습니다 ({decision.reason})")
                 continue
             if st.binding is None and (st.selector is not None or st.params):
                 # A hand-written step names its control but carries no pin;
@@ -708,7 +708,8 @@ class Agent:
                 continue
             if decision.risk == "confirm":
                 if ask is None or not ask(what):
-                    blocked.append(f"{what} — 진행하지 않았습니다")
+                    from .safety import unanswered_confirmation
+                    blocked.append(f"{what} — 진행하지 않았습니다{unanswered_confirmation(ask)}")
                     continue
             approvals[i] = issue_approval(st.binding, st.safety)
         return approvals, blocked

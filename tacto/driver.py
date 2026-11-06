@@ -241,6 +241,11 @@ def _unhide_quietly(pid: int, wait: float = 2.0) -> bool:
         return False
 
 
+# Accessory-policy system processes whose UI is a surface, not a menu bar panel.
+_SYSTEM_UI_SURFACES = frozenset(("com.apple.dock", "com.apple.notificationcenterui",
+                                 "com.apple.controlcenter", "com.apple.WindowManager"))
+
+
 def _why_no_window(pid: int, lock: dict) -> tuple[str, str]:
     """Which of the reasons an app shows no window this is — one, not a list.
 
@@ -254,6 +259,7 @@ def _why_no_window(pid: int, lock: dict) -> tuple[str, str]:
                 "화면이 잠겨 있습니다 — 잠긴 화면에서는 어떤 앱의 창도 읽을 수 없습니다. "
                 "잠금을 풀면 다시 볼 수 있어요. (screen locked)")
     menu_bar_app = False
+    bundle = ""
     try:
         from AppKit import NSRunningApplication
         app = NSRunningApplication.runningApplicationWithProcessIdentifier_(pid)
@@ -261,6 +267,7 @@ def _why_no_window(pid: int, lock: dict) -> tuple[str, str]:
             return ("app_hidden",
                     "앱이 가려져(숨김) 있습니다 — Dock에서 앱을 눌러 다시 보이게 해 주세요. (app hidden)")
         menu_bar_app = app is not None and app.activationPolicy() == 1   # accessory
+        bundle = str(app.bundleIdentifier() or "") if app is not None else ""
     except Exception:
         pass
     windows = _attr(AXUIElementCreateApplication(pid), "AXWindows") or []
@@ -271,10 +278,15 @@ def _why_no_window(pid: int, lock: dict) -> tuple[str, str]:
     # window_offscreen below and be told to reopen_window/activate, which never
     # shows its panel (BarShelf, five identical failed runs on 2026-10-25).
     if menu_bar_app:
+        if bundle in _SYSTEM_UI_SURFACES:
+            return ("system_ui_surface",
+                    "시스템 UI 프로세스라 일반 앱 창이 없습니다 — Dock·알림 센터·제어 센터는 해당 표면이 "
+                    "열려 있을 때 그 번들 ID로 observe 하면 항목이 보입니다(알림 센터 위젯은 "
+                    "com.apple.notificationcenterui). (system ui surface)")
         return ("menu_bar_app",
-                "메뉴바 앱이라 열린 창이 없습니다 — 이 앱은 메뉴바 아이콘을 눌러 여는데, Tacto는 메뉴바 "
-                "아이콘을 누를 수 없고 reopen_window·activate 로도 창이 열리지 않습니다. 사람이 메뉴바 "
-                "아이콘을 눌러 패널을 연 뒤 다시 observe 해 주세요. (menu bar app)")
+                "메뉴바 앱이라 열린 창이 없습니다 — 이 앱은 메뉴바 아이콘으로 패널을 엽니다. --helper 에서 flow 단계 "
+                "{\"action\":\"status_item\"} 로 앱의 메뉴바 아이콘을 누른 뒤 다시 observe 하세요"
+                "(reopen_window·activate 로는 패널이 열리지 않습니다). (menu bar app)")
     # A window the window server still holds but does not show: closed to
     # the background (ordered out) or on another Space — the two cannot be
     # told apart from here (KakaoTalk after a context menu, 2026-10-10).
@@ -291,11 +303,12 @@ def _why_no_window(pid: int, lock: dict) -> tuple[str, str]:
         # here too (2026-10-22): the window server still lists it.
         return ("window_offscreen",
                 "앱의 창이 화면에 없습니다(모두 닫혔거나, 숨었거나, 다른 데스크톱(Space)에 있음) — "
-                "reopen_window 로 앱에 창을 다시 열어 달라고 요청할 수 있고, 사람이 앱을 앞으로 가져오라고 하면 "
-                "`tacto activate <bundle-id> --helper` 가 창이 없을 때 한 번 열어 달라고 요청합니다. (window offscreen)")
+                "flow 단계 {\"action\":\"reopen_window\"} 로 앱에 창을 다시 열어 달라고 요청하거나, "
+                "`tacto activate <bundle-id> --helper` 로 앱을 앞으로 가져오면 창이 없을 때 한 번 열어 달라고 요청합니다. (window offscreen)")
     return ("no_visible_window",
-            "앱에 열린 창이 없거나, 창이 다른 데스크톱(Space)에 있습니다 — reopen_window 로 "
-            "창을 다시 열어 달라고 요청하거나, 창을 열어 주세요. (no visible window)")
+            "앱에 열린 창이 없거나, 창이 다른 데스크톱(Space)에 있습니다 — flow 단계 "
+            "{\"action\":\"reopen_window\"} 로 창을 다시 열어 달라고 요청하거나, "
+            "`tacto activate <bundle-id> --helper` 로 앱을 앞으로 가져오세요. (no visible window)")
 
 
 def _attr(el, name):
@@ -1753,7 +1766,7 @@ class Driver:
             answer['document_token'] = document_token
         return answer
 
-    def wait_until(self, target: str, predicate, timeout_ms=4000, poll_ms=250, *, search_pages=False):
+    def wait_until(self, target: str, predicate, timeout_ms=4000, poll_ms=250, *, search_pages=False, yield_between=False):
         """Re-observe on a monotonic deadline until predicate(full_tree) is true.
 
         Replaces blind fixed sleeps: the dominant CU failure mode is the action

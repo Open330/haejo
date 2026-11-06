@@ -96,7 +96,7 @@ final class ParallelSession {
         if foreground==nil {
             let lease=TactoScopeLease()
             guard waitForResource(lease,"global-input",deadline:deadline,cancelled:cancelled)
-            else { return parallelRefusal(cancelled() ? "aborted_by_user" : "input_busy") }
+            else { return parallelRefusal(cancelled() ? (abortState.isStopped ? "aborted_by_user" : "client_disconnected") : "input_busy") }
             foreground=lease;foregroundTarget=target
             ParallelWindowState.shared.foregroundOwned=true
         }
@@ -128,19 +128,35 @@ final class ParallelSession {
         let deadline=min(msg["click_deadline_uptime"] as? Double ?? .infinity,began+10)
         ParallelWindowState.shared.requestDeadline=deadline
         defer { ParallelWindowState.shared.requestDeadline=nil }
-        func cancelled() -> Bool {
-            if abortState.isStopped { return true }
+        if targets.holderPID == 0 {
+            var peer: pid_t = 0
+            var size = socklen_t(MemoryLayout<pid_t>.size)
+            if getsockopt(connection, SOL_LOCAL, LOCAL_PEERPID, &peer, &size) == 0 { targets.holderPID = peer }
+        }
+        func disconnected() -> Bool {
             var channel=pollfd(fd:connection,events:0,revents:0)
             _ = poll(&channel,1,0)
             if channel.revents & Int16(POLLHUP|POLLERR|POLLNVAL) != 0 { return true }
             var byte:UInt8=0
             return recv(connection,&byte,1,MSG_PEEK|MSG_DONTWAIT)==0
         }
+        func cancelled() -> Bool { abortState.isStopped || disconnected() }
+        // A closed client is not a person pressing stop (2026-11-05: four
+        // "aborted_by_user" with nobody touching anything).
+        func stopCode() -> String { abortState.isStopped ? "aborted_by_user" : "client_disconnected" }
+        func busy(_ scope: String) -> [String:Any] {
+            var refusal = parallelRefusal("target_busy")
+            if let holder = TactoScopeLease.holder(scope) {
+                refusal.merge(holder) { current, _ in current }
+                refusal["detail"] = "another Tacto client holds this app; finish or end that command (an idle session holds it only until its flow arrives)"
+            }
+            return refusal
+        }
         if scope != nil && msg["window_scope_id"] == nil { return parallelRefusal("window_scope_changed") }
         let appShared=msg["window_scope_id"] != nil
         if !waitForResource(targets,"app-id:"+target.lowercased(),shared:appShared,
                             deadline:deadline,cancelled:cancelled) {
-            return parallelRefusal(abortState.isStopped ? "aborted_by_user" : "target_busy")
+            return cancelled() ? parallelRefusal(stopCode()) : busy("app-id:"+target.lowercased())
         }
         guard let pid=pid(forBundle:target) else {
             if msg["type"] as? String=="foreground_begin" { return beginForeground(target,deadline:deadline,cancelled:cancelled) }
@@ -158,7 +174,7 @@ final class ParallelSession {
             }
             guard waitForResource(targets,"app:\(pid)",shared:true,deadline:deadline,cancelled:cancelled),
                   waitForResource(targets,"window:\(pid):\(start):\(id)",deadline:deadline,cancelled:cancelled)
-            else { return parallelRefusal(cancelled() ? "aborted_by_user" : "target_busy") }
+            else { return cancelled() ? parallelRefusal(stopCode()) : busy("app:\(pid)") }
             var listing=WindowListingDiagnostic()
             let matches=realWindows(of:AXUIElementCreateApplication(pid),diagnostic:&listing).filter { nativeWindowID($0)==id }
             guard listing.status=="ok",matches.count==1 else { return parallelRefusal("window_scope_lost") }
@@ -169,13 +185,13 @@ final class ParallelSession {
         } else {
             guard scope==nil else { return parallelRefusal("window_scope_changed") }
             guard waitForResource(targets,"app:\(pid)",deadline:deadline,cancelled:cancelled)
-            else { return parallelRefusal(cancelled() ? "aborted_by_user" : "target_busy") }
+            else { return cancelled() ? parallelRefusal(stopCode()) : busy("app:\(pid)") }
             unscoped=true
         }
         if msg["type"] as? String=="foreground_begin" {
             return beginForeground(target,deadline:deadline,cancelled:cancelled)
         }
-        if cancelled() { return parallelRefusal("aborted_by_user") }
+        if cancelled() { return parallelRefusal(stopCode()) }
         var reply=handle(msg)
         let ms=Int((ProcessInfo.processInfo.systemUptime-began)*1000)
         if ms>20 { reply["coordination_elapsed_ms"]=ms }

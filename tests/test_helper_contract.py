@@ -996,6 +996,10 @@ SIGNED_HELPER_ONLY = frozenset({
     "observe.labels_v1", "action.credential_paste",
     "action.approved_credential_input", "observe.window_list", "session.foreground_lease", "session.window_scope", "session.release_targets",
     "action.drag", "drag.window_bound",
+    # Capture by the observation's Window element index (Python driver has no capture map).
+    "capture.element_index",
+    # Press the app's own menu bar icon through AXExtrasMenuBar.
+    "action.status_item",
     "action.hover", "hover.pointer_restored",
     "action.click.save_panel_guard",
     # Return to the Go to Folder path field: helper press_key only; Driver's own

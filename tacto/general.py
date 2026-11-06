@@ -1200,7 +1200,8 @@ def run(driver, target: str, goal: str, ask_here, *, max_screens: int = 8,
                 if stopped(visit):
                     return res
                 if not accepted:
-                    res.why = f"{what} — 진행하지 않았습니다"
+                    from .safety import unanswered_confirmation
+                    res.why = f"{what} — 진행하지 않았습니다{unanswered_confirmation(approve)}"
                     res.visits.append(visit)
                     return res
                 approved = True

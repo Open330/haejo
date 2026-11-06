@@ -102,6 +102,12 @@ from .document_label import element_flag
 from .commit_evidence import make_event, evidence_error
 
 
+_SAFETY_FIELDS = frozenset(("effects", "data_classes", "resource", "destination", "reversibility",
+                            "commit_point", "evidence", "unknowns"))
+_STEP_LEVEL_FIELDS = frozenset(("intent_text", "binding", "postcondition", "selector", "params",
+                                "unverified_ok", "expect", "skip_if", "require_enabled"))
+
+
 def _norm(s: str) -> str:
     """Normalize a string for comparison: drop Unicode format chars (Cf: bidi
     marks etc.) and apply NFC. Applied to BOTH observed and expected values so
@@ -317,6 +323,13 @@ class Selector:
     # mail list both work this way.
     click_ancestor: str | list[str] | None = None
     subrole: str | None = None  # fixed macOS role detail, never templated
+    # A text field labelled only by its hint text ("Search widgets", "검색하거나…").
+    placeholder: str | list[str] | None = None
+    # Among repeated matches, keep the one(s) closest to an element whose
+    # Title/Description/Value is this text: "the 더보기 button next to
+    # jiun-MBP" in a list of identical untitled rows (Itda, 2026-10-23, where
+    # the agent fell back to AppleScript for the Nth button).
+    near: str | list[str] | None = None
 
     def __post_init__(self):
         if self.subrole is not None and (type(self.subrole) is not str
@@ -394,13 +407,50 @@ class Selector:
             if val.lower() not in want and self._stable_id(val.lower()) not in want:
                 return False
         for key, want in (("Title", self.title), ("Description", self.desc),
-                          ("Value", self.value)):
+                          ("Value", self.value), ("Placeholder", self.placeholder)):
             if not want:
                 continue
             val = self._attr(line, key)
             if val is None or val.lower() not in _alternatives(want):
                 return False
         return True
+
+    def _nearest(self, lines: list[str], hits: list[tuple[int, int]]) -> list[tuple[int, int]]:
+        """Keep the (index, line) hits whose closest container holds `near` text."""
+        if not self.near:
+            return hits
+        want = _alternatives(self.near)
+        def labelled(line):
+            return any((v := self._attr(line, key)) is not None and v.lower() in want
+                       for key in ("Title", "Description", "Value"))
+        def distance(line_no):
+            indent = len(lines[line_no]) - len(lines[line_no].lstrip())
+            levels = 0
+            for j in range(line_no - 1, -1, -1):
+                prev = lines[j]
+                if not _NODE_LINE.match(prev):
+                    continue
+                pind = len(prev) - len(prev.lstrip())
+                if pind >= indent:
+                    continue
+                levels += 1
+                # The container's own subtree: lines after it, deeper than it.
+                for k in range(j + 1, len(lines)):
+                    line = lines[k]
+                    if _NODE_LINE.match(line) and len(line) - len(line.lstrip()) <= pind:
+                        break
+                    if k != line_no and _NODE_LINE.match(line) and labelled(line):
+                        return levels
+                if labelled(prev):
+                    return levels
+                indent = pind
+            return None
+        scored = [(distance(n), idx, n) for idx, n in hits]
+        found = [d for d, _, _ in scored if d is not None]
+        if not found:
+            return []
+        best = min(found)
+        return [(idx, n) for d, idx, n in scored if d == best]
 
     def _names_something(self) -> bool:
         """Does this selector name a particular element, rather than a kind?
@@ -410,7 +460,7 @@ class Selector:
         button happened to be alone on screen. Reading a list is the opposite
         case — see `resolve_all`, which asks for a scope instead.
         """
-        return any([self.identifier, self.title, self.desc, self.value, self.subrole])
+        return any([self.identifier, self.title, self.desc, self.value, self.subrole, self.placeholder])
 
     def _in_scope(self, lines: list[str], line_no: int) -> bool:
         """True if the matched line sits under an ancestor container. The ancestor
@@ -483,7 +533,7 @@ class Selector:
                 "Window": "창", "PopUpButton": "선택 목록",
                 "Outline": "목록", "List": "목록", "Table": "표"
                 }.get(self.role or "", self.role or "항목")
-        for label in (self.title, self.value, self.desc, self.identifier):
+        for label in (self.title, self.value, self.desc, self.identifier, self.placeholder):
             if label:
                 names = [label] if isinstance(label, str) else list(label)
                 return f"'{' 또는 '.join(names)}' {role}"
@@ -509,8 +559,8 @@ class Selector:
         for i, line in enumerate(lines):
             m = re.match(r"\s*(\d+)\s", line)
             if m and self.matches(line) and self._in_scope(lines, i):
-                out.append(int(m.group(1)))
-        return out
+                out.append((int(m.group(1)), i))
+        return [idx for idx, _ in self._nearest(lines, out)]
 
     def resolve(self, tree: str) -> tuple[int, str]:
         """Return (element_index, resolver_trace) for a unique match in a fresh tree."""
@@ -522,9 +572,12 @@ class Selector:
         for i, line in enumerate(lines):
             m = re.match(r"\s*(\d+)\s", line)
             if m and self.matches(line) and self._in_scope(lines, i):
-                hits.append(int(m.group(1)))
+                hits.append((int(m.group(1)), i))
+        hits = [idx for idx, _ in self._nearest(lines, hits)]
         strat = ("id" if self.identifier else "title" if self.title
-                 else "value" if self.value else "desc")
+                 else "value" if self.value else "placeholder" if self.placeholder else "desc")
+        if self.near:
+            strat += f"~{self.near}"
         if self.ancestor:
             strat += f"@{self.ancestor}"
         if not hits:
@@ -691,7 +744,12 @@ class Postcondition:
             # Read the field's own line plus its subtree (deeper indent): AX
             # values commonly live on a child StaticText, not the container line.
             block = _element_block(tree, idx)
-            if want is not None and not any(
+            # An empty field has no Value at all in the tree, so equals "" can
+            # only mean "the field's own value is absent" (TextEdit's new
+            # document, postcondition_timeout observed [] on 2026-10-19).
+            empty_field = (want == "" and self.attribute in (None, "Value")
+                           and all(Selector._attr(line, "Value") is None for line in block.splitlines()))
+            if want is not None and not empty_field and not any(
                     v == want or _same_number(want, v)
                     for v in self._attr_values(block)):
                 return False
@@ -1083,6 +1141,16 @@ class Flow:
                 if s.get(key) is not None and not isinstance(s[key], dict):
                     raise ValueError(f"step.{key} must be an object")
             sf = s.get("safety") or {}
+            misplaced = set(sf) - _SAFETY_FIELDS
+            if misplaced:
+                # Dropping them silently left a step without its description
+                # and the refusal said only "no fixed description" (2026-10-19,
+                # 2026-10-24). Only trusted field names reach the hint.
+                step_level = sorted(misplaced & _STEP_LEVEL_FIELDS)
+                raise FlowFieldError("unknown safety fields", path + ".safety",
+                                     ("Move " + ", ".join(step_level) + " to the step itself (next to action). "
+                                      if step_level else "")
+                                     + "safety takes: " + ", ".join(sorted(_SAFETY_FIELDS)) + ".")
             for key in ("resource", "destination"):
                 if sf.get(key) is not None and not isinstance(sf[key], dict):
                     raise ValueError(f"step.safety.{key} must be an object")
@@ -1091,7 +1159,26 @@ class Flow:
                 raise ValueError("step.safety.evidence must be a list of objects")
             payload = s.get("params", {})
             if not isinstance(payload, dict) or set(payload) - known[s["action"]]:
-                raise ValueError("invalid action parameters; names and indices are not parameters")
+                # The allowed names are a closed product list, never authored
+                # text. A fixed set_value example sent type_text authors to
+                # {"value": ...} (2026-10-24).
+                allowed = sorted(str(name) for name in known[s["action"]])
+                raise FlowFieldError("invalid action parameters; names and indices are not parameters",
+                                     path + ".params",
+                                     (f'{s["action"]} takes params: ' + (", ".join(allowed) if allowed else "none")
+                                      + ". Put identifiers in selector."))
+            if s['action'] == 'secondary_action' and isinstance(payload.get('action'), str):
+                # The tree prints "Secondary Actions: ShowMenu" while the helper
+                # takes "AXShowMenu"; copying what was observed must work.
+                from .driver import SECONDARY_ACTIONS
+                name = payload['action']
+                if not name.startswith('AX') and 'AX' + name in SECONDARY_ACTIONS:
+                    payload = {**payload, 'action': 'AX' + name}
+                    s = {**s, 'params': payload}
+                if payload['action'] not in SECONDARY_ACTIONS:
+                    raise FlowFieldError('unknown secondary action', path + '.params.action',
+                                         'Use one of: ' + ', '.join(SECONDARY_ACTIONS)
+                                         + ' (the tree shows them without the AX prefix).')
             if s['action']=='drag':
                 from .native_drag import drag_problem
                 problem=drag_problem(payload)
@@ -2165,7 +2252,7 @@ def _ready_hint(raw):
     return ReadyHint(_selector_from(raw["field"], "ready_when.field"), raw["attribute"], raw["equals"])
 
 
-_TEXT_FIELDS = ("identifier", "title", "desc", "value", "ancestor", "click_ancestor")
+_TEXT_FIELDS = ("identifier", "title", "desc", "value", "ancestor", "click_ancestor", "placeholder", "near")
 
 
 def _optional_selector(container, key, where):
@@ -2225,6 +2312,15 @@ def _reveal_texts(selector):
                 texts.append(text)
     texts = texts[:8]
     return texts if texts and reveal_problem(texts) is None else []
+
+
+def _absence_only(post) -> bool:
+    """Does `post` only assert that things are gone (absent / absent_role)?"""
+    if post is None or post.equals is not None or post.contains is not None:
+        return False
+    if post.absent is None and post.absent_role is None and not post.all_of:
+        return False
+    return all(_absence_only(item) for item in post.all_of)
 
 
 def _replay_observation(method, *args, **kwargs):
@@ -2507,7 +2603,7 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
         driver.protect_captures([c for s in flow.steps for c in s.captures if c.sensitive])
     obs = _replay_observation(driver.observe, flow.target, "tree_full")
     if obs.get("error") == "no_window_content" and flow.steps \
-            and flow.steps[0].action in ("menu", "open_folder", "reopen_window", "close_menu"):
+            and flow.steps[0].action in ("menu", "open_folder", "reopen_window", "close_menu", "status_item"):
         # "Finder 열어줘" starts from an app with no window at all. Menus are
         # app-scoped, and open_folder is what makes the window, so such a
         # recipe can legitimately begin here (open_folder: seen on june-mba,
@@ -2661,6 +2757,8 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
             target_line = "menu: " + " > ".join(
                 p if isinstance(p, str) else "|".join(p)
                 for p in step.params.get("path", []))
+        if step.action == "status_item":
+            target_line = "status_item: " + str(step.params.get("title") or "")
         revealed = False
         while step.selector is not None:
             try:
@@ -3075,9 +3173,22 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
         r = dispatch(obs, action)
 
         if r.get("error") in ("commit_unverified", "action_unverified"):
+            extra = {}
+            if step.postcondition is not None:
+                # No host receipt means the run cannot call the change
+                # confirmed. The author's own result check is still a read the
+                # caller would otherwise make by hand (or outside Tacto), so
+                # read it once and say what it showed. It never upgrades the
+                # status and never permits a resend.
+                try:
+                    seen = _replay_observation(driver.wait_until, flow.target, step.postcondition.check)
+                    extra["postcondition_observed"] = seen.get("type") == "observation"
+                except Exception:
+                    extra["postcondition_observed"] = None
             res.record(status="unverified", step=i, action=step.action,
                        error=r["error"], effect=r["effect"],
-                       event_id=r["event_id"], event_state=r["event_state"], detail=r["detail"])
+                       event_id=r["event_id"], event_state=r["event_state"], detail=r["detail"],
+                       **extra)
             return res
 
         if r["type"] in ("confirm_request", "handoff_request"):
@@ -3148,8 +3259,20 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
                     lambda *args, **kwargs: _replay_observation(driver.observe, *args, **kwargs),
                     flow.target, post, obs)
             if obs.get("type") == "error":
+                if (obs.get("error") == "target_not_found" and r.get("type") == "acted"
+                        and i == len(flow.steps) - 1 and not step.captures and _absence_only(post)):
+                    # "Gone" is true of everything once the app has exited. A Quit
+                    # step needs a postcondition (menu steps refuse to run without
+                    # one) and the natural one is absent — it must not fail.
+                    res.record(status="ok", step=i, action=step.action, resolver=trace, risk=risk,
+                               verified="target_terminated", target_terminated=True)
+                    continue
                 res.record(status="error", step=i, action=step.action, stage="verify_observe",
                            error=obs.get("error", "observation_unavailable"), detail=obs)
+                if obs.get("error") == "target_not_found" and r.get("type") == "acted":
+                    # Delivered, then the app exited: do not resend.
+                    res.log[-1]["target_terminated"] = True
+                    res.log[-1]["effect"] = "acted"
                 return res
             if obs["type"] != "observation":
                 seen = None
@@ -3261,8 +3384,28 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
                            detail=f"expect {step.expect!r} not in tree")
                 return res
             if obs["type"] != "observation":
+                if (obs.get("error") == "target_not_found" and r.get("type") == "acted"
+                        and i == len(flow.steps) - 1 and not step.captures and step.expect is None):
+                    # The last step was delivered and the app then exited: a
+                    # Quit menu doing its job. Reported as failed, agents re-ran
+                    # it (Itda native quit, five reruns on 2026-10-20). Only the
+                    # final step, because nothing after it can run on a closed app.
+                    res.record(status="ok", step=i, action=step.action, resolver=trace, risk=risk,
+                               verified="target_terminated", target_terminated=True)
+                    continue
+                if (obs.get("error") == "no_window_content" and r.get("type") == "acted"
+                        and step.action == "close_menu" and r.get("menus_open") == 0
+                        and not step.captures and step.expect is None):
+                    # A menu bar app has no window once its menu is closed;
+                    # that is the state this step asked for.
+                    res.record(status="ok", step=i, action=step.action, resolver=trace, risk=risk,
+                               verified="menus_closed")
+                    continue
                 res.record(status="error", step=i, stage="verify_observe",
                            error=obs.get("error", "observation_failed"), detail=obs)
+                if obs.get("error") == "target_not_found" and r.get("type") == "acted":
+                    res.log[-1]["target_terminated"] = True
+                    res.log[-1]["effect"] = "acted"
                 return res
             if ready is not None:
                 res.log.append({"status": "ready_hint", "step": i, "ready": ready})

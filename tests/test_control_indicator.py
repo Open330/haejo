@@ -389,7 +389,8 @@ print(String(data: try! JSONSerialization.data(withJSONObject: out, options: [.s
             # Continuation is a read-only observation of an existing window.
             "guard ensureVisibleControl(forPID: p, windowless: true) else { return indicatorRefusal() }",
             "guard ensureVisibleControl(forPID: p, windowless: true) else {",
-            'guard ensureVisibleControl(forPID: p, windowless: ["menu", "open_folder", "reopen_window", "close_menu"].contains((action["name"] as? String) ?? "")) else {',
+            # status_item presses the app's own menu bar icon: app-scoped like menu.
+            'guard ensureVisibleControl(forPID: p, windowless: ["menu", "open_folder", "reopen_window", "close_menu", "status_item"].contains((action["name"] as? String) ?? "")) else {',
             "guard ensureVisibleControl(forPID: p) else {",
             'guard ensureVisibleControl(forPID: p, windowless: kind == "menu_state" || kind == "menu_items") else {',
         ]))
@@ -483,7 +484,7 @@ class TheIndicatorCanBeActedOn(unittest.TestCase):
         text = (ROOT / "helper/TactoHelper.swift").read_text()
         body = text[text.index("@objc func stopNow(_ sender: Any?)"):]
         body = body[:body.index("\n    }\n")]
-        self.assertIn("abortState.stopNow()", body)
+        self.assertIn('abortState.stopNow("indicator_stop")', body)
 
     def test_the_menu_stop_is_not_routed_through_the_staleness_check(self):
         # `note(at:)` exists because an Esc can reach the run loop after the
@@ -491,7 +492,7 @@ class TheIndicatorCanBeActedOn(unittest.TestCase):
         # during this run cannot be stale, and manufacturing a timestamp to
         # pass that test would be asking a question whose answer is known.
         text = (ROOT / "helper/TactoHelper.swift").read_text()
-        self.assertIn("func stopNow() {", text)
+        self.assertIn("func stopNow(_ source: String = \"unspecified\") {", text)
         body = text[text.index("@objc func stopNow(_ sender: Any?)"):]
         body = body[:body.index("\n    }\n")]
         self.assertNotIn("note(at:", body)

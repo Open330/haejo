@@ -125,6 +125,27 @@ def _explain_no_window(target: str) -> dict:
         return {}
 
 
+def _explain_not_found(target: str) -> dict:
+    """Next step for an app that is not running; a locked screen comes first.
+
+    Agents read a bare target_not_found as "Tacto cannot start apps" and gave
+    up or switched to `open -a` (2026-10-19), and on a locked screen they
+    retried observe → launch in a loop (2026-11-04).
+    """
+    try:
+        from .session import lock_state
+        from .app_launch import SCREEN_LOCKED_HINT
+        lock = lock_state()
+    except Exception:
+        lock = None
+    if isinstance(lock, dict) and lock.get("locked") is True:
+        return {"lock": lock, "reason": "screen_locked", "hint": SCREEN_LOCKED_HINT}
+    import re
+    if isinstance(target, str) and re.fullmatch(r"[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+", target):
+        return {"hint": f"앱이 실행 중이 아닙니다 — tacto launch {target} --helper 로 실행한 뒤 다시 observe 하세요."}
+    return {}
+
+
 class HelperUnavailable(RuntimeError):
     pass
 
@@ -683,6 +704,8 @@ class HelperDriver:
             message['continuation'] = continuation
             return self._send(message)
         out = self._send(message)
+        if out.get("error") == "target_not_found" and "hint" not in out:
+            out = {**out, **_explain_not_found(target)}
         if out.get("error") == "no_window_content" and "reason" not in out:
             # The helper says only that there is no window. Which of the
             # causes it is — a locked screen, a hidden app, minimised windows —
@@ -860,7 +883,7 @@ class HelperDriver:
         return self._send({"type": "selection", "target": target})
 
     def capture(self, target, *, obs_id=None, window_index=None, path=None,
-                timeout_seconds=5):
+                timeout_seconds=5, element_index=None):
         """A picture of one observed window, taken by the side that holds the grant.
 
         The screen-recording permission belongs here for the same reason the
@@ -879,6 +902,9 @@ class HelperDriver:
         if (window_index is not None
                 and (type(window_index) is not int or not 0 <= window_index < 64)):
             raise ValueError('invalid capture window index')
+        if element_index is not None and (type(element_index) is not int or not 0 <= element_index < 100000
+                                          or window_index is not None):
+            raise ValueError('invalid capture element index')
         if obs_id is None:
             return {"type": "error", "error": "stale_observation",
                     "effect": "not_started",
@@ -887,6 +913,8 @@ class HelperDriver:
                    "timeout_seconds": timeout_seconds}
         if window_index is not None:
             message["window_index"] = window_index
+        if element_index is not None:
+            message["element_index"] = element_index
         answer = self._send(message)
         if answer.get("type") == "capture" and path is not None:
             import hashlib
@@ -1165,8 +1193,13 @@ class HelperDriver:
             return unavailable
         return response if mode == response['editing_mode'] else unavailable
 
-    def wait_until(self, target, predicate, timeout_ms=4000, poll_ms=250, *, search_pages=False):
-        """As the in-process driver; search_pages only for presence predicates."""
+    def wait_until(self, target, predicate, timeout_ms=4000, poll_ms=250, *, search_pages=False, yield_between=False):
+        """As the in-process driver; search_pages only for presence predicates.
+
+        yield_between: a read-only wait gives the app back between polls, so
+        another Tacto client can act on it meanwhile (a 30-second wait used to
+        refuse every other command with target_busy). A busy app is then just
+        another poll that saw nothing yet."""
         from .observation_state import retryable_observation_error
         from .observation_wait import match_in_pages
         from .protocol import CONTINUATION_CAPABILITY
@@ -1178,7 +1211,8 @@ class HelperDriver:
             # The predicate is the readiness witness. Check immediately;
             # sleeping first adds a second wait ahead of the polling loop.
             obs = self.observe(target, _settle_after_action=False)
-            last = obs
+            if not yield_between:
+                last = obs
             if obs.get("type") == "observation" and predicate(obs["tree"]):
                 return obs
             if search_pages and obs.get("type") == "observation":
@@ -1186,13 +1220,18 @@ class HelperDriver:
                 pages_checked += read
                 if page is not None:
                     return {**page, "observation_pages_checked": pages_checked}
-            if obs.get("type") != "observation" and not retryable_observation_error(obs):
+            busy = yield_between and obs.get("error") == "target_busy"
+            if obs.get("type") != "observation" and not busy and not retryable_observation_error(obs):
                 return obs
+            if obs.get("type") == "observation":
+                last = obs
             if time.monotonic() >= deadline:
-                if obs.get("type") != "observation":
+                if last is None or last.get("type") != "observation":
                     return obs
                 return {"type": "timeout", "last_obs": last,
                         **({"observation_pages_checked": pages_checked} if search_pages else {})}
+            if yield_between and 'session.release_targets' in getattr(self, 'capabilities', ()):
+                self.release_targets()
             time.sleep(min(poll_ms / 1000, max(0, deadline - time.monotonic())))
 
 

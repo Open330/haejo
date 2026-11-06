@@ -138,7 +138,13 @@ def capture_main(argv, driver):
                   if (match:=re.match(r'^(\d+) Window(?:\s|$)',line))])
         if len(indices)!=1:
             record_failure('window_missing_or_ambiguous','select_window')
-            print(json.dumps({'error':'window_missing_or_ambiguous','detail':'specify --window with an exact observed title'}));return 1
+            # Name the observed windows: "specify a title" alone left agents
+            # guessing at an untitled window (AccessibilityInspector, 2026-11-06).
+            windows=[{'element_index':int(m.group(1)),'title':Selector._attr(line,'Title') or ''}
+                     for line in obs['tree'].splitlines() if (m:=re.match(r'^(\d+) Window(?:\s|$)',line))]
+            print(json.dumps({'error':'window_missing_or_ambiguous','effect':'not_started',
+                              'detail':'specify --window with an exact observed title',
+                              'windows':windows[:20]},ensure_ascii=False));return 1
         image=capture_window(driver,obs['obs_id'],args.target,window_index=indices[0])
         # Do not overwrite an existing user's image or follow a destination symlink.
         with args.output.open('xb') as stream:

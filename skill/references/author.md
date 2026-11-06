@@ -104,8 +104,11 @@ app's own state, not something a retry changes.
 Settings > Appearance shows `Description: Light, … [selected]`). Read
 "which option is set" from `[selected]`, not from the labels alone.
 
-**Actions:** `click`, `set_value`, `type_text`, `scroll`, `secondary_action`,
-`menu`, `read` (look and change nothing, for a step that only captures). Prefer clicking a named control over typing — a button press is
+**Actions:** `click`, `set_value`, `type_text`, `scroll`, `secondary_action`
+(`params.action` is a name the tree lists under `Secondary Actions`, e.g.
+`ShowMenu`), `menu`, `read` (look and change nothing, for a step that only captures).
+A final Quit step can check `{"absent": "<window title>"}`: when the app exits,
+the step is done (`verified: target_terminated`). Prefer clicking a named control over typing — a button press is
 verifiable through the control itself. Python and the signed helper support
 only window/element-bound background `press_key` navigation. Inspect the backend
 capabilities and provide an input selector, ContextBinding and an explicit
