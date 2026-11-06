@@ -1,0 +1,703 @@
+{
+  "date": "2026-11-06",
+  "scope": "observed fresh-context profiling; requested gpt-6.1-sol/medium, 180s; same task and controller",
+  "runtime_source_commit": "cab27d889dc3455a3faf5f81812befc19b0262f5",
+  "measured_source_commit": "d611ada773bdb13d04af02d2ac7b47fa6c22fac6",
+  "same_git_tree_verified": true,
+  "native_binaries_identical": true,
+  "agent_config_identical": true,
+  "runtime_path_lengths_identical": true,
+  "regression": {
+    "tests": 3266,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 27,
+    "source_unchanged": true
+  },
+  "peer_reviewed": true,
+  "cohorts": {
+    "before": {
+      "evidence_stable": true,
+      "arms": {
+        "tacto": {
+          "runs": 3,
+          "passed": 3,
+          "seconds_median": 61.0,
+          "input_total": 483541,
+          "uncached_input_total": 54997,
+          "output_total": 3187,
+          "repair_total": 3,
+          "foreground_changed_runs": 1
+        }
+      },
+      "trials": [
+        {
+          "arm": "tacto",
+          "rep": 0,
+          "status": "passed",
+          "seconds": 61.0,
+          "tokens": {
+            "scope": "single reported turn.completed usage",
+            "status": "reported",
+            "input_tokens": 175273,
+            "cached_input_tokens": 155776,
+            "uncached_input_tokens": 19497,
+            "output_tokens": 1078,
+            "total_tokens": 176351,
+            "event_count": 1,
+            "stream_complete": true,
+            "cost_usd": null,
+            "billing_verified": false
+          },
+          "source_changed": false,
+          "session_timings": [
+            {
+              "flow_received_seconds": 17.212257709004916,
+              "input_ready_seconds": 0.3742499169893563,
+              "observation_ready_seconds": 0.3696726670023054,
+              "replay_done_seconds": 23.74223108397564,
+              "session_done_seconds": 23.7422506249859
+            },
+            {
+              "flow_received_seconds": 15.749498999968637,
+              "input_ready_seconds": 0.5252842499758117,
+              "observation_ready_seconds": 0.5249489999841899,
+              "replay_done_seconds": 16.221899707976263,
+              "session_done_seconds": 16.221915957983583
+            }
+          ],
+          "native_timings": [
+            {
+              "schema": "tacto-runtime-timing-v1",
+              "clock": "monotonic",
+              "scope": "calls_through_driver_wrapper; wait_until_includes_internal_polling",
+              "calls": {
+                "act": {
+                  "count": 6,
+                  "seconds": 0.484002,
+                  "exceptions": 0
+                },
+                "observe": {
+                  "count": 6,
+                  "seconds": 5.541893,
+                  "exceptions": 0
+                },
+                "wait_until": {
+                  "count": 1,
+                  "seconds": 0.055993,
+                  "exceptions": 0
+                }
+              },
+              "includes_model_or_cli_startup": false,
+              "replay_seconds": 6.115766,
+              "run_flow_seconds": 6.527892
+            },
+            {
+              "schema": "tacto-runtime-timing-v1",
+              "clock": "monotonic",
+              "scope": "calls_through_driver_wrapper; wait_until_includes_internal_polling",
+              "calls": {
+                "act": {
+                  "count": 1,
+                  "seconds": 0.154867,
+                  "exceptions": 0
+                },
+                "observe": {
+                  "count": 1,
+                  "seconds": 0.118055,
+                  "exceptions": 0
+                }
+              },
+              "includes_model_or_cli_startup": false,
+              "replay_seconds": 0.280826,
+              "run_flow_seconds": 0.406786
+            }
+          ],
+          "cleanup": "completed",
+          "schema_repair_requests": 1,
+          "foreground_activation_count": 1
+        },
+        {
+          "arm": "tacto",
+          "rep": 1,
+          "status": "passed",
+          "seconds": 64.0,
+          "tokens": {
+            "scope": "single reported turn.completed usage",
+            "status": "reported",
+            "input_tokens": 173309,
+            "cached_input_tokens": 155136,
+            "uncached_input_tokens": 18173,
+            "output_tokens": 1073,
+            "total_tokens": 174382,
+            "event_count": 1,
+            "stream_complete": true,
+            "cost_usd": null,
+            "billing_verified": false
+          },
+          "source_changed": false,
+          "session_timings": [
+            {
+              "flow_received_seconds": 25.6091102079954,
+              "input_ready_seconds": 0.6679018749855459,
+              "observation_ready_seconds": 0.667192958004307,
+              "replay_done_seconds": 31.61960924998857,
+              "session_done_seconds": 31.619641416997183
+            },
+            {
+              "flow_received_seconds": 8.152101290994324,
+              "input_ready_seconds": 0.5408149160211906,
+              "observation_ready_seconds": 0.5403280000318773,
+              "replay_done_seconds": 8.811305125011131,
+              "session_done_seconds": 8.811319458007347
+            }
+          ],
+          "native_timings": [
+            {
+              "schema": "tacto-runtime-timing-v1",
+              "clock": "monotonic",
+              "scope": "calls_through_driver_wrapper; wait_until_includes_internal_polling",
+              "calls": {
+                "act": {
+                  "count": 6,
+                  "seconds": 0.358216,
+                  "exceptions": 0
+                },
+                "observe": {
+                  "count": 6,
+                  "seconds": 5.457294,
+                  "exceptions": 0
+                },
+                "wait_until": {
+                  "count": 1,
+                  "seconds": 0.049775,
+                  "exceptions": 0
+                }
+              },
+              "includes_model_or_cli_startup": false,
+              "replay_seconds": 5.880895,
+              "run_flow_seconds": 6.008985
+            },
+            {
+              "schema": "tacto-runtime-timing-v1",
+              "clock": "monotonic",
+              "scope": "calls_through_driver_wrapper; wait_until_includes_internal_polling",
+              "calls": {
+                "act": {
+                  "count": 1,
+                  "seconds": 0.12269,
+                  "exceptions": 0
+                },
+                "observe": {
+                  "count": 1,
+                  "seconds": 0.1106,
+                  "exceptions": 0
+                }
+              },
+              "includes_model_or_cli_startup": false,
+              "replay_seconds": 0.253867,
+              "run_flow_seconds": 0.580473
+            }
+          ],
+          "cleanup": "completed",
+          "schema_repair_requests": 1,
+          "foreground_activation_count": 0
+        },
+        {
+          "arm": "tacto",
+          "rep": 2,
+          "status": "passed",
+          "seconds": 52.1,
+          "tokens": {
+            "scope": "single reported turn.completed usage",
+            "status": "reported",
+            "input_tokens": 134959,
+            "cached_input_tokens": 117632,
+            "uncached_input_tokens": 17327,
+            "output_tokens": 1036,
+            "total_tokens": 135995,
+            "event_count": 1,
+            "stream_complete": true,
+            "cost_usd": null,
+            "billing_verified": false
+          },
+          "source_changed": false,
+          "session_timings": [
+            {
+              "flow_received_seconds": 17.370340958004817,
+              "input_ready_seconds": 0.34742324997205287,
+              "observation_ready_seconds": 0.3465438329731114,
+              "replay_done_seconds": 23.339339790982194,
+              "session_done_seconds": 23.33936275000451
+            },
+            {
+              "flow_received_seconds": 8.062612166977488,
+              "input_ready_seconds": 0.4399844169965945,
+              "observation_ready_seconds": 0.43903208296978846,
+              "replay_done_seconds": 8.437614333000965,
+              "session_done_seconds": 8.437628541956656
+            }
+          ],
+          "native_timings": [
+            {
+              "schema": "tacto-runtime-timing-v1",
+              "clock": "monotonic",
+              "scope": "calls_through_driver_wrapper; wait_until_includes_internal_polling",
+              "calls": {
+                "act": {
+                  "count": 6,
+                  "seconds": 0.33932,
+                  "exceptions": 0
+                },
+                "observe": {
+                  "count": 6,
+                  "seconds": 5.437777,
+                  "exceptions": 0
+                },
+                "wait_until": {
+                  "count": 1,
+                  "seconds": 0.071297,
+                  "exceptions": 0
+                }
+              },
+              "includes_model_or_cli_startup": false,
+              "replay_seconds": 5.863388,
+              "run_flow_seconds": 5.96848
+            },
+            {
+              "schema": "tacto-runtime-timing-v1",
+              "clock": "monotonic",
+              "scope": "calls_through_driver_wrapper; wait_until_includes_internal_polling",
+              "calls": {
+                "act": {
+                  "count": 1,
+                  "seconds": 0.124888,
+                  "exceptions": 0
+                },
+                "observe": {
+                  "count": 1,
+                  "seconds": 0.080819,
+                  "exceptions": 0
+                }
+              },
+              "includes_model_or_cli_startup": false,
+              "replay_seconds": 0.211537,
+              "run_flow_seconds": 0.316835
+            }
+          ],
+          "cleanup": "completed",
+          "schema_repair_requests": 1,
+          "foreground_activation_count": 0
+        }
+      ]
+    },
+    "after": {
+      "evidence_stable": true,
+      "arms": {
+        "tacto": {
+          "runs": 3,
+          "passed": 3,
+          "seconds_median": 41.3,
+          "input_total": 382267,
+          "uncached_input_total": 37307,
+          "output_total": 2494,
+          "repair_total": 0,
+          "foreground_changed_runs": 0
+        },
+        "sky": {
+          "runs": 3,
+          "passed": 3,
+          "seconds_median": 33.3,
+          "input_total": 430704,
+          "uncached_input_total": 44784,
+          "output_total": 2017,
+          "repair_total": 0,
+          "foreground_changed_runs": 0
+        }
+      },
+      "trials": [
+        {
+          "arm": "tacto",
+          "rep": 0,
+          "status": "passed",
+          "seconds": 36.8,
+          "tokens": {
+            "scope": "single reported turn.completed usage",
+            "status": "reported",
+            "input_tokens": 114790,
+            "cached_input_tokens": 105216,
+            "uncached_input_tokens": 9574,
+            "output_tokens": 829,
+            "total_tokens": 115619,
+            "event_count": 1,
+            "stream_complete": true,
+            "cost_usd": null,
+            "billing_verified": false
+          },
+          "source_changed": false,
+          "session_timings": [
+            {
+              "flow_input_attempts": 1,
+              "flow_input_utf8_bytes": 729,
+              "flow_received_seconds": 6.876772666000761,
+              "input_ready_seconds": 0.4132145410403609,
+              "observation_ready_seconds": 0.4126144160400145,
+              "replay_done_seconds": 8.76249833300244,
+              "session_done_seconds": 8.762517625000328
+            },
+            {
+              "flow_input_attempts": 1,
+              "flow_input_utf8_bytes": 1078,
+              "flow_received_seconds": 9.168625082995277,
+              "input_ready_seconds": 0.46198191604344174,
+              "observation_ready_seconds": 0.46124066604534164,
+              "replay_done_seconds": 9.517772041028365,
+              "session_done_seconds": 9.517785875010304
+            }
+          ],
+          "native_timings": [
+            {
+              "schema": "tacto-runtime-timing-v1",
+              "clock": "monotonic",
+              "scope": "calls_through_driver_wrapper; wait_until_includes_internal_polling",
+              "calls": {
+                "act": {
+                  "count": 6,
+                  "seconds": 0.320305,
+                  "exceptions": 0
+                },
+                "observe": {
+                  "count": 2,
+                  "seconds": 1.177634,
+                  "exceptions": 0
+                },
+                "wait_until": {
+                  "count": 5,
+                  "seconds": 0.286775,
+                  "exceptions": 0
+                }
+              },
+              "includes_model_or_cli_startup": false,
+              "replay_seconds": 1.792563,
+              "run_flow_seconds": 1.885396
+            },
+            {
+              "schema": "tacto-runtime-timing-v1",
+              "clock": "monotonic",
+              "scope": "calls_through_driver_wrapper; wait_until_includes_internal_polling",
+              "calls": {
+                "act": {
+                  "count": 1,
+                  "seconds": 0.100418,
+                  "exceptions": 0
+                },
+                "observe": {
+                  "count": 1,
+                  "seconds": 0.09431,
+                  "exceptions": 0
+                }
+              },
+              "includes_model_or_cli_startup": false,
+              "replay_seconds": 0.199861,
+              "run_flow_seconds": 0.287083
+            }
+          ],
+          "cleanup": "completed",
+          "schema_repair_requests": 0,
+          "foreground_activation_count": 0
+        },
+        {
+          "arm": "sky",
+          "rep": 0,
+          "status": "passed",
+          "seconds": 41.6,
+          "tokens": {
+            "scope": "single reported turn.completed usage",
+            "status": "reported",
+            "input_tokens": 145260,
+            "cached_input_tokens": 134784,
+            "uncached_input_tokens": 10476,
+            "output_tokens": 817,
+            "total_tokens": 146077,
+            "event_count": 1,
+            "stream_complete": true,
+            "cost_usd": null,
+            "billing_verified": false
+          },
+          "source_changed": false,
+          "session_timings": [],
+          "native_timings": [],
+          "cleanup": "completed",
+          "schema_repair_requests": 0,
+          "foreground_activation_count": 0
+        },
+        {
+          "arm": "sky",
+          "rep": 1,
+          "status": "passed",
+          "seconds": 33.3,
+          "tokens": {
+            "scope": "single reported turn.completed usage",
+            "status": "reported",
+            "input_tokens": 142701,
+            "cached_input_tokens": 128256,
+            "uncached_input_tokens": 14445,
+            "output_tokens": 594,
+            "total_tokens": 143295,
+            "event_count": 1,
+            "stream_complete": true,
+            "cost_usd": null,
+            "billing_verified": false
+          },
+          "source_changed": false,
+          "session_timings": [],
+          "native_timings": [],
+          "cleanup": "completed",
+          "schema_repair_requests": 0,
+          "foreground_activation_count": 0
+        },
+        {
+          "arm": "tacto",
+          "rep": 1,
+          "status": "passed",
+          "seconds": 41.3,
+          "tokens": {
+            "scope": "single reported turn.completed usage",
+            "status": "reported",
+            "input_tokens": 134281,
+            "cached_input_tokens": 120192,
+            "uncached_input_tokens": 14089,
+            "output_tokens": 830,
+            "total_tokens": 135111,
+            "event_count": 1,
+            "stream_complete": true,
+            "cost_usd": null,
+            "billing_verified": false
+          },
+          "source_changed": false,
+          "session_timings": [
+            {
+              "flow_input_attempts": 1,
+              "flow_input_utf8_bytes": 654,
+              "flow_received_seconds": 6.540988209017087,
+              "input_ready_seconds": 0.35576545901130885,
+              "observation_ready_seconds": 0.355335834028665,
+              "replay_done_seconds": 12.45857795898337,
+              "session_done_seconds": 12.458602958999109
+            },
+            {
+              "flow_input_attempts": 1,
+              "flow_input_utf8_bytes": 1022,
+              "flow_received_seconds": 8.783967084018514,
+              "input_ready_seconds": 0.4591562090208754,
+              "observation_ready_seconds": 0.4582857920322567,
+              "replay_done_seconds": 9.137556375004351,
+              "session_done_seconds": 9.137569292041007
+            }
+          ],
+          "native_timings": [
+            {
+              "schema": "tacto-runtime-timing-v1",
+              "clock": "monotonic",
+              "scope": "calls_through_driver_wrapper; wait_until_includes_internal_polling",
+              "calls": {
+                "act": {
+                  "count": 6,
+                  "seconds": 0.268103,
+                  "exceptions": 0
+                },
+                "observe": {
+                  "count": 6,
+                  "seconds": 5.4904,
+                  "exceptions": 0
+                },
+                "wait_until": {
+                  "count": 1,
+                  "seconds": 0.056288,
+                  "exceptions": 0
+                }
+              },
+              "includes_model_or_cli_startup": false,
+              "replay_seconds": 5.825966,
+              "run_flow_seconds": 5.917063
+            },
+            {
+              "schema": "tacto-runtime-timing-v1",
+              "clock": "monotonic",
+              "scope": "calls_through_driver_wrapper; wait_until_includes_internal_polling",
+              "calls": {
+                "act": {
+                  "count": 1,
+                  "seconds": 0.118921,
+                  "exceptions": 0
+                },
+                "observe": {
+                  "count": 1,
+                  "seconds": 0.077173,
+                  "exceptions": 0
+                }
+              },
+              "includes_model_or_cli_startup": false,
+              "replay_seconds": 0.200622,
+              "run_flow_seconds": 0.282094
+            }
+          ],
+          "cleanup": "completed",
+          "schema_repair_requests": 0,
+          "foreground_activation_count": 0
+        },
+        {
+          "arm": "tacto",
+          "rep": 2,
+          "status": "passed",
+          "seconds": 45.4,
+          "tokens": {
+            "scope": "single reported turn.completed usage",
+            "status": "reported",
+            "input_tokens": 133196,
+            "cached_input_tokens": 119552,
+            "uncached_input_tokens": 13644,
+            "output_tokens": 835,
+            "total_tokens": 134031,
+            "event_count": 1,
+            "stream_complete": true,
+            "cost_usd": null,
+            "billing_verified": false
+          },
+          "source_changed": false,
+          "session_timings": [
+            {
+              "flow_input_attempts": 1,
+              "flow_input_utf8_bytes": 667,
+              "flow_received_seconds": 6.38782204099698,
+              "input_ready_seconds": 0.33553854102501646,
+              "observation_ready_seconds": 0.3350441249785945,
+              "replay_done_seconds": 12.299659000011161,
+              "session_done_seconds": 12.29967887501698
+            },
+            {
+              "flow_input_attempts": 1,
+              "flow_input_utf8_bytes": 1028,
+              "flow_received_seconds": 9.301881583000068,
+              "input_ready_seconds": 0.48603774997172877,
+              "observation_ready_seconds": 0.48508345801383257,
+              "replay_done_seconds": 9.584279500006232,
+              "session_done_seconds": 9.584293792024255
+            }
+          ],
+          "native_timings": [
+            {
+              "schema": "tacto-runtime-timing-v1",
+              "clock": "monotonic",
+              "scope": "calls_through_driver_wrapper; wait_until_includes_internal_polling",
+              "calls": {
+                "act": {
+                  "count": 6,
+                  "seconds": 0.291037,
+                  "exceptions": 0
+                },
+                "observe": {
+                  "count": 6,
+                  "seconds": 5.486397,
+                  "exceptions": 0
+                },
+                "wait_until": {
+                  "count": 1,
+                  "seconds": 0.046432,
+                  "exceptions": 0
+                }
+              },
+              "includes_model_or_cli_startup": false,
+              "replay_seconds": 5.834494,
+              "run_flow_seconds": 5.911474
+            },
+            {
+              "schema": "tacto-runtime-timing-v1",
+              "clock": "monotonic",
+              "scope": "calls_through_driver_wrapper; wait_until_includes_internal_polling",
+              "calls": {
+                "act": {
+                  "count": 1,
+                  "seconds": 0.062208,
+                  "exceptions": 0
+                },
+                "observe": {
+                  "count": 1,
+                  "seconds": 0.079152,
+                  "exceptions": 0
+                }
+              },
+              "includes_model_or_cli_startup": false,
+              "replay_seconds": 0.14586,
+              "run_flow_seconds": 0.236627
+            }
+          ],
+          "cleanup": "completed",
+          "schema_repair_requests": 0,
+          "foreground_activation_count": 0
+        },
+        {
+          "arm": "sky",
+          "rep": 2,
+          "status": "passed",
+          "seconds": 32.2,
+          "tokens": {
+            "scope": "single reported turn.completed usage",
+            "status": "reported",
+            "input_tokens": 142743,
+            "cached_input_tokens": 122880,
+            "uncached_input_tokens": 19863,
+            "output_tokens": 606,
+            "total_tokens": 143349,
+            "event_count": 1,
+            "stream_complete": true,
+            "cost_usd": null,
+            "billing_verified": false
+          },
+          "source_changed": false,
+          "session_timings": [],
+          "native_timings": [],
+          "cleanup": "completed",
+          "schema_repair_requests": 0,
+          "foreground_activation_count": 0
+        }
+      ]
+    }
+  },
+  "observed_reduction_percent": {
+    "seconds_median": 32.29508196721312,
+    "input_total": 20.94424257715478,
+    "uncached_input_total": 32.16539083950034,
+    "output_total": 21.744587386256665
+  },
+  "limits": [
+    "sequential before/after order and uncontrolled server cache/load",
+    "one before trial observed System Settings foreground activation; retained, not background-qualified",
+    "profiling --timings retains verbose diagnostics, so default-output trimming is not measured here",
+    "postcondition plan variation can change replay time; generated input not recorded",
+    "TextEdit Save receipt/exit behavior unchanged"
+  ],
+  "actual_serving_model_verified": false,
+  "billing_verified": false,
+  "strict_product_equivalence_verified": false,
+  "repair_counter_scope": "Tacto session_invalid_flow markers; not a Sky JavaScript error counter",
+  "deployment": {
+    "version": "v1.0.0-rc.23",
+    "hosts": 3,
+    "identical_signed_bundle": true,
+    "permissions_retained": true,
+    "dock_hidden": true,
+    "local_installed_native_tests": 7,
+    "session_repair_readback_cancel_and_paging": true,
+    "app_notarization": "Accepted",
+    "dmg_notarization": "Accepted",
+    "artifact_automated_checks": 12,
+    "security_findings": {
+      "source": 0,
+      "delta": 0,
+      "dmg": 0
+    },
+    "public_release_changed": false,
+    "vault_session_modified": false
+  }
+}
