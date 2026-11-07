@@ -1023,3 +1023,24 @@ are checked before every event. Interrupted input has an unknown effect after th
 first event and is not retried. Foreground is needed for this explicit route;
 ordinary AXValue remains the default background operation. Receiving verification
 is still required; canonical equivalence is insufficient for passwords.
+
+
+### Session body result and host event phase timing
+
+A pinned TextEdit session that performs a fresh body read after an uncertain
+`set_value` now presents one scope-specific summary. `body_verified` means the
+requested body is visible and no Flow steps remain; `body_verified_partial`
+means steps remain. `body_mismatch` and `body_unavailable` require inspection.
+The existing `TACTO_DOCUMENT_STATE` fields remain unchanged. This presentation
+performs no additional write or read, does not verify Save or writer attribution,
+and preserves the Flow exit status, failure log and template-save eligibility.
+Ordinary unscoped commands keep their existing summaries.
+
+Opt-in Codex process diagnostics include `cli_event_timing.phase_summary`:
+first/terminal event arrival, total elapsed time, the union of completed shell/MCP
+tool spans, and time outside those spans. Overlapping spans count once. Missing
+boundaries, dropped records or a partial record mark the summary incomplete.
+New collection begins before process spawn. These are host arrival intervals:
+a tool span may include model/tool scheduling and input waits; its complement
+is not a measurement of model inference. Commands, arguments and UI contents
+are not copied into the timing summary. Timing adds no model or UI call.

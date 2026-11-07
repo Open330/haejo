@@ -50,3 +50,24 @@ def failure_readback(driver, flow, result):
     except Exception:
         report['reason']='readback_unavailable'
     return report
+
+
+def present_body_state(report, emit):
+    """Describe a fresh body observation without upgrading the Flow receipt."""
+    if not isinstance(report, dict) or report.get('scope') != 'visible_document_text':
+        return False
+    match = report.get('matches_requested_text')
+    remaining = report.get('remaining_steps')
+    if match is True and type(remaining) is int and remaining == 0:
+        emit('body_verified — 요청한 본문과 현재 문서 내용이 일치합니다. 추가 읽기나 재입력은 필요하지 않습니다. '
+             '저장 여부와 쓰기 실행 영수증은 확인되지 않았습니다.')
+    elif match is True:
+        emit('body_verified_partial — 현재 본문은 일치하지만 뒤 단계가 남아 있습니다. '
+             '전체 Flow 완료나 저장을 확인한 결과는 아닙니다. 재입력하지 말고 남은 단계를 확인하세요.')
+    elif match is False:
+        emit('body_mismatch — 현재 본문이 요청과 다릅니다. 저장·쓰기 실행은 미확인입니다. '
+             '재입력 전에 현재 문서를 확인하세요.')
+    else:
+        emit('body_unavailable — 현재 본문을 확인하지 못했습니다. 저장·쓰기 실행은 미확인입니다. '
+             '재입력 전에 현재 문서를 확인하세요.')
+    return True

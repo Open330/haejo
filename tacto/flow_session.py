@@ -336,13 +336,16 @@ def run_session(args, *, make_driver, run_flow, stdin, emit):
         observed_state = []
         result_options = {}
         if document is not None:
-            from .document_readback import failure_readback, MARKER
+            from .document_readback import failure_readback, present_body_state, MARKER
             def observe_result(replayed):
                 readback = failure_readback(driver, flow, replayed)
                 if readback is not None:
                     observed_state.append(readback)
             # Unlike _on_result this callback retains no resume authority.
             result_options['_result_observer'] = observe_result
+            def present_result(replayed):
+                return present_body_state(observed_state[-1], emit) if observed_state else False
+            result_options['_result_presenter'] = present_result
         def no_approver(description):
             return False
         no_approver.no_approver = True

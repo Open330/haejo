@@ -141,6 +141,7 @@ def _run_codex(argv: list[str], prompt: str, timeout: float, process_observation
     from .process_responsibility import OwnedProcessSampler
     from .provider_io import require_provider_child_ownership
     require_provider_child_ownership()
+    process_started = time.monotonic()
     with subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                           stderr=subprocess.PIPE, text=True, env=_provider_env(),
                           start_new_session=(os.name == 'posix'), cwd=cwd) as proc:
@@ -148,7 +149,7 @@ def _run_codex(argv: list[str], prompt: str, timeout: float, process_observation
         sampler=OwnedProcessSampler(proc,is_live=lambda: proc.returncode is None and
             not provider_process_exited_unreaped(proc)) if process_observations is not None else None
         from .cli_event_timing import CLIEventTiming
-        timing = CLIEventTiming() if process_observations is not None else None
+        timing = CLIEventTiming(start=process_started) if process_observations is not None else None
         try:
             with sampler if sampler is not None else nullcontext():
                 if timing is None:

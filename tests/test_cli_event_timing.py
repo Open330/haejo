@@ -45,3 +45,45 @@ class CLIEventTimingTests(unittest.TestCase):
         events = observations[0]['cli_event_timing']['events']
         self.assertGreater(events[-1]['received_seconds'], events[0]['received_seconds'])
         self.assertEqual(['turn.started', 'turn.completed'], [e['event'] for e in events])
+
+
+class PhaseSummaryTests(unittest.TestCase):
+    def observer(self):
+        now=[100.]
+        observer=CLIEventTiming(clock=lambda:now[0])
+        def event(at,kind,key=None,tool='command_execution'):
+            now[0]=100.+at
+            payload={'type':kind}
+            if key is not None: payload['item']={'id':key,'type':tool,'command':'PRIVATE_PAYLOAD'}
+            observer.feed((json.dumps(payload)+'\n').encode())
+        return observer,now,event
+
+    def test_overlapping_tools_are_counted_once_and_gaps_are_not_inference(self):
+        observer,now,event=self.observer()
+        event(1,'turn.started');event(2,'item.started','a');event(3,'item.started','b','mcp_tool_call')
+        event(5,'item.completed','a');event(7,'item.completed','b','mcp_tool_call');event(9,'turn.completed')
+        now[0]=110.
+        summary=observer.snapshot()['phase_summary']
+        self.assertEqual(5.,summary['tool_span_union_seconds'])
+        self.assertEqual(5.,summary['outside_completed_tool_spans_seconds'])
+        self.assertEqual(2,summary['completed_tool_spans'])
+        self.assertEqual(1.,summary['first_event_seconds'])
+        self.assertTrue(summary['complete'])
+        self.assertNotIn('PRIVATE_PAYLOAD',json.dumps(observer.snapshot()))
+
+    def test_missing_boundaries_remain_incomplete(self):
+        for mode in ('missing_end','missing_start','partial','dropped'):
+            observer,now,event=self.observer()
+            if mode=='missing_end':event(1,'item.started','a')
+            if mode=='missing_start':event(1,'item.completed','a')
+            event(2,'turn.completed')
+            if mode=='partial':observer.feed(b'{')
+            if mode=='dropped':observer.feed(b'invalid\n')
+            self.assertFalse(observer.snapshot()['phase_summary']['complete'],mode)
+
+    def test_empty_stream_has_no_first_event_or_terminal(self):
+        observer,_,_=self.observer()
+        summary=observer.snapshot()['phase_summary']
+        self.assertIsNone(summary['first_event_seconds'])
+        self.assertIsNone(summary['terminal_event_seconds'])
+        self.assertFalse(summary['complete'])

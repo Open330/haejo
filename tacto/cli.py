@@ -441,7 +441,7 @@ def _emit_pin_diagnostic(reason):
     if line is not None:print(line)
 
 
-def _run_flow(flow, argv, walked: bool = False, *, _driver=None, _confirm=None, _on_result=None, _result_observer=None, _auto_params=None, _replay_seed=None, _replay_secrets=(), _replay_sensitive_names=frozenset()):
+def _run_flow(flow, argv, walked: bool = False, *, _driver=None, _confirm=None, _on_result=None, _result_observer=None, _result_presenter=None, _auto_params=None, _replay_seed=None, _replay_secrets=(), _replay_sensitive_names=frozenset()):
     """All direct replay commands use the same consent and trace path.
 
     And the same judgment as `tacto do`: a recipe promoted from a walk may ask
@@ -603,7 +603,14 @@ def _run_flow(flow, argv, walked: bool = False, *, _driver=None, _confirm=None, 
         diagnostic = preparation_diagnostic(candidate)
         if diagnostic is not None:
             print(MARKER + json.dumps(diagnostic, ensure_ascii=True, separators=(',', ':')))
-    if result.ok:
+    if not result.ok:
+        from .access_log import record_failure
+        last = result.log[-1] if result.log else {}
+        record_failure(last.get('error') or 'flow_failed', last.get('stage'))
+    presented = _result_presenter(result) is True if _result_presenter is not None else False
+    if presented:
+        pass
+    elif result.ok:
         value = result.log[-1].get("result") if result.log else None
         # A recipe that ANSWERS says its answer: the run's closing entry holds
         # every named capture (the last read of each), already redacted.
@@ -615,8 +622,6 @@ def _run_flow(flow, argv, walked: bool = False, *, _driver=None, _confirm=None, 
         print("done" + (f" — 결과: {shown}" if shown else ""))
     else:
         last = result.log[-1] if result.log else {}
-        from .access_log import record_failure
-        record_failure(last.get('error') or 'flow_failed', last.get('stage'))
         saved_state = any(e.get('saved_state_verified') for e in getattr(result,'events',()))
         if last.get('detail') == 'saved_state_does_not_confirm_dispatch':
             print('unverified — 저장된 파일 내용은 확인했지만 저장 요청의 실행 여부는 확인하지 못했습니다.\n'

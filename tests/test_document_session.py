@@ -89,7 +89,10 @@ class DocumentSessionTests(unittest.TestCase):
             with contextlib.redirect_stdout(captured):return _run_flow(*args,**kwargs)
         code,_,messages=self.run_session(inner,doc=doc,runner=runner)
         self.assertEqual(1,code)  # body edit is not a persistence receipt
-        self.assertIn('commit_unverified',captured.getvalue())
+        self.assertNotIn('unverified —',captured.getvalue())
+        self.assertNotIn('현재 상태를 읽어 확인',captured.getvalue())
+        self.assertTrue(any(x.startswith('body_verified —') for x in messages))
+        self.assertTrue(any('추가 읽기나 재입력은 필요하지 않습니다' in x for x in messages))
         inner.act.assert_called_once()
         self.assertEqual(1,inner.act.call_args.args[2]['element_index'])
         self.assertEqual(2,inner.document_text.call_count)  # pin + one body-state read
