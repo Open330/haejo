@@ -923,7 +923,10 @@ guard let dirC = mkdtemp(&template) else {
 }
 let runDir = String(cString: dirC)
 let rendezvousPath = runDir + "/rendezvous.sock"
-defer { unlink(rendezvousPath); rmdir(runDir) }
+// Not `defer`: a top-level defer never runs, because every way out of this
+// script is exit(), and each invocation left one /tmp/tacto.* directory behind
+// (7,611 of them in four days, 2026-11-08). atexit covers every exit() path.
+atexit { unlink(rendezvousPath); rmdir(runDir) }
 
 // MARK: - Helper
 //

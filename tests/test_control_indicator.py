@@ -510,3 +510,29 @@ class TheIndicatorCanBeActedOn(unittest.TestCase):
                 continue
             self.assertNotIn("let controlMenuTarget =", stripped,
                              "a top-level global here depends on source order")
+
+
+class OverlayOwnerTests(unittest.TestCase):
+    def test_overlay_leaves_when_its_spawner_is_gone(self):
+        import os
+        import subprocess
+        import sys
+        import textwrap
+        from tacto.overlay import owner_gone
+        self.assertFalse(owner_gone(os.getppid()))
+        self.assertTrue(owner_gone(1))
+        # A real orphan: the middle process exits, its child is re-parented.
+        code = textwrap.dedent('''
+            import os, subprocess, sys, time
+            child = subprocess.Popen([sys.executable, "-c",
+                "import os,sys,time\\nfrom tacto.overlay import owner_gone\\nowner=os.getppid()\\n"
+                "sys.stdout.write('ready\\\\n');sys.stdout.flush()\\n"
+                "deadline=time.time()+5\\nwhile time.time()<deadline and not owner_gone(owner): time.sleep(0.05)\\n"
+                "sys.stdout.write('gone\\\\n' if owner_gone(owner) else 'stuck\\\\n')"],
+                stdout=sys.stdout, start_new_session=True)
+            time.sleep(0.5)
+        ''')
+        out = subprocess.run([sys.executable, '-c', code], capture_output=True, text=True, timeout=15,
+                             cwd=str(ROOT))
+        # communicate() reads until the orphan closes the shared pipe.
+        self.assertEqual(['ready', 'gone'], out.stdout.split())

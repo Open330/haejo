@@ -5848,7 +5848,7 @@ func captureWindow(_ obsID: String, _ target: String,
         return refuse("target_changed", "the app changed while capturing")
     }
 
-    let directory = NSTemporaryDirectory() + "tacto-capture-\(getpid())"
+    let directory = captureDirectory
     try? FileManager.default.createDirectory(atPath: directory,
         withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
     let path = directory + "/\(UUID().uuidString).png"
@@ -5969,6 +5969,26 @@ final class AbortState: @unchecked Sendable {
 }
 
 let abortState = AbortState()
+
+// Screenshots handed to the client by path. The client copies what it keeps;
+// the originals are removed when this helper exits, and a helper that was
+// killed before it could do that is swept by the next one to start. They had
+// accumulated in $TMPDIR (174 directories of window images, 2026-11-08).
+let captureDirectory = NSTemporaryDirectory() + "tacto-capture-\(getpid())"
+
+func sweepStaleCaptureDirectories() {
+    let parent = NSTemporaryDirectory()
+    guard let names = try? FileManager.default.contentsOfDirectory(atPath: parent) else { return }
+    for name in names where name.hasPrefix("tacto-capture-") {
+        guard let pid = Int32(name.dropFirst("tacto-capture-".count)), pid > 0, pid != getpid() else { continue }
+        // Only a helper that is gone: a live one may still be serving its client.
+        if kill(pid, 0) == 0 || errno != ESRCH { continue }
+        let path = (parent as NSString).appendingPathComponent(name)
+        var info = stat()
+        guard lstat(path, &info) == 0, info.st_uid == getuid(), info.st_mode & S_IFMT == S_IFDIR else { continue }
+        try? FileManager.default.removeItem(atPath: path)
+    }
+}
 
 func watchForAbort() {
     // Esc anywhere stops the run. The helper watches for it itself, so a caller
@@ -8580,6 +8600,8 @@ func resetPersistentSession(starting: Bool) {
 let nsApp = NSApplication.shared
 nsApp.setActivationPolicy(.accessory)
 watchForAbort()
+sweepStaleCaptureDirectories()
+atexit { try? FileManager.default.removeItem(atPath: captureDirectory) }
 
 if let mode = persistentMode {
     guard let binary = Bundle.main.executableURL, let build = TactoMode.buildKey(binary) else { exit(78) }

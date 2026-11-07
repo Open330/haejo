@@ -933,6 +933,14 @@ class HelperDriver:
                 if digest != answer.get('sha256'):
                     raise OSError('capture artifact digest mismatch')
                 answer = {**answer, "path": str(path), "helper_path": answer["path"]}
+                # The verified copy is the artifact now. The helper's PNG is a
+                # screenshot nobody else reads, and it used to stay in $TMPDIR.
+                source = answer["helper_path"]
+                if os.path.basename(os.path.dirname(source)).startswith("tacto-capture-"):
+                    try:
+                        os.unlink(source)
+                    except OSError:
+                        pass
             except OSError as exc:
                 if created:
                     os.unlink(path)

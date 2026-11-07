@@ -63,3 +63,16 @@ class HelperCaptureArtifacts(unittest.TestCase):
             with self.subTest(index=index), self.assertRaises(ValueError):
                 self.capture(window_index=index)
         self.assertEqual(self.calls, [])
+
+
+class HelperCaptureSourceCleanup(unittest.TestCase):
+    def test_verified_copy_removes_helper_owned_screenshot(self):
+        work = tempfile.TemporaryDirectory(); self.addCleanup(work.cleanup)
+        owned = Path(work.name) / 'tacto-capture-4242'; owned.mkdir()
+        source = owned / 'shot.png'; source.write_bytes(b'window pixels')
+        answer = {'type': 'capture', 'path': str(source), 'sha256': hashlib.sha256(b'window pixels').hexdigest()}
+        driver = SimpleNamespace(_send=lambda message: answer)
+        destination = Path(work.name) / 'kept.png'
+        result = InheritedHelperDriver.capture(driver, 'fixture', obs_id='o1', path=destination)
+        self.assertEqual(('capture', b'window pixels'), (result['type'], destination.read_bytes()))
+        self.assertFalse(source.exists())

@@ -35,11 +35,17 @@ import time
 LABEL = "● Tacto"
 
 
+def owner_gone(owner: int) -> bool:
+    """True once the spawning process has exited (we were re-parented)."""
+    return owner <= 1 or os.getppid() != owner
+
+
 def run_indicator(pid: int, heartbeat: str | None = None, ttl: float = 4.0):
     """Own the main run loop and keep a menu-bar item up while `pid` is driven.
 
     With a `heartbeat` file, the item lives only as long as somebody keeps
-    touching it. A driver that can act at any moment is not the same as one
+    touching it. Either way it also leaves when the process that spawned it
+    exits, so a killed or crashed run cannot leave it behind. A driver that can act at any moment is not the same as one
     that IS acting, and an indicator that never goes away stops being read — so
     the driver touches the file on every observe and every act, and this exits
     once the touches stop. Without a heartbeat it stays up until killed, which
@@ -79,8 +85,16 @@ def run_indicator(pid: int, heartbeat: str | None = None, ttl: float = 4.0):
     button.setTitle_(LABEL)
     button.setToolTip_(tip_for(pid))
 
+    owner = os.getppid()
+
     class Ticker(objc.lookUpClass("NSObject")):
         def tick_(self, _timer):
+            if owner_gone(owner):
+                # The Tacto process that showed this was killed or crashed
+                # before it could take it down; nobody is driving any more.
+                NSStatusBar.systemStatusBar().removeStatusItem_(item)
+                NSApplication.sharedApplication().terminate_(None)
+                return
             if heartbeat is not None:
                 try:
                     idle = time.time() - os.stat(heartbeat).st_mtime
