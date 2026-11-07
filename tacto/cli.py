@@ -1,6 +1,9 @@
 """Tacto — reusable computer use.
 
 Usage:
+  tacto task start "<goal>"   # FIRST: one task per user goal -> TACTO_TASK <id>
+      (then run every tacto command for that goal as TACTO_TASK=<id> tacto …
+       or with --task <id>; tacto task status|list|end <id> --result done|failed|abandoned)
   tacto auth --help       # vault-backed delegated filling and login
   tacto doctor            # check/guide permissions
   tacto apps              # list running apps (GUI session check)
@@ -666,6 +669,10 @@ def _main(argv=None):
     if help_text is not None:
         print(help_text)
         return 0
+
+    if cmd == 'task':
+        from .task import main as task_main
+        return task_main(rest)
 
     if cmd == 'auth':
         from .credential_cli import main as credential_main
@@ -1710,11 +1717,85 @@ def _dispatch_command(cmd, rest):
     return 2
 
 
+TASK_BINDABLE = frozenset(('windows', 'resize', 'hover'))
+
+
+def _task_binding(arguments):
+    """Resolve --task/TACTO_TASK before any driver, helper or KeepAwake work.
+
+    Returns (binding or None, argv without --task, refusal exit code or None).
+    """
+    from . import task as tasks
+    from .access_log import COMMANDS
+    command = arguments[0] if arguments else ''
+    if command == 'task' or tasks.current.get() is not None:
+        # Task management stays usable to recover a closed/inherited task; a
+        # nested dispatch keeps its enclosing invocation.
+        if command == 'task':
+            return None, list(arguments), None
+        _, _, rest = tasks.split_binding(arguments[1:], environ={})
+        return None, [command, *rest], None
+    try:
+        task_id, explicit, rest = tasks.split_binding(arguments[1:])
+        if task_id is None:
+            return None, list(arguments), None
+        if command in ('', '--help', '-h', 'help'):
+            return None, [command, *rest] if command else rest, None
+        from .command_help import command_help
+        if command_help(command, rest) is not None:
+            # Only forms the help dispatcher itself answers; a 'help' token that
+            # is an argument value (activate --window help) stays bound.
+            return None, [command, *rest], None
+        if command not in COMMANDS and command not in TASK_BINDABLE:
+            if explicit:
+                raise tasks.TaskRefused('task_not_applicable', f'{command or "this command"} does not touch the screen; run it without --task.')
+            return None, [command, *rest], None
+        return tasks.bind(task_id, command), [command, *rest], None
+    except tasks.TaskRefused as exc:
+        print(json.dumps({'type': 'error', 'error': exc.code, 'effect': 'not_started', 'detail': exc.detail},
+                         ensure_ascii=False) if '--json' in arguments else f'{exc.code}: {exc.detail}')
+        return None, list(arguments), 2
+
+
 def main(argv=None):
     from .access_log import current, AccessLog, COMMANDS
-    arguments = sys.argv[1:] if argv is None else argv
+    from . import task as tasks
+    arguments = list(sys.argv[1:] if argv is None else argv)
+    binding, arguments, refused = _task_binding(arguments)
+    if refused is not None:
+        return refused
+    argv = arguments
     command = arguments[0] if arguments else ''
-    log = AccessLog(command) if command in COMMANDS and current.get() is None else None
+    log = AccessLog(command, task=binding) if command in COMMANDS and current.get() is None else None
+    if binding is not None:
+        try:
+            binding.admit(log.path.name if log is not None and log.path is not None else None)
+        except tasks.TaskRefused as exc:
+            print(json.dumps({'type': 'error', 'error': exc.code, 'effect': 'not_started', 'detail': exc.detail},
+                             ensure_ascii=False) if '--json' in arguments else f'{exc.code}: {exc.detail}')
+            if log is not None:
+                log.task_result({'status': 'failed', 'error': exc.code, 'stage': 'task'})
+                log.finish(2); log.close()
+            return 2
+        except OSError:
+            print('task_storage_unavailable: the task could not record this call; nothing was sent to the screen.')
+            if log is not None:
+                log.task_result({'status': 'failed', 'error': 'task_storage_unavailable', 'stage': 'task'})
+                log.finish(2); log.close()
+            return 2
+    task_token = tasks.current.set(binding) if binding is not None else None
+    code = None
+    try:
+        code = _main_logged(argv, arguments, log)
+        return code
+    finally:
+        if binding is not None:
+            binding.finish(code, log)
+            tasks.current.reset(task_token)
+
+
+def _main_logged(argv, arguments, log):
+    from .access_log import current
     token = current.set(log) if log is not None else None
     try:
         code = _main(argv)
@@ -1739,6 +1820,7 @@ def main(argv=None):
         else:
             print('helper_unavailable: '+detail,file=sys.stderr)
         if log is not None:
+            log.task_result({'status': 'failed', 'error': 'helper_unavailable', 'stage': 'helper'})
             log.finish(2)
         return 2
     except BaseException:

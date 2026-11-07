@@ -77,8 +77,10 @@ def recent_logs(root=None, limit=20):
 
 
 class AccessLog:
-    def __init__(self, command, *, root=None):
+    def __init__(self, command, *, root=None, task=None):
         self.fd = None
+        self.targets = set()
+        self.last_failure = None
         self.path = None
         self.bytes = 0
         self.truncated = False
@@ -101,12 +103,15 @@ class AccessLog:
             flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, 'O_NOFOLLOW', 0)
             self.fd = os.open(root/name, flags, 0o600)
             self.path = root/name
-            self.event('command_start', command=command, pid=os.getpid())
+            bound = {} if task is None else {'task_id': task.task_id, 'invocation_id': task.invocation}
+            self.event('command_start', command=command, pid=os.getpid(), **bound)
         except OSError:
             self.close()
             print('tacto: 실행 기록을 저장할 수 없습니다 (작업은 계속합니다).', file=sys.stderr)
 
     def event(self, kind, *, force=False, **fields):
+        if isinstance(fields.get('target'), str):
+            self.targets.add(fields['target'])
         if self.fd is None:
             return
         if self.bytes >= MAX_FILE and not force:
@@ -150,6 +155,7 @@ class AccessLog:
                 fields[key] = result[key]
         if fields.get('status') == 'failed' or 'error' in fields:
             self.failure_recorded = True
+            self.last_failure = {k: fields[k] for k in ('error', 'stage') if k in fields}
         self.event('task_result', **fields)
 
     def finish(self, exit_code):
