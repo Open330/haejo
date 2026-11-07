@@ -1019,6 +1019,8 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         refresh.target = self
         let logs = menu.addItem(withTitle: "실행 기록 보기", action: #selector(showAccessLogs), keyEquivalent: "")
         logs.target = self
+        let flows = menu.addItem(withTitle: "저장된 Flow", action: #selector(showFlows), keyEquivalent: "")
+        flows.target = self
         let menuPreferences = menu.addItem(withTitle: "설정…", action: #selector(showPreferences), keyEquivalent: "")
         menuPreferences.target = self
         let setup = menu.addItem(withTitle: "Mac 권한·에이전트", action: #selector(showSetup), keyEquivalent: "")
@@ -1070,9 +1072,10 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         workspace().present()
     }
     @objc func showPreferences() { workspace().present(settings: true) }
+    @objc func showFlows() { workspace().presentFlows() }
     func workspace() -> ActivityCenter {
         if let activityCenter { return activityCenter }
-        let center = ActivityCenter()
+        let center = ActivityCenter(flowPage: FlowLibraryPage(runner: FlowLibraryPage.launcherRunner(root?.appendingPathComponent("launcher/tacto"))))
         center.onSetup = { [weak self] in self?.showSetup() }
         center.updateStatus(badge.stringValue)
         activityCenter = center

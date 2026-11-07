@@ -5,7 +5,14 @@ tacto apps --helper                         # running apps through the signed ba
 tacto observe com.apple.calculator --helper # the accessibility tree to write selectors against
 # ... you write flows/<name>.json ...
 tacto run flows/<name>.json --helper         # execute through the same backend
+tacto flows save flows/<name>.json           # keep a flow that worked; next time: tacto replay <name> --helper
 ```
+
+A flow saved with `tacto flows save` lands in the library: `tacto flows` lists
+it, the Tacto app's 저장된 Flow page shows its inputs and steps, and a later
+request replays it without authoring again. Give it a name that says what it
+does (`finder_open_folder`, not `test1`) and its request sentences as
+`intents`, with inputs written as `{{name}}`.
 
 Write the file yourself. Do **not** call `tacto compile` from here — that spawns
 another model to do what you are already doing.

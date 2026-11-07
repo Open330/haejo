@@ -239,7 +239,7 @@ Available on the main branch:
 | Observe apps and controls | `tacto apps`, `tacto observe`, `tacto menu-state` |
 | Execute requests and Flows | `tacto do`, `tacto run`, `tacto replay` |
 | Compile and parameterize | `tacto compile`, `tacto parameterize` |
-| Manage Flows and candidates | `tacto list`, `tacto show`, `tacto candidates`, `tacto promote` |
+| Manage Flows and candidates | `tacto list`, `tacto show`, `tacto flows` (save, rename, remove, edit inputs; also the app's 저장된 Flow page), `tacto candidates`, `tacto promote` |
 | Evaluate | `tacto eval` |
 
 Development-only commands, absent from main:

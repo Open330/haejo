@@ -236,7 +236,7 @@ private final class ActivityNavigationButton: NSButton {
     }
 }
 
-private final class ActivityDocumentStack: NSStackView { override var isFlipped: Bool { true } }
+final class ActivityDocumentStack: NSStackView { override var isFlipped: Bool { true } }
 
 private func activityErrorMessage(_ code: String) -> String {
     ["credential_plan_changed":"검토한 뒤 파일 내용이 바뀌었어요. 파일을 다시 선택해 검토하세요.",
@@ -299,6 +299,10 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
     private let retention = NSPopUpButton(frame:.zero,pullsDown:false)
     private let historyButton = ActivityNavigationButton()
     private let settingsButton = ActivityNavigationButton()
+    private let flowsButton = ActivityNavigationButton()
+    let flowPage: FlowLibraryPage
+    private enum Page { case history, flows, settings }
+    private var page = Page.history
     private var credentialCenter: CredentialCenter?
     private var allRecords: [ActivityRecord] = []
     private var filtered: [ActivityRecord] = []
@@ -311,8 +315,9 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
     private var rendered: ActivityRecord?
     private let dateFormatter: DateFormatter = { let f = DateFormatter(); f.dateStyle = .medium; f.timeStyle = .short; return f }()
 
-    init(store: ActivityStore = ActivityStore(), refreshAutomatically: Bool = true) {
+    init(store: ActivityStore = ActivityStore(), refreshAutomatically: Bool = true, flowPage: FlowLibraryPage? = nil) {
         self.store = store
+        self.flowPage = flowPage ?? FlowLibraryPage()
         self.refreshAutomatically = refreshAutomatically
         let window = NSWindow(contentRect:NSRect(x:0,y:0,width:1060,height:700), styleMask:[.titled,.closable,.miniaturizable,.resizable], backing:.buffered, defer:false)
         super.init(window:window)
@@ -342,12 +347,14 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
         let brandRow = NSStackView(views:[logo,brand]); brandRow.spacing = 8
         historyButton.title = "실행 기록"; historyButton.image = NSImage(systemSymbolName:"clock.arrow.circlepath", accessibilityDescription:nil)
         settingsButton.title = "설정"; settingsButton.image = NSImage(systemSymbolName:"slider.horizontal.3", accessibilityDescription:nil)
-        for b in [historyButton,settingsButton] { b.font = .systemFont(ofSize:13,weight:.medium); b.target = self; b.action = #selector(navigate(_:)); b.bezelStyle = .rounded; b.isBordered = false; b.setButtonType(.pushOnPushOff); b.wantsLayer = true; b.layer?.cornerRadius = 8; b.imagePosition = .imageLeading; b.alignment = .left; b.widthAnchor.constraint(equalToConstant:176).isActive = true; b.heightAnchor.constraint(equalToConstant:38).isActive = true }
+        flowsButton.title = "저장된 Flow"; flowsButton.image = NSImage(systemSymbolName:"square.stack.3d.up", accessibilityDescription:nil)
+        flowsButton.setAccessibilityIdentifier("tacto.activity.flows")
+        for b in [historyButton,flowsButton,settingsButton] { b.font = .systemFont(ofSize:13,weight:.medium); b.target = self; b.action = #selector(navigate(_:)); b.bezelStyle = .rounded; b.isBordered = false; b.setButtonType(.pushOnPushOff); b.wantsLayer = true; b.layer?.cornerRadius = 8; b.imagePosition = .imageLeading; b.alignment = .left; b.widthAnchor.constraint(equalToConstant:176).isActive = true; b.heightAnchor.constraint(equalToConstant:38).isActive = true }
         historyButton.setAccessibilityIdentifier("tacto.activity.history"); settingsButton.setAccessibilityIdentifier("tacto.activity.settings")
         let setup = button("Mac 권한·에이전트", "arrow.up.forward.app", #selector(openSetup))
         let tagline = activityLabel("에이전트의 작업 공간",11,secondary:true)
         let spacer = NSView(); spacer.setContentHuggingPriority(.init(1),for:.vertical)
-        let side = column([brandRow,tagline,historyButton,settingsButton,spacer,status,setup])
+        let side = column([brandRow,tagline,historyButton,flowsButton,settingsButton,spacer,status,setup])
         side.spacing = 8; side.setCustomSpacing(24,after:tagline)
         status.preferredMaxLayoutWidth = 176
         status.widthAnchor.constraint(lessThanOrEqualToConstant:176).isActive = true
@@ -356,7 +363,9 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
         root.addSubview(sidebar); root.addSubview(content)
         for v in [sidebar,content] { v.translatesAutoresizingMaskIntoConstraints = false }
         NSLayoutConstraint.activate([sidebar.leadingAnchor.constraint(equalTo:root.leadingAnchor),sidebar.topAnchor.constraint(equalTo:root.topAnchor),sidebar.bottomAnchor.constraint(equalTo:root.bottomAnchor),sidebar.widthAnchor.constraint(equalToConstant:208),content.leadingAnchor.constraint(equalTo:sidebar.trailingAnchor),content.trailingAnchor.constraint(equalTo:root.trailingAnchor),content.topAnchor.constraint(equalTo:root.topAnchor),content.bottomAnchor.constraint(equalTo:root.bottomAnchor)])
-        buildHistory(); buildSettings(); navigate(historyButton)
+        buildHistory(); buildSettings()
+        flowPage.window = window; pin(flowPage.view,into:content); flowPage.view.isHidden = true
+        navigate(historyButton)
     }
     private func pin(_ view: NSView, into container: NSView, inset: CGFloat = 24) {
         container.addSubview(view); view.translatesAutoresizingMaskIntoConstraints = false
@@ -434,19 +443,33 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
         pin(scroll,into:content); scroll.isHidden = true; scroll.identifier = NSUserInterfaceItemIdentifier("settings-page")
     }
     @objc private func navigate(_ sender: NSButton) {
-        isSettings = sender === settingsButton
-        history.isHidden = isSettings
+        page = sender === settingsButton ? .settings : sender === flowsButton ? .flows : .history
+        isSettings = page == .settings
+        history.isHidden = page != .history
+        flowPage.view.isHidden = page != .flows
         content.subviews.first(where: { $0.identifier?.rawValue == "settings-page" })?.isHidden = !isSettings
-        historyButton.state = isSettings ? .off : .on; settingsButton.state = isSettings ? .on : .off
-        for b in [historyButton,settingsButton] { b.contentTintColor = b.state == .on ? .controlAccentColor : .labelColor; b.needsDisplay = true }
-        if isSettings { loadSettings() } else if refreshAutomatically { refresh() }
+        historyButton.state = page == .history ? .on : .off; settingsButton.state = isSettings ? .on : .off
+        flowsButton.state = page == .flows ? .on : .off
+        for b in [historyButton,flowsButton,settingsButton] { b.contentTintColor = b.state == .on ? .controlAccentColor : .labelColor; b.needsDisplay = true }
+        switch page {
+        case .settings: loadSettings()
+        case .flows:
+            window?.contentView?.layoutSubtreeIfNeeded()
+            if flowPage.split.subviews[0].frame.width < 240 { flowPage.split.setPosition(300,ofDividerAt:0) }
+            if refreshAutomatically { flowPage.reload() }
+        case .history: if refreshAutomatically { refresh() }
+        }
+    }
+    func presentFlows() {
+        navigate(flowsButton)
+        showWindow(nil); window?.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps:true)
     }
     func present(settings: Bool = false) {
         navigate(settings ? settingsButton : historyButton)
         showWindow(nil); window?.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps:true)
-        if timer == nil { timer = Timer.scheduledTimer(withTimeInterval:2,repeats:true) { [weak self] _ in if self?.window?.isVisible == true && self?.window?.isMiniaturized == false && NSApp.isActive && self?.isSettings == false { self?.refresh() } } }
+        if timer == nil { timer = Timer.scheduledTimer(withTimeInterval:2,repeats:true) { [weak self] _ in if self?.window?.isVisible == true && self?.window?.isMiniaturized == false && NSApp.isActive && self?.page == .history { self?.refresh() } } }
     }
-    func presentCurrent() { present(settings:isSettings) }
+    func presentCurrent() { if page == .flows { presentFlows() } else { present(settings:isSettings) } }
     func updateStatus(_ text: String) { status.stringValue = text }
     @objc private func openSetup() { onSetup?() }
     @objc func refresh() {
@@ -575,15 +598,16 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
             }
         }
     }
-    func snapshot(to directory: URL, settingsPage: Bool = false, size: NSSize = NSSize(width:1060,height:700)) throws {
+    func snapshot(to directory: URL, settingsPage: Bool = false, flowsPage: Bool = false, size: NSSize = NSSize(width:1060,height:700)) throws {
         try FileManager.default.createDirectory(at:directory,withIntermediateDirectories:true)
         allRecords = try store.records(); currentSettings = (try? store.preferences()) ?? TactoPreferences(); applyFilter()
-        navigate(settingsPage ? settingsButton : historyButton)
+        navigate(settingsPage ? settingsButton : flowsPage ? flowsButton : historyButton)
         window?.setContentSize(size)
         guard let view = window?.contentView else { return }
         view.layoutSubtreeIfNeeded()
         table.reloadData(); view.layoutSubtreeIfNeeded()
-        if !settingsPage { showDetail(filtered.first) }
+        if !settingsPage && !flowsPage { showDetail(filtered.first) }
+        if flowsPage { flowPage.layoutDetail() }
         view.layoutSubtreeIfNeeded()
         func redraw(_ v: NSView) { v.needsDisplay = true; v.displayIfNeeded(); for child in v.subviews { redraw(child) } }
         redraw(view)
@@ -599,7 +623,7 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
     }
     func splitView(_ splitView: NSSplitView, constrainMinCoordinate proposedMinimumPosition: CGFloat, ofSubviewAt dividerIndex: Int) -> CGFloat { 240 }
     func splitView(_ splitView: NSSplitView, constrainMaxCoordinate proposedMaximumPosition: CGFloat, ofSubviewAt dividerIndex: Int) -> CGFloat { min(380,splitView.bounds.width-300) }
-    func windowDidResize(_ notification: Notification) { let record = rendered; rendered = nil; showDetail(record) }
+    func windowDidResize(_ notification: Notification) { let record = rendered; rendered = nil; showDetail(record); if page == .flows { flowPage.layoutDetail() } }
     func windowWillClose(_ notification: Notification) { timer?.invalidate(); timer = nil }
 }
 
@@ -812,4 +836,494 @@ final class CredentialCenter: NSWindowController, NSWindowDelegate {
         let data=(secret.stringValue+"\n").data(using:.utf8);secret.stringValue=""
         call(["put",itemName.stringValue],input:data) { [weak self] _ in self?.status.stringValue="Keychain에 저장했습니다. 비밀값은 에이전트에게 전달되지 않았습니다." }
     }
+}
+
+// MARK: - Saved flows
+
+/// One saved flow as `tacto flows --json` / `tacto flows show --json` report it.
+struct FlowStepSummary: Equatable {
+    var index = 0, action = "", label = "", policy = "", reason = ""
+    var consequential = false
+    var actionTitle: String {
+        ["click":"클릭","double_click":"두 번 클릭","set_value":"입력","type_text":"입력","press_key":"키 입력",
+         "menu":"메뉴","secondary_action":"보조 동작","scroll":"스크롤","select_option":"항목 선택","read":"읽기",
+         "decide":"판단","close_menu":"메뉴 닫기","status_item":"메뉴바 아이콘","reopen_window":"창 다시 열기",
+         "prepare_window":"작업 창 선택","drag":"드래그","upload":"파일 첨부","wait":"기다리기"][action] ?? action
+    }
+}
+
+struct FlowSummary: Equatable {
+    var name = "", target = "", source = "user", path = ""
+    var editable = false, ok = false, shadowed = false
+    var error = "", detail = ""
+    var params: [(String, String?)] = []
+    var intents: [String] = []
+    var stepCount = 0, consequential = 0, decisions = 0
+    var steps: [FlowStepSummary] = []
+    static func == (a: FlowSummary, b: FlowSummary) -> Bool {
+        a.name == b.name && a.path == b.path && a.ok == b.ok && a.target == b.target && a.intents == b.intents
+            && a.params.map { $0.0 } == b.params.map { $0.0 } && a.params.map { $0.1 } == b.params.map { $0.1 }
+            && a.steps == b.steps && a.editable == b.editable && a.error == b.error
+    }
+    init(name: String) { self.name = name }
+    init?(_ o: [String: Any]) {
+        guard let name = o["name"] as? String, !name.isEmpty else { return nil }
+        self.name = name
+        target = o["target"] as? String ?? ""; source = o["source"] as? String ?? "user"; path = o["path"] as? String ?? ""
+        editable = (o["editable"] as? Bool) == true; ok = (o["ok"] as? Bool) == true
+        shadowed = (o["shadowed_by_builtin"] as? Bool) == true
+        error = o["error"] as? String ?? ""; detail = o["detail"] as? String ?? ""
+        if let p = o["params"] as? [String: Any] {
+            params = p.keys.sorted().map { key in
+                let v = p[key]
+                if v == nil || v is NSNull { return (key, nil) }
+                if let n = v as? NSNumber, CFGetTypeID(n) == CFBooleanGetTypeID() { return (key, n.boolValue ? "true" : "false") }
+                return (key, "\(v!)")
+            }
+        }
+        intents = o["intents"] as? [String] ?? []
+        stepCount = activityInteger(o["step_count"]) ?? 0
+        consequential = activityInteger(o["consequential_steps"]) ?? 0
+        decisions = activityInteger(o["decisions"]) ?? 0
+        steps = (o["steps"] as? [[String: Any]] ?? []).map { s in
+            FlowStepSummary(index: activityInteger(s["index"]) ?? 0, action: s["action"] as? String ?? "",
+                            label: s["label"] as? String ?? "", policy: s["policy"] as? String ?? "",
+                            reason: s["policy_reason"] as? String ?? "", consequential: (s["consequential"] as? Bool) == true)
+        }
+    }
+    var appName: String {
+        ["com.apple.TextEdit":"TextEdit", "com.apple.finder":"Finder", "com.apple.calculator":"계산기",
+         "com.apple.Safari":"Safari", "com.google.Chrome":"Chrome", "com.apple.mail":"Mail", "com.apple.iCal":"캘린더"][target] ?? target
+    }
+}
+
+private func flowErrorMessage(_ code: String, _ detail: String = "") -> String {
+    let known = ["flow_not_found":"저장된 Flow를 찾지 못했어요. 새로고침해 주세요.",
+     "flow_read_only":"앱에 포함된 Flow는 바꿀 수 없어요.",
+     "flow_exists":"같은 이름의 Flow가 이미 있어요.",
+     "invalid_name":"이름에는 글자·숫자·밑줄(_)·하이픈(-)만 쓸 수 있어요(최대 80자).",
+     "unknown_parameter":"이 Flow에 없는 입력값이에요.",
+     "invalid_parameter_value":"입력값 형식을 확인하세요.",
+     "invalid_intents":"요청 문장의 {{이름}}은 이 Flow의 입력값이어야 해요.",
+     "invalid_flow":"저장하면 Flow를 읽을 수 없게 되어 바꾸지 않았어요.",
+     "legacy_schema":"이전 형식(schema 1)의 Flow예요. 변환한 뒤 사용할 수 있어요.",
+     "corrupt_flow":"Flow 파일이 손상되어 읽을 수 없어요.",
+     "library_unavailable":"Flow 보관함을 읽지 못했어요.",
+     "runtime_unavailable":"Tacto 실행 파일을 찾지 못했어요. 앱을 다시 설치해 주세요."][code]
+    return known ?? ("오류 코드: " + String(code.prefix(80)) + (detail.isEmpty ? "" : " · " + String(detail.prefix(160))))
+}
+
+/// The Flow page inside the Tacto window: list, inspect, run, edit defaults
+/// and request sentences, rename, delete. Steps are shown, not edited — a step
+/// change is a re-authoring, and the CLI refuses edits that would not parse.
+final class FlowLibraryPage: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSSearchFieldDelegate, NSSplitViewDelegate {
+    typealias Runner = ([String]) throws -> (Int32, Data)
+    let view = NSStackView()
+    let table = NSTableView()
+    let search = NSSearchField()
+    let summary = activityLabel("불러오는 중…", 12, secondary:true)
+    let status = activityLabel("", 12, secondary:true)
+    let detail = ActivityDocumentStack()
+    let split = NSSplitView()
+    weak var window: NSWindow?
+    private let runner: Runner
+    private let queue = DispatchQueue(label:"ai.callabo.tacto.flow-library", qos:.userInitiated)
+    private(set) var flows: [FlowSummary] = []
+    private(set) var filtered: [FlowSummary] = []
+    private(set) var current: FlowSummary?
+    private(set) var storePath = ""
+    var paramFields: [String: NSTextField] = [:]
+    let intentsView = NSTextView()
+    private var actionButtons: [NSButton] = []
+    private var pending = 0
+    var busy: Bool { pending > 0 }
+    private(set) var running = false
+
+    /// `launcher` is the runtime the app resolved (installed bundle or a
+    /// checkout preview); without one, the installed bundle's own copy.
+    static func launcherRunner(_ launcher: URL? = nil) -> Runner {
+        let launcher = launcher ?? Bundle.main.resourceURL?.appendingPathComponent("runtime/launcher/tacto")
+        return { args in
+            guard let launcher, FileManager.default.isExecutableFile(atPath:launcher.path) else {
+                throw NSError(domain:"TactoFlows", code:1)
+            }
+            let process = Process(); process.executableURL = launcher; process.arguments = args
+            let output = Pipe(); process.standardOutput = output; process.standardError = output
+            process.standardInput = FileHandle.nullDevice
+            try process.run()
+            let data = output.fileHandleForReading.readDataToEndOfFile(); process.waitUntilExit()
+            return (process.terminationStatus, data)
+        }
+    }
+
+    init(runner: Runner? = nil) {
+        self.runner = runner ?? FlowLibraryPage.launcherRunner()
+        super.init()
+        build()
+    }
+
+    private func build() {
+        view.orientation = .vertical; view.alignment = .leading; view.spacing = 16
+        let heading = activityLabel("저장된 Flow", 24, .semibold)
+        let refresh = NSButton(title:"새로고침", image:NSImage(systemSymbolName:"arrow.clockwise", accessibilityDescription:nil) ?? NSImage(), target:self, action:#selector(reload))
+        refresh.bezelStyle = .rounded; refresh.imagePosition = .imageLeading
+        let top = NSStackView(views:[heading,NSView(),refresh]); top.alignment = .centerY
+        search.placeholderString = "이름·앱·요청 문장 검색"; search.delegate = self
+        search.setAccessibilityIdentifier("tacto.flows.search")
+        let list = NSScrollView(); list.hasVerticalScroller = true; list.autohidesScrollers = true
+        table.addTableColumn(NSTableColumn(identifier:NSUserInterfaceItemIdentifier("flow")))
+        table.headerView = nil; table.rowHeight = 58; table.intercellSpacing = .zero; table.style = .fullWidth
+        table.delegate = self; table.dataSource = self; table.columnAutoresizingStyle = .lastColumnOnlyAutoresizingStyle
+        table.setAccessibilityIdentifier("tacto.flows.list"); list.documentView = table
+        let details = NSScrollView(); details.hasVerticalScroller = true; details.autohidesScrollers = true
+        detail.orientation = .vertical; detail.alignment = .leading; detail.spacing = 10
+        detail.edgeInsets = NSEdgeInsets(top:24,left:24,bottom:24,right:24); detail.translatesAutoresizingMaskIntoConstraints = false
+        details.documentView = detail
+        detail.widthAnchor.constraint(equalTo:details.contentView.widthAnchor).isActive = true
+        split.isVertical = true; split.dividerStyle = .thin; split.delegate = self
+        split.wantsLayer = true; split.layer?.cornerRadius = 10; split.layer?.masksToBounds = true
+        split.addArrangedSubview(list); split.addArrangedSubview(details)
+        split.setHoldingPriority(.defaultHigh,forSubviewAt:0); split.setHoldingPriority(.defaultLow,forSubviewAt:1)
+        list.widthAnchor.constraint(greaterThanOrEqualToConstant:240).isActive = true
+        details.widthAnchor.constraint(greaterThanOrEqualToConstant:300).isActive = true
+        status.maximumNumberOfLines = 4
+        for v in [top,summary,search,split,status] as [NSView] { view.addArrangedSubview(v) }
+        for v in [top,search,split,status] as [NSView] { v.widthAnchor.constraint(equalTo:view.widthAnchor).isActive = true }
+        split.heightAnchor.constraint(greaterThanOrEqualToConstant:340).isActive = true
+        intentsView.isRichText = false; intentsView.font = .systemFont(ofSize:12)
+        intentsView.isAutomaticQuoteSubstitutionEnabled = false; intentsView.isAutomaticTextReplacementEnabled = false
+        intentsView.setAccessibilityIdentifier("tacto.flows.intents")
+        showDetail(nil)
+    }
+
+    // MARK: data
+
+    private func call(_ args: [String]) -> (Int32, [String: Any]) {
+        do {
+            let (code, data) = try runner(["flows"] + args + ["--json"])
+            guard data.count <= 8_388_608, let object = try? JSONSerialization.jsonObject(with:data) as? [String: Any] else {
+                return (code, ["ok": false, "error": "library_unavailable"])
+            }
+            return (code, object)
+        } catch { return (1, ["ok": false, "error": "runtime_unavailable"]) }
+    }
+
+    /// Requests run one at a time, in order, on a serial queue; none is
+    /// dropped because another is still running.
+    private func perform(_ args: [String], _ done: @escaping ([String: Any]) -> Void) {
+        pending += 1; updateButtons()
+        queue.async { [weak self] in
+            guard let self else { return }
+            let (_, result) = self.call(args)
+            DispatchQueue.main.async {
+                self.pending -= 1; self.updateButtons()
+                if (result["ok"] as? Bool) != true {
+                    self.status.stringValue = flowErrorMessage(result["error"] as? String ?? "library_unavailable", result["detail"] as? String ?? "")
+                    return
+                }
+                done(result)
+            }
+        }
+    }
+
+    @objc func reload() {
+        perform([]) { [weak self] result in self?.apply(list:result) }
+    }
+
+    func apply(list result: [String: Any]) {
+        storePath = result["store"] as? String ?? ""
+        flows = FlowLibraryPage.ordered(result)
+        applyFilter()
+    }
+
+    /// Readable flows first, by name; damaged files after them.
+    static func ordered(_ result: [String: Any]) -> [FlowSummary] {
+        (result["flows"] as? [[String: Any]] ?? []).compactMap(FlowSummary.init)
+            .sorted { ($0.ok ? 0 : 1, $0.name) < ($1.ok ? 0 : 1, $1.name) }
+    }
+
+    func applyFilter() {
+        let query = search.stringValue.trimmingCharacters(in:.whitespacesAndNewlines)
+        filtered = flows.filter { f in
+            query.isEmpty || ([f.name, f.appName, f.target] + f.intents).joined(separator:" ").localizedCaseInsensitiveContains(query)
+        }
+        summary.stringValue = flows.isEmpty ? "저장된 Flow가 없어요" : "Flow \(flows.count)개 · \(filtered.count)개 표시" + (storePath.isEmpty ? "" : " · " + (storePath as NSString).abbreviatingWithTildeInPath)
+        table.reloadData()
+        let keep = current?.name
+        if let keep, let i = filtered.firstIndex(where: { $0.name == keep }) {
+            table.selectRowIndexes(IndexSet(integer:i), byExtendingSelection:false); load(filtered[i].name)
+        } else if let first = filtered.first {
+            table.selectRowIndexes(IndexSet(integer:0), byExtendingSelection:false); load(first.name)
+        } else { current = nil; showDetail(nil) }
+    }
+
+    func load(_ name: String) {
+        perform(["show", name]) { [weak self] result in
+            guard let self, let object = result["flow"] as? [String: Any], let flow = FlowSummary(object) else { return }
+            self.apply(detail:flow)
+        }
+    }
+
+    func apply(detail flow: FlowSummary) {
+        if current == flow { return }
+        current = flow; showDetail(flow)
+    }
+
+    func controlTextDidChange(_ obj: Notification) { if (obj.object as? NSSearchField) === search { applyFilter() } }
+
+    // MARK: table
+
+    func numberOfRows(in tableView: NSTableView) -> Int { filtered.count }
+    func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
+        guard filtered.indices.contains(row) else { return nil }
+        let f = filtered[row], cell = NSTableCellView()
+        let title = activityLabel(f.name, 13, .semibold)
+        let subtitle = activityLabel(f.ok ? "\(f.appName) · \(f.stepCount)단계" + (f.source == "user" ? "" : " · 기본 제공") : flowErrorMessage(f.error), 11, secondary:true)
+        let mark = activityLabel(!f.ok ? "읽을 수 없음" : f.consequential > 0 ? "확인 \(f.consequential)" : "", 11, .semibold)
+        mark.textColor = f.ok ? .systemOrange : .systemRed
+        for v in [title,subtitle] { v.maximumNumberOfLines = 1; v.lineBreakMode = .byTruncatingTail }
+        for v in [title,subtitle,mark] { cell.addSubview(v); v.translatesAutoresizingMaskIntoConstraints = false }
+        cell.textField = title
+        NSLayoutConstraint.activate([title.leadingAnchor.constraint(equalTo:cell.leadingAnchor,constant:12),title.topAnchor.constraint(equalTo:cell.topAnchor,constant:11),
+            title.trailingAnchor.constraint(lessThanOrEqualTo:mark.leadingAnchor,constant:-8),mark.trailingAnchor.constraint(equalTo:cell.trailingAnchor,constant:-12),
+            mark.topAnchor.constraint(equalTo:title.topAnchor),subtitle.leadingAnchor.constraint(equalTo:title.leadingAnchor),
+            subtitle.trailingAnchor.constraint(equalTo:cell.trailingAnchor,constant:-12),subtitle.topAnchor.constraint(equalTo:title.bottomAnchor,constant:4)])
+        return cell
+    }
+    func tableViewSelectionDidChange(_ notification: Notification) {
+        guard filtered.indices.contains(table.selectedRow) else { return }
+        let name = filtered[table.selectedRow].name
+        if current?.name != name { status.stringValue = ""; load(name) }
+    }
+
+    // MARK: detail
+
+    private func button(_ title: String, _ icon: String, _ selector: Selector, _ id: String) -> NSButton {
+        let b = NSButton(title:title, image:NSImage(systemSymbolName:icon, accessibilityDescription:nil) ?? NSImage(), target:self, action:selector)
+        b.bezelStyle = .rounded; b.imagePosition = .imageLeading; b.setAccessibilityIdentifier(id)
+        return b
+    }
+
+    private func section(_ title: String) -> NSTextField { activityLabel(title, 13, .semibold) }
+
+    func showDetail(_ flow: FlowSummary?) {
+        for v in detail.arrangedSubviews { detail.removeArrangedSubview(v); v.removeFromSuperview() }
+        paramFields = [:]; actionButtons = []
+        guard let f = flow else {
+            detail.addArrangedSubview(activityLabel(flows.isEmpty ? "아직 저장된 Flow가 없어요" : "Flow를 선택하세요", 20, .semibold))
+            detail.addArrangedSubview(activityLabel("에이전트가 만든 Flow를 보관함에 저장하면 여기에서 확인하고 다시 실행할 수 있어요. 터미널에서는 tacto flows save <flow.json> 으로 저장합니다.", 13, secondary:true))
+            layoutDetail(); return
+        }
+        detail.addArrangedSubview(activityLabel(f.name, 20, .semibold))
+        guard f.ok else {
+            detail.addArrangedSubview(activityLabel(flowErrorMessage(f.error, f.detail), 13))
+            detail.addArrangedSubview(activityLabel(f.path, 11, secondary:true))
+            let row = NSStackView(views:[button("Finder에서 보기","folder",#selector(reveal),"tacto.flows.reveal")])
+            if f.editable { row.addArrangedSubview(button("삭제…","trash",#selector(confirmRemove),"tacto.flows.remove")) }
+            actionButtons = row.arrangedSubviews.compactMap { $0 as? NSButton }
+            detail.addArrangedSubview(row); layoutDetail(); return
+        }
+        var facts = "\(f.appName) · \(f.stepCount)단계"
+        if f.decisions > 0 { facts += " · 판단 지점 \(f.decisions)곳(모델 호출)" }
+        facts += f.source == "user" ? "" : " · 앱에 포함된 Flow(읽기 전용)"
+        detail.addArrangedSubview(activityLabel(facts, 13, .medium))
+        if f.shadowed {
+            detail.addArrangedSubview(activityLabel("같은 이름의 기본 Flow가 있어 실행하면 기본 버전이 쓰여요. 이 파일을 쓰려면 이름을 바꾸세요.", 12, secondary:true))
+        }
+        let run = button("실행", "play.fill", #selector(runFlow), "tacto.flows.run")
+        run.keyEquivalent = "\r"
+        let row = NSStackView(views:[run, button("Finder에서 보기","folder",#selector(reveal),"tacto.flows.reveal")]); row.spacing = 8
+        if f.editable {
+            row.addArrangedSubview(button("이름 변경…","pencil",#selector(promptRename),"tacto.flows.rename"))
+            row.addArrangedSubview(button("삭제…","trash",#selector(confirmRemove),"tacto.flows.remove"))
+        }
+        actionButtons = row.arrangedSubviews.compactMap { $0 as? NSButton }
+        detail.addArrangedSubview(row)
+
+        detail.addArrangedSubview(divider())
+        detail.addArrangedSubview(section("입력값"))
+        if f.params.isEmpty {
+            detail.addArrangedSubview(activityLabel("입력값 없이 항상 같은 작업을 합니다.", 12, secondary:true))
+        } else {
+            detail.addArrangedSubview(activityLabel("실행할 때 이 값을 씁니다. 비워 두면 실행마다 직접 넣어야 해요." + (f.editable ? " 기본값으로 남기려면 저장을 누르세요." : ""), 12, secondary:true))
+            for (name, value) in f.params {
+                let label = activityLabel(name, 12, .medium); label.widthAnchor.constraint(equalToConstant:120).isActive = true
+                let field = NSTextField(string:value ?? ""); field.placeholderString = "실행할 때 입력"
+                field.setAccessibilityIdentifier("tacto.flows.param." + name)
+                field.widthAnchor.constraint(greaterThanOrEqualToConstant:180).isActive = true
+                paramFields[name] = field
+                let line = NSStackView(views:[label, field]); line.spacing = 12
+                detail.addArrangedSubview(line)
+            }
+        }
+        detail.addArrangedSubview(section("요청 문장"))
+        detail.addArrangedSubview(activityLabel("에이전트가 이 Flow를 찾을 때 맞춰 보는 문장이에요. 한 줄에 하나, 입력값은 {{이름}}으로 씁니다.", 12, secondary:true))
+        intentsView.string = f.intents.joined(separator:"\n"); intentsView.isEditable = f.editable
+        let box = NSScrollView(); box.documentView = intentsView; box.hasVerticalScroller = true; box.borderType = .bezelBorder
+        intentsView.minSize = NSSize(width:0,height:64); intentsView.isVerticallyResizable = true
+        intentsView.autoresizingMask = [.width]; intentsView.textContainer?.widthTracksTextView = true
+        box.heightAnchor.constraint(equalToConstant:72).isActive = true
+        detail.addArrangedSubview(box)
+        if f.editable {
+            let save = button("입력값·문장 저장", "square.and.arrow.down", #selector(saveFields), "tacto.flows.save")
+            actionButtons.append(save); detail.addArrangedSubview(NSStackView(views:[save]))
+        }
+
+        detail.addArrangedSubview(divider())
+        detail.addArrangedSubview(section("단계"))
+        for step in f.steps {
+            let icon = NSImageView(image:NSImage(systemSymbolName:step.consequential ? "exclamationmark.triangle" : step.action == "decide" ? "sparkles" : "circle", accessibilityDescription:nil) ?? NSImage())
+            icon.contentTintColor = step.consequential ? .systemOrange : .tertiaryLabelColor
+            icon.widthAnchor.constraint(equalToConstant:16).isActive = true; icon.heightAnchor.constraint(equalToConstant:16).isActive = true
+            let title = activityLabel("\(step.index). \(step.actionTitle)" + (step.label.isEmpty ? "" : " · " + step.label), 12, .medium)
+            let texts = column([title])
+            if step.consequential { texts.addArrangedSubview(activityLabel("실행 전에 확인 · " + step.reason, 11, secondary:true)) }
+            let line = NSStackView(views:[icon, texts]); line.alignment = .top; line.spacing = 10
+            detail.addArrangedSubview(line)
+        }
+        detail.addArrangedSubview(activityLabel(f.path, 11, secondary:true))
+        updateButtons(); layoutDetail()
+    }
+
+    private func column(_ views: [NSView]) -> NSStackView {
+        let s = NSStackView(views:views); s.orientation = .vertical; s.alignment = .leading; s.spacing = 3; return s
+    }
+    private func divider() -> NSView { let d = NSBox(); d.boxType = .separator; return d }
+
+    func layoutDetail() {
+        for v in detail.arrangedSubviews {
+            v.widthAnchor.constraint(equalTo:detail.widthAnchor,constant:-48).isActive = true
+            if let f = v as? NSTextField { f.preferredMaxLayoutWidth = max(200,detail.frame.width-48) }
+        }
+        detail.layoutSubtreeIfNeeded(); detail.setFrameSize(NSSize(width:detail.frame.width,height:detail.fittingSize.height))
+    }
+
+    private func updateButtons() {
+        for b in actionButtons { b.isEnabled = b.accessibilityIdentifier() == "tacto.flows.reveal" || (!busy && !running) }
+    }
+
+    // MARK: actions
+
+    func parameterArguments() -> [String] {
+        paramFields.keys.sorted().compactMap { key in
+            let value = paramFields[key]!.stringValue
+            return value.isEmpty ? nil : key + "=" + value
+        }.flatMap { ["-p", $0] }
+    }
+
+    func runArguments(confirmed: Bool) -> [String] {
+        guard let f = current else { return [] }
+        return ["replay", f.name] + parameterArguments() + ["--helper"] + (confirmed ? ["--yes"] : [])
+    }
+
+    @objc func runFlow() {
+        guard let f = current, f.ok, !running else { return }
+        let missing = f.params.filter { (paramFields[$0.0]?.stringValue ?? "").isEmpty }.map { $0.0 }
+        if !missing.isEmpty { status.stringValue = "입력값을 넣어 주세요: " + missing.joined(separator:", "); return }
+        let lasting = f.steps.filter { $0.consequential }
+        guard !lasting.isEmpty, let window else { start(runArguments(confirmed:false)); return }
+        let alert = NSAlert(); alert.messageText = "\(f.name)을(를) 실행할까요?"
+        alert.informativeText = "이 Flow에는 결과가 남는 단계가 있어요:\n" + lasting.prefix(5).map { "· \($0.index). \($0.actionTitle) \($0.label) — \($0.reason)" }.joined(separator:"\n")
+        alert.addButton(withTitle:"실행"); alert.addButton(withTitle:"취소")
+        alert.beginSheetModal(for:window) { [weak self] response in
+            guard response == .alertFirstButtonReturn, let self else { return }
+            self.start(self.runArguments(confirmed:true))
+        }
+    }
+
+    private func start(_ args: [String]) {
+        guard let name = current?.name else { return }
+        running = true; updateButtons(); status.stringValue = "\(name) 실행 중… 메뉴바의 Tacto에서 중단할 수 있어요."
+        queue.async { [weak self] in
+            guard let self else { return }
+            let outcome = Result { try self.runner(args) }
+            DispatchQueue.main.async {
+                self.running = false; self.updateButtons()
+                switch outcome {
+                case .failure: self.status.stringValue = flowErrorMessage("runtime_unavailable")
+                case .success(let (code, data)):
+                    let text = String(decoding:data.prefix(65536), as:UTF8.self)
+                    let tail = text.split(separator:"\n").map { $0.trimmingCharacters(in:.whitespaces) }.filter { !$0.isEmpty }.suffix(3).joined(separator:"\n")
+                    self.status.stringValue = (code == 0 ? "\(name) 완료" : "\(name) 실패 (종료 코드 \(code))") + (tail.isEmpty ? "" : "\n" + String(tail.prefix(600)))
+                }
+            }
+        }
+    }
+
+    func saveArguments() -> [String] {
+        guard let f = current else { return [] }
+        var args = ["set", f.name]
+        for (name, _) in f.params { args += ["-p", name + "=" + (paramFields[name]?.stringValue ?? "")] }
+        let lines = intentsView.string.split(separator:"\n").map { $0.trimmingCharacters(in:.whitespaces) }.filter { !$0.isEmpty }
+        if lines != f.intents { args.append("--clear-intents"); for line in lines { args += ["--intent", line] } }
+        return args
+    }
+
+    @objc func saveFields() {
+        guard let f = current, f.editable else { return }
+        perform(saveArguments()) { [weak self] result in
+            guard let self, let object = result["flow"] as? [String: Any], let flow = FlowSummary(object) else { return }
+            self.status.stringValue = "\(flow.name)의 입력값과 문장을 저장했어요."
+            self.current = nil; self.apply(detail:flow); self.reloadListOnly()
+        }
+    }
+
+    private func reloadListOnly() {
+        perform([]) { [weak self] result in
+            guard let self else { return }
+            self.storePath = result["store"] as? String ?? ""
+            self.flows = FlowLibraryPage.ordered(result)
+            self.applyFilter()
+        }
+    }
+
+    @objc func promptRename() {
+        guard let f = current, f.editable, let window else { return }
+        let alert = NSAlert(); alert.messageText = "Flow 이름 변경"
+        alert.informativeText = "글자·숫자·밑줄(_)·하이픈(-)을 쓸 수 있어요. 에이전트는 새 이름으로 다시 실행합니다."
+        let field = NSTextField(string:f.name); field.frame = NSRect(x:0,y:0,width:280,height:24)
+        alert.accessoryView = field; alert.addButton(withTitle:"변경"); alert.addButton(withTitle:"취소")
+        alert.window.initialFirstResponder = field
+        alert.beginSheetModal(for:window) { [weak self] response in
+            guard response == .alertFirstButtonReturn, let self else { return }
+            self.rename(f.name, to:field.stringValue.trimmingCharacters(in:.whitespaces))
+        }
+    }
+
+    func rename(_ old: String, to new: String) {
+        guard !new.isEmpty, new != old else { return }
+        perform(["rename", old, new]) { [weak self] result in
+            guard let self, let object = result["flow"] as? [String: Any], let flow = FlowSummary(object) else { return }
+            self.status.stringValue = "이름을 \(flow.name)(으)로 바꿨어요."
+            self.current = flow; self.showDetail(flow); self.reloadListOnly()
+        }
+    }
+
+    @objc func confirmRemove() {
+        guard let f = current, f.editable, let window else { return }
+        let alert = NSAlert(); alert.messageText = "\(f.name)을(를) 삭제할까요?"
+        alert.informativeText = "보관함에서 Flow 파일을 지웁니다. 실행 기록은 남아요."
+        alert.addButton(withTitle:"삭제"); alert.addButton(withTitle:"취소"); alert.buttons.first?.hasDestructiveAction = true
+        alert.beginSheetModal(for:window) { [weak self] response in
+            guard response == .alertFirstButtonReturn, let self else { return }
+            self.remove(f.name)
+        }
+    }
+
+    func remove(_ name: String) {
+        perform(["rm", name]) { [weak self] _ in
+            guard let self else { return }
+            self.status.stringValue = "\(name)을(를) 삭제했어요."
+            self.current = nil; self.reloadListOnly()
+        }
+    }
+
+    @objc func reveal() {
+        guard let f = current, !f.path.isEmpty else { return }
+        NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath:f.path)])
+    }
+
+    func splitView(_ splitView: NSSplitView, shouldAdjustSizeOfSubview view: NSView) -> Bool { view === splitView.subviews.last }
+    func splitView(_ splitView: NSSplitView, constrainMinCoordinate proposedMinimumPosition: CGFloat, ofSubviewAt dividerIndex: Int) -> CGFloat { 240 }
+    func splitView(_ splitView: NSSplitView, constrainMaxCoordinate proposedMaximumPosition: CGFloat, ofSubviewAt dividerIndex: Int) -> CGFloat { min(380,splitView.bounds.width-300) }
 }

@@ -1366,6 +1366,10 @@ def _dispatch_command(cmd, rest):
                       + " ".join(f"-p {lit}=이름" for lit in offered))
         return 0
 
+    if cmd == "flows":
+        from .flow_library import main as _flows
+        return _flows(rest)
+
     if cmd == "list":
         store = FlowStore()
         names = store.list()
@@ -1375,7 +1379,7 @@ def _dispatch_command(cmd, rest):
         print(f"  저장 위치(Flow IR): {store.path}")
         for n in names:
             print(f"  {n}")
-        print("  전체 IR 보기:  tacto show <이름>")
+        print("  전체 IR 보기:  tacto show <이름>  ·  관리:  tacto flows --help")
         return 0
 
     if cmd == "compile":
