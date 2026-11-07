@@ -906,8 +906,11 @@ func writeJSONLine(_ fd: Int32, _ obj: [String: Any]) {
 
 // MARK: - Environment
 
+// TACTO_TASK/TACTO_TASK_PARENT carry only a task ID that tacto/task.py validates
+// before any screen access; without them `TACTO_TASK=<id> tacto …` (the form
+// the skill teaches) silently ran unbound through the signed launcher.
 let allowedEnv = ["HOME", "USER", "LOGNAME", "LANG", "LC_ALL", "LC_CTYPE", "TZ",
-                  "SSL_CERT_FILE", "TERM", "BW_SESSION"]
+                  "SSL_CERT_FILE", "TERM", "BW_SESSION", "TACTO_TASK", "TACTO_TASK_PARENT"]
 var env: [String: String] = [:]
 let inherited = ProcessInfo.processInfo.environment
 for key in allowedEnv { if let v = inherited[key] { env[key] = v } }

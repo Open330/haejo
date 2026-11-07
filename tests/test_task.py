@@ -213,3 +213,14 @@ class TaskStoreTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class LauncherEnvironmentTests(unittest.TestCase):
+    def test_signed_launcher_forwards_task_binding(self):
+        # The launcher passes an allowlisted environment to Python; a task
+        # binding that is not on it never reaches cli.main (found on rc.27).
+        import re
+        source = (Path(__file__).resolve().parent.parent/'launcher/tacto.swift').read_text()
+        allowed = re.search(r'let allowedEnv = \[(.*?)\]', source, re.S).group(1)
+        for name in ('TACTO_TASK', 'TACTO_TASK_PARENT'):
+            self.assertIn(f'"{name}"', allowed)
