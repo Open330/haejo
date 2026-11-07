@@ -1,0 +1,355 @@
+{
+  "scope": "installed rc26 Tacto vs Sky, three alternating fresh-context pairs; observational, not billing/strict product equivalence proof",
+  "source_commit": "45963ce",
+  "version": "v1.0.0-rc.26",
+  "requested_model": "gpt-6.1-sol",
+  "requested_reasoning_effort": "medium",
+  "timeout_seconds": 180,
+  "task": "calc_to_textedit",
+  "execution": {
+    "harness_exit": 2,
+    "evidence_stable": true,
+    "source_commit": "45963ce4e30478a12ae3af3e7e13e9874da306ff",
+    "profiling_request_same_for_both_Tacto_cohorts": true,
+    "strict_equivalence_not_verified": true
+  },
+  "arms": {
+    "tacto": {
+      "runs": 3,
+      "passed": 3,
+      "seconds_median": 36.1,
+      "input_total": 361713,
+      "uncached_input_total": 41585,
+      "output_total": 2278,
+      "foreground_changed_runs": 0
+    },
+    "sky": {
+      "runs": 3,
+      "passed": 3,
+      "seconds_median": 30.1,
+      "input_total": 411439,
+      "uncached_input_total": 59695,
+      "output_total": 1841,
+      "foreground_changed_runs": 0
+    }
+  },
+  "limitations": [
+    "three samples per arm",
+    "actual serving model and billing not independently verified",
+    "strict TCC/tool permission equivalence not established; harness exit retained",
+    "host tool intervals include agent-authored stdin waits, not pure native execution",
+    "previous rc25 cohort is historical, not interleaved causal before/after evidence"
+  ],
+  "rows": [
+    {
+      "arm": "tacto",
+      "rep": 0,
+      "status": "passed",
+      "seconds": 42.6,
+      "tokens": {
+        "scope": "single reported turn.completed usage",
+        "status": "reported",
+        "input_tokens": 132656,
+        "cached_input_tokens": 109952,
+        "uncached_input_tokens": 22704,
+        "output_tokens": 784,
+        "total_tokens": 133440,
+        "event_count": 1,
+        "stream_complete": true,
+        "cost_usd": null,
+        "billing_verified": false
+      },
+      "source_changed": false,
+      "cleanup": "completed",
+      "session_timings": [
+        {
+          "flow_input_attempts": 1,
+          "flow_input_utf8_bytes": 746,
+          "flow_received_seconds": 13.01999495801283,
+          "input_ready_seconds": 0.8237694579875097,
+          "observation_ready_seconds": 0.8228039999958128,
+          "replay_done_seconds": 16.352825540991034,
+          "session_done_seconds": 16.352839374972973
+        },
+        {
+          "flow_input_attempts": 1,
+          "flow_input_utf8_bytes": 867,
+          "flow_received_seconds": 7.667908250004984,
+          "input_ready_seconds": 0.6629946249886416,
+          "observation_ready_seconds": 0.662642750015948,
+          "replay_done_seconds": 9.040871415985748,
+          "session_done_seconds": 9.04088295798283
+        }
+      ],
+      "host_phase_summaries": [
+        {
+          "scope": "host_event_arrival_intervals_not_inference_or_native_execution",
+          "elapsed_seconds": 42.59701,
+          "first_event_seconds": 1.279942,
+          "terminal_event_seconds": 42.229306,
+          "completed_tool_spans": 3,
+          "unclosed_tool_spans": 0,
+          "unmatched_tool_completions": 0,
+          "tool_span_union_seconds": 26.860537,
+          "outside_completed_tool_spans_seconds": 15.736473,
+          "complete": true
+        }
+      ],
+      "verified_body_summary_count": 1,
+      "foreground_activation_count": 0
+    },
+    {
+      "arm": "sky",
+      "rep": 0,
+      "status": "passed",
+      "seconds": 28.8,
+      "tokens": {
+        "scope": "single reported turn.completed usage",
+        "status": "reported",
+        "input_tokens": 122912,
+        "cached_input_tokens": 103168,
+        "uncached_input_tokens": 19744,
+        "output_tokens": 630,
+        "total_tokens": 123542,
+        "event_count": 1,
+        "stream_complete": true,
+        "cost_usd": null,
+        "billing_verified": false
+      },
+      "source_changed": false,
+      "cleanup": "completed",
+      "session_timings": [],
+      "host_phase_summaries": [
+        {
+          "scope": "host_event_arrival_intervals_not_inference_or_native_execution",
+          "elapsed_seconds": 28.842313,
+          "first_event_seconds": 1.180107,
+          "terminal_event_seconds": 28.287297,
+          "completed_tool_spans": 5,
+          "unclosed_tool_spans": 0,
+          "unmatched_tool_completions": 0,
+          "tool_span_union_seconds": 3.248485,
+          "outside_completed_tool_spans_seconds": 25.593828,
+          "complete": true
+        }
+      ],
+      "verified_body_summary_count": 0,
+      "foreground_activation_count": 0
+    },
+    {
+      "arm": "sky",
+      "rep": 1,
+      "status": "passed",
+      "seconds": 30.1,
+      "tokens": {
+        "scope": "single reported turn.completed usage",
+        "status": "reported",
+        "input_tokens": 144297,
+        "cached_input_tokens": 123904,
+        "uncached_input_tokens": 20393,
+        "output_tokens": 605,
+        "total_tokens": 144902,
+        "event_count": 1,
+        "stream_complete": true,
+        "cost_usd": null,
+        "billing_verified": false
+      },
+      "source_changed": false,
+      "cleanup": "completed",
+      "session_timings": [],
+      "host_phase_summaries": [
+        {
+          "scope": "host_event_arrival_intervals_not_inference_or_native_execution",
+          "elapsed_seconds": 30.140382,
+          "first_event_seconds": 1.245997,
+          "terminal_event_seconds": 29.603309,
+          "completed_tool_spans": 6,
+          "unclosed_tool_spans": 0,
+          "unmatched_tool_completions": 0,
+          "tool_span_union_seconds": 2.235526,
+          "outside_completed_tool_spans_seconds": 27.904856,
+          "complete": true
+        }
+      ],
+      "verified_body_summary_count": 0,
+      "foreground_activation_count": 0
+    },
+    {
+      "arm": "tacto",
+      "rep": 1,
+      "status": "passed",
+      "seconds": 36.1,
+      "tokens": {
+        "scope": "single reported turn.completed usage",
+        "status": "reported",
+        "input_tokens": 114556,
+        "cached_input_tokens": 105088,
+        "uncached_input_tokens": 9468,
+        "output_tokens": 753,
+        "total_tokens": 115309,
+        "event_count": 1,
+        "stream_complete": true,
+        "cost_usd": null,
+        "billing_verified": false
+      },
+      "source_changed": false,
+      "cleanup": "completed",
+      "session_timings": [
+        {
+          "flow_input_attempts": 1,
+          "flow_input_utf8_bytes": 756,
+          "flow_received_seconds": 6.502206375007518,
+          "input_ready_seconds": 0.45450941601302475,
+          "observation_ready_seconds": 0.45337258296785876,
+          "replay_done_seconds": 7.094920500006992,
+          "session_done_seconds": 7.094939665985294
+        },
+        {
+          "flow_input_attempts": 1,
+          "flow_input_utf8_bytes": 937,
+          "flow_received_seconds": 7.268797708966304,
+          "input_ready_seconds": 0.5089899169979617,
+          "observation_ready_seconds": 0.5085929589695297,
+          "replay_done_seconds": 8.688951042015105,
+          "session_done_seconds": 8.688973792013712
+        }
+      ],
+      "host_phase_summaries": [
+        {
+          "scope": "host_event_arrival_intervals_not_inference_or_native_execution",
+          "elapsed_seconds": 36.141661,
+          "first_event_seconds": 1.341003,
+          "terminal_event_seconds": 35.607725,
+          "completed_tool_spans": 3,
+          "unclosed_tool_spans": 0,
+          "unmatched_tool_completions": 0,
+          "tool_span_union_seconds": 20.293752,
+          "outside_completed_tool_spans_seconds": 15.847909,
+          "complete": true
+        }
+      ],
+      "verified_body_summary_count": 1,
+      "foreground_activation_count": 0
+    },
+    {
+      "arm": "tacto",
+      "rep": 2,
+      "status": "passed",
+      "seconds": 33.2,
+      "tokens": {
+        "scope": "single reported turn.completed usage",
+        "status": "reported",
+        "input_tokens": 114501,
+        "cached_input_tokens": 105088,
+        "uncached_input_tokens": 9413,
+        "output_tokens": 741,
+        "total_tokens": 115242,
+        "event_count": 1,
+        "stream_complete": true,
+        "cost_usd": null,
+        "billing_verified": false
+      },
+      "source_changed": false,
+      "cleanup": "completed",
+      "session_timings": [
+        {
+          "flow_input_attempts": 1,
+          "flow_input_utf8_bytes": 737,
+          "flow_received_seconds": 6.722014917002525,
+          "input_ready_seconds": 0.4497298329952173,
+          "observation_ready_seconds": 0.4471812500269152,
+          "replay_done_seconds": 7.41592674999265,
+          "session_done_seconds": 7.415942583000287
+        },
+        {
+          "flow_input_attempts": 1,
+          "flow_input_utf8_bytes": 866,
+          "flow_received_seconds": 7.21011104201898,
+          "input_ready_seconds": 0.7731575829675421,
+          "observation_ready_seconds": 0.7726869579637423,
+          "replay_done_seconds": 8.67301425000187,
+          "session_done_seconds": 8.673031500016805
+        }
+      ],
+      "host_phase_summaries": [
+        {
+          "scope": "host_event_arrival_intervals_not_inference_or_native_execution",
+          "elapsed_seconds": 33.19272,
+          "first_event_seconds": 1.183768,
+          "terminal_event_seconds": 32.497965,
+          "completed_tool_spans": 3,
+          "unclosed_tool_spans": 0,
+          "unmatched_tool_completions": 0,
+          "tool_span_union_seconds": 16.600833,
+          "outside_completed_tool_spans_seconds": 16.591887,
+          "complete": true
+        }
+      ],
+      "verified_body_summary_count": 1,
+      "foreground_activation_count": 0
+    },
+    {
+      "arm": "sky",
+      "rep": 2,
+      "status": "passed",
+      "seconds": 30.1,
+      "tokens": {
+        "scope": "single reported turn.completed usage",
+        "status": "reported",
+        "input_tokens": 144230,
+        "cached_input_tokens": 124672,
+        "uncached_input_tokens": 19558,
+        "output_tokens": 606,
+        "total_tokens": 144836,
+        "event_count": 1,
+        "stream_complete": true,
+        "cost_usd": null,
+        "billing_verified": false
+      },
+      "source_changed": false,
+      "cleanup": "completed",
+      "session_timings": [],
+      "host_phase_summaries": [
+        {
+          "scope": "host_event_arrival_intervals_not_inference_or_native_execution",
+          "elapsed_seconds": 30.117927,
+          "first_event_seconds": 1.484179,
+          "terminal_event_seconds": 29.586916,
+          "completed_tool_spans": 6,
+          "unclosed_tool_spans": 0,
+          "unmatched_tool_completions": 0,
+          "tool_span_union_seconds": 2.713643,
+          "outside_completed_tool_spans_seconds": 27.404284,
+          "complete": true
+        }
+      ],
+      "verified_body_summary_count": 0,
+      "foreground_activation_count": 0
+    }
+  ],
+  "regression": {
+    "passed": true,
+    "source_unchanged": true,
+    "tests": 3332,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 27
+  },
+  "deployment": {
+    "version": "v1.0.0-rc.26",
+    "source_commit": "45963ce4e30478a12ae3af3e7e13e9874da306ff",
+    "target_count": 3,
+    "installed_verified_count": 3,
+    "permissions_retained": true,
+    "canonical_agent_links_verified": true,
+    "background_running_dock_hidden": true,
+    "app_notarization": "Accepted",
+    "dmg_notarization": "Accepted",
+    "local_native_cases_passed": 7,
+    "local_session_repair_readback_cancel_paging_passed": true,
+    "body_result_presentation_verified": true,
+    "public_release_changed": false,
+    "vault_session_modified": false,
+    "stable_human_qualification_completed": false
+  }
+}
