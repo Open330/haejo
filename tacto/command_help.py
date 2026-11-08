@@ -79,17 +79,14 @@ def session_guide(target, *, reusable=False, document=None, save=False):
         template['steps'] = [{'action':'read','selector':{'identifier':'First Text View'},'postcondition':{'equals':'<requested text>'},'answers':True}]
         details += (
             'Only this TextEdit document is pinned for this connection; no app-wide fallback or token reuse in another command. '
-            'For a requested edit keep selector:{"identifier":"First Text View"}, use action:set_value, params:{"value":"<requested text>"}, '
-            'postcondition:{"equals":"<requested text>"}; safety:{"effects":["write_persistent"],'
-            '"evidence":[{"source":"user_intent","field":"asked","value":"<actual user request>","covers":["write_persistent"]}]}. '
-            'Quote the actual edit request; do not invent coverage. '
+            'For a requested edit send ONLY this step JSON on this pinned session (no Flow header): {"set_value":"<requested text>","check_value":true,"safety":{"effects":["write_persistent"],'
+            '"evidence":[{"source":"user_intent","field":"asked","value":"<actual user request>","covers":["write_persistent"]}]}}. '
+            'The session supplies target, document selector and resource defaults. check_value verifies that same text in the written field Value. '
             + ('selector_defaults already pins this document as ancestor; do not add ancestor to steps. '
                if reusable or save else 'Omit ancestor on this pinned connection. ')
             + 'Use selector keys identifier/title/desc, not description. '
-            'After an uncertain edit, TACTO_DOCUMENT_STATE checks the body once on this same connection. '
-            'matches_requested_text:true with remaining_steps:0 verifies the requested visible text; no extra read session or retyping is needed. '
-            'False/null or remaining steps require inspection; the marker never confirms Save or attributes the write. '
-            'Visible text is not a Save or persistence receipt. Use run/replay for a saved-state task requiring the built-in Save adapter. '
+            'Quote the actual request in evidence. TACTO_DOCUMENT_STATE matches_requested_text:true and remaining_steps:0 verifies visible text; do not read or type it again. '
+            'False/null or remaining steps need inspection. Visible text does not verify Save or writer attribution; use run/replay for Save. '
         )
     if reusable:
         details += (
@@ -108,6 +105,11 @@ def session_guide(target, *, reusable=False, document=None, save=False):
         "TACTO_FLOW_GUIDE (trusted schema instructions)\n"
         + json.dumps(template, ensure_ascii=False, separators=(',', ':')) + "\n"
         + ("" if document is not None else
+        'Use observed identifiers, background AXPress; no activation or coordinates unless the control requires them. '
+        'selector.ancestor is an observed window/container title or identifier as text, never an object; omit it when the app has one window. '
+        'click expands to action/selector.identifier; equals and skip_equals use check_defaults. '
+        'Put answers:true on the final result. '
+        if target == 'com.apple.calculator' else
         "Adapt selectors, effects/resource and result to the user task. Selectors must be unique. "
         'AX-first, background by default: click invokes AXPress when supported; use set_value/read on observed elements. '
         'Do not activate or use coordinates/screenshots first. selector.ancestor is an observed window/container title or identifier '

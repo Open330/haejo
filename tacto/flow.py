@@ -1095,6 +1095,31 @@ class Flow:
             return cls(**raw)
 
         def parse_step(s, path):
+            # Explicit compact edits share the existing action, contract and
+            # receiving checks; no policy or persistence receipt is inferred.
+            if isinstance(s, dict) and ('set_value' in s or 'check_value' in s):
+                s = deepcopy(s)
+                if ('set_value' not in s or not isinstance(s['set_value'], str)
+                        or any(k in s for k in ('action', 'params', 'click', 'equals', 'skip_equals'))):
+                    raise FlowFieldError('invalid compact edit', path + '.set_value',
+                                         'Use set_value as text, without action/params/click/equals.')
+                value = s.pop('set_value')
+                if 'selector' not in s:
+                    if not selector_defaults:
+                        raise FlowFieldError('missing edit selector', path + '.selector',
+                                             'Supply selector or selector_defaults.')
+                    s['selector'] = deepcopy(selector_defaults)
+                if not isinstance(s['selector'], dict) or not s['selector']:
+                    raise FlowFieldError('missing edit selector', path + '.selector',
+                                         'Supply a nonempty selector or omit it to use selector_defaults.')
+                if 'check_value' in s:
+                    if s.pop('check_value') is not True or 'postcondition' in s:
+                        raise FlowFieldError('invalid edit check', path + '.check_value',
+                                             'Use true without postcondition; it checks the written field Value.')
+                    written_field = {**deepcopy(selector_defaults), **deepcopy(s['selector'])}
+                    s['postcondition'] = {'field': written_field, 'attribute': 'Value', 'equals': value}
+                s['action'] = 'set_value'
+                s['params'] = {'value': value}
             # Compact click records expand before the existing parser/policy.
             # No target, action meaning, or result predicate is inferred.
             if isinstance(s, dict) and any(k in s for k in ('click', 'equals', 'skip_equals')):
@@ -3289,9 +3314,9 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
                 fix = None if seen_in_front() else _escalate(escalate, spend, step, Uncertainty(
                     kind="postcondition_timeout", step=i, effect="unknown",
                     intent=step.intent_text,
-                    detail=f"기대값 {post.equals or post.contains!r}, "
-                           f"화면에서 읽은 값 {seen!r}",
-                    options=_candidates(post.field, last.get("tree", ""))),
+                    detail=res._redact(f"기대값 {post.equals or post.contains!r}, "
+                                       f"화면에서 읽은 값 {seen!r}"),
+                    options=res._redact(_candidates(post.field, last.get("tree", "")))),
                     narrate)
                 if fix is not None and fix.kind == "recover" and \
                         _run_fix(driver, flow, fix.recovery, narrate, result=res, parent_step=i):
