@@ -446,6 +446,9 @@ def _run_flow(flow, argv, walked: bool = False, *, _driver=None, _confirm=None, 
     `--think 0` turns it off. Before this, the same recipe re-aimed its way
     past Calculator's `Clear`/`All Clear` under `do` and failed under `replay`.
     """
+    if flow.target.startswith('ios:') and _driver is None:
+        print(json.dumps({'type':'error','error':'ios_bridge_not_configured','effect':'not_started'}))
+        return 2
     if '--auto-repair' in argv or '--max-repairs' in argv or '--repair-timeout' in argv:
         from .auto_repair import parse_options, RepairRefused
         try:clean,automatic=parse_options(argv)
@@ -648,6 +651,10 @@ def _main(argv=None):
     if help_text is not None:
         print(help_text)
         return 0
+
+    if cmd in ('observe','session','windows','activate','launch','capture','drag','hover','resize') and any(arg.startswith('ios:') for arg in rest):
+        print(json.dumps({'type':'error','error':'ios_bridge_not_configured','effect':'not_started'}))
+        return 2
 
     if cmd == 'auth':
         from .credential_cli import main as credential_main

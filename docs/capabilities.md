@@ -27,6 +27,11 @@
 명시한다. rc.21 설치 검증과 전체 목표의 미완료 범위는 [완료 범위](completion-plan.md)에 있다.
 
 브라우저 드라이버는 기존 Chrome/Safari 사용자 세션에 자동 연결하지 않는다.
+별도 [iPhone spike](ios-spike.md)는 pinned idevice 조회, IOSSession 인터페이스와
+native AX 진단·테스트 카운터 검증 모드를 추가한다. 실기기에서 AX 루트 속성 읽기와
+HID 연결 PING은 확인했다. 탭 전 PID 검사에서 차단된 뒤 기기가 연결 불가 상태가
+되어 실제 탭·수신 결과 검증은 미완료다. 일반 앱용 live IOSSession은 없으며,
+일반 CLI의 iOS 대상은 macOS로 우회하지 않고 거부한다.
 `tacto do`는 현재 macOS 경로이며, 브라우저와 시각 API는 Python에서 명시적으로
 사용한다. wheel 설치만으로 서명된 macOS helper가 설치되지는 않는다.
 

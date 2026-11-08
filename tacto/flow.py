@@ -2640,6 +2640,11 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
         pre_satisfied = bool(step.postcondition is not None
                              and obs.get("tree")
                              and step.postcondition.check(obs["tree"]))
+        if (step.action == 'click' and 'ios.tap_once.v1' in getattr(driver,'capabilities',())
+                and (step.postcondition is None or pre_satisfied)):
+            res.record(status='error',step=i,action=step.action,
+                       error='ios_transition_check_required',effect='not_started')
+            return res
         # For Return, an outcome already true means the press could prove
         # nothing and might commit something else — refused before input.
         if (step.action == "press_key" and step.params.get("key") == "Return"
@@ -2997,13 +3002,14 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
                 and response.get("reobserve_required") is True
                 and effects <= {"read", "write_ephemeral"})
             from .protocol import (double_click_reobservation, element_click_reobservation,
-                                   window_key_reobservation, drag_reobservation)
+                                   window_key_reobservation, drag_reobservation, ios_tap_reobservation)
             caps = getattr(driver, "capabilities", ())
             navigation_observation = (
                 (window_key_reobservation(payload, response, caps)
                  or double_click_reobservation(payload, response, caps)
                  or element_click_reobservation(payload, response, caps)
-                 or drag_reobservation(payload, response, caps))
+                 or drag_reobservation(payload, response, caps)
+                 or (step.postcondition is not None and ios_tap_reobservation(payload, response, caps,target=flow.target)))
                 and effects <= {"read", "write_ephemeral"})
             if step.action == "prepare_window" and not preparation_observation:
                 event["state"] = "unknown"

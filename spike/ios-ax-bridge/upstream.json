@@ -1,0 +1,71 @@
+{
+  "repository": "https://github.com/sunghyun-k/iphone-use",
+  "revision": "6bf94902f1c30aac712ae594a9a3a08136157a48",
+  "license": "MIT",
+  "files": {
+    "Vendor/CDTXBridge/IUDTXConnection.m": {
+      "upstream_path": "Sources/CDTXBridge/IUDTXConnection.m",
+      "sha256": "f688adfd36ffab5e18e535f337ece4bab75edd250119e97bc7ba052c876657eb"
+    },
+    "Vendor/CDTXBridge/include/IUDTXConnection.h": {
+      "upstream_path": "Sources/CDTXBridge/include/IUDTXConnection.h",
+      "sha256": "b657fec111c6b40275d0ca8e708d55f7f7d4c857b5977b7a89e9770bab3179a6"
+    },
+    "Vendor/Transport/Remote/CoreDeviceClient.swift": {
+      "upstream_path": "Sources/iphone-use/Remote/CoreDeviceClient.swift",
+      "sha256": "8dbd79b6a6fc4f7228926a96e9ec2b7e0c469e5fdabc074a024e33e01ed0b4de",
+      "upstream_sha256": "8cb2847c19c6ec946ae197ae82ad8de7aadc2a6a278bafce88e58bae990d56fe",
+      "modifications": [
+        "Require the assertion-fulfilled event; a success action reply ends the lease.",
+        "Check the lease before and after socket allocation; never retry."
+      ]
+    },
+    "Vendor/Transport/AXWire.swift": {
+      "upstream_path": "Sources/iphone-use/AXWire.swift",
+      "sha256": "f6627ed0ca58e7a0998ad5c6720af3e1e629671383f6eb9beb52e52a7fa56356"
+    },
+    "Vendor/CMobileDevice/CMobileDevice.c": {
+      "upstream_path": "Sources/CMobileDevice/CMobileDevice.c",
+      "sha256": "3233bbd14d506816d4f431cf9bd76e8e9a4cd08a508034677d7e5b686cce3990"
+    },
+    "Vendor/CMobileDevice/include/CMobileDevice.h": {
+      "upstream_path": "Sources/CMobileDevice/include/CMobileDevice.h",
+      "sha256": "6045d3e6cfe7ae68b8217732df2a0fbb846d9f423e886c3f6b8c7b825e8dc4f7"
+    },
+    "Vendor/Transport/MobileDevice.swift": {
+      "upstream_path": "Sources/iphone-use/MobileDevice.swift",
+      "sha256": "c81abf059bcdbd271eef371eafe80e33b17a42558fd4ea23c484480680f53363"
+    },
+    "Vendor/Transport/Remote/HTTP2.swift": {
+      "upstream_path": "Sources/iphone-use/Remote/HTTP2.swift",
+      "sha256": "17a3b66eeaf1259f0ec0ee6bf21567da19079debca4f42a8074b510063d72b2b"
+    },
+    "Vendor/Transport/Remote/RemoteXPCConnection.swift": {
+      "upstream_path": "Sources/iphone-use/Remote/RemoteXPCConnection.swift",
+      "sha256": "859b3e26033373b2a464fb731feb3aaf52d5c7374ac8aac600b60a4f0641d234"
+    },
+    "Vendor/Transport/Remote/XPCObject.swift": {
+      "upstream_path": "Sources/iphone-use/Remote/XPCObject.swift",
+      "sha256": "627e63ca0e26003f2c2cb11ceb87e84c89fb88b8703c4efc6832bd6f0fd29807"
+    },
+    "Vendor/Transport/Remote/CoreDeviceService.swift": {
+      "upstream_path": "Sources/iphone-use/Remote/CoreDeviceService.swift",
+      "sha256": "2ef5ab5b0ec54364134d5940b8e1699477c7d0c23439751a61b7c2512afebae3"
+    },
+    "Vendor/Transport/Remote/XPCWrapper.swift": {
+      "upstream_path": "Sources/iphone-use/Remote/XPCWrapper.swift",
+      "sha256": "6c752a5f4c634e3e2f6013470db58d2051b03855778ae8bda4d4a9bb125374aa"
+    },
+    "Vendor/Transport/AXWalker.swift": {
+      "upstream_path": "Sources/iphone-use/AXWalker.swift",
+      "sha256": "7c0831a02da8bb6afbfa925f5a9f06349f1dd868ddfdf998ae13ece25f5d94ab"
+    },
+    "Vendor/Transport/Remote/ScreenCapture.swift": {
+      "upstream_path": "Sources/iphone-use/Remote/ScreenCapture.swift",
+      "sha256": "d217e7b7a156fa470ea7c0a0c9f412e2d310848805454a7aa390d0f03791d37b"
+    }
+  },
+  "design_references": [
+    "Sources/iphone-use/Remote/HIDService.swift: main-touchscreen report layout; minimal tap and release-only cleanup authored separately."
+  ]
+}

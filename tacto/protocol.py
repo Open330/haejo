@@ -183,6 +183,21 @@ def normalize_action_response(response):
     return {'type':'error','error':'driver_response_invalid','effect':'unknown'}
 
 
+def ios_tap_reobservation(action, response, capabilities, *, target=None):
+    """Host write accepted, device effect still unknown; allow checked readback."""
+    if 'ios.tap_once.v1' not in (capabilities or ()):
+        return False
+    from .ios_driver import parse_target
+    try:parse_target(target)
+    except ValueError:return False
+    return (isinstance(action, dict) and set(action) == {'name','element_index'}
+            and action.get('name') == 'click' and type(action.get('element_index')) is int
+            and action['element_index'] >= 1 and response.get('type') == 'acted'
+            and response.get('input_route') == 'ios_universal_hid' and response.get('sent') is True
+            and response.get('screen_changed') is None and response.get('screen_change_verified') is False
+            and response.get('unverified') == 'observe_effect' and response.get('reobserve_required') is True)
+
+
 def drag_reobservation(action, response, capabilities):
     from .native_drag import drag_problem, drag_event_count
     return ('action.drag' in (capabilities or ()) and 'drag.window_bound' in capabilities
