@@ -1,0 +1,630 @@
+{
+  "scope": "three counterbalanced fresh-context before/after cycles and Sky control; same signed rc28 native and Python3.11; observational, not serving/billing/strict TCC proof",
+  "requested_model": "gpt-6.1-sol",
+  "requested_reasoning_effort": "medium",
+  "timeout_seconds": 180,
+  "before_source": "f632601",
+  "after_source": "def0e9c",
+  "native_binaries_identical": true,
+  "runtime_path_lengths_identical": true,
+  "executions": [
+    {
+      "cohort": "before-0",
+      "harness_exit": 2,
+      "evidence_stable": true,
+      "source_commit": "f6326012803470232b94afed077d47606a32dada",
+      "profiling_request_same_for_both_Tacto_cohorts": true,
+      "strict_equivalence_not_verified": true
+    },
+    {
+      "cohort": "after-0",
+      "harness_exit": 2,
+      "evidence_stable": true,
+      "source_commit": "def0e9cf0d308655d71b0fb59ec8045e7bd5be58",
+      "profiling_request_same_for_both_Tacto_cohorts": true,
+      "strict_equivalence_not_verified": true
+    },
+    {
+      "cohort": "before-1",
+      "harness_exit": 2,
+      "evidence_stable": true,
+      "source_commit": "f6326012803470232b94afed077d47606a32dada",
+      "profiling_request_same_for_both_Tacto_cohorts": true,
+      "strict_equivalence_not_verified": true
+    },
+    {
+      "cohort": "after-1",
+      "harness_exit": 2,
+      "evidence_stable": true,
+      "source_commit": "def0e9cf0d308655d71b0fb59ec8045e7bd5be58",
+      "profiling_request_same_for_both_Tacto_cohorts": true,
+      "strict_equivalence_not_verified": true
+    },
+    {
+      "cohort": "before-2",
+      "harness_exit": 2,
+      "evidence_stable": true,
+      "source_commit": "f6326012803470232b94afed077d47606a32dada",
+      "profiling_request_same_for_both_Tacto_cohorts": true,
+      "strict_equivalence_not_verified": true
+    },
+    {
+      "cohort": "after-2",
+      "harness_exit": 1,
+      "evidence_stable": true,
+      "source_commit": "def0e9cf0d308655d71b0fb59ec8045e7bd5be58",
+      "profiling_request_same_for_both_Tacto_cohorts": true,
+      "strict_equivalence_not_verified": true
+    },
+    {
+      "cohort": "before-3",
+      "harness_exit": 2,
+      "evidence_stable": true,
+      "source_commit": "f6326012803470232b94afed077d47606a32dada",
+      "profiling_request_same_for_both_Tacto_cohorts": true,
+      "strict_equivalence_not_verified": true
+    },
+    {
+      "cohort": "after-3",
+      "harness_exit": 2,
+      "evidence_stable": true,
+      "source_commit": "def0e9cf0d308655d71b0fb59ec8045e7bd5be58",
+      "profiling_request_same_for_both_Tacto_cohorts": true,
+      "strict_equivalence_not_verified": true
+    }
+  ],
+  "matched_cycles": [
+    0,
+    1,
+    3
+  ],
+  "arms": {
+    "before": {
+      "runs": 3,
+      "passed": 3,
+      "seconds_median": 43.8,
+      "input_total": 486237,
+      "uncached_input_total": 41949,
+      "output_total": 3058,
+      "foreground_changed_runs": 0,
+      "document_input_bytes": [
+        877,
+        866,
+        877
+      ],
+      "document_author_wait_median": 6.5680648339912295,
+      "document_execution_median": 1.3522682909970172
+    },
+    "after": {
+      "runs": 3,
+      "passed": 3,
+      "seconds_median": 40.6,
+      "input_total": 484277,
+      "uncached_input_total": 37813,
+      "output_total": 2718,
+      "foreground_changed_runs": 0,
+      "document_input_bytes": [
+        400,
+        445,
+        445
+      ],
+      "document_author_wait_median": 4.57742666703416,
+      "document_execution_median": 1.4304777079960331
+    },
+    "sky": {
+      "runs": 3,
+      "passed": 3,
+      "seconds_median": 29.0,
+      "input_total": 408280,
+      "uncached_input_total": 48728,
+      "output_total": 1816,
+      "foreground_changed_runs": 0
+    }
+  },
+  "invalid_transport_rows": 1,
+  "limitations": [
+    "three samples per arm, cloud cache/load and actual serving model not controlled",
+    "harness exit and permission equivalence limits retained",
+    "all Tacto conditions include goal task start/end bookkeeping; Sky has its native product behavior",
+    "all values sum three runs except explicitly named medians",
+    "no build or regression test was run during model cohorts",
+    "cycle2 candidate completed a final message but lost raw transport/usage, so the whole cycle is excluded from matched comparison; full original rows remain",
+    "token totals cover matched valid trials only, not lost or additional attempts; no total cost reduction claim"
+  ],
+  "rows": [
+    {
+      "cohort": "before",
+      "cycle": 0,
+      "arm": "tacto",
+      "status": "passed",
+      "seconds": 48.4,
+      "tokens": {
+        "scope": "single reported turn.completed usage",
+        "status": "reported",
+        "input_tokens": 174709,
+        "cached_input_tokens": 158592,
+        "uncached_input_tokens": 16117,
+        "output_tokens": 1040,
+        "total_tokens": 175749,
+        "event_count": 1,
+        "stream_complete": true,
+        "cost_usd": null,
+        "billing_verified": false
+      },
+      "foreground_changes": 0,
+      "cleanup": "completed",
+      "source_changed": false,
+      "sessions": [
+        {
+          "flow_input_attempts": 1,
+          "flow_input_utf8_bytes": 746,
+          "flow_received_seconds": 9.451436333998572,
+          "input_ready_seconds": 0.5466651669703424,
+          "observation_ready_seconds": 0.5451762920129113,
+          "replay_done_seconds": 10.650163833983243,
+          "session_done_seconds": 10.650178709009197
+        },
+        {
+          "flow_input_attempts": 1,
+          "flow_input_utf8_bytes": 877,
+          "flow_received_seconds": 6.835932291985955,
+          "input_ready_seconds": 0.4135557919507846,
+          "observation_ready_seconds": 0.41263666696613654,
+          "replay_done_seconds": 8.122125666995998,
+          "session_done_seconds": 8.122146124951541
+        }
+      ],
+      "verified_body_summaries": 1,
+      "command_count": 5,
+      "agent_launch_error": null
+    },
+    {
+      "cohort": "after",
+      "cycle": 0,
+      "arm": "tacto",
+      "status": "passed",
+      "seconds": 38.1,
+      "tokens": {
+        "scope": "single reported turn.completed usage",
+        "status": "reported",
+        "input_tokens": 155078,
+        "cached_input_tokens": 145152,
+        "uncached_input_tokens": 9926,
+        "output_tokens": 876,
+        "total_tokens": 155954,
+        "event_count": 1,
+        "stream_complete": true,
+        "cost_usd": null,
+        "billing_verified": false
+      },
+      "foreground_changes": 0,
+      "cleanup": "completed",
+      "source_changed": false,
+      "sessions": [
+        {
+          "flow_input_attempts": 1,
+          "flow_input_utf8_bytes": 738,
+          "flow_received_seconds": 6.68429158400977,
+          "input_ready_seconds": 0.36681912501808256,
+          "observation_ready_seconds": 0.36604220897424966,
+          "replay_done_seconds": 7.278289292007685,
+          "session_done_seconds": 7.278310917026829
+        },
+        {
+          "flow_input_attempts": 1,
+          "flow_input_utf8_bytes": 400,
+          "flow_received_seconds": 5.544911917007994,
+          "input_ready_seconds": 0.4391532079898752,
+          "observation_ready_seconds": 0.4388451669947244,
+          "replay_done_seconds": 6.8547110419604,
+          "session_done_seconds": 6.85476600000402
+        }
+      ],
+      "verified_body_summaries": 1,
+      "command_count": 5,
+      "agent_launch_error": null
+    },
+    {
+      "cohort": "after",
+      "cycle": 0,
+      "arm": "sky",
+      "status": "passed",
+      "seconds": 26.7,
+      "tokens": {
+        "scope": "single reported turn.completed usage",
+        "status": "reported",
+        "input_tokens": 122896,
+        "cached_input_tokens": 112768,
+        "uncached_input_tokens": 10128,
+        "output_tokens": 613,
+        "total_tokens": 123509,
+        "event_count": 1,
+        "stream_complete": true,
+        "cost_usd": null,
+        "billing_verified": false
+      },
+      "foreground_changes": 0,
+      "cleanup": "completed",
+      "source_changed": false,
+      "sessions": [],
+      "verified_body_summaries": 0,
+      "command_count": 1,
+      "agent_launch_error": null
+    },
+    {
+      "cohort": "before",
+      "cycle": 1,
+      "arm": "tacto",
+      "status": "passed",
+      "seconds": 39.5,
+      "tokens": {
+        "scope": "single reported turn.completed usage",
+        "status": "reported",
+        "input_tokens": 156255,
+        "cached_input_tokens": 146176,
+        "uncached_input_tokens": 10079,
+        "output_tokens": 1004,
+        "total_tokens": 157259,
+        "event_count": 1,
+        "stream_complete": true,
+        "cost_usd": null,
+        "billing_verified": false
+      },
+      "foreground_changes": 0,
+      "cleanup": "completed",
+      "source_changed": false,
+      "sessions": [
+        {
+          "flow_input_attempts": 1,
+          "flow_input_utf8_bytes": 737,
+          "flow_received_seconds": 6.242493207973894,
+          "input_ready_seconds": 0.4995997499790974,
+          "observation_ready_seconds": 0.4974686249624938,
+          "replay_done_seconds": 7.052129999967292,
+          "session_done_seconds": 7.052147665992379
+        },
+        {
+          "flow_input_attempts": 1,
+          "flow_input_utf8_bytes": 866,
+          "flow_received_seconds": 7.120196042000316,
+          "input_ready_seconds": 0.5521312080090865,
+          "observation_ready_seconds": 0.5517565000336617,
+          "replay_done_seconds": 8.472464332997333,
+          "session_done_seconds": 8.472478916984983
+        }
+      ],
+      "verified_body_summaries": 1,
+      "command_count": 5,
+      "agent_launch_error": null
+    },
+    {
+      "cohort": "after",
+      "cycle": 1,
+      "arm": "sky",
+      "status": "passed",
+      "seconds": 29.1,
+      "tokens": {
+        "scope": "single reported turn.completed usage",
+        "status": "reported",
+        "input_tokens": 142676,
+        "cached_input_tokens": 123264,
+        "uncached_input_tokens": 19412,
+        "output_tokens": 588,
+        "total_tokens": 143264,
+        "event_count": 1,
+        "stream_complete": true,
+        "cost_usd": null,
+        "billing_verified": false
+      },
+      "foreground_changes": 0,
+      "cleanup": "completed",
+      "source_changed": false,
+      "sessions": [],
+      "verified_body_summaries": 0,
+      "command_count": 1,
+      "agent_launch_error": null
+    },
+    {
+      "cohort": "after",
+      "cycle": 1,
+      "arm": "tacto",
+      "status": "passed",
+      "seconds": 48.0,
+      "tokens": {
+        "scope": "single reported turn.completed usage",
+        "status": "reported",
+        "input_tokens": 173892,
+        "cached_input_tokens": 163712,
+        "uncached_input_tokens": 10180,
+        "output_tokens": 934,
+        "total_tokens": 174826,
+        "event_count": 1,
+        "stream_complete": true,
+        "cost_usd": null,
+        "billing_verified": false
+      },
+      "foreground_changes": 0,
+      "cleanup": "completed",
+      "source_changed": false,
+      "sessions": [
+        {
+          "flow_input_attempts": 1,
+          "flow_input_utf8_bytes": 737,
+          "flow_received_seconds": 14.036725334008224,
+          "input_ready_seconds": 0.9334261249750853,
+          "observation_ready_seconds": 0.9327021249919198,
+          "replay_done_seconds": 14.963498874974903,
+          "session_done_seconds": 14.96351237501949
+        },
+        {
+          "flow_input_attempts": 1,
+          "flow_input_utf8_bytes": 445,
+          "flow_received_seconds": 5.017714041983709,
+          "input_ready_seconds": 0.5721721249865368,
+          "observation_ready_seconds": 0.5717881669988856,
+          "replay_done_seconds": 6.448191749979742,
+          "session_done_seconds": 6.448206792003475
+        }
+      ],
+      "verified_body_summaries": 1,
+      "command_count": 5,
+      "agent_launch_error": null
+    },
+    {
+      "cohort": "before",
+      "cycle": 2,
+      "arm": "tacto",
+      "status": "passed",
+      "seconds": 51.7,
+      "tokens": {
+        "scope": "single reported turn.completed usage",
+        "status": "reported",
+        "input_tokens": 174814,
+        "cached_input_tokens": 164480,
+        "uncached_input_tokens": 10334,
+        "output_tokens": 1033,
+        "total_tokens": 175847,
+        "event_count": 1,
+        "stream_complete": true,
+        "cost_usd": null,
+        "billing_verified": false
+      },
+      "foreground_changes": 1,
+      "cleanup": "completed",
+      "source_changed": false,
+      "sessions": [
+        {
+          "flow_input_attempts": 1,
+          "flow_input_utf8_bytes": 737,
+          "flow_received_seconds": 13.412443707988132,
+          "input_ready_seconds": 1.2888209999655373,
+          "observation_ready_seconds": 1.2871586660039611,
+          "replay_done_seconds": 14.497289332968649,
+          "session_done_seconds": 14.49775012495229
+        },
+        {
+          "flow_input_attempts": 1,
+          "flow_input_utf8_bytes": 866,
+          "flow_received_seconds": 6.788417458010372,
+          "input_ready_seconds": 0.5762201669858769,
+          "observation_ready_seconds": 0.575873582973145,
+          "replay_done_seconds": 8.190874541993253,
+          "session_done_seconds": 8.190893416991457
+        }
+      ],
+      "verified_body_summaries": 1,
+      "command_count": 5,
+      "agent_launch_error": null
+    },
+    {
+      "cohort": "after",
+      "cycle": 2,
+      "arm": "sky",
+      "status": "passed",
+      "seconds": 31.0,
+      "tokens": {
+        "scope": "single reported turn.completed usage",
+        "status": "reported",
+        "input_tokens": 144273,
+        "cached_input_tokens": 133632,
+        "uncached_input_tokens": 10641,
+        "output_tokens": 584,
+        "total_tokens": 144857,
+        "event_count": 1,
+        "stream_complete": true,
+        "cost_usd": null,
+        "billing_verified": false
+      },
+      "foreground_changes": 0,
+      "cleanup": "completed",
+      "source_changed": false,
+      "sessions": [],
+      "verified_body_summaries": 0,
+      "command_count": 1,
+      "agent_launch_error": null
+    },
+    {
+      "cohort": "after",
+      "cycle": 2,
+      "arm": "tacto",
+      "status": "failed",
+      "seconds": 43.6,
+      "tokens": {
+        "scope": "single reported turn.completed usage",
+        "status": "missing",
+        "input_tokens": null,
+        "cached_input_tokens": null,
+        "uncached_input_tokens": null,
+        "output_tokens": null,
+        "total_tokens": null,
+        "event_count": 0,
+        "stream_complete": false,
+        "cost_usd": null,
+        "billing_verified": false
+      },
+      "foreground_changes": 0,
+      "cleanup": "completed",
+      "source_changed": false,
+      "sessions": [],
+      "verified_body_summaries": 0,
+      "command_count": 0,
+      "agent_launch_error": "agent_transport_failed"
+    },
+    {
+      "cohort": "before",
+      "cycle": 3,
+      "arm": "tacto",
+      "status": "passed",
+      "seconds": 43.8,
+      "tokens": {
+        "scope": "single reported turn.completed usage",
+        "status": "reported",
+        "input_tokens": 155273,
+        "cached_input_tokens": 139520,
+        "uncached_input_tokens": 15753,
+        "output_tokens": 1014,
+        "total_tokens": 156287,
+        "event_count": 1,
+        "stream_complete": true,
+        "cost_usd": null,
+        "billing_verified": false
+      },
+      "foreground_changes": 0,
+      "cleanup": "completed",
+      "source_changed": false,
+      "sessions": [
+        {
+          "flow_input_attempts": 1,
+          "flow_input_utf8_bytes": 756,
+          "flow_received_seconds": 6.658998458005954,
+          "input_ready_seconds": 0.541197957994882,
+          "observation_ready_seconds": 0.539210417016875,
+          "replay_done_seconds": 7.454668875026982,
+          "session_done_seconds": 7.454689417034388
+        },
+        {
+          "flow_input_attempts": 1,
+          "flow_input_utf8_bytes": 877,
+          "flow_received_seconds": 7.288567334006075,
+          "input_ready_seconds": 0.5518987500108778,
+          "observation_ready_seconds": 0.5515449169906788,
+          "replay_done_seconds": 8.69686433399329,
+          "session_done_seconds": 8.696875334018841
+        }
+      ],
+      "verified_body_summaries": 1,
+      "command_count": 5,
+      "agent_launch_error": null
+    },
+    {
+      "cohort": "after",
+      "cycle": 3,
+      "arm": "sky",
+      "status": "passed",
+      "seconds": 29.0,
+      "tokens": {
+        "scope": "single reported turn.completed usage",
+        "status": "reported",
+        "input_tokens": 142708,
+        "cached_input_tokens": 123520,
+        "uncached_input_tokens": 19188,
+        "output_tokens": 615,
+        "total_tokens": 143323,
+        "event_count": 1,
+        "stream_complete": true,
+        "cost_usd": null,
+        "billing_verified": false
+      },
+      "foreground_changes": 0,
+      "cleanup": "completed",
+      "source_changed": false,
+      "sessions": [],
+      "verified_body_summaries": 0,
+      "command_count": 1,
+      "agent_launch_error": null
+    },
+    {
+      "cohort": "after",
+      "cycle": 3,
+      "arm": "tacto",
+      "status": "passed",
+      "seconds": 40.6,
+      "tokens": {
+        "scope": "single reported turn.completed usage",
+        "status": "reported",
+        "input_tokens": 155307,
+        "cached_input_tokens": 137600,
+        "uncached_input_tokens": 17707,
+        "output_tokens": 908,
+        "total_tokens": 156215,
+        "event_count": 1,
+        "stream_complete": true,
+        "cost_usd": null,
+        "billing_verified": false
+      },
+      "foreground_changes": 0,
+      "cleanup": "completed",
+      "source_changed": false,
+      "sessions": [
+        {
+          "flow_input_attempts": 1,
+          "flow_input_utf8_bytes": 738,
+          "flow_received_seconds": 6.2655020000529476,
+          "input_ready_seconds": 0.4554727080394514,
+          "observation_ready_seconds": 0.4538726660539396,
+          "replay_done_seconds": 7.093743541045114,
+          "session_done_seconds": 7.093759291048627
+        },
+        {
+          "flow_input_attempts": 1,
+          "flow_input_utf8_bytes": 445,
+          "flow_received_seconds": 5.099520084040705,
+          "input_ready_seconds": 0.5220934170065448,
+          "observation_ready_seconds": 0.5217538340366445,
+          "replay_done_seconds": 6.553652917034924,
+          "session_done_seconds": 6.553668459004257
+        }
+      ],
+      "verified_body_summaries": 1,
+      "command_count": 5,
+      "agent_launch_error": null
+    }
+  ],
+  "attempted_tasks": 12,
+  "task_and_cleanup_verified": 11,
+  "matched_comparison_rows": 9,
+  "strict_product_equivalence_verified": false,
+  "phase_one_regression": {
+    "tests": 3385,
+    "initial_full_failures": 1,
+    "initial_full_errors": 0,
+    "skipped": 27,
+    "source_unchanged": true,
+    "failed_standalone_signing_fixture_corrected": true,
+    "failed_case_recheck_passed": true,
+    "active_measured_launcher_and_helper_app_unchanged": true
+  },
+  "native_probe": {
+    "model_calls": 0,
+    "write_attempts": 1,
+    "body_verified": true,
+    "cleanup_closed_and_artifact_removed": true,
+    "save_verified": false,
+    "dispatch_receipt_verified": false
+  },
+  "deployment": {
+    "version": "v1.0.0-rc.29",
+    "source_commit": "def0e9cf0d308655d71b0fb59ec8045e7bd5be58",
+    "installed_verified_count": 3,
+    "permissions_retained": true,
+    "app_and_dmg_notarized": true,
+    "artifact_checks_passed": 12,
+    "security_pattern_checks_passed": true,
+    "installed_native_cases_passed": 7,
+    "installed_compact_edit_and_cleanup_verified": true,
+    "installed_schema_repair_client_cancel_paging_verified": true,
+    "vault_session_modified": false,
+    "public_release_changed": false,
+    "source_pinned_to_measured_feature_commit": true
+  }
+}

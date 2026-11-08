@@ -1,5 +1,60 @@
 # 비교 실행 기록
 
+## 2026-11-08 축약 문서 편집: 전후 비교와 rc.29
+
+명시적 `set_value`/`check_value:true`로 같은 본문을 두 번 작성하지 않도록 했다.
+고정한 TextEdit --document 세션은 단일 편집 step만 받아 기존 target·selector·resource
+문맥으로 감싼다. 실제 쓰기 selector의 Value를 검증하며 다른 check_defaults 필드를
+읽지 않는다. 기존 계약·evidence·민감 입력·Save/실행 영수증 판정은 유지한다. 단일
+step의 본문·경로·evidence는 literal로 처리해 `{{name}}`도 그대로 쓴다. full Flow는
+그대로 지원하며 저장 시 펼친 형식으로 기록한다. 값이 literal 표현을 요구하면 기존
+schema4를 사용한다. 보호값이 timeout 수리 설명·후보에 섞이지 않도록 가렸다.
+
+Calculator 특화 guide는 일반 set_value/영구 저장 설명을 빼 2,181→1,433B로 줄었다.
+문서 guide는1,684→1,565B다. 이는 정적 크기이며 전체 agent 입력 절감률이 아니다.
+
+기준선은 Task·Flow 기능을 포함한 rc.28 소스 `f632601`, 후보는 `def0e9c`다. 두
+source runtime의 길이·Python3.11·의존성·실제로 사용한 서명 launcher/helper.app
+바이트가 같다. 네이티브는 같은 rc.28 빌드를 쓰며 가이드는 각 runtime이 제공한다.
+요청 gpt-6.1-sol/medium, 제한180초, 빈 디렉터리의 ephemeral 새 문맥을 사용했다.
+전후 순서를 바꾸고 Sky 대조군을 포함했다. 양쪽 Tacto는 같은 task start/end와
+--timings를 사용한다. 이는 Task 도입 전 rc.26 표와 직접적인 전후 비교가 아니다.
+
+| 유효 matched 3회 | 시간 중앙값 | 입력 합계 | 비캐시 입력 합계 | 출력 합계 |
+|---|---:|---:|---:|---:|
+| Tacto 기준선 | 43.8초 | 486,237 | 41,949 | 3,058 |
+| Tacto 후보 | 40.6초 | 484,277 | 37,813 | 2,718 |
+| Sky | 29.0초 | 408,280 | 48,728 | 1,816 |
+
+문서 입력 JSON 중앙값은877→445B(49.3% 감소), 관측 준비 후 문서 Flow 도착은
+6.57→4.58초다. 전체 출력은11.1%, 비캐시 입력은9.9% 줄었고 전체 입력은0.4%로
+거의 같다. 전체 시간 중앙값 감소7.3%는 관측값이며 cloud cache/부하·실제 serving
+model을 통제하지 않은3회로 확정적인 속도 개선이라 하지 않는다. paired 시간 변화는
+-10.3/+8.5/-3.2초로 한 쌍에서는 더 느렸다. Sky는29.0초로 여전히 더 빠르고 출력도 적다.
+
+총12시행 중11건은 작업·정리가 확인됐고, cycle2의 후보1건은 CLI transport 오류로
+원본 이벤트·usage가 유실됐다. 최종 답변과 terminal 도착 metadata는 있으나 독립
+oracle을 실행하지 않아 성공으로 계산하지 않는다. 문서는 정리됐다. 원래 cycle2
+3행을 보존하고 새 cycle3을 추가했다. 위 표는 matched cycle0/1/3의9행만 집계한다.
+cycle2의 기준선51.7초·Sky31.0초도 원본에 남겼다. 유실된 토큰과 추가 시행이 있어
+표의 토큰 합계를 전체 실험 비용 감소로 해석하지 않는다. matched9행은 전경 전환0,
+작업·정리9/9다. harness exit2와 strict TCC·도구 권한 동등성 미입증도 유지한다.
+
+최종 코드의 전체3,385검사는 독립 helper fixture의 서명1건이 실패했다. app용 Mach-O를
+독립 경로에 복사한 탓으로 실제 측정에 사용한 launcher/helper.app는 유효했다. 같은
+rc.28 빌드의 올바른 독립 파일로 정정 후 해당 검사가 통과했고 최초 기록을 보존했다.
+코드는 검사 중 불변이다. 실문서 축약 편집1회·일치 검증·정리도 모델0회로 통과했다.
+
+rc.29는 측정한 feature commit `def0e9c`로 별도 고정해 앱·DMG 공증, 산출물12검사와
+보안 패턴 검사 후 세 Mac에 설치했다. 변경 없는 네이티브 소스는 배포 때 다시 빌드하며
+측정의 기존 rc.28 바이너리와 같은 바이트라는 주장은 하지 않는다. 기존 권한·정식
+식별자·스킬 연결·백그라운드 실행·Dock 숨김, 설치본 native7·세션 수리·단일 축약 편집·
+본문 readback·취소·paging을 통과했다. Vault 세션·공개 GitHub release는 변경하지 않았다.
+후속 main의 다른 실험 기능을 이 배포나 측정에 소급하지 않는다.
+
+[공개 집계](benchmarks/2026-11-08-compact-edit-comparison.json). 원본·오류·재검은 로컬
+`reviews/perf-compact-edit-evidence-20261108/`, 배포 기록은 `reviews/tacto-rc29-20261108/`다.
+
 ## 2026-11-08 rc.26 설치본과 Sky: 새 문맥 3쌍
 
 소스 `45963ce`의 rc.26 앱·DMG는 Apple 공증·티켓·Gatekeeper와 산출물12검사,
