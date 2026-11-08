@@ -97,3 +97,67 @@ these model measurements.
 [Per-trial metrics and limits](benchmarks/2026-11-08-inline-task-comparison.json).
 Private raw traces and before/after runtime hashes are retained under
 `reviews/perf-inline-task-benchmark-20261108/`.
+
+## Session-bound steps: next bottleneck and measured change
+
+Profiling the previous candidate's three trials found 44.4% of host elapsed time
+waiting for Flow authoring/delivery and 48.3% outside command spans. These include
+model planning/generation, transport and scheduling; they are not pure inference
+or CPU measurements. Replay/readback/close was 2.7%. This directed the next change
+at repeated JSON authoring rather than native input checks.
+
+`session --steps` accepts `{"steps":[...]}` and fills the connection's structural
+header. Calculator reuses the concrete defaults already offered in its guide;
+pinned TextEdit reuses its document selectors and read defaults. Generic apps
+receive no inferred selectors/checks/effects. Write effects and evidence remain
+explicit. Full Flows and single-edit messages remain compatible. Reusable
+parameter/schema guides retain a full template; saved messages expand to complete
+Flows. Peer review issues around these guide combinations were resolved, and
+114 focused tests passed before measurements.
+
+Twelve new independent conversations ran the same Calculator → TextEdit task,
+including one replacement trio. The primary set has three matched trials per
+condition with rotated order. Both Tacto conditions already contain
+the prior inline task lifecycle and polling fixes; this measures only the next
+steps-authoring change (`8adc961` → `f57e455`). They use equal-length paths,
+Python 3.11 and identical signed rc29 native executables. Sky uses its bundled
+Computer Use skill. All arms request gpt-6.1-sol/medium with a 180-second timeout.
+All twelve receiving checks and cleanups passed. A System Settings foreground
+transition was observed in baseline cycle 2; its origin was not established.
+The whole original trio is retained, excluded from the primary set, and replaced
+with a fresh trio (matched cycles 0, 1, 3). No foreground changes occurred in
+the nine primary trials. Token sums below cover the matched set; campaign totals
+and all original rows remain in the linked JSON, not erased.
+
+| Metric | Before | Bound steps | Sky |
+| --- | ---: | ---: | ---: |
+| Elapsed median (s) | 44.0 | 33.0 | 31.3 |
+| Input tokens, three-run sum | 397,664 | 344,054 | 431,204 |
+| Input excluding cache reads, sum | 38,880 | 24,950 | 46,180 |
+| Output tokens, sum | 2,547 | 2,073 | 1,869 |
+
+Median elapsed change: -25.0%; total input
+-13.5%; input excluding cache reads
+-35.8%; output -18.6%.
+Individual paired elapsed changes were
+-25.9%, -13.1%, -33.6%.
+
+Calculator submitted JSON byte median (including corrections, if any) fell from
+746 to
+406 UTF-8 bytes; authoring/delivery
+wait median changed from 10.577
+to 4.457 seconds. Both versions
+recorded three completed tool items per run and one closed task containing two
+UI invocations. Visible-text completion does not certify Save or convert the
+unverified underlying write receipt into a verified dispatch.
+
+Sky's observed median remains lower. Three samples, varying server cache/load,
+and unverified serving model/billing do not establish universal speed or billed
+cost savings. Strict responsibility/TCC isolation eligibility did not pass;
+observed task success is reported separately. No build or regression suite ran
+during these model cohorts. This is an isolated Python/skill experiment with
+common native binaries, not a newly packaged app release test.
+
+[Per-trial metrics and remaining time partition](benchmarks/2026-11-08-bound-steps-comparison.json).
+Private traces and frozen-source hashes:
+`reviews/perf-session-binding-evidence-20261108/`.

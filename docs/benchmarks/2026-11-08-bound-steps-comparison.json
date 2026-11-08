@@ -1,0 +1,498 @@
+{
+  "scope": "Three counterbalanced fresh-context trials per arm; observed performance, not strict TCC/serving/billing certification",
+  "task": "Compute 23 × 19 in Calculator and enter exactly 437 in the owned TextEdit document; no Save requested",
+  "before_source": "8adc961",
+  "after_source": "f57e455",
+  "native_source": "rc29 def0e9c; identical signed native binaries and Python3.11",
+  "model_request": "gpt-6.1-sol",
+  "reasoning_effort": "medium",
+  "timeout_seconds": 180,
+  "arms": {
+    "before": {
+      "runs": 3,
+      "passed": 3,
+      "median_seconds": 44.0,
+      "input_tokens": 397664,
+      "uncached_input_tokens": 38880,
+      "output_tokens": 2547,
+      "tool_items": [
+        3,
+        3,
+        3
+      ],
+      "standalone_task_commands": [
+        0,
+        0,
+        0
+      ],
+      "document_replay_median_seconds": 0.42262595798820257,
+      "task_groups_closed_done": 3,
+      "calculator_json_median_bytes": 746,
+      "calculator_author_wait_median_seconds": 10.576609374955297
+    },
+    "after": {
+      "runs": 3,
+      "passed": 3,
+      "median_seconds": 33.0,
+      "input_tokens": 344054,
+      "uncached_input_tokens": 24950,
+      "output_tokens": 2073,
+      "tool_items": [
+        3,
+        3,
+        3
+      ],
+      "standalone_task_commands": [
+        0,
+        0,
+        0
+      ],
+      "document_replay_median_seconds": 0.4176118749892339,
+      "task_groups_closed_done": 3,
+      "calculator_json_median_bytes": 406,
+      "calculator_author_wait_median_seconds": 4.457145874970593
+    },
+    "sky": {
+      "runs": 3,
+      "passed": 3,
+      "median_seconds": 31.3,
+      "input_tokens": 431204,
+      "uncached_input_tokens": 46180,
+      "output_tokens": 1869,
+      "tool_items": [
+        6,
+        6,
+        6
+      ],
+      "standalone_task_commands": [
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "paired_time_change_percent": [
+    -25.909090909090903,
+    -13.110539845758362,
+    -33.6016096579477
+  ],
+  "matched_cycles": [
+    0,
+    1,
+    3
+  ],
+  "excluded_cycle": {
+    "cycle": 2,
+    "reason": "System Settings foreground transition observed in baseline; origin not established; complete original trio retained"
+  },
+  "limitations": [
+    "Three samples per arm; no statistical certainty or universal speed claim.",
+    "Actual serving model, cache behavior and billing are not verified.",
+    "Harness strict responsibility/TCC eligibility exclusions are retained separately from observed task success.",
+    "Common native binaries pinned to rc29 def0e9c; this isolates Python/skill changes and is not a newly packaged release test.",
+    "No builds or regression suites overlap model runs."
+  ],
+  "campaign_token_totals": {
+    "before": {
+      "input_tokens": 564124,
+      "uncached_input_tokens": 55324,
+      "output_tokens": 3515
+    },
+    "after": {
+      "input_tokens": 472748,
+      "uncached_input_tokens": 33708,
+      "output_tokens": 2785
+    },
+    "sky": {
+      "input_tokens": 573948,
+      "uncached_input_tokens": 56572,
+      "output_tokens": 2466
+    }
+  },
+  "mean_profile_seconds": {
+    "before": {
+      "outside_commands": 21.705254333333333,
+      "flow_author_transport_wait": 17.774933596975945,
+      "session_prepare": 1.1691240976797417,
+      "replay_readback_and_close": 1.6322702776718263,
+      "session_launch_and_delivery_remainder": 1.9110070276724862,
+      "bookkeeping_and_skill_command_spans": 7.233333333337792e-05
+    },
+    "after": {
+      "outside_commands": 20.20337,
+      "flow_author_transport_wait": 9.961840611009393,
+      "session_prepare": 1.053183611346564,
+      "replay_readback_and_close": 1.2895144446520135,
+      "session_launch_and_delivery_remainder": 0.604703666325363,
+      "bookkeeping_and_skill_command_spans": 6.000000000009701e-05
+    }
+  },
+  "mean_profile_percent": {
+    "before": {
+      "outside_commands": 49.11506461649722,
+      "flow_author_transport_wait": 40.221459687238294,
+      "session_prepare": 2.645516367622592,
+      "replay_readback_and_close": 3.6935324013375816,
+      "session_launch_and_delivery_remainder": 4.324263250054266,
+      "bookkeeping_and_skill_command_spans": 0.0001636772500352406
+    },
+    "after": {
+      "outside_commands": 61.01401238963729,
+      "flow_author_transport_wait": 30.084677282241476,
+      "session_prepare": 3.1806059044239747,
+      "replay_readback_and_close": 3.894323090782092,
+      "session_launch_and_delivery_remainder": 1.8262001334052085,
+      "bookkeeping_and_skill_command_spans": 0.00018119950995225826
+    }
+  },
+  "rows": [
+    {
+      "cycle": 0,
+      "cohort": "before",
+      "status": "passed",
+      "seconds": 44.0,
+      "tokens": {
+        "scope": "single reported turn.completed usage",
+        "status": "reported",
+        "input_tokens": 133287,
+        "cached_input_tokens": 123648,
+        "uncached_input_tokens": 9639,
+        "output_tokens": 805,
+        "total_tokens": 134092,
+        "event_count": 1,
+        "stream_complete": true,
+        "cost_usd": null,
+        "billing_verified": false
+      },
+      "completed_tool_total": 3,
+      "calculator_flow_input_bytes": 737,
+      "calculator_author_wait_seconds": 10.576609374955297,
+      "document_author_wait_seconds": 4.985677624994423,
+      "foreground_changes": 0,
+      "cleanup_status": "completed",
+      "oracle_passed": true,
+      "comparison_eligible": false,
+      "comparison_exclusion_reason": "agent_responsibility_not_isolated_or_observed",
+      "runtime_evidence_stable": true
+    },
+    {
+      "cycle": 0,
+      "cohort": "after",
+      "status": "passed",
+      "seconds": 32.6,
+      "tokens": {
+        "scope": "single reported turn.completed usage",
+        "status": "reported",
+        "input_tokens": 115051,
+        "cached_input_tokens": 105600,
+        "uncached_input_tokens": 9451,
+        "output_tokens": 685,
+        "total_tokens": 115736,
+        "event_count": 1,
+        "stream_complete": true,
+        "cost_usd": null,
+        "billing_verified": false
+      },
+      "completed_tool_total": 3,
+      "calculator_flow_input_bytes": 406,
+      "calculator_author_wait_seconds": 4.224248124985024,
+      "document_author_wait_seconds": 4.761715917033143,
+      "foreground_changes": 0,
+      "cleanup_status": "completed",
+      "oracle_passed": true,
+      "comparison_eligible": false,
+      "comparison_exclusion_reason": "agent_responsibility_not_isolated_or_observed",
+      "runtime_evidence_stable": true
+    },
+    {
+      "cycle": 0,
+      "cohort": "sky",
+      "status": "passed",
+      "seconds": 32.7,
+      "tokens": {
+        "scope": "single reported turn.completed usage",
+        "status": "reported",
+        "input_tokens": 144269,
+        "cached_input_tokens": 126976,
+        "uncached_input_tokens": 17293,
+        "output_tokens": 632,
+        "total_tokens": 144901,
+        "event_count": 1,
+        "stream_complete": true,
+        "cost_usd": null,
+        "billing_verified": false
+      },
+      "completed_tool_total": 6,
+      "calculator_flow_input_bytes": null,
+      "calculator_author_wait_seconds": null,
+      "document_author_wait_seconds": null,
+      "foreground_changes": 0,
+      "cleanup_status": "completed",
+      "oracle_passed": true,
+      "comparison_eligible": false,
+      "comparison_exclusion_reason": "agent_responsibility_not_isolated_or_observed",
+      "runtime_evidence_stable": true
+    },
+    {
+      "cycle": 1,
+      "cohort": "before",
+      "status": "passed",
+      "seconds": 38.9,
+      "tokens": {
+        "scope": "single reported turn.completed usage",
+        "status": "reported",
+        "input_tokens": 115354,
+        "cached_input_tokens": 98688,
+        "uncached_input_tokens": 16666,
+        "output_tokens": 760,
+        "total_tokens": 116114,
+        "event_count": 1,
+        "stream_complete": true,
+        "cost_usd": null,
+        "billing_verified": false
+      },
+      "completed_tool_total": 3,
+      "calculator_flow_input_bytes": 746,
+      "calculator_author_wait_seconds": 6.2847106250119396,
+      "document_author_wait_seconds": 4.26492533297278,
+      "foreground_changes": 0,
+      "cleanup_status": "completed",
+      "oracle_passed": true,
+      "comparison_eligible": false,
+      "comparison_exclusion_reason": "agent_responsibility_not_isolated_or_observed",
+      "runtime_evidence_stable": true
+    },
+    {
+      "cycle": 1,
+      "cohort": "after",
+      "status": "passed",
+      "seconds": 33.8,
+      "tokens": {
+        "scope": "single reported turn.completed usage",
+        "status": "reported",
+        "input_tokens": 113954,
+        "cached_input_tokens": 104832,
+        "uncached_input_tokens": 9122,
+        "output_tokens": 705,
+        "total_tokens": 114659,
+        "event_count": 1,
+        "stream_complete": true,
+        "cost_usd": null,
+        "billing_verified": false
+      },
+      "completed_tool_total": 3,
+      "calculator_flow_input_bytes": 406,
+      "calculator_author_wait_seconds": 6.255622625001706,
+      "document_author_wait_seconds": 5.073492708033882,
+      "foreground_changes": 0,
+      "cleanup_status": "completed",
+      "oracle_passed": true,
+      "comparison_eligible": false,
+      "comparison_exclusion_reason": "agent_responsibility_not_isolated_or_observed",
+      "runtime_evidence_stable": true
+    },
+    {
+      "cycle": 1,
+      "cohort": "sky",
+      "status": "passed",
+      "seconds": 31.3,
+      "tokens": {
+        "scope": "single reported turn.completed usage",
+        "status": "reported",
+        "input_tokens": 142729,
+        "cached_input_tokens": 134144,
+        "uncached_input_tokens": 8585,
+        "output_tokens": 617,
+        "total_tokens": 143346,
+        "event_count": 1,
+        "stream_complete": true,
+        "cost_usd": null,
+        "billing_verified": false
+      },
+      "completed_tool_total": 6,
+      "calculator_flow_input_bytes": null,
+      "calculator_author_wait_seconds": null,
+      "document_author_wait_seconds": null,
+      "foreground_changes": 0,
+      "cleanup_status": "completed",
+      "oracle_passed": true,
+      "comparison_eligible": false,
+      "comparison_exclusion_reason": "agent_responsibility_not_isolated_or_observed",
+      "runtime_evidence_stable": true
+    },
+    {
+      "cycle": 2,
+      "cohort": "before",
+      "status": "passed",
+      "seconds": 56.1,
+      "tokens": {
+        "scope": "single reported turn.completed usage",
+        "status": "reported",
+        "input_tokens": 166460,
+        "cached_input_tokens": 150016,
+        "uncached_input_tokens": 16444,
+        "output_tokens": 968,
+        "total_tokens": 167428,
+        "event_count": 1,
+        "stream_complete": true,
+        "cost_usd": null,
+        "billing_verified": false
+      },
+      "completed_tool_total": 3,
+      "calculator_flow_input_bytes": 1206,
+      "calculator_author_wait_seconds": 23.135263208008837,
+      "document_author_wait_seconds": 10.532321083010174,
+      "foreground_changes": 1,
+      "cleanup_status": "completed",
+      "oracle_passed": true,
+      "comparison_eligible": false,
+      "comparison_exclusion_reason": "agent_responsibility_not_isolated_or_observed",
+      "runtime_evidence_stable": true
+    },
+    {
+      "cycle": 2,
+      "cohort": "after",
+      "status": "passed",
+      "seconds": 39.2,
+      "tokens": {
+        "scope": "single reported turn.completed usage",
+        "status": "reported",
+        "input_tokens": 128694,
+        "cached_input_tokens": 119936,
+        "uncached_input_tokens": 8758,
+        "output_tokens": 712,
+        "total_tokens": 129406,
+        "event_count": 1,
+        "stream_complete": true,
+        "cost_usd": null,
+        "billing_verified": false
+      },
+      "completed_tool_total": 3,
+      "calculator_flow_input_bytes": 406,
+      "calculator_author_wait_seconds": 4.9287449170369655,
+      "document_author_wait_seconds": 11.552261125005316,
+      "foreground_changes": 0,
+      "cleanup_status": "completed",
+      "oracle_passed": true,
+      "comparison_eligible": false,
+      "comparison_exclusion_reason": "agent_responsibility_not_isolated_or_observed",
+      "runtime_evidence_stable": true
+    },
+    {
+      "cycle": 2,
+      "cohort": "sky",
+      "status": "passed",
+      "seconds": 31.6,
+      "tokens": {
+        "scope": "single reported turn.completed usage",
+        "status": "reported",
+        "input_tokens": 142744,
+        "cached_input_tokens": 132352,
+        "uncached_input_tokens": 10392,
+        "output_tokens": 597,
+        "total_tokens": 143341,
+        "event_count": 1,
+        "stream_complete": true,
+        "cost_usd": null,
+        "billing_verified": false
+      },
+      "completed_tool_total": 6,
+      "calculator_flow_input_bytes": null,
+      "calculator_author_wait_seconds": null,
+      "document_author_wait_seconds": null,
+      "foreground_changes": 0,
+      "cleanup_status": "completed",
+      "oracle_passed": true,
+      "comparison_eligible": false,
+      "comparison_exclusion_reason": "agent_responsibility_not_isolated_or_observed",
+      "runtime_evidence_stable": true
+    },
+    {
+      "cycle": 3,
+      "cohort": "before",
+      "status": "passed",
+      "seconds": 49.7,
+      "tokens": {
+        "scope": "single reported turn.completed usage",
+        "status": "reported",
+        "input_tokens": 149023,
+        "cached_input_tokens": 136448,
+        "uncached_input_tokens": 12575,
+        "output_tokens": 982,
+        "total_tokens": 150005,
+        "event_count": 1,
+        "stream_complete": true,
+        "cost_usd": null,
+        "billing_verified": false
+      },
+      "completed_tool_total": 3,
+      "calculator_flow_input_bytes": 1206,
+      "calculator_author_wait_seconds": 15.560791708005127,
+      "document_author_wait_seconds": 11.652086124988273,
+      "foreground_changes": 0,
+      "cleanup_status": "completed",
+      "oracle_passed": true,
+      "comparison_eligible": false,
+      "comparison_exclusion_reason": "agent_responsibility_not_isolated_or_observed",
+      "runtime_evidence_stable": true
+    },
+    {
+      "cycle": 3,
+      "cohort": "after",
+      "status": "passed",
+      "seconds": 33.0,
+      "tokens": {
+        "scope": "single reported turn.completed usage",
+        "status": "reported",
+        "input_tokens": 115049,
+        "cached_input_tokens": 108672,
+        "uncached_input_tokens": 6377,
+        "output_tokens": 683,
+        "total_tokens": 115732,
+        "event_count": 1,
+        "stream_complete": true,
+        "cost_usd": null,
+        "billing_verified": false
+      },
+      "completed_tool_total": 3,
+      "calculator_flow_input_bytes": 406,
+      "calculator_author_wait_seconds": 4.457145874970593,
+      "document_author_wait_seconds": 5.11329658300383,
+      "foreground_changes": 0,
+      "cleanup_status": "completed",
+      "oracle_passed": true,
+      "comparison_eligible": false,
+      "comparison_exclusion_reason": "agent_responsibility_not_isolated_or_observed",
+      "runtime_evidence_stable": true
+    },
+    {
+      "cycle": 3,
+      "cohort": "sky",
+      "status": "passed",
+      "seconds": 31.2,
+      "tokens": {
+        "scope": "single reported turn.completed usage",
+        "status": "reported",
+        "input_tokens": 144206,
+        "cached_input_tokens": 123904,
+        "uncached_input_tokens": 20302,
+        "output_tokens": 620,
+        "total_tokens": 144826,
+        "event_count": 1,
+        "stream_complete": true,
+        "cost_usd": null,
+        "billing_verified": false
+      },
+      "completed_tool_total": 6,
+      "calculator_flow_input_bytes": null,
+      "calculator_author_wait_seconds": null,
+      "document_author_wait_seconds": null,
+      "foreground_changes": 0,
+      "cleanup_status": "completed",
+      "oracle_passed": true,
+      "comparison_eligible": false,
+      "comparison_exclusion_reason": "agent_responsibility_not_isolated_or_observed",
+      "runtime_evidence_stable": true
+    }
+  ]
+}
