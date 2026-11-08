@@ -3,8 +3,9 @@
 A task is file-backed metadata, not a daemon, lease or authorization. It
 never holds the helper, KeepAwake or a foreground scope between invocations;
 each bound invocation still acquires and releases those itself. Records are
-content-free (command, target bundle IDs, closed result codes, timing), except
-the caller-supplied goal sentence, which stays in the owner-only task.json.
+content-free (command, target bundle IDs, closed result codes, timing, and
+the names of the flows an invocation ran), except the caller-supplied goal
+sentence, which stays in the owner-only task.json.
 
 `task end --result` is the caller's declaration, not verified goal success.
 """
@@ -12,6 +13,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from datetime import datetime, timezone
 from pathlib import Path
+import hashlib
 import json
 import os
 import re
@@ -28,6 +30,15 @@ RESULTS = ('done', 'failed', 'abandoned')
 MAX_GOAL = 1000
 MAX_EVENTS_BYTES = 8 * 1024 * 1024
 MAX_TASK_JSON = 64 * 1024
+# Only names of kept recipes (built-in or saved in the library) are copied: a
+# name a model gave a learned/compiled flow, or one inside a file, can echo the
+# request ("send_1234_to_kim"). Those are recorded as a short one-way ref so
+# repeats still line up. `base:recovery` names a recovery of a kept recipe.
+_FLOW_NAME = re.compile(r'^[A-Za-z0-9_.\-]{1,80}(?::[A-Za-z0-9_.\-]{1,80})?$')
+_FLOW_REF = re.compile(r'^[0-9a-f]{12}$')
+FLOW_SOURCES = ('builtin', 'library', 'file', 'inline')
+MAX_FLOWS = 16
+MAX_STEP_LOG_BYTES = 4 * 1024 * 1024
 
 current = ContextVar('tacto_task_binding', default=None)
 
@@ -247,9 +258,16 @@ def status(task_id, *, root=None):
         if row.get('event') == 'invocation_start' and isinstance(inv, str) and inv not in invocations:
             invocations[inv] = {k: row.get(k) for k in ('invocation', 'command', 'pid', 'parent', 'access_log')}
             invocations[inv].update(started_at=row.get('at'), ended_at=None, exit_code=None, elapsed_ms=None,
-                                    targets=[], error=None, stage=None, state=None)
+                                    targets=[], error=None, stage=None, state=None, flows=[])
             order.append(inv)
-        elif row.get('event') == 'invocation_end' and inv in invocations:
+        elif row.get('event') == 'invocation_flow' and isinstance(inv, str) and inv in invocations:
+            flows = invocations[inv]['flows']
+            name = row.get('name') if isinstance(row.get('name'), str) and _FLOW_NAME.fullmatch(row['name']) else None
+            ref = row.get('ref') if isinstance(row.get('ref'), str) and _FLOW_REF.fullmatch(row['ref']) else None
+            source = row.get('source') if row.get('source') in FLOW_SOURCES else 'inline'
+            if len(flows) < MAX_FLOWS:
+                flows.append({'name': name, 'ref': ref, 'source': source})
+        elif row.get('event') == 'invocation_end' and isinstance(inv, str) and inv in invocations:
             item = invocations[inv]
             item.update(ended_at=row.get('at'), exit_code=row.get('exit_code'), elapsed_ms=row.get('elapsed_ms'),
                         targets=row.get('targets') or [], error=row.get('error'), stage=row.get('stage'))
@@ -296,6 +314,8 @@ class Binding:
         self.invocation = uuid.uuid4().hex
         self.started = time.monotonic()
         self.ended = False
+        self.admitted = False
+        self.flows = set()
 
     def admit(self, access_log_name=None):
         _private_dir(self.directory, create=False)
@@ -310,6 +330,30 @@ class Binding:
             if access_log_name:
                 row['access_log'] = access_log_name
             _append(self.directory, row)
+            self.admitted = True
+
+    def note_flow(self, name, source=None):
+        """Record that this invocation ran a flow. First note per name wins."""
+        if not self.admitted or self.ended:
+            return
+        if not isinstance(name, str) or not name or len(name) > 400:
+            name = None
+        key = name or '-'
+        if key in self.flows or len(self.flows) >= MAX_FLOWS:
+            return
+        self.flows.add(key)
+        if source not in FLOW_SOURCES:
+            source = _flow_source(name)
+        row = {'event': 'invocation_flow', 'invocation': self.invocation, 'source': source}
+        if name and source in ('builtin', 'library') and _FLOW_NAME.fullmatch(name):
+            row['name'] = name
+        elif name:
+            row['ref'] = hashlib.sha256(name.encode('utf-8', 'surrogatepass')).hexdigest()[:12]
+        try:
+            with _locked(self.directory):
+                _append(self.directory, row)
+        except OSError:
+            pass       # a missing flow note never fails the run
 
     def finish(self, exit_code, access_log=None):
         if self.ended:
@@ -335,6 +379,34 @@ class Binding:
 
     def child_env(self):
         return {'TACTO_TASK': self.task_id, 'TACTO_TASK_PARENT': self.invocation}
+
+
+def _flow_source(name):
+    """builtin / library / inline, judged the way `tacto replay` resolves a name."""
+    if name is None or not _FLOW_NAME.fullmatch(name):
+        return 'inline'
+    name = name.split(':', 1)[0]          # a recovery belongs to its recipe
+    try:
+        from .library import builders
+        if name in builders():
+            return 'builtin'
+    except Exception:
+        pass
+    try:
+        from .store import default_directory
+        safe = ''.join(c for c in name if c.isalnum() or c in '_-')
+        if safe and os.path.lexists(os.path.join(default_directory(), safe + '.json')):
+            return 'library'
+    except Exception:
+        pass
+    return 'inline'
+
+
+def note_flow(name, source=None):
+    """Tie a flow run to the current task invocation, if there is one."""
+    binding = current.get()
+    if binding is not None:
+        binding.note_flow(name, source)
 
 
 def split_binding(argv, environ=None):
@@ -386,7 +458,7 @@ def bind(task_id, command, *, root=None, environ=None):
 # ---------------------------------------------------------------- CLI
 
 USAGE = ('usage: tacto task start "<goal>" [--json]\n'
-         '       tacto task status [<task-id>] [--json]\n'
+         '       tacto task status [<task-id>] [--steps] [--json]\n'
          '       tacto task list [--all] [--json]\n'
          '       tacto task end [<task-id>] --result done|failed|abandoned [--json]')
 
@@ -431,9 +503,14 @@ def main(args, *, root=None):
                       f"(or add --task {meta['id']}). Finish with: tacto task end {meta['id']} --result done|failed|abandoned")
             return 0
         if sub == 'status':
+            steps = '--steps' in rest
+            rest = [a for a in rest if a != '--steps']
             if any(a.startswith('--') for a in rest):
                 print(USAGE); return 2
             report = status(_resolve_id(rest), root=root)
+            if steps:
+                for item in report['invocations']:
+                    item['steps'] = invocation_steps(item)
             print(json.dumps(report, ensure_ascii=False) if as_json else _format_status(report))
             return 0
         if sub == 'list':
@@ -489,12 +566,62 @@ def _format_status(report):
         reason = f" {item['error']}" + (f"/{item['stage']}" if item['stage'] else '') if item['error'] else ''
         ms = f" {item['elapsed_ms']}ms" if item['elapsed_ms'] is not None else ''
         child = ' (child)' if item.get('parent') else ''
-        head.append(f"  {n:>3} {item['started_at']} {item['command']}{child} {targets} {result}{reason}{ms}")
+        flows = ''.join(f" flow={f['name'] or ('#' + f['ref'] if f.get('ref') else '(unnamed)')}[{f['source']}]"
+                        for f in item.get('flows') or [])
+        head.append(f"  {n:>3} {item['started_at']} {item['command']}{child}{flows} {targets} {result}{reason}{ms}")
+        steps = item.get('steps')
+        if steps is not None:
+            if not steps.get('available'):
+                head.append(f"        steps: {steps.get('reason', 'unavailable')}")
+            for k, step in enumerate(steps.get('steps') or [], 1):
+                what = step.get('operation', step['event'])
+                if step.get('action'):
+                    what += ':' + step['action']
+                tail = ' '.join(str(step[x]) for x in ('type', 'outcome', 'status', 'error', 'stage') if step.get(x))
+                head.append(f"        {k:>3} +{step.get('elapsed_ms', '?')}ms {what} {step.get('target', '-')} {tail}".rstrip())
+            if steps.get('truncated'):
+                head.append('        (step receipt truncated)')
     if c['uncertain']:
         head.append('uncertain = no end record and the process is gone: inspect the target before retrying.')
     if report['damaged_records']:
         head.append(f"damaged records skipped: {report['damaged_records']}")
     return '\n'.join(head)
+
+
+def invocation_steps(item):
+    """The content-free step receipts of one invocation, from its access log.
+
+    Only the access log named in the task record, only when it carries the
+    same invocation ID, and only the already content-free receipt fields.
+    """
+    from .access_log import log_directory, _NAMES
+    name = item.get('access_log')
+    if not isinstance(name, str) or not _NAMES.fullmatch(name):
+        return {'available': False, 'reason': 'no_access_log', 'steps': []}
+    try:
+        raw = _read_regular(Path(log_directory())/name, MAX_STEP_LOG_BYTES)
+    except FileNotFoundError:
+        return {'available': False, 'reason': 'access_log_removed', 'steps': []}
+    except (OSError, ValueError):
+        return {'available': False, 'reason': 'access_log_unreadable', 'steps': []}
+    keep = ('event', 'elapsed_ms', 'operation', 'target', 'action', 'type', 'outcome', 'status', 'error', 'stage')
+    steps, owner, truncated = [], None, False
+    for line in raw.split(b'\n'):
+        try:
+            row = json.loads(line)
+        except (ValueError, UnicodeError):
+            continue
+        if type(row) is not dict:
+            continue
+        if row.get('event') == 'command_start':
+            owner = row.get('invocation_id')
+        elif row.get('event') == 'log_truncated':
+            truncated = True
+        elif row.get('event') in ('access_end', 'task_result'):
+            steps.append({k: row[k] for k in keep if isinstance(row.get(k), (str, int)) and not isinstance(row.get(k), bool)})
+    if owner != item.get('invocation'):
+        return {'available': False, 'reason': 'access_log_mismatch', 'steps': []}
+    return {'available': True, 'steps': steps, 'truncated': truncated}
 
 
 GUIDE = ('A task groups every Tacto call made for one user goal. Start it first,\n'

@@ -9,7 +9,7 @@ it with a declared result. Agent usage: [skill reference](../skill/references/ta
 - A task is file-backed metadata under the product directory
   (`~/Library/Application Support/Tacto/Tasks/<task-id>/` on macOS): `task.json`
   (id, goal, state, result, timestamps) and `events.jsonl` (one start/end record
-  per bound invocation). Directories are 0700, files 0600, owner-checked and
+  per bound invocation, plus one `invocation_flow` record per flow it ran). Directories are 0700, files 0600, owner-checked and
   never followed through symlinks. Task IDs are `t-` + 24 hex digits and are
   validated before any path is built.
 - No daemon, lease or authorization. Helper connections, approvals, foreground
@@ -26,11 +26,28 @@ it with a declared result. Agent usage: [skill reference](../skill/references/ta
   across UI work.
 - Records are content-free like [access receipts](access-logging.md): command,
   invocation UUID, pid, parent invocation (for child invocations), access-receipt
-  filename, target bundle IDs, exit code, closed error/stage codes and elapsed
-  time. The goal sentence is the only free text and stays in `task.json`.
+  filename, target bundle IDs, exit code, closed error/stage codes, elapsed
+  time, and the flows each invocation ran. The goal sentence is the only free text and stays in `task.json`.
   Task records are written whenever a call is bound, independent of the access
   logging setting; the access receipt's `command_start` carries `task_id` and
   `invocation_id` when logging is on.
+- Flows: `flow.replay()` notes `flow.name` for the current invocation, so
+  `do`, `run`, `replay`, `session` and `batch` are covered without per-command
+  code (`parallel` children are separate invocations; the legacy in-process
+  `run_parallel` notes on the caller thread). Source is `builtin` (a library
+  builder), `library` (a saved flow file), `file` (`tacto run <path>`, noted
+  after argument checks, so a refused run notes nothing) or `inline`. The name
+  is copied only for `builtin`/`library` recipes (ASCII label, `base:recovery`
+  for a recovery of one); `file` and `inline` flows — whose names a model or a
+  file author chose and may echo the request — get `ref`, the first 12 hex of
+  SHA-256 of the name, so repeats line up without copying it. At most 16 per
+  invocation, first note per name wins. Recording a flow never fails the run.
+- `task status --steps` adds each invocation's step receipts: `access_end` and
+  `task_result` rows of the access receipt named in the task record, read only
+  when its `command_start` carries the same invocation ID (otherwise
+  `access_log_mismatch`; deleted receipts are `access_log_removed`). Only the
+  receipt's closed fields are shown (operation, target, action, type, outcome,
+  status, error, stage, elapsed). With access logging off there are no steps.
 - Status derives `ok`/`failed` from end records. A start without an end is
   `in_flight` while its pid is alive, otherwise `uncertain`; neither is evidence
   of success or permission to resend input. Partial trailing records are

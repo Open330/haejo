@@ -45,6 +45,10 @@ def run_parallel(flows: list[Flow], approvals: dict[str, dict] | None = None,
     if dupes:
         raise ValueError(f"parallel flows must target distinct apps; shared: {dupes}")
     outcomes: list[ParallelOutcome] = []
+    # Pool workers do not inherit the task binding; note the flows here.
+    from .task import note_flow
+    for f in flows:
+        note_flow(f.name)
 
     def _one(flow: Flow) -> ParallelOutcome:
         d = Driver()   # per-flow observation registry

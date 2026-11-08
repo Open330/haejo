@@ -1512,7 +1512,9 @@ def _dispatch_command(cmd, rest):
             print("invalid_flow: " + feedback(exc), file=sys.stderr)
             return 2
         walked = bool(flow.intents)
+        from .task import note_flow       # source=file, ahead of replay's name-only note
         if '--auto-repair' in rest:
+            note_flow(flow.name, 'file')
             return _run_flow(flow,rest,walked=walked,_auto_params=params)
         if flow.params or flow.tables or flow.derived or params:
             try:
@@ -1522,6 +1524,7 @@ def _dispatch_command(cmd, rest):
                 record_failure('invalid_parameters', 'load')
                 print('invalid_parameters: provide defaults in params or -p name=value; placeholders use {{name}}', file=sys.stderr)
                 return 2
+        note_flow(flow.name, 'file')
         return _run_flow(flow, rest, walked=walked)
 
     if cmd == "replay":

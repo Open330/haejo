@@ -23,8 +23,8 @@ belongs to that provider; do not route around it through Tacto.
 Before the first UI call for a user's goal, run `tacto task start "<goal>" --json`
 and keep its `task_id`. Prefix every Tacto command for that goal with
 `TACTO_TASK=<task_id>` (each tool call is a fresh shell, so set it per command;
-`--task <task_id>` also works). `tacto task status <task_id>` lists the calls so
-far; finish with `tacto task end <task_id> --result done|failed|abandoned`.
+`--task <task_id>` also works). `tacto task status <task_id>` lists the calls and
+flows so far (`--steps` adds each call's step receipts); finish with `tacto task end <task_id> --result done|failed|abandoned`.
 Details: [task](references/task.md).
 
 ## Start at the needed stage

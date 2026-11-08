@@ -8,7 +8,8 @@ tacto task start "계산기로 12×34 계산" --json
 # {"type":"task","task_id":"t-…","state":"open"}
 TACTO_TASK=t-… tacto observe com.apple.calculator --helper
 TACTO_TASK=t-… tacto session com.apple.calculator --helper --guide
-tacto task status t-…            # ordered calls, targets, outcome codes, timing
+tacto task status t-…            # ordered calls, flows run, targets, outcome codes, timing
+tacto task status t-… --steps    # …plus each call's step receipts (operation, target, result)
 tacto task end t-… --result done # done | failed | abandoned
 ```
 
@@ -20,6 +21,11 @@ tacto task end t-… --result done # done | failed | abandoned
   `show`, `compile`, …) need no task.
 - Each call still opens and releases its own helper connection, approval and
   keep-awake; the task carries grouping only.
+- Each call lists the flows it ran as `flow=<name>[source]`; source is
+  `builtin`, `library` (`tacto flows`), `file` (`tacto run <file>`) or `inline`
+  (compiled, learned or walked in that call). `file`/`inline` flows show
+  `flow=#<ref>` (a hash of the name) instead of the name. Child calls of `parallel` are
+  marked `(child)` and carry their own flows.
 - `status` states: `ok`, `failed` (with a closed error/stage code), `in_flight`
   (still running), `uncertain` (no end record and the process is gone — read the
   target's current state before any retry).

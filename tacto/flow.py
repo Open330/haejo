@@ -2414,6 +2414,10 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
     come from the driver. commit_expected contains host expectations fixed
     before execution; a receipt must never be reused as its own expectation.
     """
+    # Every flow path (do, run, replay, session, batch) runs through here, so a
+    # bound task learns which flow an invocation ran without each caller saying so.
+    from .task import note_flow
+    note_flow(flow.name)
     approvals = approvals or {}
     # Host registration is fixed for this replay and its selected branches.
     visual_scopes = dict(visual_scopes) if isinstance(visual_scopes, dict) else visual_scopes

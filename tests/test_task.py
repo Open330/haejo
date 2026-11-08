@@ -210,6 +210,126 @@ class TaskStoreTests(unittest.TestCase):
             tasks.current.reset(token)
         self.assertIsNone(tasks.bind(task_id, 'session', environ={'TACTO_TASK_PARENT': '../x'}).parent)
 
+    # ------------------------------------------------------------ flows and steps
+
+    def test_flow_runs_are_recorded_once_with_source(self):
+        task_id = tasks.start('goal')['id']
+        b = tasks.bind(task_id, 'session'); token = tasks.current.set(b)
+        try:
+            tasks.note_flow('ignored-before-admit')
+            b.admit()
+            tasks.note_flow('calc_multiply')              # a built-in recipe
+            tasks.note_flow('calc_multiply')              # nested replay: once
+            tasks.note_flow('my_saved', 'library')
+            tasks.note_flow('from-file', 'file')
+            tasks.note_flow('a b\n/../x')                 # not a recipe label
+            tasks.note_flow('calc_multiply:clear_first')  # a recovery of a kept recipe
+            for n in range(40):
+                tasks.note_flow(f'f{n}', 'inline')
+            b.finish(0)
+            tasks.note_flow('after-end', 'inline')
+        finally:
+            tasks.current.reset(token)
+        tasks.note_flow('unbound')                         # no task: no-op
+        flows = tasks.status(task_id)['invocations'][0]['flows']
+        self.assertEqual(tasks.MAX_FLOWS, len(flows))
+        import hashlib
+        ref = lambda n: hashlib.sha256(n.encode()).hexdigest()[:12]
+        self.assertEqual([{'name': 'calc_multiply', 'ref': None, 'source': 'builtin'},
+                          {'name': 'my_saved', 'ref': None, 'source': 'library'},
+                          {'name': None, 'ref': ref('from-file'), 'source': 'file'},
+                          {'name': None, 'ref': ref('a b\n/../x'), 'source': 'inline'},
+                          {'name': 'calc_multiply:clear_first', 'ref': None, 'source': 'builtin'}], flows[:5])
+        raw = (self.root/task_id/'events.jsonl').read_text()
+        self.assertNotIn('from-file', raw); self.assertNotIn('../x', raw)
+        text = tasks._format_status(tasks.status(task_id))
+        self.assertIn('flow=calc_multiply[builtin]', text)
+        self.assertIn(f"flow=#{ref('from-file')}[file]", text)
+        # A damaged row must not take status down.
+        with open(self.root/task_id/'events.jsonl', 'a') as fh:
+            fh.write(json.dumps({'event': 'invocation_flow', 'invocation': ['x']}) + '\n')
+            fh.write(json.dumps({'event': 'invocation_end', 'invocation': {'a': 1}}) + '\n')
+        self.assertEqual(tasks.MAX_FLOWS, len(tasks.status(task_id)['invocations'][0]['flows']))
+
+    def test_replay_engine_and_cli_run_note_the_flow(self):
+        from tacto.flow import Flow
+        task_id = tasks.start('goal')['id']
+        path = Path(self.tmp.name)/'mine.json'
+        path.write_text(Flow(name='typed_note', target='com.apple.TextEdit').to_json())
+        seen = []
+        def fake_run_flow(flow, argv, walked=False, **kw):
+            from tacto import flow as engine
+            class Nothing:
+                def __getattr__(self, name): raise AttributeError(name)
+            try:
+                engine.replay(Nothing(), flow)      # the note comes before any driver use
+            except AttributeError:
+                pass
+            seen.append(flow.name)
+            return 0
+        with patch.object(cli, '_run_flow', side_effect=fake_run_flow), \
+             patch('tacto.access_log.log_directory', lambda: Path(self.tmp.name)/'Logs'):
+            code, _ = self.run_cli('run', str(path), env={'TACTO_TASK': task_id})
+        import hashlib
+        self.assertEqual((0, ['typed_note']), (code, seen))
+        self.assertEqual([{'name': None, 'ref': hashlib.sha256(b'typed_note').hexdigest()[:12], 'source': 'file'}],
+                         tasks.status(task_id)['invocations'][0]['flows'])
+        # A flow refused at parameter binding never ran, so it is not noted.
+        with patch.object(Flow, 'bind', side_effect=ValueError('missing')), \
+             patch.object(cli, '_run_flow', side_effect=AssertionError('ran')), \
+             patch('tacto.access_log.log_directory', lambda: Path(self.tmp.name)/'Logs'):
+            code, _ = self.run_cli('run', str(path), '-p', 'n=1', env={'TACTO_TASK': task_id})
+        self.assertEqual(2, code)
+        self.assertEqual([], tasks.status(task_id)['invocations'][1]['flows'])
+        self.assertEqual(1, len(tasks.status(task_id)['invocations'][0]['flows']))
+
+    def test_legacy_parallel_notes_flows_on_the_caller_thread(self):
+        from tacto import parallel
+        from tacto.flow import Flow
+        task_id = tasks.start('goal')['id']
+        b = tasks.bind(task_id, 'parallel'); b.admit(); token = tasks.current.set(b)
+        class FakeDriver:
+            def _resolve(self, target, launch=False): return target
+        try:
+            with patch.object(parallel, 'Driver', FakeDriver), \
+                 patch.object(parallel, 'replay', lambda d, f, approvals=None: type('R', (), {'ok': True})()):
+                parallel.run_parallel([Flow(name='left', target='a.b'), Flow(name='right', target='c.d')])
+        finally:
+            tasks.current.reset(token)
+        import hashlib
+        self.assertEqual({hashlib.sha256(n).hexdigest()[:12] for n in (b'left', b'right')},
+                         {f['ref'] for f in tasks.status(task_id)['invocations'][0]['flows']})
+
+    def test_status_steps_reads_only_the_matching_receipt(self):
+        task_id = tasks.start('goal')['id']
+        logs = Path(self.tmp.name)/'Logs'
+        with patch('tacto.access_log.log_directory', lambda: logs):
+            from tacto.access_log import AccessLog
+            b = tasks.bind(task_id, 'observe')
+            log = AccessLog('observe', root=logs, task=b)
+            b.admit(log.path.name)
+            log.event('access_start', operation='act', target='com.apple.calculator', action='click')
+            log.event('access_end', operation='act', target='com.apple.calculator', action='click', type='acted')
+            log.task_result({'status': 'failed', 'error': 'target_missing', 'stage': 'resolve'})
+            log.finish(1); log.close(); b.finish(1, log)
+            other = tasks.bind(task_id, 'run'); other.admit(log.path.name)   # names someone else's log
+            other.finish(0)
+            gone = tasks.bind(task_id, 'run'); gone.admit('tacto-20260101T000000000000Z-' + 'a' * 32 + '.jsonl')
+            gone.finish(0)
+            code, out = self.run_cli('task', 'status', task_id, '--steps', '--json')
+            code2, text = self.run_cli('task', 'status', task_id, '--steps')
+        self.assertEqual((0, 0), (code, code2))
+        inv = json.loads(out)['invocations']
+        self.assertEqual([{'event': 'access_end', 'operation': 'act', 'target': 'com.apple.calculator',
+                           'action': 'click', 'type': 'acted'},
+                          {'event': 'task_result', 'status': 'failed', 'error': 'target_missing', 'stage': 'resolve'}],
+                         [{k: v for k, v in s.items() if k != 'elapsed_ms'} for s in inv[0]['steps']['steps']])
+        self.assertEqual(['access_log_mismatch', 'access_log_removed'],
+                         [inv[1]['steps']['reason'], inv[2]['steps']['reason']])
+        self.assertIn('act:click com.apple.calculator acted', text)
+        code, _ = self.run_cli('task', 'status', task_id, '--bogus')
+        self.assertEqual(2, code)
+
 
 if __name__ == '__main__':
     unittest.main()
