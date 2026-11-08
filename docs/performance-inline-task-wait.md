@@ -30,8 +30,8 @@ with the same document token.
 
 | Isolated host segment | Median |
 | --- | ---: |
-| Prior document polling | 1.005090 s |
-| Patched document polling | 0.000027 s |
+| Prior document polling | 1.005707 s |
+| Patched document polling | 0.000107 s |
 
 This measures removal of the fixed sleep immediately after an action. It is not
 an application end-to-end benchmark, a model latency result, or a comparison
