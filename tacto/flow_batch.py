@@ -138,6 +138,10 @@ def run_batch(args, *, make_driver, run_flow, stdin, emit, load_recipe=None):
         recipe=load_recipe(files[0]) if is_name else Flow.from_json(Path(files[0]).read_text())
     except (OSError,ValueError,TypeError,KeyError,RecursionError) as exc:
         emit('invalid_flow: '+feedback(exc));return 2
+    if recipe.target.startswith('ios:'):
+        emit(json.dumps({'type':'error','error':'ios_bridge_not_configured',
+                         'effect':'not_started'},separators=(',',':')))
+        return 2
     if '{{' in recipe.target or any(s.action in ('decide','visual') for s in every_step(recipe.steps)):
         emit('batch_requires_fixed_target_deterministic_flow; use run');return 2
     driver=None;completed=0;started=time.monotonic()

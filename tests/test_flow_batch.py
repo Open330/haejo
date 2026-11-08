@@ -56,6 +56,28 @@ class BatchTests(unittest.TestCase):
                                                 stdin=io.StringIO(),emit=messages.append,load_recipe=Mock()))
         make.assert_not_called()
 
+    def test_ios_file_and_saved_batches_refuse_before_driver_or_input(self):
+        from tacto.flow import Flow
+        doc=calculator_example()
+        doc['target']='ios://00000000-0000000000000000/com.example.OwnedCounter'
+        with tempfile.TemporaryDirectory() as directory:
+            source=Path(directory)/'ios.json';source.write_text(json.dumps(doc))
+            for platform,helper in (('darwin',['--helper']),('win32',[])):
+                for saved in (False,True):
+                    with self.subTest(platform=platform,saved=saved):
+                        make=Mock(side_effect=AssertionError('must not connect'))
+                        runner=Mock(side_effect=AssertionError('must not dispatch'))
+                        stdin=Mock();stdin.fileno.side_effect=AssertionError('must not read requests')
+                        messages=[];loader=Mock(return_value=Flow.from_json(json.dumps(doc)))
+                        with patch('tacto.flow_batch.sys.platform',platform):
+                            code=run_batch(['owned_ios' if saved else str(source),*helper],
+                                make_driver=make,run_flow=runner,stdin=stdin,
+                                emit=messages.append,load_recipe=loader)
+                        self.assertEqual(2,code)
+                        self.assertEqual([{'type':'error','error':'ios_bridge_not_configured',
+                                           'effect':'not_started'}],[json.loads(m) for m in messages])
+                        make.assert_not_called();runner.assert_not_called();stdin.fileno.assert_not_called()
+
     def test_windows_reads_requests_without_select(self):
         read,write=os.pipe()
         os.write(write,b'{"params":{}}\n');os.close(write)
