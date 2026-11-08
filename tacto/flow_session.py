@@ -382,6 +382,9 @@ def run_session(args, *, make_driver, run_flow, stdin, emit):
                           **result_options)
         for readback in observed_state:
             emit(MARKER + json.dumps(readback, separators=(',', ':')))
+            if save_path is None and len(flow.steps) == 1:
+                from .task import note_visible_document_result
+                note_visible_document_result(readback)
         timing['replay_done_seconds'] = time.monotonic() - started
         if result == 0 and save_path is not None:
             from .storage import write_private

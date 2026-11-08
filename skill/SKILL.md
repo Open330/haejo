@@ -20,12 +20,13 @@ belongs to that provider; do not route around it through Tacto.
 
 ## One task per goal
 
-Before the first UI call for a user's goal, run `tacto task start "<goal>" --json`
-and keep its `task_id`. Prefix every Tacto command for that goal with
-`TACTO_TASK=<task_id>` (each tool call is a fresh shell, so set it per command;
-`--task <task_id>` also works). `tacto task status <task_id>` lists the calls and
-flows so far (`--steps` adds each call's step receipts); finish with `tacto task end <task_id> --result done|failed|abandoned`.
-Details: [task](references/task.md).
+On the first UI command add `--task new --goal "<goal>"`. Keep the ID from
+`TACTO_TASK {"id":"t-…"}` and add `--task <id>` to subsequent UI commands
+(each tool call is a fresh shell). Add `--finish-task` to the final UI command;
+for a single-command goal combine all three options. No separate start/end
+calls are needed. Omit finish if more work remains. Inspect calls and receipts
+with `tacto task status <id> --steps` only when needed.
+Details and manual lifecycle controls: [task](references/task.md).
 
 ## Start at the needed stage
 

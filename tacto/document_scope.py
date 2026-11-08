@@ -212,7 +212,7 @@ class DocumentScopedDriver:
         deadline=time.monotonic()+timeout_ms/1000
         pages_checked = 0
         while True:
-            reply=self.observe(target)
+            reply=self.observe(target, _settle_after_action=False)
             if reply.get('type')!='observation':return reply
             if predicate(reply['tree']):return reply
             if search_pages and 'observe.continuation_v1' in self.capabilities:

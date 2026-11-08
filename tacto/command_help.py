@@ -155,7 +155,7 @@ def command_help(command, args):
         )
     if command == "session":
         text = (
-            "usage: tacto session <bundle-id> --helper [--document /absolute/path] [--guide | --reuse-guide] [--save /absolute/new.json] [--timings] [--idle-timeout 1..600]\n"
+            "usage: tacto session <bundle-id> --helper [--document /absolute/path] [--guide | --reuse-guide] [--save /absolute/new.json] [--timings] [--idle-timeout 1..600] [--task new --goal '<goal>' | --task <id>] [--finish-task]\n"
             "exec_command tty=true, yield_time_ms=1000; wait for observation and\n"
             "TACTO_SESSION_READY. write_stdin: one compact Flow JSON line + newline, yield_time_ms=5000.\n"
             "Poll the same session. One flow then exit. --document pins one TextEdit file.\n"
