@@ -141,6 +141,7 @@ def run_batch(args, *, make_driver, run_flow, stdin, emit, load_recipe=None):
     if '{{' in recipe.target or any(s.action in ('decide','visual') for s in every_step(recipe.steps)):
         emit('batch_requires_fixed_target_deterministic_flow; use run');return 2
     driver=None;completed=0;started=time.monotonic()
+    from .execution_summary import interruption_summary
     try:
         driver=BatchDriver(make_driver(list(helper)))
         with flow_input_mode(stdin.fileno()):
@@ -168,22 +169,38 @@ def run_batch(args, *, make_driver, run_flow, stdin, emit, load_recipe=None):
                 driver.begin_job()
                 run_started=time.monotonic()
                 calls_before=auto_repair.calls if auto_repair is not None else 0
+                replayed=[]
+                def checked_run_flow(*positional,**options):
+                    offset=0 if auto_repair is None else len(bound.steps)-len(positional[0].steps)
+                    replayed.append((None,offset))
+                    previous=options.get('_result_observer')
+                    def observe_result(result):
+                        replayed[-1]=(result,offset)
+                        if previous is not None:previous(result)
+                    return run_flow(*positional,**dict(options,_result_observer=observe_result))
+                def summary():
+                    result,offset=replayed[-1] if replayed else (None,0)
+                    return interruption_summary(result,len(bound.steps),step_offset=offset,failed=True)
                 try:
                     if auto_repair is None:
-                        code=run_flow(bound,flags,_driver=driver,_confirm=lambda description:False)
+                        code=checked_run_flow(bound,flags,_driver=driver,_confirm=lambda description:False)
                     else:
                         code,learned=auto_repair.run(recipe,record['params'],flags,
-                            driver=driver,run_flow=run_flow,emit=emit)
+                            driver=driver,run_flow=checked_run_flow,emit=emit)
                         if code==0:recipe=learned
                 except Exception:
                     # Transport/unknown completion is not a retry instruction.
                     emit('TACTO_BATCH_STOP runtime_error; inspect current state, do not resend')
+                    emit('TACTO_BATCH_RESULT '+json.dumps({'job':number,'exit':1,
+                        **summary()},separators=(',',':')))
                     return 1
                 if type(code) is not int or code not in (0,1,2,3):
                     emit('TACTO_BATCH_STOP invalid_runtime_result');return 1
                 result = {'job':number,'exit':code,
                     'seconds':round(time.monotonic()-run_started,6),
                     'model_requests':auto_repair.calls-calls_before if auto_repair is not None else 0}
+                result.update(summary() if code else
+                              {'failed_step':None,'remaining_steps':0,'next':None})
                 if code != 0 and repair_path is not None and Path(repair_path).is_file():
                     result['repair_packet'] = repair_path
                 emit('TACTO_BATCH_RESULT '+json.dumps(result,separators=(',',':')))

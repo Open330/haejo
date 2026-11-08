@@ -524,6 +524,9 @@ class GeneralResult:
     visual_history: list[dict] = field(default_factory=list)
     observation_pages: int = 0  # successful read-only continuation observations
     observation_searches: int = 0  # targeted read-only native label lookups
+    # Trusted host/audit metadata, never a planner's claim of autonomy.
+    human_intervened: bool = False
+    initial_constraints: dict = field(default_factory=dict)
 
     @property
     def did(self) -> list[str]:

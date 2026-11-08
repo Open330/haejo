@@ -1,0 +1,248 @@
+{
+  "at": "2026-11-06T01:57:13.882071+00:00",
+  "branch": "spike/ios-poki-20261106",
+  "base_revision": "21abec64108fed926ec4a1d7047077ade33245f7",
+  "uncommitted": true,
+  "push_performed": false,
+  "deployment_performed": false,
+  "checks": {
+    "python_related_tests": {
+      "passed": 175,
+      "skipped": 0,
+      "seconds": 4.788,
+      "includes_compiled_native_gesture_fault_tests": 5,
+      "run_at": "2026-11-06T03:32:00.311511+00:00"
+    },
+    "rust_fmt_check": "passed",
+    "cargo_check_locked": "passed",
+    "cargo_capabilities_probe": "passed",
+    "usbmux_discovery": {
+      "device_count": 1,
+      "connection_count": 1,
+      "input_sent": false
+    },
+    "upstream_license_digest": "matched",
+    "git_diff_check": "passed",
+    "native_ax_request_boundary_tests": {
+      "passed": 4,
+      "skipped": 0,
+      "seconds": 0.388,
+      "input_sent": false,
+      "run_at": "2026-11-06T03:32:00.311511+00:00"
+    },
+    "swift_ax_spike_build": "passed",
+    "rust_checks_rerun": false,
+    "rust_checks_note": "Prior Rust checks retained; Rust sources and lockfile unchanged in this follow-up."
+  },
+  "physical_ax_tap_receiving_test": {
+    "performed": false,
+    "reason": "pre_input_pid_mismatch_followed_by_device_unavailable"
+  },
+  "source_sha256": {
+    "README.md": "b35bdf0edf5ebef4eb31927b24c3e44eac112b48239431695ed2e3d09d142fb6",
+    "docs/capabilities.md": "741372bffe8203b6b42a76beb119d303ed6a89979babb45aa9ea9c24c29b8f40",
+    "docs/ios-spike.md": "429f900e77823f5089700628905905a08a83b6fafde80f03c45966082689185e",
+    "spike/ios-ax-bridge/.gitignore": "acc718146d21aae829cba1761475e05de39d73209d83af2ab8487a74843cead0",
+    "spike/ios-ax-bridge/Package.swift": "3d2e934e29a4eec0d4c1404a5a3b946d9804927d3d22b74eb7e16fb5134d918a",
+    "spike/ios-ax-bridge/README.md": "03e9a200d9051587735bf397aeacde39173f0db05fd9a5134f8cb8c1984b4ecc",
+    "spike/ios-ax-bridge/Sources/FixtureAX.swift": "4a8add69399765147137f15a8c8b583536f2270be078d058161988028e5ea3f1",
+    "spike/ios-ax-bridge/Sources/FixtureServices.swift": "e92c6bf143cd60c7c0aca8350585821ca6dc6ba7f4762ca4fe4520369360e5ed",
+    "spike/ios-ax-bridge/Sources/OneGesture.swift": "5a265c848e93587ce12850ea0bc4d200fbd67738fb66523843747147279eb133",
+    "spike/ios-ax-bridge/Sources/OwnedCounter.swift": "fb406647d5e4c5f57c7c5229a36c17ce05d2c1c5c5adfd43134d73c2e3ad5761",
+    "spike/ios-ax-bridge/Sources/main.swift": "9062a315498bb414491c90234425af852b6a22d0cd041de39833e6e5c5786a71",
+    "spike/ios-ax-bridge/THIRD_PARTY_LICENSE.txt": "5d66232624e37381b1a6e5badb2b1c331fcd7b30b5db49b1b121eeb739405772",
+    "spike/ios-ax-bridge/Vendor/CDTXBridge/IUDTXConnection.m": "f688adfd36ffab5e18e535f337ece4bab75edd250119e97bc7ba052c876657eb",
+    "spike/ios-ax-bridge/Vendor/CDTXBridge/include/IUDTXConnection.h": "b657fec111c6b40275d0ca8e708d55f7f7d4c857b5977b7a89e9770bab3179a6",
+    "spike/ios-ax-bridge/Vendor/CMobileDevice/CMobileDevice.c": "3233bbd14d506816d4f431cf9bd76e8e9a4cd08a508034677d7e5b686cce3990",
+    "spike/ios-ax-bridge/Vendor/CMobileDevice/include/CMobileDevice.h": "6045d3e6cfe7ae68b8217732df2a0fbb846d9f423e886c3f6b8c7b825e8dc4f7",
+    "spike/ios-ax-bridge/Vendor/Transport/AXWalker.swift": "7c0831a02da8bb6afbfa925f5a9f06349f1dd868ddfdf998ae13ece25f5d94ab",
+    "spike/ios-ax-bridge/Vendor/Transport/AXWire.swift": "f6627ed0ca58e7a0998ad5c6720af3e1e629671383f6eb9beb52e52a7fa56356",
+    "spike/ios-ax-bridge/Vendor/Transport/MobileDevice.swift": "c81abf059bcdbd271eef371eafe80e33b17a42558fd4ea23c484480680f53363",
+    "spike/ios-ax-bridge/Vendor/Transport/Remote/CoreDeviceClient.swift": "8dbd79b6a6fc4f7228926a96e9ec2b7e0c469e5fdabc074a024e33e01ed0b4de",
+    "spike/ios-ax-bridge/Vendor/Transport/Remote/CoreDeviceService.swift": "2ef5ab5b0ec54364134d5940b8e1699477c7d0c23439751a61b7c2512afebae3",
+    "spike/ios-ax-bridge/Vendor/Transport/Remote/HTTP2.swift": "17a3b66eeaf1259f0ec0ee6bf21567da19079debca4f42a8074b510063d72b2b",
+    "spike/ios-ax-bridge/Vendor/Transport/Remote/RemoteXPCConnection.swift": "859b3e26033373b2a464fb731feb3aaf52d5c7374ac8aac600b60a4f0641d234",
+    "spike/ios-ax-bridge/Vendor/Transport/Remote/ScreenCapture.swift": "d217e7b7a156fa470ea7c0a0c9f412e2d310848805454a7aa390d0f03791d37b",
+    "spike/ios-ax-bridge/Vendor/Transport/Remote/XPCObject.swift": "627e63ca0e26003f2c2cb11ceb87e84c89fb88b8703c4efc6832bd6f0fd29807",
+    "spike/ios-ax-bridge/Vendor/Transport/Remote/XPCWrapper.swift": "6c752a5f4c634e3e2f6013470db58d2051b03855778ae8bda4d4a9bb125374aa",
+    "spike/ios-ax-bridge/counter_fixture.py": "c2c3ad7b37ef272963e2c65925ba74453ea6856b6b427b472cce1dffe5f864b1",
+    "spike/ios-ax-bridge/qualify_owned_counter.py": "c5edd7a14c9d1c1dc2424959f0647256201da2eaaf485dc93663c3bc305d09d0",
+    "spike/ios-ax-bridge/upstream.json": "d4d0fddfefa8842f1b0d8517de70d761a7fe799e1bb317534e635d2de3920597",
+    "spike/ios-idevice/.gitignore": "306fd52e74fca6746e12acc750f232de15e71da917756a1270d74c91f5eb7368",
+    "spike/ios-idevice/Cargo.lock": "329a56386124353eb040dfaea31774c39f13e0ef873856396c04c358e67b8929",
+    "spike/ios-idevice/Cargo.toml": "e74f5cff457b14c0e8a0c10abae65a1db995192d1fdd11e28691334497ed4de8",
+    "spike/ios-idevice/README.md": "e9f648b2e1e77d8e61abedff0b5311b32aed315afa45510e71408ee6095fc651",
+    "spike/ios-idevice/src/main.rs": "6c027773c42819d898c0cd117e8ca545641882b821f4bcb300d085e719924de2",
+    "spike/ios-idevice/upstream.json": "24d7944f0e3bc8276f74c7c8d8f72fb80aa449f82ea90f48a81c904072fcfde5",
+    "tacto/cli.py": "e54571670555e42e300e28ae9fcdaf10e0a2519c1c29f16613942ca51cd38d9b",
+    "tacto/execution_summary.py": "8285d6adac97770dd6d6224f703d13c9bc2a91e67024f508bb470a35f417cf0c",
+    "tacto/flow.py": "3735367e70d7da086fd9838fac1fff13b0bf0448a4f378f85a831ebde758d1d8",
+    "tacto/flow_batch.py": "63f934e2add2a6f294cd83e875fc4c691238c0bfca954c580d57694bd85428e8",
+    "tacto/general.py": "15e99527bafe57467acaab13ec1563c319d6b7f3d47d16de1a7a5da0a87b56ff",
+    "tacto/ios_ax_probe.py": "4188f152881b3c3e3c0df3079b52ef9462da7ea36431d572f1229e953013ea90",
+    "tacto/ios_driver.py": "93c1d74c7e3114a0992bf12c7100ce32f5bbd29e737b74274286ca2bddb2f788",
+    "tacto/promote.py": "62960b4c08c26fd34fc285220e19a8f7fd31208371b5511d2370593a3e6db251",
+    "tacto/protocol.py": "796da3f8d3aa277605c01e61dfbfabe0a664d7b1dd577a1115bc4d0f7d7eabe6",
+    "tests/test_flow_batch.py": "ca62f85ae2f8a96e8544c1cbfec63cad3f2b3e067627053c2150cf552a0bc5db",
+    "tests/test_ios_ax_probe.py": "c63986e5b56ae26a574075cc80ad5e97af203c32176781160d45363d1b8e00bf",
+    "tests/test_ios_ax_probe_native.py": "dd17f5eb32e8229e9694cc68ef40ad7a38d23f3e7afbdc0cd42ace23586b4e27",
+    "tests/test_ios_counter_fixture.py": "a797d4777089c918195eadd95380e58ef51d733a7f9e03241dfa2991e93d6757",
+    "tests/test_ios_driver.py": "36eff2b0c39e24d52ee92e39b6b7ade7ed1fcd3be18f0d907b09934d9e8ec856",
+    "tests/test_ios_gesture_native.py": "05fa402d6b509519a0da13059783af5d52fb1a77d826a68a3acc9c5f08c6ca73",
+    "tests/test_ios_owned_counter.py": "e8c96559090a8797340b7bc79b0ac1fe4328b3d958c4dd87d9707edb9ac53bb4",
+    "tests/test_poki_execution_guards.py": "a46880690fba909cc59f146f1b977905c932409d8053a2cf08cb32ddde30d1d7"
+  },
+  "additional_guards": [
+    "failed_observation_and_session_close_invalidate_indices",
+    "authorization_preserves_original_input_binding",
+    "transport_identity_churn_does_not_reset_screen_progress",
+    "cleanup_failure_preserves_receipts_without_overall_success"
+  ],
+  "local_discovery_host": "jiun-MBP.local",
+  "remote_device_check": {
+    "target_host": "june-mba",
+    "observed_host": "june-MBA.local",
+    "attempted_at": "2026-11-06T02:14:50.967359+00:00",
+    "status": "read_only_device_metadata_verified",
+    "ssh": "connected",
+    "previous_attempt": {
+      "status": "host_unreachable",
+      "attempted_at": "2026-11-06T02:05:52.803550+00:00"
+    },
+    "physical_device_queried": true,
+    "physical_device_count": 1,
+    "model": "iPhone 15 Pro",
+    "os_version": "27.2",
+    "xcode_version": "27.2",
+    "pairing_state": "paired",
+    "developer_mode": "enabled",
+    "transport": "localNetwork",
+    "tunnel_state": "disconnected",
+    "ddi_services_available": false,
+    "ddi_metadata_is_usable": true,
+    "ddi_content_is_compatible": true,
+    "ddi_auto_mount_requested": false,
+    "passcode_required": false,
+    "unlocked_since_boot": true,
+    "usb_iphone_rows": 0,
+    "accessibility_inspector": {
+      "launched": true,
+      "mac_ax_observed": true,
+      "device_target_children_observed": 0,
+      "iphone_ax_verified": false,
+      "capture_error": "window_missing_or_ambiguous",
+      "window_title_empty": true
+    },
+    "iphone_input_sent": false,
+    "iphone_apps_installed": false,
+    "physical_ax_tap_receiving_verified": false,
+    "local_discovery_is_not_remote_device_evidence": true,
+    "limitations": [
+      "Lock metadata does not prove UI Automation authorization or accessibility readiness.",
+      "Compatible DDI metadata does not prove an active mounted developer service.",
+      "Inspector exposed an empty Device Target list; absence of children does not prove the device cannot be inspected.",
+      "No bridge was deployed to the remote host."
+    ]
+  },
+  "updated_at": "2026-11-06T03:32:00.311511+00:00",
+  "physical_qualification_attempt": {
+    "host": "june-MBA.local",
+    "date": "2026-11-06",
+    "xcode_version": "27.2",
+    "xcode_cli_build": "27B52",
+    "model": "iPhone 15 Pro",
+    "ios_version": "27.2",
+    "production_installation_replaced": false,
+    "temporary_native_probe_executed": true,
+    "remote_executed_binary_sha256": "58e662d237ed5a61274dc47a4b597e80d22e9190d96c72af463ed8bd079e7793",
+    "remote_executed_binary_is_earlier_than_final_source_snapshot": true,
+    "ddi_auto_mount_command_requested": true,
+    "ddi_command_exit": 0,
+    "ddi_command_success_is_not_mount_proof": true,
+    "mobiledevice_lockdown": {
+      "capability_count": 45,
+      "root_element_read": true,
+      "label_nonnull": true,
+      "whole_tree_verified": false
+    },
+    "coredevice_ax_shim": {
+      "status": "failed",
+      "stage": "ax_service_socket",
+      "reason": "device_connection_unavailable"
+    },
+    "devicehub_view_screen_pressed": true,
+    "after_view_screen": {
+      "tunnel": "connected",
+      "ddi_services_available": true,
+      "discovery_transport": "localNetwork"
+    },
+    "coredevice_services": {
+      "display_info_read": true,
+      "hid_http2_ping": true,
+      "hid_touch_reports_sent": 0,
+      "current_device_orientation": "portrait",
+      "current_nonflat_orientation": "portrait",
+      "panel_orientation": "rot0",
+      "display_pixels": [
+        1179,
+        2556
+      ]
+    },
+    "fixture": {
+      "temporary_http_server_started": true,
+      "safari_launch_succeeded": true,
+      "expected_pid_source": "devicectl_launch_result",
+      "prepare_only_result": "refused",
+      "refusal_stage": "owned_counter_pid",
+      "pid_mismatch_cause": "unresolved",
+      "later_probe_failure_stage": "usb_lockdown_service",
+      "button_geometry_physically_verified": false,
+      "physical_tap_sent": false,
+      "receiving_event_count": 0,
+      "receiving_pointer_types": [],
+      "fixture_server_stopped": true,
+      "native_workers_remaining": 0
+    },
+    "latest_discovery": {
+      "at": "2026-11-06T03:30:24.046655+00:00",
+      "devicectl_exit": 0,
+      "pairing": "paired",
+      "tunnel": "unavailable",
+      "ddi_services_available": false,
+      "transport": null
+    },
+    "physical_ax_one_tap_receiving_test": "incomplete",
+    "physical_fault_injection": "not_performed",
+    "human_intervention_audited": false,
+    "promotion_allowed": false,
+    "next": [
+      "Restore device connectivity and keep screen unlocked.",
+      "Resolve the focus-PID mismatch without relaxing target binding.",
+      "Run owned-counter preflight, then exactly one journal-bound gesture and AX/HTTP readback.",
+      "Qualify physical reply-loss/disconnect and USB/network paths separately."
+    ]
+  },
+  "peer_reviews": [
+    {
+      "request_id": "req_18e55484bdef0468_33",
+      "status": "completed",
+      "mode": "read_only"
+    },
+    {
+      "request_id": "req_18e554f1441ff418_3f",
+      "status": "completed",
+      "mode": "read_only"
+    },
+    {
+      "request_id": "req_18e555a12e5c2cb8_54",
+      "status": "completed",
+      "mode": "read_only"
+    },
+    {
+      "request_id": "req_18e55668118b8738_67",
+      "status": "completed",
+      "mode": "read_only"
+    }
+  ],
+  "source_snapshot_at": "2026-11-06T03:32:00.311511+00:00"
+}

@@ -31,6 +31,20 @@ from .contract import ContextBinding, Envelope, policy
 from .flow import Capture, Flow, Postcondition, Selector, Step, pin_params, literal_step, literal_text, _RuntimeText, _RuntimeReference
 
 
+def route_key(request, target, target_identity, initial_constraints):
+    """Exact request/context identity; never fuzzy-match or grant replay rights."""
+    import hashlib, json
+    if not isinstance(request,str) or not isinstance(initial_constraints,dict):
+        raise ValueError('invalid_route_context')
+    try:
+        value=json.dumps([request,target,target_identity,initial_constraints],sort_keys=True,
+                         ensure_ascii=True,allow_nan=False,separators=(',',':'))
+    except (TypeError,ValueError,RecursionError):
+        raise ValueError('invalid_route_context') from None
+    if len(value)>65536:raise ValueError('route_context_over_budget')
+    return hashlib.sha256(value.encode()).hexdigest()
+
+
 @dataclass
 class Candidate:
     """A path that worked once, written down. Not a recipe.
@@ -49,6 +63,8 @@ class Candidate:
     # Steps the walk took that the recipe does not need — kept, not replayed,
     # so what was left out can be seen and argued with.
     explored: list = field(default_factory=list)
+    human_intervened: bool = False
+    initial_constraints: dict = field(default_factory=dict)
 
     def same_path_as(self, other: "Candidate") -> bool:
         """Two runs did the same job.
@@ -60,6 +76,9 @@ class Candidate:
         """
         return (self.target == other.target
                 and self.target_identity == other.target_identity
+                and route_key('',self.target,self.target_identity,self.initial_constraints)
+                    == route_key('',other.target,other.target_identity,other.initial_constraints)
+                and self.human_intervened is other.human_intervened
                 and self.screens == other.screens
                 and [(a["do"], a["match"], a.get('key') if a['do']=='press_key' else None,
                       a.get('window_key_bound') if a['do']=='press_key' else None) for a in self.actions]
@@ -77,6 +96,8 @@ def candidate_from(result, target: str, goal: str, quote: str = "",
     """
     if getattr(result, 'visual_used', False):
         return None  # A pixel plan needs fresh image reasoning, not an AX selector replay.
+    if getattr(result,'human_intervened',False) is not False:
+        return None
     if not (result.ok and result.verified) or getattr(result, "identity_changed", False):
         return None
     actions = [a for v in result.visits for a in v.actions if a.get("match")]
@@ -89,10 +110,14 @@ def candidate_from(result, target: str, goal: str, quote: str = "",
     if any(a.get("do") == "submit" for a in actions):
         return None
     kept, explored = without_exploration(actions)
+    from copy import deepcopy
+    constraints=deepcopy(getattr(result,'initial_constraints',{}))
+    route_key(goal,target,target_identity,constraints)
     return Candidate(goal=goal, target=target, quote=quote,
                      screens=list(result.path), actions=kept, explored=explored,
                      envelope=envelope, verified=True,
-                     target_identity=getattr(result, "target_identity", None) or target_identity)
+                     target_identity=getattr(result, "target_identity", None) or target_identity,
+                     initial_constraints=constraints)
 
 
 def without_exploration(actions: list) -> tuple[list, list]:
@@ -299,6 +324,8 @@ def gate(c: Candidate, flow: Flow, request: str, lifted=frozenset()) -> list[str
     why: list[str] = []
     if not c.verified:
         why.append("결과를 확인한 실행이 아닙니다")
+    if c.human_intervened is not False:
+        why.append("사람 개입이 있거나 개입 상태가 불명확한 실행은 승격하지 않습니다")
     if not flow.steps:
         why.append("단계가 없습니다")
     env = c.envelope or Envelope.minimal()
@@ -548,18 +575,26 @@ class CandidateStore:
         import json
         import os
         prior = self.get(name)
+        context_key=route_key(request,c.target,c.target_identity,c.initial_constraints)
+        prior_key = None
+        if prior:
+            prior_candidate=prior.get('candidate',{})
+            prior_key=prior.get('route_key') or route_key(prior.get('request',''),prior_candidate.get('target'),
+                prior_candidate.get('target_identity'),prior_candidate.get('initial_constraints',{}))
         runs = 1
-        if prior and Candidate(**{k: v for k, v in prior["candidate"].items()
+        if prior and prior_key==context_key and Candidate(**{k: v for k, v in prior["candidate"].items()
                                   if k != "envelope"},
                                envelope=c.envelope).same_path_as(c):
             runs = prior.get("runs", 1) + 1
         flow, why = deployable(c, name, request)
         rec = {
             "name": name, "runs": runs, "request": request,
+            "route_key":context_key,
             "candidate": {"goal": c.goal, "target": c.target, "quote": c.quote,
                           "target_identity": c.target_identity,
                           "screens": c.screens, "actions": c.actions,
-                          "explored": c.explored, "verified": c.verified},
+                          "explored": c.explored, "verified": c.verified,
+                          "human_intervened":c.human_intervened,"initial_constraints":c.initial_constraints},
             "parameters": parameters(c),
             "blocked_by": why,
             "flow": json.loads(flow.to_json()) if flow else None,

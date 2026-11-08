@@ -111,6 +111,28 @@ class BatchTests(unittest.TestCase):
         runner=Mock(return_value=0)
         code,app,make,msg=self.execute('{"params":{}}\n'*4,args=['--max-jobs','2'],runner=runner)
         self.assertEqual(0,code);self.assertEqual(2,runner.call_count)
+    def test_interruption_reports_failed_step_without_resume_authority(self):
+        from tacto.flow import ReplayResult
+        def runner(flow,flags,**kwargs):
+            result=ReplayResult();result.record(status='error',step=2,error='postcondition_timeout')
+            kwargs['_result_observer'](result)
+            return 1
+        code,app,make,messages=self.execute('{"params":{}}\n'*2,runner=runner)
+        report=json.loads(next(m.removeprefix('TACTO_BATCH_RESULT ') for m in messages if m.startswith('TACTO_BATCH_RESULT ')))
+        self.assertEqual(1,code);self.assertEqual(2,report['failed_step'])
+        self.assertGreater(report['remaining_steps'],0);self.assertFalse(report['next']['automatic_resume'])
+    def test_repair_suffix_failure_maps_back_to_original_flow(self):
+        from tacto.flow import ReplayResult
+        def repair(self,recipe,params,flags,*,driver,run_flow,emit):
+            segment=recipe.bind();segment.steps=segment.steps[2:]
+            return run_flow(segment,flags,_driver=driver,_confirm=lambda _:False),recipe
+        def runner(segment,flags,**kwargs):
+            result=ReplayResult();result.record(status='error',step=1,error='target_missing')
+            kwargs['_result_observer'](result);return 1
+        with patch('tacto.auto_repair.AutoRepair.run',new=repair):
+            code,app,make,messages=self.execute('{"params":{}}\n',args=['--auto-repair','codex'],runner=runner)
+        report=json.loads(next(m.removeprefix('TACTO_BATCH_RESULT ') for m in messages if m.startswith('TACTO_BATCH_RESULT ')))
+        self.assertEqual(1,code);self.assertEqual(3,report['failed_step'])
     def test_invalid_limits_and_target_or_model_changes_refuse_before_connection(self):
         for args in (['--max-jobs','0'],['--max-jobs','1001'],['--idle-timeout','0'],['--yes'],['--document','/tmp/doc']):
             code,app,make,msg=self.execute('',args=args)
@@ -120,7 +142,7 @@ class BatchTests(unittest.TestCase):
         doc=calculator_example();doc['steps']=[{'action':'decide','params':{'into':'choice','question':'Which?','choices':['a','b']}}]
         code,app,make,msg=self.execute('',doc=doc);self.assertEqual(2,code);make.assert_not_called()
     def test_foreground_latch_is_kept_across_jobs(self):
-        def runner(flow,args,_driver,_confirm):
+        def runner(flow,args,_driver,_confirm,_result_observer=None):
             self.assertFalse(_confirm('approve'))
             _driver.inner.act=Mock(return_value={'type':'acted','activated_target':True})
             _driver.act('obs','app',{'name':'click'})

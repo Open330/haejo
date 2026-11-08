@@ -1,0 +1,15 @@
+{
+  "repository": "https://github.com/jkcoxson/idevice",
+  "revision": "89702099f4d7552f704f93b4526756abda319ceb",
+  "license": "MIT",
+  "license_url": "https://github.com/jkcoxson/idevice/blob/89702099f4d7552f704f93b4526756abda319ceb/LICENSE.txt",
+  "license_sha256": "131488ce7e302b9f62e3236793e57c86a208d3dfaf03e6d7d03ddc0fc82392ed",
+  "dependency_features": [
+    "usbmuxd",
+    "ring",
+    "display_stream"
+  ],
+  "live_ax_snapshot_implemented": false,
+  "poki_code_copied": false,
+  "scope": "read-only connection/API probe; Python IOSSession is a host-provided contract, not a live bridge"
+}
