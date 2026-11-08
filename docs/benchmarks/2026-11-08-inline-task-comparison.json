@@ -1,0 +1,467 @@
+{
+  "scope": "fresh independent conversations; identical signed rc29 native binaries and Python3.11; before a861027 and after 8adc961 Python+skill; three counterbalanced rounds",
+  "requested_model": "gpt-6.1-sol",
+  "requested_reasoning_effort": "medium",
+  "timeout_seconds": 180,
+  "arms": {
+    "before": {
+      "runs": 3,
+      "passed": 3,
+      "median_seconds": 59.3,
+      "input_tokens": 583233,
+      "uncached_input_tokens": 40897,
+      "output_tokens": 2907,
+      "tool_items": [
+        5,
+        5,
+        5
+      ],
+      "standalone_task_commands": [
+        2,
+        2,
+        2
+      ],
+      "document_replay_median_seconds": 1.425395334023051,
+      "task_groups_closed_done": 3
+    },
+    "after": {
+      "runs": 3,
+      "passed": 3,
+      "median_seconds": 43.1,
+      "input_tokens": 403388,
+      "uncached_input_tokens": 41276,
+      "output_tokens": 2497,
+      "tool_items": [
+        3,
+        3,
+        3
+      ],
+      "standalone_task_commands": [
+        0,
+        0,
+        0
+      ],
+      "document_replay_median_seconds": 0.4155642500263639,
+      "task_groups_closed_done": 3
+    },
+    "sky": {
+      "runs": 3,
+      "passed": 3,
+      "median_seconds": 32.7,
+      "input_tokens": 426741,
+      "uncached_input_tokens": 35957,
+      "output_tokens": 1882,
+      "tool_items": [
+        6,
+        6,
+        6
+      ],
+      "standalone_task_commands": [
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "limitations": [
+    "Three samples per arm; no statistical certainty or universal speed claim.",
+    "Actual serving model, cache behavior and billing are not verified.",
+    "Harness strict responsibility/TCC eligibility exclusions are retained separately from observed task success.",
+    "Common native binaries pinned to rc29 def0e9c; this isolates Python/skill changes and is not a newly packaged release test.",
+    "No builds or regression suites overlap model runs."
+  ],
+  "paired_time_change_percent": [
+    -27.926421404682266,
+    -40.80560420315237,
+    -16.35750421585159
+  ],
+  "agent_config_identical_across_cohorts": true,
+  "before_source": "a861027",
+  "after_source": "8adc961",
+  "native_source": "rc29 def0e9c, same signed binaries in both Tacto conditions",
+  "trial_count": 9,
+  "task": "Calculator 23 × 19 → exact 437 in evaluator-owned TextEdit document; no Save requested",
+  "rows": [
+    {
+      "cycle": 0,
+      "cohort": "before",
+      "status": "passed",
+      "seconds": 59.8,
+      "tokens": {
+        "scope": "single reported turn.completed usage",
+        "status": "reported",
+        "input_tokens": 194403,
+        "cached_input_tokens": 183936,
+        "uncached_input_tokens": 10467,
+        "output_tokens": 968,
+        "total_tokens": 195371,
+        "event_count": 1,
+        "stream_complete": true,
+        "cost_usd": null,
+        "billing_verified": false
+      },
+      "completed_tool_items": {
+        "shell:other": 1,
+        "shell:tacto": 4
+      },
+      "completed_tool_total": 5,
+      "standalone_task_management_commands": 2,
+      "inline_start_commands": 0,
+      "inline_finish_commands": 0,
+      "document_replay_seconds": 1.4704126660362817,
+      "document_author_wait_seconds": 12.781702041975223,
+      "foreground_changes": 0,
+      "oracle_passed": true,
+      "cleanup_status": "completed",
+      "comparison_eligible": false,
+      "comparison_exclusion_reason": "agent_responsibility_not_isolated_or_observed",
+      "runtime_evidence_stable": true
+    },
+    {
+      "cycle": 0,
+      "cohort": "after",
+      "status": "passed",
+      "seconds": 43.1,
+      "tokens": {
+        "scope": "single reported turn.completed usage",
+        "status": "reported",
+        "input_tokens": 133878,
+        "cached_input_tokens": 122496,
+        "uncached_input_tokens": 11382,
+        "output_tokens": 808,
+        "total_tokens": 134686,
+        "event_count": 1,
+        "stream_complete": true,
+        "cost_usd": null,
+        "billing_verified": false
+      },
+      "completed_tool_items": {
+        "shell:other": 1,
+        "shell:tacto": 2
+      },
+      "completed_tool_total": 3,
+      "standalone_task_management_commands": 0,
+      "inline_start_commands": 1,
+      "inline_finish_commands": 1,
+      "document_replay_seconds": 0.4327636659727432,
+      "document_author_wait_seconds": 4.292286917043384,
+      "foreground_changes": 0,
+      "oracle_passed": true,
+      "cleanup_status": "completed",
+      "comparison_eligible": false,
+      "comparison_exclusion_reason": "agent_responsibility_not_isolated_or_observed",
+      "runtime_evidence_stable": true
+    },
+    {
+      "cycle": 0,
+      "cohort": "sky",
+      "status": "passed",
+      "seconds": 33.0,
+      "tokens": {
+        "scope": "single reported turn.completed usage",
+        "status": "reported",
+        "input_tokens": 144339,
+        "cached_input_tokens": 136960,
+        "uncached_input_tokens": 7379,
+        "output_tokens": 619,
+        "total_tokens": 144958,
+        "event_count": 1,
+        "stream_complete": true,
+        "cost_usd": null,
+        "billing_verified": false
+      },
+      "completed_tool_items": {
+        "shell:other": 1,
+        "node_repl:js": 5
+      },
+      "completed_tool_total": 6,
+      "standalone_task_management_commands": 0,
+      "inline_start_commands": 0,
+      "inline_finish_commands": 0,
+      "document_replay_seconds": null,
+      "document_author_wait_seconds": null,
+      "foreground_changes": 0,
+      "oracle_passed": true,
+      "cleanup_status": "completed",
+      "comparison_eligible": false,
+      "comparison_exclusion_reason": "agent_responsibility_not_isolated_or_observed",
+      "runtime_evidence_stable": true
+    },
+    {
+      "cycle": 1,
+      "cohort": "before",
+      "status": "passed",
+      "seconds": 57.1,
+      "tokens": {
+        "scope": "single reported turn.completed usage",
+        "status": "reported",
+        "input_tokens": 194376,
+        "cached_input_tokens": 183936,
+        "uncached_input_tokens": 10440,
+        "output_tokens": 969,
+        "total_tokens": 195345,
+        "event_count": 1,
+        "stream_complete": true,
+        "cost_usd": null,
+        "billing_verified": false
+      },
+      "completed_tool_items": {
+        "shell:other": 1,
+        "shell:tacto": 4
+      },
+      "completed_tool_total": 5,
+      "standalone_task_management_commands": 2,
+      "inline_start_commands": 0,
+      "inline_finish_commands": 0,
+      "document_replay_seconds": 1.425395334023051,
+      "document_author_wait_seconds": 12.127106625004672,
+      "foreground_changes": 0,
+      "oracle_passed": true,
+      "cleanup_status": "completed",
+      "comparison_eligible": false,
+      "comparison_exclusion_reason": "agent_responsibility_not_isolated_or_observed",
+      "runtime_evidence_stable": true
+    },
+    {
+      "cycle": 1,
+      "cohort": "after",
+      "status": "passed",
+      "seconds": 33.8,
+      "tokens": {
+        "scope": "single reported turn.completed usage",
+        "status": "reported",
+        "input_tokens": 115288,
+        "cached_input_tokens": 98176,
+        "uncached_input_tokens": 17112,
+        "output_tokens": 736,
+        "total_tokens": 116024,
+        "event_count": 1,
+        "stream_complete": true,
+        "cost_usd": null,
+        "billing_verified": false
+      },
+      "completed_tool_items": {
+        "shell:other": 1,
+        "shell:tacto": 2
+      },
+      "completed_tool_total": 3,
+      "standalone_task_management_commands": 0,
+      "inline_start_commands": 1,
+      "inline_finish_commands": 1,
+      "document_replay_seconds": 0.38981991703622043,
+      "document_author_wait_seconds": 5.077055583009496,
+      "foreground_changes": 0,
+      "oracle_passed": true,
+      "cleanup_status": "completed",
+      "comparison_eligible": false,
+      "comparison_exclusion_reason": "agent_responsibility_not_isolated_or_observed",
+      "runtime_evidence_stable": true
+    },
+    {
+      "cycle": 1,
+      "cohort": "sky",
+      "status": "passed",
+      "seconds": 30.6,
+      "tokens": {
+        "scope": "single reported turn.completed usage",
+        "status": "reported",
+        "input_tokens": 144385,
+        "cached_input_tokens": 133888,
+        "uncached_input_tokens": 10497,
+        "output_tokens": 627,
+        "total_tokens": 145012,
+        "event_count": 1,
+        "stream_complete": true,
+        "cost_usd": null,
+        "billing_verified": false
+      },
+      "completed_tool_items": {
+        "shell:other": 1,
+        "node_repl:js": 5
+      },
+      "completed_tool_total": 6,
+      "standalone_task_management_commands": 0,
+      "inline_start_commands": 0,
+      "inline_finish_commands": 0,
+      "document_replay_seconds": null,
+      "document_author_wait_seconds": null,
+      "foreground_changes": 0,
+      "oracle_passed": true,
+      "cleanup_status": "completed",
+      "comparison_eligible": false,
+      "comparison_exclusion_reason": "agent_responsibility_not_isolated_or_observed",
+      "runtime_evidence_stable": true
+    },
+    {
+      "cycle": 2,
+      "cohort": "before",
+      "status": "passed",
+      "seconds": 59.3,
+      "tokens": {
+        "scope": "single reported turn.completed usage",
+        "status": "reported",
+        "input_tokens": 194454,
+        "cached_input_tokens": 174464,
+        "uncached_input_tokens": 19990,
+        "output_tokens": 970,
+        "total_tokens": 195424,
+        "event_count": 1,
+        "stream_complete": true,
+        "cost_usd": null,
+        "billing_verified": false
+      },
+      "completed_tool_items": {
+        "shell:other": 1,
+        "shell:tacto": 4
+      },
+      "completed_tool_total": 5,
+      "standalone_task_management_commands": 2,
+      "inline_start_commands": 0,
+      "inline_finish_commands": 0,
+      "document_replay_seconds": 1.4080143340397626,
+      "document_author_wait_seconds": 11.775537875015289,
+      "foreground_changes": 0,
+      "oracle_passed": true,
+      "cleanup_status": "completed",
+      "comparison_eligible": false,
+      "comparison_exclusion_reason": "agent_responsibility_not_isolated_or_observed",
+      "runtime_evidence_stable": true
+    },
+    {
+      "cycle": 2,
+      "cohort": "after",
+      "status": "passed",
+      "seconds": 49.6,
+      "tokens": {
+        "scope": "single reported turn.completed usage",
+        "status": "reported",
+        "input_tokens": 154222,
+        "cached_input_tokens": 141440,
+        "uncached_input_tokens": 12782,
+        "output_tokens": 953,
+        "total_tokens": 155175,
+        "event_count": 1,
+        "stream_complete": true,
+        "cost_usd": null,
+        "billing_verified": false
+      },
+      "completed_tool_items": {
+        "shell:other": 1,
+        "shell:tacto": 2
+      },
+      "completed_tool_total": 3,
+      "standalone_task_management_commands": 0,
+      "inline_start_commands": 1,
+      "inline_finish_commands": 1,
+      "document_replay_seconds": 0.4155642500263639,
+      "document_author_wait_seconds": 4.485982957994565,
+      "foreground_changes": 0,
+      "oracle_passed": true,
+      "cleanup_status": "completed",
+      "comparison_eligible": false,
+      "comparison_exclusion_reason": "agent_responsibility_not_isolated_or_observed",
+      "runtime_evidence_stable": true
+    },
+    {
+      "cycle": 2,
+      "cohort": "sky",
+      "status": "passed",
+      "seconds": 32.7,
+      "tokens": {
+        "scope": "single reported turn.completed usage",
+        "status": "reported",
+        "input_tokens": 138017,
+        "cached_input_tokens": 119936,
+        "uncached_input_tokens": 18081,
+        "output_tokens": 636,
+        "total_tokens": 138653,
+        "event_count": 1,
+        "stream_complete": true,
+        "cost_usd": null,
+        "billing_verified": false
+      },
+      "completed_tool_items": {
+        "shell:other": 1,
+        "node_repl:js": 5
+      },
+      "completed_tool_total": 6,
+      "standalone_task_management_commands": 0,
+      "inline_start_commands": 0,
+      "inline_finish_commands": 0,
+      "document_replay_seconds": null,
+      "document_author_wait_seconds": null,
+      "foreground_changes": 0,
+      "oracle_passed": true,
+      "cleanup_status": "completed",
+      "comparison_eligible": false,
+      "comparison_exclusion_reason": "agent_responsibility_not_isolated_or_observed",
+      "runtime_evidence_stable": true
+    }
+  ],
+  "task_records": {
+    "before": [
+      {
+        "state": "closed",
+        "result": "done",
+        "completion_scope": null,
+        "invocations": 2,
+        "invocation_outcomes": [
+          "ok",
+          "failed"
+        ]
+      },
+      {
+        "state": "closed",
+        "result": "done",
+        "completion_scope": null,
+        "invocations": 2,
+        "invocation_outcomes": [
+          "ok",
+          "failed"
+        ]
+      },
+      {
+        "state": "closed",
+        "result": "done",
+        "completion_scope": null,
+        "invocations": 2,
+        "invocation_outcomes": [
+          "ok",
+          "failed"
+        ]
+      }
+    ],
+    "after": [
+      {
+        "state": "closed",
+        "result": "done",
+        "completion_scope": "visible_document_text",
+        "invocations": 2,
+        "invocation_outcomes": [
+          "ok",
+          "failed"
+        ]
+      },
+      {
+        "state": "closed",
+        "result": "done",
+        "completion_scope": "visible_document_text",
+        "invocations": 2,
+        "invocation_outcomes": [
+          "ok",
+          "failed"
+        ]
+      },
+      {
+        "state": "closed",
+        "result": "done",
+        "completion_scope": "visible_document_text",
+        "invocations": 2,
+        "invocation_outcomes": [
+          "ok",
+          "failed"
+        ]
+      }
+    ]
+  }
+}
