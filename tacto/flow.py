@@ -239,7 +239,13 @@ def _arith(expr: str):
             return ops[type(n.op)](left, right)
         raise ValueError(f"허용되지 않은 식: {ast.dump(n)[:60]}")
 
-    v = walk(ast.parse(expr, mode="eval").body)
+    try:
+        tree = ast.parse(expr, mode="eval")
+    except SyntaxError:
+        # A parameter such as `op=×` lands here; callers handle ValueError as
+        # invalid input, while a SyntaxError escaped as a traceback.
+        raise ValueError("허용되지 않은 식") from None
+    v = walk(tree.body)
     return int(v) if isinstance(v, float) and v.is_integer() else v
 
 

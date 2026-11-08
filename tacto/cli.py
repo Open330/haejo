@@ -1535,12 +1535,28 @@ def _dispatch_command(cmd, rest):
             print("usage: replay <name> [-p a=12 -p b=34] [--helper] [--yes] [--think N] [--document /absolute/path] [--journal-dir /absolute/private/run]\n"
                   "  names: tacto list · inputs and steps: tacto show <name>")
             return 2 if not rest else 0
-        flow = _load_recipe(rest[0])
+        from .access_log import record_failure
+        try:
+            flow = _load_recipe(rest[0])
+        except FileNotFoundError:
+            # A wrong name used to end in a FileNotFoundError traceback.
+            record_failure('unknown_flow', 'load')
+            print(f"unknown_flow: no recipe named '{rest[0]}' — names: tacto list", file=sys.stderr)
+            return 2
+        except (OSError, ValueError, TypeError, KeyError) as exc:
+            record_failure('invalid_flow', 'load')
+            print(f"invalid_flow: {exc}", file=sys.stderr)
+            return 2
         walked = bool(flow.intents)      # binding drops it; decide first
         if '--auto-repair' in rest:
             return _run_flow(flow,rest,walked=walked,_auto_params=params)
         if flow.params or flow.tables or flow.derived or params:
-            flow = flow.bind(**params)
+            try:
+                flow = flow.bind(**params)
+            except (ValueError, TypeError, KeyError, ArithmeticError):
+                record_failure('invalid_parameters', 'load')
+                print(f"invalid_parameters: check the -p values against: tacto show {rest[0]}", file=sys.stderr)
+                return 2
         return _run_flow(flow, rest, walked=walked)
 
     if cmd == "do":
