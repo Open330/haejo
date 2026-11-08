@@ -95,9 +95,13 @@ def read_flow_line(fd, timeout, *, platform=None, reader=None):
             return line.decode('utf-8')
 
 
-def decode_session_flow(raw, target, document=None):
-    """Wrap an explicit edit step in this connection's existing document scope."""
+def decode_session_flow(raw, target, document=None, *, steps=False):
+    """Expand optional bound steps; keep full Flow and pinned-edit semantics."""
     payload = json.loads(raw)
+    if steps and isinstance(payload, dict) and set(payload) == {'steps'}:
+        from .command_help import session_defaults
+        payload = {**session_defaults(target, document), **payload}
+        raw = json.dumps(payload, ensure_ascii=False)
     single_edit = isinstance(payload, dict) and ('set_value' in payload or 'check_value' in payload)
     if single_edit:
         from .flow_errors import FlowFieldError
@@ -203,12 +207,17 @@ def run_session(args, *, make_driver, run_flow, stdin, emit):
     # process, so --helper is refused there and required on macOS.
     windows = sys.platform == "win32"
     helper = [] if windows else ['--helper']
-    usage = ('usage: session <app.exe | pid:N> [--guide] [--timings] [--idle-timeout 1..600]' if windows
-             else 'usage: session <bundle-id> --helper [--document /absolute/path] [--guide] [--timings] [--idle-timeout 1..600]')
+    usage = ('usage: session <app.exe | pid:N> [--guide] [--steps] [--timings] [--idle-timeout 1..600]' if windows
+             else 'usage: session <bundle-id> --helper [--document /absolute/path] [--guide] [--steps] [--timings] [--idle-timeout 1..600]')
     from .window_scope import take_window_arg, bind_window
     try:args,window_id=take_window_arg(args)
     except ValueError as error:emit(str(error));return 2
     if windows and window_id is not None:emit('window_scope_unavailable');return 2
+    bound_steps = '--steps' in args
+    if bound_steps:
+        if args.count('--steps') != 1:
+            emit('session_steps: use --steps once'); return 2
+        args.remove('--steps')
     timeout = 90
     save_path = None
     document = None
@@ -338,7 +347,7 @@ def run_session(args, *, make_driver, run_flow, stdin, emit):
                 if '--guide' in args or '--reuse-guide' in args:
                     from .command_help import session_guide
                     emit(session_guide(target, reusable='--reuse-guide' in args,
-                                       document=document, save=save_path is not None))
+                                       document=document, save=save_path is not None, steps=bound_steps))
                 if window_id is not None:
                     emit(f'TACTO_WINDOW_SCOPE {window_id}: read/set_value/type_text and supported AXPress only; menus/keys/pointer require a separate app-wide session. Do not save the live window ID in the Flow.')
                 show_observation()
@@ -348,7 +357,7 @@ def run_session(args, *, make_driver, run_flow, stdin, emit):
                                                    observe_next=additional_observation,
                                                    find_observation=additional_observation,
                                                    metrics=timing if '--timings' in args else None,
-                                                   decode=lambda raw: decode_session_flow(raw, target, document))
+                                                   decode=lambda raw: decode_session_flow(raw, target, document, steps=bound_steps))
                 timing['flow_received_seconds'] = time.monotonic() - started
         except (ValueError, TypeError, KeyError, TimeoutError, RecursionError) as exc:
             # A flow may contain personal text. Do not echo malformed input or
