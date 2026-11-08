@@ -1731,39 +1731,54 @@ TASK_BINDABLE = frozenset(('windows', 'resize', 'hover'))
 
 
 def _task_binding(arguments):
-    """Resolve --task/TACTO_TASK before any driver, helper or KeepAwake work.
-
-    Returns (binding or None, argv without --task, refusal exit code or None).
-    """
+    """Resolve goal lifecycle before any driver, helper or KeepAwake work."""
     from . import task as tasks
     from .access_log import COMMANDS
     command = arguments[0] if arguments else ''
-    if command == 'task' or tasks.current.get() is not None:
-        # Task management stays usable to recover a closed/inherited task; a
-        # nested dispatch keeps its enclosing invocation.
-        if command == 'task':
-            return None, list(arguments), None
-        _, _, rest = tasks.split_binding(arguments[1:], environ={})
-        return None, [command, *rest], None
+    if command == 'task':
+        return None, list(arguments), None
+    created = None
     try:
-        task_id, explicit, rest = tasks.split_binding(arguments[1:])
-        if task_id is None:
-            return None, list(arguments), None
+        clean, goal, finish = tasks.inline_options(arguments[1:])
+        if tasks.current.get() is not None:
+            if goal is not None or finish:
+                raise tasks.TaskRefused('task_nested_lifecycle', 'Use lifecycle options on the outer command.')
+            _, _, rest = tasks.split_binding(clean, environ={})
+            return None, [command, *rest], None
+        task_id, explicit, rest = tasks.split_binding(clean)
         if command in ('', '--help', '-h', 'help'):
             return None, [command, *rest] if command else rest, None
         from .command_help import command_help
         if command_help(command, rest) is not None:
-            # Only forms the help dispatcher itself answers; a 'help' token that
-            # is an argument value (activate --window help) stays bound.
             return None, [command, *rest], None
         if command not in COMMANDS and command not in TASK_BINDABLE:
-            if explicit:
-                raise tasks.TaskRefused('task_not_applicable', f'{command or "this command"} does not touch the screen; run it without --task.')
+            if explicit or goal is not None or finish:
+                raise tasks.TaskRefused('task_not_applicable', f'{command or "this command"} does not touch the screen; run it without task options.')
             return None, [command, *rest], None
-        return tasks.bind(task_id, command), [command, *rest], None
-    except tasks.TaskRefused as exc:
-        print(json.dumps({'type': 'error', 'error': exc.code, 'effect': 'not_started', 'detail': exc.detail},
-                         ensure_ascii=False) if '--json' in arguments else f'{exc.code}: {exc.detail}')
+        if task_id == 'new':
+            created = tasks.start(goal)
+            task_id = created['id']
+        elif goal is not None:
+            raise tasks.TaskRefused('task_goal_invalid', 'Use --goal only with --task new or TACTO_TASK=new.')
+        if task_id is None:
+            if finish:
+                raise tasks.TaskRefused('task_required', '--finish-task requires a task ID.')
+            return None, list(arguments), None
+        binding = tasks.bind(task_id, command, **({'environ': {}} if created else {}))
+        binding.created_inline = created is not None
+        binding.finish_requested = finish
+        binding.json_output = '--json' in rest
+        return binding, [command, *rest], None
+    except (tasks.TaskRefused, OSError) as exc:
+        if created is not None:
+            try:
+                tasks.end(created['id'], 'failed')
+            except (OSError, tasks.TaskRefused):
+                pass
+        code = exc.code if isinstance(exc, tasks.TaskRefused) else 'task_storage_unavailable'
+        detail = exc.detail if isinstance(exc, tasks.TaskRefused) else 'Could not record this task; no UI input was sent.'
+        print(json.dumps({'type':'error','error':code,'effect':'not_started','detail':detail},
+                         ensure_ascii=False) if '--json' in arguments else f'{code}: {detail}')
         return None, list(arguments), 2
 
 
@@ -1781,6 +1796,7 @@ def main(argv=None):
         try:
             binding.admit(log.path.name if log is not None and log.path is not None else None)
         except tasks.TaskRefused as exc:
+            binding.close_unadmitted_inline()
             print(json.dumps({'type': 'error', 'error': exc.code, 'effect': 'not_started', 'detail': exc.detail},
                              ensure_ascii=False) if '--json' in arguments else f'{exc.code}: {exc.detail}')
             if log is not None:
@@ -1788,6 +1804,7 @@ def main(argv=None):
                 log.finish(2); log.close()
             return 2
         except OSError:
+            binding.close_unadmitted_inline()
             print('task_storage_unavailable: the task could not record this call; nothing was sent to the screen.')
             if log is not None:
                 log.task_result({'status': 'failed', 'error': 'task_storage_unavailable', 'stage': 'task'})
@@ -1796,12 +1813,18 @@ def main(argv=None):
     task_token = tasks.current.set(binding) if binding is not None else None
     code = None
     try:
+        if binding is not None and binding.created_inline:
+            print('TACTO_TASK ' + json.dumps({'id': binding.task_id}, separators=(',', ':')),
+                  file=sys.stderr if binding.json_output else sys.stdout, flush=True)
         code = _main_logged(argv, arguments, log)
         return code
     finally:
         if binding is not None:
-            binding.finish(code, log)
-            tasks.current.reset(task_token)
+            try:
+                binding.finish(code, log)
+                binding.close_if_requested(code)
+            finally:
+                tasks.current.reset(task_token)
 
 
 def _main_logged(argv, arguments, log):

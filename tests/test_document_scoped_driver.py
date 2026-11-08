@@ -118,6 +118,23 @@ class ScopedDriverTests(unittest.TestCase):
             self.assertEqual(1,inner.document_text.call_count)
             self.assertEqual(3,inner.observe.call_count)
 
+    def test_polling_bypasses_fixed_settle_but_keeps_pin_and_checks(self):
+        inner=self.inner();driver=DocumentScopedDriver(inner,TARGET,PATH)
+        inner.observe.reset_mock()
+        result=driver.wait_until(TARGET,lambda tree:'owned' in tree)
+        self.assertEqual('observation',result['type'])
+        inner.observe.assert_called_once_with(TARGET,'tree_full',require_window=True,
+                                              document_token='pin',_settle_after_action=False)
+        self.assertEqual(1,inner.document_text.call_count)
+
+    def test_polling_keeps_deadline_and_refuses_changed_document(self):
+        inner=self.inner();driver=DocumentScopedDriver(inner,TARGET,PATH)
+        result=driver.wait_until(TARGET,lambda tree:False,timeout_ms=0)
+        self.assertEqual('timeout',result['type'])
+        inner.observe.return_value['document_token']='foreign'
+        result=driver.wait_until(TARGET,lambda tree:True,timeout_ms=0)
+        self.assertEqual('error',result['type']);inner.act.assert_not_called()
+
     def test_other_target_path_token_or_observation_never_dispatches(self):
         inner=self.inner();driver=DocumentScopedDriver(inner,TARGET,PATH)
         driver.observe(TARGET)

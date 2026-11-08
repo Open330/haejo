@@ -4,14 +4,25 @@ A task groups every Tacto invocation made for one user goal so the run can be
 followed and reviewed as a unit.
 
 ```sh
-tacto task start "계산기로 12×34 계산" --json
-# {"type":"task","task_id":"t-…","state":"open"}
-TACTO_TASK=t-… tacto observe com.apple.calculator --helper
-TACTO_TASK=t-… tacto session com.apple.calculator --helper --guide
-tacto task status t-…            # ordered calls, flows run, targets, outcome codes, timing
-tacto task status t-… --steps    # …plus each call's step receipts (operation, target, result)
-tacto task end t-… --result done # done | failed | abandoned
+tacto session com.apple.calculator --helper --guide --task new --goal "계산기로 12×34 계산" --finish-task
+# TACTO_TASK {"id":"t-…"} precedes the observation; send the Flow on this session.
+# For multiple UI commands, omit --finish-task on the first, reuse --task t-…,
+# and put --finish-task on the final command.
+tacto task status t-… --steps  # ordered calls, flows, receipts and outcomes
 ```
+
+`TACTO_TASK=<id>` also binds a call; `TACTO_TASK=new --goal "<goal>"` starts one.
+Lifecycle markers go to stderr for `--json` commands, preserving stdout JSON.
+`--finish-task` closes the group after recording the final invocation. Exit 0
+records `done`; errors record `failed` without changing the command's exit code.
+For a single pinned-document edit, verified requested text can record `done`
+with `completion_scope=visible_document_text` while the Flow remains unverified;
+this does not confirm Save or dispatch. A requested Flow save or remaining steps
+prevent that exception. If the invocation journal cannot be written, closure is
+uncertain and the group stays open. Status retains each invocation's outcome.
+
+Manual controls remain available for inspection or interrupted work:
+`tacto task start "<goal>" --json`, `tacto task end <id> --result done|failed|abandoned`.
 
 - Bound commands: every screen command (`doctor`, `apps`, `windows`, `launch`,
   `activate`, `open-url`, `keep-awake`, `first-run`, `observe`, `session`,

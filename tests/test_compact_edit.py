@@ -72,6 +72,28 @@ class CompactEditTests(unittest.TestCase):
         self.assertTrue(any(x.startswith('body_verified —') for x in messages))
         self.assertEqual(2,inner.document_text.call_count)
 
+    def test_visible_completion_requires_no_pending_flow_save(self):
+        from unittest.mock import patch
+        from tempfile import TemporaryDirectory
+        from pathlib import Path
+        for save in (False, True):
+            with self.subTest(save=save), TemporaryDirectory() as tmp:
+                helper=DocumentSessionTests();inner=helper.inner();doc=self.document('changed')
+                def receive(obs,target,action,**kwargs):
+                    inner.observe.return_value['tree']=inner.observe.return_value['tree'].replace('Value: owned','Value: changed')
+                    inner.document_text.return_value['text']='changed'
+                    return {'type':'acted'}
+                inner.act.side_effect=receive
+                args=[TARGET,'--helper','--document',PATH,'--guide']
+                saved=Path(tmp)/'flow.json'
+                if save: args += ['--save',str(saved)]
+                with patch('tacto.task.note_visible_document_result') as note:
+                    code,_,messages=helper.run_session(inner,args=args,doc=doc)
+                self.assertEqual(1,code)
+                if save: note.assert_not_called()
+                else: self.assertEqual(True,note.call_args.args[0]['matches_requested_text'])
+                self.assertFalse(saved.exists())
+
 
 class BoundEditSessionTests(unittest.TestCase):
     def test_single_step_uses_existing_scope_and_same_contract(self):

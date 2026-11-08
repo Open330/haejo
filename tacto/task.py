@@ -200,7 +200,7 @@ def start(goal, *, root=None):
     raise OSError('task_id_exhausted')
 
 
-def end(task_id, result, *, root=None):
+def end(task_id, result, *, root=None, completion_scope=None):
     if result not in RESULTS:
         raise TaskRefused('task_result_invalid', 'Use --result done, failed or abandoned.')
     directory = _task_dir(task_id, root)
@@ -211,8 +211,10 @@ def end(task_id, result, *, root=None):
         if meta['state'] == 'closed':
             raise TaskRefused('task_closed', f"Task already ended ({meta.get('result')}).")
         meta.update(state='closed', closed_at=_now(), result=result)
+        if completion_scope in ('command', 'visible_document_text', 'failed_invocation'):
+            meta['completion_scope'] = completion_scope
         _write_meta(directory, meta)
-        _append(directory, {'event': 'task_end', 'result': result, 'pid': os.getpid()})
+        _append(directory, {'event': 'task_end', 'result': result, 'completion_scope': meta.get('completion_scope'), 'pid': os.getpid()})
     return meta
 
 
@@ -281,7 +283,8 @@ def status(task_id, *, root=None):
             item['state'] = 'in_flight' if _alive(item['pid']) else 'uncertain'
         counts[item['state']] += 1
     return {'type': 'task', 'task_id': meta['id'], 'goal': meta['goal'], 'state': meta['state'],
-            'result': meta.get('result'), 'created_at': meta.get('created_at'), 'closed_at': meta.get('closed_at'),
+            'result': meta.get('result'), 'completion_scope': meta.get('completion_scope'),
+            'created_at': meta.get('created_at'), 'closed_at': meta.get('closed_at'),
             'counts': counts, 'damaged_records': damaged,
             'invocations': [invocations[i] for i in order]}
 
@@ -316,6 +319,11 @@ class Binding:
         self.ended = False
         self.admitted = False
         self.flows = set()
+        self.finish_requested = False
+        self.finish_recorded = False
+        self.created_inline = False
+        self.json_output = False
+        self.visible_document_verified = False
 
     def admit(self, access_log_name=None):
         _private_dir(self.directory, create=False)
@@ -374,8 +382,35 @@ class Binding:
             # Ending is allowed after task end: the invocation was admitted while open.
             with _locked(self.directory):
                 _append(self.directory, row)
+                self.finish_recorded = True
         except OSError:
             print('tacto: 작업(task) 종료 기록을 남기지 못했습니다 — 이 실행은 status 에서 uncertain 으로 보입니다.', file=sys.stderr)
+
+    def close_if_requested(self, exit_code):
+        if not self.finish_requested:
+            return
+        if not self.finish_recorded:
+            print('TACTO_TASK_FINISH_UNCERTAIN task remains open; invocation end was not recorded.', file=sys.stderr)
+            return
+        visible = exit_code == 1 and self.visible_document_verified
+        done = exit_code == 0 or visible
+        scope = 'visible_document_text' if visible else 'command' if done else 'failed_invocation'
+        try:
+            meta = end(self.task_id, 'done' if done else 'failed', root=self.directory.parent,
+                       completion_scope=scope)
+            print('TACTO_TASK_FINISHED ' + json.dumps({'id':self.task_id,'result':meta['result'],
+                  'completion_scope':scope},separators=(',',':')),
+                  file=sys.stderr if self.json_output else sys.stdout)
+        except (OSError, TaskRefused):
+            print('TACTO_TASK_FINISH_UNCERTAIN task closure could not be recorded; inspect task status.', file=sys.stderr)
+
+    def close_unadmitted_inline(self):
+        if self.created_inline and not self.admitted:
+            try:
+                end(self.task_id, 'failed', root=self.directory.parent,
+                    completion_scope='failed_invocation')
+            except (OSError, TaskRefused):
+                print('TACTO_TASK_FINISH_UNCERTAIN task admission failed; inspect task status.', file=sys.stderr)
 
     def child_env(self):
         return {'TACTO_TASK': self.task_id, 'TACTO_TASK_PARENT': self.invocation}
@@ -400,6 +435,48 @@ def _flow_source(name):
     except Exception:
         pass
     return 'inline'
+
+
+def note_visible_document_result(report):
+    """A visible-body witness, never a Save/dispatch receipt or permission."""
+    binding = current.get()
+    if (binding is not None and type(report) is dict
+            and report.get('scope') == 'visible_document_text'
+            and report.get('matches_requested_text') is True
+            and type(report.get('remaining_steps')) is int and report['remaining_steps'] == 0
+            and report.get('save_verified') is False and report.get('dispatch_confirmed') is False):
+        binding.visible_document_verified = True
+
+
+def inline_options(args):
+    """Strip local lifecycle options before command parsing or any UI work."""
+    rest, goal, finish = [], None, False
+    i = 0
+    while i < len(args):
+        value = args[i]
+        if value == '--':
+            rest.extend(args[i:])
+            break
+        if value == '--goal' or value.startswith('--goal='):
+            if goal is not None:
+                raise TaskRefused('task_goal_invalid', 'Use --goal once with --task new.')
+            if value == '--goal':
+                if i+1 >= len(args) or args[i+1].startswith('--'):
+                    raise TaskRefused('task_goal_required', '--goal takes one goal sentence.')
+                goal = args[i + 1]
+                i += 2
+            else:
+                goal = value.split('=', 1)[1]
+                i += 1
+        elif value == '--finish-task':
+            if finish:
+                raise TaskRefused('task_invalid', 'Use --finish-task once.')
+            finish = True
+            i += 1
+        else:
+            rest.append(value)
+            i += 1
+    return rest, goal, finish
 
 
 def note_flow(name, source=None):
