@@ -30,12 +30,12 @@ Details and manual lifecycle controls: [task](references/task.md).
 
 ## Start at the needed stage
 
-- **New deterministic task:** `tacto session <bundle-id> --helper --guide`
+- **New deterministic task:** `tacto session <bundle-id> --helper --guide --steps`
   via `exec_command` with `tty:true`, `yield_time_ms:1000`. The guide and
   observation arrive together; read no authoring files/help first. Wait for
   `TACTO_SESSION_READY`, then send one minified JSON line and an actual
   newline via `write_stdin` with `yield_time_ms:5000`. Poll that same session
-  for status; do not resend the Flow. Use the guide's compact click/edit forms.
+  for status; do not resend the Flow. Use a steps-only form when the guide offers it; otherwise use its full template. Do not repeat defaults supplied by the session.
 - **One TextEdit file:** add `--document /absolute/path --guide` to its
   session. `TACTO_DOCUMENT_STATE` can verify the requested body on that same
   connection after uncertain input; it does not verify Save. Use a single edit

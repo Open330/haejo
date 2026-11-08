@@ -78,3 +78,12 @@ no extra read session is needed. False/null requires inspection, and remaining
 steps are unfinished work. The result does not attribute the write, verify Save,
 change the failed Flow's status, or save an unverified template. Existing text
 could already match. Raw text and document tokens are not included in the marker.
+
+
+With `--steps`, send `{"steps":[...]}` to omit the Flow header. The session fills
+schema/name/target. Calculator supplies the concrete defaults shown by its guide;
+a pinned TextEdit session supplies document selectors and read defaults. Other
+apps require explicit step selectors, contracts and result fields. Checks and
+write evidence remain explicit. A full Flow remains valid; use it for named
+parameters, tables, other schemas or custom defaults. `--reuse-guide` keeps the
+full template. Saved files expand the selected defaults into a complete Flow.

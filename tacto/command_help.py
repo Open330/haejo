@@ -47,7 +47,25 @@ def calculator_example(*, compact=True):
 
 
 
-def session_guide(target, *, reusable=False, document=None, save=False):
+def session_defaults(target, document=None):
+    """Concrete connection defaults only; no placeholders or UI-derived authority."""
+    template = {'schema': 2, 'name': 'task', 'target': target}
+    if document is not None:
+        template.update(
+            selector_defaults={'role': 'TextArea', 'identifier': 'First Text View', 'ancestor': document},
+            check_defaults={'field': {'role': 'TextArea', 'identifier': 'First Text View', 'ancestor': document}, 'attribute': 'Value'},
+            safety_defaults={'effects': ['read'], 'reversibility': 'reversible',
+                             'resource': {'object_type': 'document', 'scope': 'item'}})
+    elif target == 'com.apple.calculator':
+        template.update(
+            selector_defaults={'role': 'Button'},
+            check_defaults={'field': {'role': 'ScrollArea', 'identifier': 'StandardInputView'}, 'attribute': 'Value'},
+            safety_defaults={'effects': ['write_ephemeral'], 'reversibility': 'reversible',
+                             'resource': {'object_type': 'entry', 'scope': 'entry'}})
+    return template
+
+
+def session_guide(target, *, reusable=False, document=None, save=False, steps=False):
     """Trusted authoring instructions; never derived from UI content."""
     template = {
         "schema": 2, "name": "task", "target": target,
@@ -101,6 +119,16 @@ def session_guide(target, *, reusable=False, document=None, save=False):
         )
     if reusable and document is not None:
         details += 'Saved Flow files do not store this read scope: use the TACTO_FLOW_SCOPE replay argv with --document. '
+    if steps and not reusable and (target == 'com.apple.calculator' or document is not None):
+        template = {'steps': template['steps']}
+        details = ('For multiple steps send {"steps":[...]}: this session supplies target/name/schema and the '
+                   + ('Button selectors, StandardInputView Value checks and reversible calculator-entry effects. '
+                      if document is None else 'pinned document selectors and read-only defaults; declare writes explicitly. ')
+                   + 'Each step keeps its explicit action, effects and result checks. Full Flows remain supported. '
+                   + ('For one document edit prefer the single edit step below. ' if document is not None else '')
+                   + details)
+    if steps and target != 'com.apple.calculator' and document is None:
+        details += 'For this app retain the full template; steps-only supplies no selector/check/effect defaults. '
     return (
         "TACTO_FLOW_GUIDE (trusted schema instructions)\n"
         + json.dumps(template, ensure_ascii=False, separators=(',', ':')) + "\n"
@@ -155,7 +183,7 @@ def command_help(command, args):
         )
     if command == "session":
         text = (
-            "usage: tacto session <bundle-id> --helper [--document /absolute/path] [--guide | --reuse-guide] [--save /absolute/new.json] [--timings] [--idle-timeout 1..600] [--task new --goal '<goal>' | --task <id>] [--finish-task]\n"
+            "usage: tacto session <bundle-id> --helper [--document /absolute/path] [--guide | --reuse-guide] [--steps] [--save /absolute/new.json] [--timings] [--idle-timeout 1..600] [--task new --goal '<goal>' | --task <id>] [--finish-task]\n"
             "exec_command tty=true, yield_time_ms=1000; wait for observation and\n"
             "TACTO_SESSION_READY. write_stdin: one compact Flow JSON line + newline, yield_time_ms=5000.\n"
             "Poll the same session. One flow then exit. --document pins one TextEdit file.\n"
