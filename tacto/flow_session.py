@@ -7,7 +7,7 @@ import time
 from contextlib import contextmanager
 
 from .access_log import record_failure
-from .flow import Flow, every_step
+from .flow import Flow, Step, every_step, literal_step
 
 
 MAX_FLOW_BYTES = 1024 * 1024
@@ -95,7 +95,35 @@ def read_flow_line(fd, timeout, *, platform=None, reader=None):
             return line.decode('utf-8')
 
 
-def read_session_flow(fd, timeout, emit, *, prepare=None, observe_next=None, find_observation=None, metrics=None):
+def decode_session_flow(raw, target, document=None):
+    """Wrap an explicit edit step in this connection's existing document scope."""
+    payload = json.loads(raw)
+    single_edit = isinstance(payload, dict) and ('set_value' in payload or 'check_value' in payload)
+    if single_edit:
+        from .flow_errors import FlowFieldError
+        if document is None:
+            raise FlowFieldError('edit requires document session', 'set_value',
+                                 'Use a full Flow, or a session with --document for a single edit step.')
+        allowed = (set(Step.__dataclass_fields__) - {'action', 'params'}) | {'set_value', 'check_value'}
+        if set(payload) - allowed:
+            raise FlowFieldError('mixed edit and Flow header', 'set_value',
+                                 'Send one edit step without Flow header fields, or a full Flow.')
+        payload = {'schema': 2, 'name': 'document-edit', 'target': target,
+                   'selector_defaults': {'role': 'TextArea', 'identifier': 'First Text View',
+                                         'ancestor': document},
+                   'safety_defaults': {'effects': ['read'], 'reversibility': 'reversible',
+                                       'resource': {'object_type': 'document', 'scope': 'item'}},
+                   'steps': [payload]}
+        raw = json.dumps(payload, ensure_ascii=False)
+    flow = Flow.from_json(raw, strict_checks=True)
+    if single_edit:
+        # A step-only message has no parameter namespace. Its supplied text,
+        # selectors and evidence are literal data, including {{template}} text.
+        flow.steps = [literal_step(step) for step in flow.steps]
+    return flow
+
+
+def read_session_flow(fd, timeout, emit, *, prepare=None, observe_next=None, find_observation=None, metrics=None, decode=None):
     """Repair interactive schema errors before dispatch on the same connection."""
     deadline = time.monotonic() + timeout
     reader = _windows_reader(fd) if sys.platform == 'win32' else None
@@ -129,7 +157,7 @@ def read_session_flow(fd, timeout, emit, *, prepare=None, observe_next=None, fin
                 metrics['flow_input_attempts'] = metrics.get('flow_input_attempts', 0) + 1
                 metrics['flow_input_utf8_bytes'] = metrics.get('flow_input_utf8_bytes', 0) + len(raw.encode('utf-8'))
                 counted = True
-            flow = Flow.from_json(raw, strict_checks=True)
+            flow = decode(raw) if decode is not None else Flow.from_json(raw, strict_checks=True)
             return prepare(flow) if prepare is not None else flow
         except (ValueError, TypeError, KeyError, RecursionError) as exc:
             if metrics is not None and not counted:
@@ -319,7 +347,8 @@ def run_session(args, *, make_driver, run_flow, stdin, emit):
                                                    prepare=lambda parsed: prepare_session_flow(parsed, target),
                                                    observe_next=additional_observation,
                                                    find_observation=additional_observation,
-                                                   metrics=timing if '--timings' in args else None)
+                                                   metrics=timing if '--timings' in args else None,
+                                                   decode=lambda raw: decode_session_flow(raw, target, document))
                 timing['flow_received_seconds'] = time.monotonic() - started
         except (ValueError, TypeError, KeyError, TimeoutError, RecursionError) as exc:
             # A flow may contain personal text. Do not echo malformed input or

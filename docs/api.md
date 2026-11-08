@@ -1044,3 +1044,27 @@ New collection begins before process spawn. These are host arrival intervals:
 a tool span may include model/tool scheduling and input waits; its complement
 is not a measurement of model inference. Commands, arguments and UI contents
 are not copied into the timing summary. Timing adds no model or UI call.
+
+
+### Compact edits on a pinned document session
+
+A `session ... --document /absolute/path --guide` can accept a single edit step:
+`{"set_value":"requested text","check_value":true,"safety":{...}}`. Its runtime
+supplies the already pinned target, document selector and structural resource
+defaults. The step still supplies its actual write effects and user-intent
+evidence. Mixing a step-only edit with Flow headers is refused before dispatch.
+Other sessions still require a full Flow; the full Flow format remains supported.
+Step-only text and evidence are literal, including `{{template}}` text; use a full
+Flow for parameterized templates. Saved literal data uses the existing schema 4
+representation when necessary.
+
+Within a full Flow, `set_value` is an alias for the existing action and
+`params.value`; use an explicit selector or `selector_defaults`. `check_value:true`
+expands to a Value postcondition on that exact merged write selector, including
+its ancestor. It compares the same authored value, so long bodies and parameter
+references need only be written once. It does not use a different check field
+from `check_defaults`, and it does not create a Save/dispatch receipt. Omitting
+`check_value` does not invent a check. Explicit postconditions remain available.
+Normal parameter binding, sensitive-value handling and runtime verification apply.
+Saved templates serialize the expanded Flow, not the shorthand or a native token.
+The session performs no extra read, write or model call to expand the input.
