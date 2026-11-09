@@ -65,6 +65,7 @@ struct ActivityRecord: Equatable {
     var foreground: Bool?
     var presentationSkipped = false
     var modelCalls: Int?
+    var taskID: String?
     var complete: Bool { exitCode != nil && !command.isEmpty }
     var failed: Bool { exitCode.map { $0 != 0 } ?? false }
     var status: String { !complete ? "완료 확인 없음" : failed ? "실패" : "완료" }
@@ -77,6 +78,49 @@ struct ActivityRecord: Equatable {
     var appName: String {
         ["com.apple.TextEdit":"TextEdit", "com.apple.finder":"Finder", "com.apple.calculator":"계산기",
          "com.apple.Safari":"Safari", "com.google.Chrome":"Chrome"][target] ?? (target.isEmpty ? "이 Mac" : target)
+    }
+}
+
+/// The task a group of calls was made for (`tacto task start`), from Tasks/<id>/task.json.
+struct ActivityTask: Equatable {
+    let id: String
+    var goal = ""
+    var open = true
+    var result: String?
+}
+
+/// One history row: every call made for one task, or a single call made outside any task.
+struct ActivityGroup: Equatable {
+    let key: String
+    var records: [ActivityRecord]   // newest first
+    var taskID: String?
+    var task: ActivityTask?
+    var isTask: Bool { taskID != nil }
+    var started: Date { records.map { $0.started }.min() ?? Date() }
+    var latest: Date { records.map { $0.started }.max() ?? Date() }
+    var failed: Bool {
+        if let task { return !task.open && task.result == "failed" }   // an open task is still in progress
+        return records.contains { $0.failed }
+    }
+    var complete: Bool {
+        if let task { return !task.open }
+        return records.allSatisfy { $0.complete }
+    }
+    var title: String {
+        guard let taskID else { return records.first?.title ?? "Tacto 실행" }
+        if let goal = task?.goal, !goal.isEmpty { return goal }
+        return "작업 \(taskID.prefix(10))"
+    }
+    var status: String {
+        guard isTask else { return records.first?.status ?? "완료 확인 없음" }
+        guard let task else { return records.contains { !$0.complete } ? "완료 확인 없음" : "기록만 있음" }
+        if task.open { return "진행 중" }
+        return ["done":"완료", "failed":"실패", "abandoned":"중단"][task.result ?? ""] ?? "종료"
+    }
+    var appNames: String {
+        var seen: [String] = []
+        for r in records.reversed() where !seen.contains(r.appName) { seen.append(r.appName) }
+        return seen.prefix(3).joined(separator:", ") + (seen.count > 3 ? " 외 \(seen.count-3)" : "")
     }
 }
 
@@ -169,6 +213,8 @@ final class ActivityStore {
             switch event {
             case "command_start":
                 record.command = row["command"] as? String ?? ""
+                if let id = row["task_id"] as? String, id.utf8.count == 26, id.hasPrefix("t-"),
+                   id.utf8.dropFirst(2).allSatisfy({ (0x30...0x39).contains($0) || (0x61...0x66).contains($0) }) { record.taskID = id }
                 if let date = row["at"] as? String, let parsed = formatter.date(from:date) { record.started = parsed }
             case "command_end": record.exitCode = activityInteger(row["exit_code"])
             case "log_truncated": record.truncated = true
@@ -197,6 +243,35 @@ final class ActivityStore {
             }
         }
         return record
+    }
+    var tasks: URL { root.appendingPathComponent("Tasks") }
+    func task(_ id: String) -> ActivityTask? {
+        let directory = tasks.appendingPathComponent(id)
+        guard (try? ownedDirectory(tasks)) != nil, (try? ownedDirectory(directory)) != nil,
+              let data = try? readPrivate(directory.appendingPathComponent("task.json"), limit:65536),
+              let object = try? JSONSerialization.jsonObject(with:data) as? [String:Any],
+              activityInteger(object["schema"]) == 1, object["id"] as? String == id else { return nil }
+        var task = ActivityTask(id:id)
+        task.goal = String((object["goal"] as? String ?? "").prefix(300))
+        task.open = object["state"] as? String != "closed"
+        task.result = object["result"] as? String
+        return task
+    }
+    /// Calls grouped by the task they were made for, newest activity first.
+    func groups() throws -> [ActivityGroup] {
+        var byTask: [String: Int] = [:]
+        var groups: [ActivityGroup] = []
+        for record in try records() {
+            if let id = record.taskID {
+                if let i = byTask[id] { groups[i].records.append(record); continue }
+                byTask[id] = groups.count
+                groups.append(ActivityGroup(key:id, records:[record], taskID:id, task:task(id)))
+            } else {
+                groups.append(ActivityGroup(key:record.url.path, records:[record]))
+            }
+        }
+        for i in groups.indices { groups[i].records.sort { $0.started > $1.started } }
+        return groups.sorted { $0.latest > $1.latest }
     }
     func deleteRecords() throws {
         for (url, _, _) in try files() { try FileManager.default.removeItem(at:url) }
@@ -304,15 +379,15 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
     private enum Page { case history, flows, settings }
     private var page = Page.history
     private var credentialCenter: CredentialCenter?
-    private var allRecords: [ActivityRecord] = []
-    private var filtered: [ActivityRecord] = []
-    private var selected: URL?
+    private var allRecords: [ActivityGroup] = []
+    private var filtered: [ActivityGroup] = []
+    private var selected: String?
     private var timer: Timer?
     private var loading = false
     private let refreshAutomatically: Bool
     private var isSettings = false
     private var currentSettings = TactoPreferences()
-    private var rendered: ActivityRecord?
+    private var rendered: ActivityGroup?
     private let dateFormatter: DateFormatter = { let f = DateFormatter(); f.dateStyle = .medium; f.timeStyle = .short; return f }()
 
     init(store: ActivityStore = ActivityStore(), refreshAutomatically: Bool = true, flowPage: FlowLibraryPage? = nil) {
@@ -476,7 +551,7 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
         guard !loading else { return }; loading = true
         queue.async { [weak self] in
             guard let self else { return }
-            let result = Result { (try self.store.records(), (try? self.store.preferences()) ?? TactoPreferences()) }
+            let result = Result { (try self.store.groups(), (try? self.store.preferences()) ?? TactoPreferences()) }
             DispatchQueue.main.async {
                 self.loading = false
                 switch result {
@@ -490,13 +565,15 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
         let query = search.stringValue.trimmingCharacters(in:.whitespacesAndNewlines)
         filtered = allRecords.filter { r in
             (filter.selectedSegment != 1 || r.failed) && (filter.selectedSegment != 2 || !r.complete)
-            && (query.isEmpty || "\(r.title) \(r.appName) \(r.status)".localizedCaseInsensitiveContains(query))
+            && (query.isEmpty || ([r.title, r.status] + r.records.flatMap { [$0.title, $0.appName] }).joined(separator:" ").localizedCaseInsensitiveContains(query))
         }
         let failed = allRecords.filter { $0.failed }.count
-        summary.stringValue = "최근 \(allRecords.count)개 실행 · 실패 \(failed)개 · \(filtered.count)개 표시" + (currentSettings.loggingEnabled ? "" : " · 새 기록 저장 꺼짐")
+        let calls = allRecords.reduce(0) { $0 + $1.records.count }
+        let tasks = allRecords.filter { $0.isTask }.count
+        summary.stringValue = "최근 \(calls)개 실행" + (tasks > 0 ? " · 작업 \(tasks)개" : "") + " · 실패 \(failed)개 · \(filtered.count)개 표시" + (currentSettings.loggingEnabled ? "" : " · 새 기록 저장 꺼짐")
         table.reloadData()
-        if let id = selected, let i = filtered.firstIndex(where: { $0.url == id }) { table.selectRowIndexes(IndexSet(integer:i),byExtendingSelection:false); showDetail(filtered[i]) }
-        else if let first = filtered.first { selected = first.url; table.selectRowIndexes(IndexSet(integer:0),byExtendingSelection:false); showDetail(first) }
+        if let id = selected, let i = filtered.firstIndex(where: { $0.key == id }) { table.selectRowIndexes(IndexSet(integer:i),byExtendingSelection:false); showDetail(filtered[i]) }
+        else if let first = filtered.first { selected = first.key; table.selectRowIndexes(IndexSet(integer:0),byExtendingSelection:false); showDetail(first) }
         else { selected = nil; showDetail(nil) }
     }
     func controlTextDidChange(_ obj: Notification) { applyFilter() }
@@ -506,9 +583,9 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
         let r = filtered[row]
         let cell = NSTableCellView()
         let title = activityLabel(r.title,13,.semibold)
-        let subtitle = activityLabel("\(r.appName) · \(dateFormatter.string(from:r.started))",11,secondary:true)
+        let subtitle = activityLabel(r.isTask ? "작업 · 호출 \(r.records.count)회 · \(r.appNames) · \(dateFormatter.string(from:r.latest))" : "\(r.appNames) · \(dateFormatter.string(from:r.latest))",11,secondary:true)
         let mark = activityLabel(r.status,11,.semibold)
-        mark.textColor = r.failed ? .systemRed : r.complete ? .systemGreen : .secondaryLabelColor
+        mark.textColor = r.failed ? .systemRed : r.status == "진행 중" ? .controlAccentColor : r.status == "기록만 있음" ? .secondaryLabelColor : r.complete ? .systemGreen : .secondaryLabelColor
         title.maximumNumberOfLines = 1; subtitle.maximumNumberOfLines = 1
         title.lineBreakMode = .byTruncatingTail; subtitle.lineBreakMode = .byTruncatingTail
         for v in [title,subtitle,mark] { cell.addSubview(v); v.translatesAutoresizingMaskIntoConstraints = false }
@@ -519,16 +596,18 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
     }
     func tableViewSelectionDidChange(_ notification: Notification) {
         guard filtered.indices.contains(table.selectedRow) else { return }
-        let record = filtered[table.selectedRow]; selected = record.url; showDetail(record)
+        let group = filtered[table.selectedRow]; selected = group.key; showDetail(group)
     }
-    private func showDetail(_ r: ActivityRecord?) {
-        if let r, rendered == r { return }
-        rendered = r
+    private func showDetail(_ g: ActivityGroup?) {
+        if let g, rendered == g { return }
+        rendered = g
         for v in detail.arrangedSubviews { detail.removeArrangedSubview(v); v.removeFromSuperview() }
-        guard let r else {
+        guard let g else {
             detail.addArrangedSubview(activityLabel(allRecords.isEmpty ? (currentSettings.loggingEnabled ? "아직 실행 기록이 없어요" : "실행 기록 저장이 꺼져 있어요") : "조건에 맞는 기록이 없어요",20,.semibold))
             detail.addArrangedSubview(activityLabel(currentSettings.loggingEnabled ? "Tacto로 작업하면 접근 내역과 결과가 여기에 표시됩니다." : "설정에서 켜면 다음 작업부터 기록을 남깁니다.",13,secondary:true)); layoutDetail(); return
         }
+        if g.isTask { showTask(g); layoutDetail(); return }
+        let r = g.records[0]
         detail.addArrangedSubview(activityLabel(r.title,20,.semibold))
         detail.addArrangedSubview(activityLabel("\(r.appName) · \(r.status)",13,.medium))
         detail.addArrangedSubview(activityLabel(dateFormatter.string(from:r.started),12,secondary:true))
@@ -541,6 +620,30 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
         if r.truncated || r.damaged { detail.addArrangedSubview(activityLabel(r.truncated ? "용량 제한으로 일부 접근 기록이 생략됐습니다." : "일부 기록이 손상되어 읽을 수 없습니다.",12,secondary:true)) }
         let divider = NSBox(); divider.boxType = .separator; detail.addArrangedSubview(divider)
         if r.steps.isEmpty { detail.addArrangedSubview(activityLabel("세부 접근 내역이 없는 실행입니다.",12,secondary:true)) }
+        addSteps(r)
+        layoutDetail()
+    }
+    /// A task: its goal and state, then every call made for it in order, each with its steps.
+    private func showTask(_ g: ActivityGroup) {
+        detail.addArrangedSubview(activityLabel(g.title,20,.semibold))
+        let failures = g.records.filter { $0.failed }.count
+        detail.addArrangedSubview(activityLabel("작업 · \(g.status) · 호출 \(g.records.count)회" + (failures > 0 ? " (실패 \(failures))" : ""),13,.medium))
+        detail.addArrangedSubview(activityLabel("\(dateFormatter.string(from:g.started)) – \(dateFormatter.string(from:g.latest)) · \(g.appNames)",12,secondary:true))
+        if let id = g.taskID { detail.addArrangedSubview(activityLabel(id,11,secondary:true)) }
+        for (index, r) in g.records.reversed().enumerated() {
+            let divider = NSBox(); divider.boxType = .separator; detail.addArrangedSubview(divider)
+            let head = activityLabel("\(index+1). \(r.title) · \(r.appName) · \(r.status)",14,.semibold)
+            if r.failed { head.textColor = .systemRed }
+            detail.addArrangedSubview(head)
+            var metrics = dateFormatter.string(from:r.started) + String(format:" · %.2f초 · 동작 %d회",r.elapsed/1000,r.steps.filter { $0.operation == "act" }.count)
+            if let calls = r.modelCalls { metrics += " · 모델 호출 \(calls)회" }
+            detail.addArrangedSubview(activityLabel(metrics,11,secondary:true))
+            if !r.error.isEmpty { detail.addArrangedSubview(activityLabel(activityErrorMessage(r.error),12)) }
+            if r.truncated || r.damaged { detail.addArrangedSubview(activityLabel(r.truncated ? "용량 제한으로 일부 접근 기록이 생략됐습니다." : "일부 기록이 손상되어 읽을 수 없습니다.",12,secondary:true)) }
+            addSteps(r)
+        }
+    }
+    private func addSteps(_ r: ActivityRecord) {
         for step in r.steps {
             let icon = NSImageView(image:NSImage(systemSymbolName:step.outcome == "실패" ? "exclamationmark.circle" : step.operation == "observe" ? "eye" : "cursorarrow",accessibilityDescription:nil) ?? NSImage())
             icon.contentTintColor = step.outcome == "실패" ? .systemRed : .secondaryLabelColor
@@ -551,7 +654,6 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
             let row = NSStackView(views:[icon,texts]); row.alignment = .top; row.spacing = 12
             detail.addArrangedSubview(row)
         }
-        layoutDetail()
     }
     private func layoutDetail() {
         for v in detail.arrangedSubviews { v.widthAnchor.constraint(equalTo:detail.widthAnchor,constant:-48).isActive = true; if let f = v as? NSTextField { f.preferredMaxLayoutWidth = max(200,detail.frame.width-48) } }
@@ -600,7 +702,7 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
     }
     func snapshot(to directory: URL, settingsPage: Bool = false, flowsPage: Bool = false, size: NSSize = NSSize(width:1060,height:700)) throws {
         try FileManager.default.createDirectory(at:directory,withIntermediateDirectories:true)
-        allRecords = try store.records(); currentSettings = (try? store.preferences()) ?? TactoPreferences(); applyFilter()
+        allRecords = try store.groups(); currentSettings = (try? store.preferences()) ?? TactoPreferences(); applyFilter()
         navigate(settingsPage ? settingsButton : flowsPage ? flowsButton : historyButton)
         window?.setContentSize(size)
         guard let view = window?.contentView else { return }

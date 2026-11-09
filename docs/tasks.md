@@ -28,6 +28,11 @@ it with a declared result. Agent usage: [skill reference](../skill/references/ta
   invocation UUID, pid, parent invocation (for child invocations), access-receipt
   filename, target bundle IDs, exit code, closed error/stage codes, elapsed
   time, and the flows each invocation ran. The goal sentence is the only free text and stays in `task.json`.
+- The Tacto app's **실행 기록** tab groups access receipts by their
+  `command_start.task_id`: one row per task (goal, 진행 중/완료/실패/중단, call
+  count, apps), whose detail lists every call in order with its steps. Calls made
+  outside a task stay one row each. A receipt whose task directory is gone shows
+  as `작업 t-…` with "기록만 있음".
   Task records are written whenever a call is bound, independent of the access
   logging setting; the access receipt's `command_start` carries `task_id` and
   `invocation_id` when logging is on.

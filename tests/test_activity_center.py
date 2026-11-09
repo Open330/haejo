@@ -13,6 +13,54 @@ ROOT=Path(__file__).resolve().parents[1]
 
 @unittest.skipUnless(sys.platform=='darwin','AppKit required')
 class ActivityCenterTests(unittest.TestCase):
+    def test_history_groups_calls_by_task(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder=Path(folder); product=folder/'Tacto'; logs=product/'Logs'; logs.mkdir(parents=True)
+            tid='t-'+'a'*24; ended='t-'+'b'*24; missing='t-'+'c'*24
+            for task_id, meta in ((tid, dict(state='open',result=None,goal='수강 진행')), (ended, dict(state='closed',result='failed',goal='끝난 작업'))):
+                d=product/'Tasks'/task_id; d.mkdir(parents=True)
+                (d/'task.json').write_text(json.dumps(dict(schema=1,id=task_id,created_at='x',closed_at=None,**meta)))
+            def write(index, minute, task_id=None, exit_code=0, command='session'):
+                start=dict(schema=1,event='command_start',command=command,at=f'2026-11-09T02:{minute:02d}:00.000000+00:00',elapsed_ms=0)
+                if task_id: start['task_id']=task_id
+                rows=[start,dict(schema=1,event='access_start',operation='observe',target='com.apple.Safari',elapsed_ms=5),
+                      dict(schema=1,event='access_end',operation='observe',target='com.apple.Safari',type='observation',elapsed_ms=9),
+                      dict(schema=1,event='command_end',exit_code=exit_code,elapsed_ms=10)]
+                (logs/(f'tacto-20261109T02{minute:02d}00000000Z-'+format(index,'x')*32+'.jsonl')).write_text(''.join(json.dumps(r)+'\n' for r in rows))
+            write(1,10,tid);write(2,12,tid,2);write(3,14,tid);write(4,11);write(5,5,ended);write(6,6,missing);write(7,7,'t-NOTVALID')
+            source=(ROOT/'setup/ActivityCenter.swift').read_text().replace('private ', '')
+            (folder/'ActivityCenter.swift').write_text(source)
+            (folder/'main.swift').write_text(r'''
+import AppKit
+let app=NSApplication.shared; app.setActivationPolicy(.prohibited)
+let store=ActivityStore(root:URL(fileURLWithPath:CommandLine.arguments[1]))
+let groups=try! store.groups()
+assert(groups.count==5, "\(groups.count)")
+let open=groups[0]
+assert(open.isTask && open.records.count==3 && open.title=="수강 진행" && open.status=="진행 중")
+assert(!open.failed && !open.complete && open.records.first!.started > open.records.last!.started)
+let closed=groups.first{$0.taskID?.hasPrefix("t-bbb") == true}!
+assert(closed.failed && closed.complete && closed.status=="실패")
+let orphan=groups.first{$0.taskID?.hasPrefix("t-ccc") == true}!
+assert(orphan.task == nil && orphan.title.hasPrefix("작업 t-ccc"))
+assert(groups.filter{!$0.isTask}.count==2)
+let center=ActivityCenter(store:store,refreshAutomatically:false)
+try! center.snapshot(to:URL(fileURLWithPath:CommandLine.arguments[1]).appendingPathComponent("snapshot"))
+assert(center.filtered.count==5 && center.filtered[0].key==open.key)
+assert(center.summary.stringValue.hasPrefix("최근 7개 실행 · 작업 3개"), center.summary.stringValue)
+let texts=center.detail.arrangedSubviews.compactMap{($0 as? NSTextField)?.stringValue}
+assert(texts.contains("수강 진행") && texts.contains{$0.hasPrefix("1. 연속 작업")} && texts.contains{$0.hasPrefix("3. 연속 작업")}, "\(texts)")
+center.search.stringValue="수강";center.applyFilter();assert(center.filtered.count==1)
+center.search.stringValue="";center.filter.selectedSegment=1;center.applyFilter();assert(center.filtered.count==1 && center.filtered[0].key==closed.key)
+print("task-groups-pass")
+''')
+            binary=folder/'check'
+            built=subprocess.run(['swiftc','ActivityCenter.swift','main.swift','-o',str(binary)],cwd=folder,capture_output=True,text=True,timeout=120)
+            self.assertEqual(0,built.returncode,built.stderr)
+            result=subprocess.run([str(binary),str(product)],capture_output=True,text=True,timeout=30)
+            self.assertEqual(0,result.returncode,result.stderr)
+            self.assertIn('task-groups-pass',result.stdout)
+
     def test_native_reader_filters_settings_and_private_deletion(self):
         with tempfile.TemporaryDirectory() as folder:
             folder=Path(folder); product=folder/'Tacto'; logs=product/'Logs'; logs.mkdir(parents=True)
