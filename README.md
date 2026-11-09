@@ -284,6 +284,7 @@ Check `tacto --help` for your checkout. Use the signed launcher for native work 
 - [installation](docs/installation.md)
 - [Automatic access records](docs/access-logging.md)
 - [Goal-scoped tasks](docs/tasks.md)
+- [Acting on consent the user already approved](docs/approved-consent.md)
 - [menu discovery](docs/menu-discovery.md)
 - [model deadlines](docs/model-deadlines.md)
 - [native visual](docs/native-visual.md)
