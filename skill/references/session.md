@@ -44,6 +44,11 @@ those workflows. Existing user-intent authorization and host completion
 receipts are still evaluated by the normal replay engine. Close or interrupt an
 idle session if abandoning the task; it also expires on its input deadline.
 
+If the user already approved a consent/form step, carry that approval through
+`run <flow.json> --helper --yes` with the same task ID and current bindings;
+do not hand it back solely because this session cannot approve. For a fresh
+read without any action, use `observe --helper --json`, not a session with `{}`.
+
 
 `--guide` returns trusted minimal Flow instructions together with the observation;
 no separate authoring reference is needed for ordinary clicks. For compact steps,

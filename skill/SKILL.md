@@ -30,6 +30,7 @@ Details and manual lifecycle controls: [task](references/task.md).
 
 ## Start at the needed stage
 
+- **Observation only:** `tacto observe <bundle-id> --helper --json`. Reuse the task ID; do not open a session and send `{}` to obtain a fresh tree.
 - **New deterministic task:** `tacto session <bundle-id> --helper --guide --steps`
   via `exec_command` with `tty:true`, `yield_time_ms:1000`. The guide and
   observation arrive together; read no authoring files/help first. Wait for
@@ -52,6 +53,7 @@ Details and manual lifecycle controls: [task](references/task.md).
   a Vault grant is not required for those values. Existing delegated secrets:
   `tacto auth login <grant> --helper`. Read [credentials](references/credentials.md)
   for delegation/setup; a password field alone is not a human handoff.
+- **Consent/terms already approved:** carry out the user's stated choices; privacy or terms wording alone does not require a manual handoff. Keep exclusions such as marketing refusal. For steps needing approval use `tacto run <flow.json> --helper --yes` with the real effects, recipient and current binding; see [safety](references/safety.md). Missing form data is a separate question, not a reason to ask for the same consent again.
 - **Web navigation:** `tacto open-url <URL> --helper`; verify `loaded_verified`.
   For editing Safari's address field read [Safari](references/safari.md).
 - **Drag/resize:** [drag](references/drag.md). **Real cursor hover:** [hover](references/hover.md).

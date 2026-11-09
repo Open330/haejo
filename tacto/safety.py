@@ -389,7 +389,7 @@ def effects_of(action: dict, target_line: str = "", *, target: str = "") -> tupl
 def unanswered_confirmation(ask) -> str:
     """Why a confirm step did not run, with the next step, for the refusal line."""
     if ask is None or getattr(ask, "no_approver", False):
-        return " (이 실행 경로에는 확인 응답이 없습니다 — tacto run <flow.json> --yes 로 실행하면 진행합니다)"
+        return " (이 실행 경로에는 확인 응답이 없습니다 — 사용자가 이미 승인한 단계는 tacto run <flow.json> --yes 로 실행하세요)"
     if getattr(ask, "no_terminal", False):
-        return " (확인을 받을 터미널이 없습니다 — 같은 명령에 --yes 를 붙이면 진행합니다)"
+        return " (확인을 받을 터미널이 없습니다 — 사용자가 이미 승인한 단계만 같은 명령에 --yes 를 붙여 실행하세요)"
     return ""

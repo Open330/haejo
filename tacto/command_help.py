@@ -147,7 +147,8 @@ def session_guide(target, *, reusable=False, document=None, save=False, steps=Fa
         'check_defaults.field and expand to postcondition/skip_if. Put answers:true only on the result step. '
         'Full steps use action/selector/params. set_value uses params.value; its postcondition uses field:{"identifier":"same-id"}, equals:"text", attribute:"Value". Checks use equals, not value. '
         'Shared defaults fill explicit fields only; local effects replace and resource/destination merge. '
-        'Persistent writes/sending need their actual contract, binding and completion evidence; use run for approvals. ')
+        'Persistent writes/sending need their actual contract, binding and completion evidence; '
+        'for steps the user already approved use run --yes within that scope. ')
         + details
         + "Inspect uncertain outcomes before retrying. Send one minified JSON line plus newline on this session."
     )
@@ -187,7 +188,8 @@ def command_help(command, args):
             "exec_command tty=true, yield_time_ms=1000; wait for observation and\n"
             "TACTO_SESSION_READY. write_stdin: one compact Flow JSON line + newline, yield_time_ms=5000.\n"
             "Poll the same session. One flow then exit. --document pins one TextEdit file.\n"
-            "Use run for approval or judgment. Schema example: tacto session --help --example."
+            "Use run --yes for steps the user already approved; use observe for a read-only check. "
+            "Use run for judgment. Schema example: tacto session --help --example."
         )
     elif command == "run":
         text = (

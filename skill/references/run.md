@@ -16,6 +16,14 @@ Write the JSON file and run it in the same tool call:
 
 `tacto run /absolute/path/flow.json --helper`
 
+When the user has already approved the observed operation in the conversation,
+use `tacto run /absolute/path/flow.json --helper --yes --task <id>`. Author only
+the approved actions, keep current bindings and real effects/recipients, and
+verify their results. Privacy consent or terms wording does not itself require
+manual handoff. Preserve choices such as marketing refusal; ask only about a
+new recipient/action or missing required data. `session` cannot receive that
+approval, so switch routes rather than requesting the same approval again.
+
 Plain flows use no model judgment. For `intents`, `--think 0` disables it;
 for planned judgment read [judgment](judgment.md). Approval/evidence requirements
 for persistent writes or sending: [safety](safety.md). Restart journal details
