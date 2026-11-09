@@ -1836,6 +1836,9 @@ def main(argv=None):
         if binding is not None and binding.created_inline:
             print('TACTO_TASK ' + json.dumps({'id': binding.task_id}, separators=(',', ':')),
                   file=sys.stderr if binding.json_output else sys.stdout, flush=True)
+            hint = tasks.prose_hint(binding.task_id, root=binding.directory.parent)
+            if hint:
+                print(hint, file=sys.stderr if binding.json_output else sys.stdout, flush=True)
         code = _main_logged(argv, arguments, log)
         return code
     finally:

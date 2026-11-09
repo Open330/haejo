@@ -170,5 +170,29 @@ class TaskProseTests(unittest.TestCase):
             code,out=self.run_cli('list','--why','x')
             self.assertEqual(2,code);self.assertIn('task_not_applicable',out)
         tasks.end(meta['id'],'done')
-        with self.assertRaises(tasks.TaskRefused) as cm:tasks.note(meta['id'],'late')
+        tasks.note(meta['id'],'closing summary after end')          # a summary may follow the end
+        self.assertEqual('closing summary after end',tasks.status(meta['id'])['notes'][-1]['text'])
+        with self.assertRaises(tasks.TaskRefused) as cm:tasks.describe(meta['id'],'late')
         self.assertEqual('task_closed',cm.exception.code)
+    def test_hints_name_only_what_is_missing(self):
+        self.setup_log()
+        with patch.object(cli,'_main',return_value=0):
+            code,out=self.run_cli('observe','app','--task','new','--goal','목표')
+        task_id=self.task_id(out)
+        hint=[l for l in out.splitlines() if l.startswith('TACTO_TASK_HINT')]
+        self.assertEqual(1,len(hint));self.assertIn(f'tacto task describe {task_id}',hint[0]);self.assertIn(f'tacto task note {task_id}',hint[0])
+        self.assertEqual((0,f'description recorded on {task_id}\n'),self.run_cli('task','describe',task_id,'사용자 요청 전문'))
+        self.assertEqual('사용자 요청 전문',tasks.status(task_id)['detail'])
+        with patch.object(cli,'_main',return_value=0):
+            code,out=self.run_cli('observe','app','--finish-task',env={'TACTO_TASK':task_id})
+        hint=[l for l in out.splitlines() if l.startswith('TACTO_TASK_HINT')]
+        self.assertEqual(1,len(hint),out);self.assertIn('결과 요약',hint[0]);self.assertNotIn('describe',hint[0])
+        self.assertEqual(0,self.run_cli('task','note',task_id,'3개 확인 후 종료')[0])
+        with patch.object(cli,'_main',return_value=0):
+            code,out=self.run_cli('observe','app','--task','new','--goal','g','--detail','d','--finish-task')
+        self.assertIn('결과 요약',out);self.assertNotIn('describe',out)   # detail given: only the summary is missing
+        meta=tasks.start('g2',detail='d2');tasks.note(meta['id'],'n')
+        self.assertNotIn('TACTO_TASK_HINT',self.run_cli('task','end',meta['id'],'--result','done')[1])
+        with patch.object(cli,'_main',return_value=0):
+            code,out=self.run_cli('observe','app','--json','--task','new','--goal','g3')
+        self.assertFalse(any(l.startswith('TACTO_TASK_HINT') for l in out.splitlines()))  # --json keeps stdout clean

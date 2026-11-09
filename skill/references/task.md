@@ -31,7 +31,12 @@ Prose for people reviewing the run (shown in `task status` and the Tacto app's
   is made, e.g. "저장 대화상자가 떴는지 확인".
 - `tacto task note [<id>] "<decision>"`: a decision and its reason (≤1000), e.g.
   "검색 결과가 0건이라 필터를 해제하고 다시 시도". `task end … --note "<summary>"`
-  records the closing summary. Notes are accepted while the task is open.
+  records the closing summary; a note is also accepted after the task ends.
+- `tacto task describe [<id>] "<text>"` sets or replaces the description of an
+  open task (e.g. when the goal was started without `--detail`).
+- `TACTO_TASK_HINT …` (stdout, or stderr with `--json`) follows the start or end
+  marker when the description or notes are still missing and names the command
+  that adds them.
 - Write decisions and outcomes; field values such as passwords and codes stay
   out of this prose.
 

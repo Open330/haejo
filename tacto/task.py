@@ -222,8 +222,40 @@ def start(goal, *, detail=None, root=None):
     raise OSError('task_id_exhausted')
 
 
+def describe(task_id, text, *, root=None):
+    """Set or replace the description of an open task (the user's request in prose)."""
+    text = _prose(text, MAX_DETAIL, 'task_detail_invalid', multiline=True)
+    if text is None:
+        raise TaskRefused('task_detail_invalid', 'Give the description: tacto task describe <id> "<the user\'s request>".')
+    directory = _task_dir(task_id, root)
+    if not directory.exists():
+        raise TaskRefused('task_unknown', 'No such task on this computer.')
+    with _locked(_private_dir(directory, create=False)):
+        meta = _load_meta(directory)
+        if meta['state'] != 'open':
+            raise TaskRefused('task_closed', f"Task already ended ({meta.get('result')}).")
+        meta['detail'] = text
+        _write_meta(directory, meta)
+    return meta
+
+
+def prose_hint(task_id, *, at_end=False, root=None):
+    """One line naming the prose commands for whatever this task still lacks, or None."""
+    try:
+        report = status(task_id, root=root)
+    except (OSError, TaskRefused):
+        return None
+    parts = []
+    if not at_end and not report.get('detail'):
+        parts.append(f'요청 설명: tacto task describe {task_id} "<사용자 요청>"')
+    if not report.get('notes'):
+        parts.append(f'결과 요약: tacto task note {task_id} "<무엇을 확인했고 왜 끝냈는지>"' if at_end
+                     else f'판단 기록: tacto task note {task_id} "<판단과 근거>"')
+    return 'TACTO_TASK_HINT ' + ' · '.join(parts) if parts else None
+
+
 def note(task_id, text, *, root=None):
-    """Record one agent decision on an open task."""
+    """Record one agent decision or the closing summary (accepted after the task ends too)."""
     text = _prose(text, MAX_NOTE, 'task_note_invalid', multiline=True)
     if text is None:
         raise TaskRefused('task_note_invalid', 'Give the decision text: tacto task note "<decision>".')
@@ -232,8 +264,6 @@ def note(task_id, text, *, root=None):
         raise TaskRefused('task_unknown', 'No such task on this computer.')
     with _locked(_private_dir(directory, create=False)):
         meta = _load_meta(directory)
-        if meta['state'] != 'open':
-            raise TaskRefused('task_closed', f"Task already ended ({meta.get('result')}).")
         _append(directory, {'event': 'note', 'text': text, 'pid': os.getpid()})
     return meta
 
@@ -446,9 +476,12 @@ class Binding:
         try:
             meta = end(self.task_id, 'done' if done else 'failed', root=self.directory.parent,
                        completion_scope=scope)
+            stream = sys.stderr if self.json_output else sys.stdout
             print('TACTO_TASK_FINISHED ' + json.dumps({'id':self.task_id,'result':meta['result'],
-                  'completion_scope':scope},separators=(',',':')),
-                  file=sys.stderr if self.json_output else sys.stdout)
+                  'completion_scope':scope},separators=(',',':')), file=stream)
+            hint = prose_hint(self.task_id, at_end=True, root=self.directory.parent)
+            if hint:
+                print(hint, file=stream)
         except (OSError, TaskRefused):
             print('TACTO_TASK_FINISH_UNCERTAIN task closure could not be recorded; inspect task status.', file=sys.stderr)
 
@@ -609,6 +642,7 @@ def bind(task_id, command, *, root=None, environ=None):
 # ---------------------------------------------------------------- CLI
 
 USAGE = ('usage: tacto task start "<goal>" [--detail "<description>"] [--json]\n'
+         '       tacto task describe [<task-id>] "<the user\'s request>" [--json]\n'
          '       tacto task note [<task-id>] "<decision>" [--json]\n'
          '       tacto task status [<task-id>] [--steps] [--json]\n'
          '       tacto task list [--all] [--json]\n'
@@ -654,6 +688,17 @@ def main(args, *, root=None):
                 print(f"TACTO_TASK {meta['id']}")
                 print(f"Prefix every tacto command for this goal: TACTO_TASK={meta['id']} tacto …  "
                       f"(or add --task {meta['id']}). Finish with: tacto task end {meta['id']} --result done|failed|abandoned")
+                hint = prose_hint(meta['id'], root=root)
+                if hint:
+                    print(hint)
+            return 0
+        if sub == 'describe':
+            if not rest or any(a.startswith('--') for a in rest) or len(rest) > 2:
+                print(USAGE); return 2
+            task_id = _resolve_id(rest[:-1])
+            describe(task_id, rest[-1], root=root)
+            print(json.dumps({'type': 'task_describe', 'task_id': task_id, 'recorded': True}) if as_json
+                  else f'description recorded on {task_id}')
             return 0
         if sub == 'note':
             if not rest or any(a.startswith('--') for a in rest) or len(rest) > 2:
@@ -708,6 +753,9 @@ def main(args, *, root=None):
                                   'counts': report['counts']}, ensure_ascii=False))
             else:
                 print(f"task {meta['id']} ended: {result} (caller-declared; not a verification)")
+                hint = prose_hint(meta['id'], at_end=True, root=root)
+                if hint:
+                    print(hint)
                 c = report['counts']
                 if c['in_flight'] or c['uncertain']:
                     print(f"  note: {c['in_flight']} in_flight, {c['uncertain']} uncertain — inspect the target state before any retry.")

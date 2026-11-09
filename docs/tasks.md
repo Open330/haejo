@@ -33,6 +33,10 @@ it with a declared result. Agent usage: [skill reference](../skill/references/ta
   `note` records (`tacto task note`, `task end --note`). Access receipts stay
   content-free. Limits: goal 1000, detail 4000 (multi-line), why 500 (one line),
   note 1000 characters; control characters other than tab/newline are refused.
+  `task describe` sets the description of an open task; notes are append-only
+  and also accepted after the task ends (a closing summary). When a task starts
+  without a description, or ends without notes, a `TACTO_TASK_HINT` line after
+  the marker names the command that adds what is missing.
 - The Tacto app's **실행 기록** tab groups access receipts by their
   `command_start.task_id`: one row per task (goal, 진행 중/완료/실패/중단, call
   count, apps), whose detail shows the request description, then the latest 30
