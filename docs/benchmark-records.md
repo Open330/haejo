@@ -492,7 +492,7 @@ JSON Flow 작성과 대화형 입출력 왕복 비용은 남는다. 저장이 �
 false, 종료코드는2다. 실제 serving 모델·숨은 context·서버 캐시·청구 동등성도
 확인하지 않았다. 따라서 관측 결과를 완전한 제품 성능 동등 비교로 포장하지 않는다.
 
-원본: `reviews/tacto-rc20-candidate2-20261105/source/reviews/2026-11-05/product-comparison-20261105-173046.jsonl`.
+원본 `reviews/tacto-rc20-candidate2-20261105/source/reviews/2026-11-05/product-comparison-20261105-173046.jsonl`은 2026-11-09 로컬 정리 때 삭제되어 남아 있지 않다.
 요약·실행 전후 증거: `reviews/goal-resume-20261105-rc20-comparison/`.
 
 ## 2026-11-05 후보 문서 경로: 독립 동작 검증(성능 동등 비교 아님)
