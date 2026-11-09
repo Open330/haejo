@@ -1263,6 +1263,30 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 }
 
+/// Tacto was renamed to Haejo on 2026-11-09. On the first Haejo launch, move the old
+/// per-user directories so activity history, preferences, tasks and saved Flows carry
+/// over. A directory moves only when the Haejo path is free; nothing is merged or deleted,
+/// and symlinks are left alone. Mirrors haejo/legacy_data.py.
+func migrateLegacyTactoData() {
+    let fm = FileManager.default
+    let home = fm.homeDirectoryForCurrentUser
+    var dataHome = home.appendingPathComponent(".local/share")
+    if let xdg = ProcessInfo.processInfo.environment["XDG_DATA_HOME"], xdg.hasPrefix("/") {
+        dataHome = URL(fileURLWithPath: xdg)
+    }
+    let support = home.appendingPathComponent("Library/Application Support")
+    let pairs = [(support.appendingPathComponent("Tacto"), support.appendingPathComponent("Haejo")),
+                 (dataHome.appendingPathComponent("tacto"), dataHome.appendingPathComponent("haejo"))]
+    for (old, new) in pairs {
+        guard let values = try? old.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey]),
+              values.isDirectory == true, values.isSymbolicLink != true,
+              (try? fm.attributesOfItem(atPath: new.path)) == nil else { continue }
+        try? fm.createDirectory(at: new.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try? fm.moveItem(at: old, to: new)
+    }
+}
+if !CommandLine.arguments.contains("--snapshot") { migrateLegacyTactoData() }
+
 let app = NSApplication.shared
 let delegate = Setup(); app.delegate = delegate
 // Menu-bar utility: neither an open settings window nor a background launch

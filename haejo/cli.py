@@ -960,6 +960,10 @@ def _dispatch_command(cmd, rest):
 
     if cmd == "doctor":
         from . import onboard
+        if "--check" not in rest:
+            from .legacy_data import migrate_legacy_data
+            for old, new in migrate_legacy_data():
+                print(f"Tacto 데이터를 옮겼습니다: {old} -> {new}")
         ok = onboard.run(interactive="--check" not in rest)
         return 0 if ok else 1
 

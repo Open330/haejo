@@ -2,14 +2,14 @@
 
 <div align="center">
 
-![Haejo — Agents use apps. Haejo repeats.](docs/assets/haejo-banner.svg)
+![Haejo — 말하면 해 줍니다. 확인까지.](docs/assets/haejo-banner.svg)
 
-### 에이전트의 앱 조작을 저장하고, 다음에도 실행하세요.
+### 말하면 해 줍니다. 확인까지.
 
-**Haejo는 에이전트가 브라우저와 Mac 앱을 조작하게 하는 도구입니다.**<br>
-에이전트가 화면을 읽고 클릭·입력하는 작업을 Flow라는 실행 순서로 저장합니다.<br>
-같은 작업은 입력값만 바꿔 재생하고, 결과를 확인하세요.<br>
-**에이전트가 어떤 앱에서 무엇을 했는지, Haejo 실행 기록에서 직접 확인하세요.**
+**Haejo는 Claude와 Codex가 Mac 앱과 브라우저를 대신 쓰게 해 줍니다.**<br>
+앱을 열고, 클릭하고, 입력한 뒤 **결과를 확인해야** 끝났다고 말합니다.<br>
+한 번 한 일은 Flow로 저장해, 다음에는 입력값만 바꿔 모델 호출 없이 다시 합니다.<br>
+**어떤 앱에서 무엇을 했고 결과가 어땠는지 실행 기록에서 확인하세요.**
 
 [![macOS](docs/assets/badge-macos.svg)](docs/installation.md)
 [![Claude + Codex](docs/assets/badge-agents.svg)](skill/SKILL.md)
@@ -18,6 +18,8 @@
 [시작하기](#getting-started) &nbsp;·&nbsp; [작동 방식](#how-it-works) &nbsp;·&nbsp; [벤치마크](#benchmarks) &nbsp;·&nbsp; [온보딩 웹사이트](sites/haejo/README.md) &nbsp;·&nbsp; [문서](#documentation)
 
 </div>
+
+> **Tacto에서 이름을 바꿨습니다 (2026-11-09).** v1.0.0-rc.13까지의 출시 후보는 Tacto(`Tacto.app`, `tacto` 명령)로 배포됐습니다. 다음 릴리스부터 Haejo로 배포합니다. [업그레이드할 때 바뀌는 점](docs/haejo-branding.md)
 
 <br>
 
@@ -220,7 +222,6 @@ Python 배포 이름은 `haejo-runtime`이고 기본 import는 `haejo`입니다.
 Python wheel만으로는 서명된 macOS 런처·helper를 사용할 수 없습니다.
 권한용 앱은 **Haejo Helper**(`helper/Haejo Helper.app/Contents/MacOS/HaejoHelper`)이고 실행기는 `launcher/haejo`입니다. 번들 식별자와 서명 요구조건은 `ai.callabo.haejo.*`를 사용합니다.
 
-> **Python 이름 충돌 주의.** 최상위 import 이름 `haejo`는 PyPI의 다른 패키지(촉각 센서 시뮬레이터)도 사용합니다. 이 프로젝트의 배포 이름은 `haejo-runtime`이며 별도 가상환경에 설치하세요. Haejo를 위해 `pip install haejo`를 실행하지 마세요. 두 패키지를 한 환경에 설치하면 서로의 파일을 덮어쓸 수 있습니다.
 선택적 Playwright backend는 별도 Chromium 페이지를 사용합니다.
 
 다음 batch·자동 수리 명령은 개발 checkout 기준이며 아직 기본 브랜치의 배포 기능이 아닙니다.

@@ -1,0 +1,688 @@
+<title>Haejo 브랜드북</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a reading column on the brand's ivory. The hero is the brand device itself (a blank on the horizon), then strategy, then the identity sheets. */
+:root{
+  --ink:#1b211c; --ivory:#f6f4ed; --sun:#fa6b3b; --sun-text:#c4532c; --moss:#5f6b58;
+  --pine:#2f7a55; --amber:#b9800f; --brick:#a8322a;
+  --bg:var(--ivory); --fg:var(--ink); --muted:var(--moss); --accent-text:var(--sun-text);
+  --line:#d9d8cc; --panel:#ecebe1; --card:#fbfaf6;
+  --band-bg:var(--ink); --band-fg:var(--ivory); --band-muted:#aab4a1;
+  --f-body:"IBM Plex Sans KR","Apple SD Gothic Neo",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  color-scheme:dark; --bg:#141915; --fg:#ecebe1; --muted:#9aa591; --accent-text:#ff8a5f;
+  --line:#2c342d; --panel:#1d241e; --card:#192019; --band-bg:#0c100d;
+  --pine:#5fb388; --amber:#e0a93a; --brick:#e0675a;}}
+:root[data-theme="dark"]{
+  color-scheme:dark; --bg:#141915; --fg:#ecebe1; --muted:#9aa591; --accent-text:#ff8a5f;
+  --line:#2c342d; --panel:#1d241e; --card:#192019; --band-bg:#0c100d;
+  --pine:#5fb388; --amber:#e0a93a; --brick:#e0675a;}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:16px/1.7 var(--f-body);-webkit-font-smoothing:antialiased}
+.wrap{max-width:920px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{text-wrap:balance;margin:0}
+h2{font:700 1.65rem/1.3 var(--f-body);letter-spacing:-.025em}
+h3{font:700 1.02rem/1.4 var(--f-body)}
+p{margin:0;max-width:64ch}
+.label{font:500 .72rem/1 var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.note{color:var(--muted);font-size:.92rem}
+section{padding-block:60px;border-top:1px solid var(--line);display:grid;gap:26px}
+code{font-family:var(--f-mono);font-size:.86em;background:var(--panel);padding:.1em .35em;border-radius:4px}
+.mono{font-family:var(--f-mono);font-size:.88em}
+.tbl{overflow-x:auto}
+.facts{width:100%;border-collapse:collapse;font-size:.92rem;font-variant-numeric:tabular-nums}
+.facts th,.facts td{text-align:left;padding:10px 14px 10px 0;border-bottom:1px solid var(--line);vertical-align:top}
+.facts th{font:500 .7rem var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.ok{color:var(--accent-text);font-weight:700}
+button{font:inherit}
+:focus-visible{outline:2px solid var(--sun);outline-offset:3px;border-radius:6px}
+
+/* ---------- hero: the blank on the horizon */
+.hero{padding-block:52px 56px;display:grid;gap:30px}
+.hero-top{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.hero-top svg{height:40px;width:auto;color:var(--fg)}
+.ask{font:700 clamp(2.4rem,7.2vw,4.6rem)/1.08 var(--f-body);letter-spacing:-.045em;display:grid;gap:.08em}
+.ask .blank{position:relative;display:inline-block;justify-self:start;color:var(--accent-text);padding-bottom:.12em;min-height:1.2em}
+.ask .blank::after{content:"";position:absolute;left:0;right:0;bottom:0;height:.11em;background:var(--fg)}
+.ask .blank span{display:inline-block;transition:opacity .25s,transform .25s}
+.ask .blank span.out{opacity:0;transform:translateY(.15em)}
+.hero-sub{font-size:1.15rem;line-height:1.65;max-width:52ch;color:var(--fg)}
+.hero-sub b{color:var(--accent-text)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip-btn{border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:999px;padding:6px 14px;font-size:.88rem;cursor:pointer}
+.chip-btn[aria-pressed="true"]{border-color:var(--sun);color:var(--accent-text)}
+@media (prefers-reduced-motion:reduce){.ask .blank span{transition:none}}
+
+/* ---------- compare */
+.compare{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.compare figure{margin:0;display:grid;gap:10px;justify-items:center;background:var(--panel);border-radius:14px;padding:18px 22px}
+.compare svg{width:92px;height:92px;color:var(--fg)}
+.compare .wide svg{width:190px;height:auto}
+.compare figcaption{font:400 .74rem var(--f-mono);color:var(--muted);text-align:center}
+.compare .arrow{color:var(--accent-text);font-size:1.4rem}
+
+/* ---------- strategy */
+.position{font-size:1.2rem;line-height:1.7;max-width:56ch;border-left:3px solid var(--sun);padding-left:20px}
+.pillars{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:14px}
+.pillar{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;display:grid;gap:8px;align-content:start}
+.pillar .verb{font:700 1.35rem/1.2 var(--f-body);letter-spacing:-.02em}
+.pillar .verb small{display:block;font:500 .72rem var(--f-mono);letter-spacing:.08em;color:var(--muted);margin-top:4px;text-transform:uppercase}
+.pillar p{font-size:.9rem;color:var(--muted)}
+.pillar .proof{font:400 .78rem/1.5 var(--f-mono);color:var(--fg);border-top:1px dashed var(--line);padding-top:8px}
+.say-no{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:24px}
+.say-no ul{margin:0;padding-left:1.1em;display:grid;gap:6px;font-size:.94rem}
+
+/* ---------- band */
+.band{background:var(--band-bg);color:var(--band-fg);padding-block:68px}
+.band .wrap{display:grid;gap:34px}
+.band .label{color:var(--band-muted)}
+.band h2{color:var(--band-fg)}
+.anatomy{display:grid;grid-template-columns:minmax(0,340px) 1fr;gap:48px;align-items:center}
+@media (max-width:700px){.anatomy{grid-template-columns:1fr}}
+.construct{width:100%;height:auto}
+.construct .g{stroke:#323b33;stroke-width:.06}
+.construct .dim{stroke:#7f8a77;stroke-width:.08;fill:none}
+.construct text{font:400 1.05px var(--f-mono);fill:#aab4a1}
+.parts{display:grid;gap:22px}
+.part{display:grid;grid-template-columns:44px 1fr;gap:14px;align-items:start}
+.part svg{width:44px;height:44px;color:var(--band-fg)}
+.part p{color:#c9cfc2;font-size:.95rem}
+.band .lineage{color:var(--band-muted);font-size:.92rem;max-width:70ch}
+.band .lineage b{color:var(--band-fg)}
+
+/* ---------- applications */
+.apps{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));gap:16px}
+.mock{border-radius:14px;border:1px solid var(--line);background:var(--card);overflow:hidden;display:grid;grid-template-rows:1fr auto}
+.mock .cap{font:500 .68rem var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:12px 16px;border-top:1px solid var(--line)}
+.win{padding:22px;display:grid;gap:14px;min-height:200px;align-content:start}
+.win .titlebar{display:flex;gap:6px}
+.win .titlebar i{width:10px;height:10px;border-radius:50%;background:var(--line)}
+.field{display:grid;gap:6px}
+.field label{font-size:.8rem;color:var(--muted)}
+.field .input{font-size:1.05rem;padding:4px 0 8px;border-bottom:3px solid var(--fg);display:flex;justify-content:space-between;gap:12px;align-items:end}
+.field .input em{font-style:normal;color:var(--muted)}
+.send{width:30px;height:30px;border-radius:50%;background:var(--sun);display:grid;place-items:center;flex:none}
+.send svg{width:14px;height:14px}
+.suggest{display:flex;gap:6px;flex-wrap:wrap}
+.suggest span{font-size:.78rem;border:1px solid var(--line);border-radius:999px;padding:3px 10px;color:var(--muted)}
+.hrow{display:grid;grid-template-columns:22px 1fr auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);font-size:.9rem}
+.hrow:last-child{border-bottom:0}
+.hrow svg{width:18px;height:18px}
+.hrow small{display:block;color:var(--muted);font-size:.78rem}
+.hrow .t{font:400 .78rem var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums;text-align:right}
+.term{background:#121613;color:#dfe3d8;padding:18px 20px;font:400 .84rem/1.85 var(--f-mono);overflow-x:auto;white-space:pre;min-height:200px}
+.term .p{color:#7f8a77}.term .s{color:#fa6b3b}.term .k{color:#7fc79f}.term .dim{color:#8c9784}
+.menu-wrap{display:grid;align-content:start;min-height:200px}
+.menubar-strip{display:flex;align-items:center;justify-content:flex-end;gap:16px;background:var(--panel);padding:8px 16px;font-size:.8rem}
+.menubar-strip svg{width:18px;height:18px;color:var(--fg)}
+.banner-mock{display:grid;gap:4px;margin:16px;background:var(--fg);color:var(--bg);border-radius:12px;padding:14px 16px;justify-self:end;width:min(calc(100% - 32px),300px)}
+.banner-mock b{display:flex;align-items:center;gap:8px;font-size:.9rem}
+.banner-mock b svg{width:18px;height:18px;color:var(--bg)}
+.banner-mock span{font-size:.8rem;opacity:.75}
+
+/* ---------- identity tiles */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:14px}
+.tile{border-radius:14px;padding:26px 22px;display:grid;place-items:center;align-content:center;min-height:168px;gap:14px;text-align:center}
+.tile.l{background:#f6f4ed;color:#1b211c;border:1px solid var(--line)}
+.tile.d{background:#1b211c;color:#f6f4ed}
+.tile.w{background:#fff;color:#1b211c;border:1px solid var(--line)}
+.tile .cap{font:500 .68rem var(--f-mono);letter-spacing:.1em;text-transform:uppercase;opacity:.62}
+.tile svg.asset{max-width:100%;height:auto}
+.sizes{display:flex;align-items:flex-end;gap:24px;flex-wrap:wrap}
+.sizes figure{margin:0;display:grid;gap:8px;justify-items:center}
+.sizes figcaption{font:400 .74rem var(--f-mono);color:var(--muted)}
+.states{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:14px}
+.state{border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:10px;align-content:start}
+.state .mb{display:flex;align-items:center;gap:8px;background:var(--panel);border-radius:8px;padding:6px 10px;font-size:.82rem}
+.state .mb svg{width:18px;height:18px;color:var(--fg)}
+.state h3{display:flex;gap:8px;align-items:center}
+.chip{font:500 .68rem var(--f-mono);letter-spacing:.06em;padding:2px 8px;border-radius:999px;color:#fff}
+.state p{font-size:.88rem;color:var(--muted)}
+.timeline{display:grid;gap:10px}
+.track{position:relative;height:30px;border-radius:6px;background:var(--panel)}
+.seg{position:absolute;top:0;bottom:0;border-radius:6px;display:flex;align-items:center;padding-inline:10px;font-size:.78rem;white-space:nowrap;overflow:hidden}
+.ticks{display:flex;justify-content:space-between;font:400 .72rem var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.swatches{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:12px}
+.sw{border-radius:12px;overflow:hidden;border:1px solid var(--line)}
+.sw div{height:72px}
+.sw p{padding:10px 12px;font-size:.85rem;line-height:1.45}
+.sw p span{display:block;font-family:var(--f-mono);color:var(--muted);font-size:.76rem}
+.donts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:14px}
+.dont{border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:10px;justify-items:center;text-align:center}
+.dont svg{width:72px;height:72px;color:var(--fg)}
+.dont .x{font:700 .7rem var(--f-mono);letter-spacing:.1em;color:var(--brick)}
+.dont p{font-size:.86rem;color:var(--muted)}
+.dont .txt{font:700 1.6rem/72px var(--f-body);height:72px}
+.motion{display:flex;gap:32px;align-items:center;flex-wrap:wrap}
+.hero-mark{display:grid;gap:10px;justify-items:center}
+.hero-mark svg{width:150px;height:150px;color:var(--fg)}
+.replay{border:1px solid var(--line);background:transparent;color:var(--fg);border-radius:999px;padding:5px 14px;cursor:pointer;font-size:.85rem}
+.replay:hover{border-color:var(--sun);color:var(--accent-text)}
+.sunrise .sun{animation:rise .7s cubic-bezier(.2,.8,.2,1) both}
+.sunrise .ring{stroke-dasharray:42.1;animation:close 1s cubic-bezier(.4,0,.2,1) .55s both}
+@keyframes rise{from{transform:translateY(8.3px)}to{transform:none}}
+@keyframes close{from{stroke-dashoffset:42.1}to{stroke-dashoffset:0}}
+@media (prefers-reduced-motion:reduce){.sunrise .sun,.sunrise .ring{animation:none}}
+.steps{list-style:none;margin:0;padding:0;display:grid;gap:18px;counter-reset:s}
+.steps li{display:grid;grid-template-columns:36px 1fr;gap:12px;counter-increment:s}
+.steps li::before{content:counter(s);font:500 1.1rem/1.5 var(--f-mono);color:var(--accent-text)}
+.steps p{color:var(--muted);font-size:.94rem}
+footer{padding-block:40px 64px;border-top:1px solid var(--line);color:var(--muted);font-size:.85rem}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="m" viewBox="0 0 32 32">
+    <circle cx="16" cy="3.7" r="3.38" fill="#fa6b3b"/>
+    <path d="M2.5 10.58H29.5" fill="none" stroke="currentColor" stroke-width="4"/>
+    <circle cx="16" cy="22.98" r="6.7" fill="none" stroke="currentColor" stroke-width="4"/>
+  </symbol>
+  <symbol id="m3" viewBox="0 0 32 32">
+    <path d="M11 5.5A5 5 0 0 1 21 5.5Z" fill="#fa6b3b"/>
+    <path d="M4.8 9.1H27.2" fill="none" stroke="currentColor" stroke-width="4.2"/>
+    <circle cx="16" cy="22.3" r="7.1" fill="none" stroke="currentColor" stroke-width="4.2"/>
+  </symbol>
+  <symbol id="wl" viewBox="0 0 75.5 36">
+    <path d="M2 8V29M2 21A6 6 0 0 1 14 21V29 M32 21A6 6 0 1 0 20 21A6 6 0 1 0 32 21M32 13V29 M37.9 21H49.9A6 6 0 1 0 48.5 24.86 M55.4 13V30A3.6 3.6 0 0 1 51.8 33.6 M73.5 21A6 6 0 1 0 61.5 21A6 6 0 1 0 73.5 21" stroke="currentColor" stroke-width="4" fill="none"/>
+    <circle cx="55.4" cy="8.3" r="2.72" fill="#fa6b3b"/>
+  </symbol>
+  <symbol id="wl3" viewBox="0 0 76.4 36">
+    <path d="M2 8V29M2 21A6 6 0 0 1 14 21V29 M32.1 21A6 6 0 1 0 20.1 21A6 6 0 1 0 32.1 21M32.1 13V29 M38.2 21H50.2A6 6 0 1 0 48.8 24.86 M56.3 13V30.5A3.2 3.2 0 0 1 53.1 33.7H51.9 M74.4 21A6 6 0 1 0 62.4 21A6 6 0 1 0 74.4 21" stroke="currentColor" stroke-width="4" fill="none"/>
+    <circle cx="56.3" cy="8.4" r="2.48" fill="#fa6b3b"/>
+  </symbol>
+  <symbol id="lk" viewBox="0 0 112.5 38.4">
+    <use href="#m" width="32" height="32"/>
+    <use href="#wl" x="37" y="2.4" width="75.5" height="36"/>
+  </symbol>
+  <symbol id="ring" viewBox="0 0 20 20"><circle cx="10" cy="10" r="6.5" fill="none" stroke="currentColor" stroke-width="3"/></symbol>
+  <symbol id="ringdone" viewBox="0 0 20 20"><circle cx="10" cy="10" r="6.5" fill="currentColor" stroke="currentColor" stroke-width="3"/></symbol>
+</svg>
+
+<header class="wrap hero">
+  <div class="hero-top">
+    <svg viewBox="0 0 112.5 38.4" role="img" aria-label="Haejo"><use href="#lk"/></svg>
+    <span class="label">브랜드북 v4 · 2026-11-09</span>
+  </div>
+  <h1 class="ask">
+    <span>Ask Haejo to</span>
+    <span class="blank" id="blank" aria-live="polite"><span id="blankText">sort these files by kind.</span></span>
+  </h1>
+  <p class="hero-sub">Haejo는 Claude와 Codex가 <b>Mac 앱과 브라우저를 대신 쓰게</b> 해 줍니다. 앱을 열고, 입력하고, 결과를 확인하고, 그 과정을 기억해 다음에는 모델 호출 없이 다시 합니다.</p>
+  <div class="chips" role="group" aria-label="부탁 예시 고르기"><button class="chip-btn" type="button" id="ask0" aria-pressed="false">써 줘</button><button class="chip-btn" type="button" id="ask1" aria-pressed="false">확인해 줘</button><button class="chip-btn" type="button" id="ask2" aria-pressed="false">로그인해 줘</button><button class="chip-btn" type="button" id="ask3" aria-pressed="false">다시 해 줘</button><button class="chip-btn" type="button" id="ask4" aria-pressed="false">보여 줘</button></div>
+</header>
+
+<main>
+<div class="wrap">
+<section>
+  <span class="label">v4에서 바뀐 점</span>
+  <h2>마크는 ㅎ으로 또렷하게, 메시지는 할 수 있는 일로</h2>
+  <div class="compare">
+    <figure><svg viewBox="0 0 32 32" aria-hidden="true"><use href="#m3"/></svg><figcaption>v3 · 반원 해, 좁은 가로획</figcaption></figure>
+    <span class="arrow" aria-hidden="true">→</span>
+    <figure><svg viewBox="0 0 32 32" aria-hidden="true"><use href="#m"/></svg><figcaption>v4 · 둥근 해, 넓은 가로획</figcaption></figure>
+  </div>
+  <div class="compare">
+    <figure class="wide"><svg viewBox="0 0 76.4 36" aria-hidden="true"><use href="#wl3"/></svg><figcaption>v3 · 같은 간격</figcaption></figure>
+    <span class="arrow" aria-hidden="true">→</span>
+    <figure class="wide"><svg viewBox="0 0 75.5 36" aria-hidden="true"><use href="#wl"/></svg><figcaption>v4 · 글자 쌍마다 다른 간격</figcaption></figure>
+  </div>
+  <div class="tbl"><table class="facts">
+    <thead><tr><th>v3에서 어색했던 점</th><th>원인</th><th>v4 해결</th></tr></thead>
+    <tbody>
+      <tr><td>모자처럼 보임</td><td>평평한 반원이 평평한 가로획 위에 얹힌 실루엣</td><td>해를 둥근 점으로. 해돋이는 모양 대신 모션에서 보여 줌</td></tr>
+      <tr><td>세로로 좁은 기둥</td><td>가로획 22.4가 원 18.4보다 조금만 넓음</td><td>가로획 27, 원 17.4. 잘 그린 한글 ㅎ처럼 가로획이 원의 1.55배</td></tr>
+      <tr><td>해와 원의 크기 관계</td><td>해가 원 안쪽과 수치는 같지만 더 커 보임</td><td>해를 원 안쪽의 0.72배로 그려 <b>같아 보이게</b> 보정</td></tr>
+      <tr><td>마크와 워드마크가 따로 놂</td><td>마크는 반원, j의 점은 원</td><td>둘 다 같은 둥근 해. 로고 안에서 해가 두 번 뜸</td></tr>
+      <tr><td>영문 자간이 고르지 않아 보임</td><td>모든 글자 사이를 2.1로 똑같이 둠</td><td>글자 쌍마다 광학 간격(h·a 2.0, a·e 1.9, e·j 1.5, j·o 2.1). j의 꼬리를 짧고 단정하게</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <span class="label">브랜드 전략</span>
+  <h2>Haejo는 반복 도구가 아니라, 부탁하면 해 주는 컴퓨터입니다</h2>
+  <p class="position">에이전트로 일하는 개발자와 파워 유저에게, Haejo는 <b>실제 앱을 대신 쓰고, 결과를 확인하고, 무엇을 했는지 남기는</b> 컴퓨터 사용 도구입니다. 화면을 보고 짐작하는 데서 끝나지 않고, 확인한 것만 끝났다고 말합니다.</p>
+  <p>이름 ‘해줘’가 곧 사용법이므로 모든 약속을 <b>“~해 줘”</b> 형태로 씁니다. 반복은 다섯 약속 중 하나입니다.</p>
+  <div class="pillars">
+    <div class="pillar"><div class="verb">써 줘<small>Use my apps</small></div><p>Mac 앱과 브라우저를 열고, 누르고, 입력하고, 끌어 옮깁니다.</p><div class="proof">Finder·TextEdit·계산기·GitHub 등 실제 앱과 사이트 8곳 녹화</div></div>
+    <div class="pillar"><div class="verb">확인해 줘<small>Check the result</small></div><p>화면이나 파일에서 결과를 확인하고, 증거가 부족하면 끝났다고 하지 않습니다.</p><div class="proof">TextEdit 저장 내용을 디스크에서 따로 검증</div></div>
+    <div class="pillar"><div class="verb">다시 해 줘<small>Do it again</small></div><p>한 번 한 일을 Flow로 저장해 새 입력으로 다시 합니다.</p><div class="proof">일반 재실행 중 모델 호출 0회 · 소규모 비교에서 입력 토큰 53.5% 감소</div></div>
+    <div class="pillar"><div class="verb">로그인해 줘<small>Sign in safely</small></div><p>Keychain이나 Bitwarden의 값을 서명된 헬퍼가 직접 입력합니다. 에이전트는 비밀번호를 보지 않습니다.</p><div class="proof">에이전트에게는 결과만 전달</div></div>
+    <div class="pillar"><div class="verb">보여 줘<small>Show what you did</small></div><p>어떤 앱에서 무엇을 했고 결과가 어땠는지 기록으로 보여 줍니다.</p><div class="proof">기록은 이 Mac에만 저장 · 화면 내용과 입력값 제외 · 7/30/90일 보관</div></div>
+  </div>
+  <div class="tbl"><table class="facts">
+    <thead><tr><th>층위</th><th>English</th><th>한국어</th></tr></thead>
+    <tbody>
+      <tr><td>태그라인</td><td><b>Ask Haejo.</b></td><td><b>말하면 해 줍니다. 확인까지.</b></td></tr>
+      <tr><td>헤드라인 장치</td><td>Ask Haejo to ____.</td><td>Haejo, ____ 해 줘.</td></tr>
+      <tr><td>대표 문장</td><td>Ask Haejo to use your apps.</td><td>앱을 열고, 입력하고, 결과까지 확인해 줘.</td></tr>
+      <tr><td>설명</td><td>Haejo lets Claude and Codex use your Mac and browser apps, checks each result, and remembers the steps.</td><td>Claude와 Codex가 Mac 앱과 브라우저를 대신 쓰고, 결과를 확인하고, 과정을 기억합니다.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="say-no">
+    <div><h3>이렇게 말합니다</h3><ul><li>구체적인 일: “Finder에서 종류별로 정렬해 줘”</li><li>확인한 사실: “화면에서 15를 확인했습니다”</li><li>한계도 함께: “이 앱에서는 확인하지 못했어요”</li></ul></div>
+    <div><h3>이렇게 말하지 않습니다</h3><ul><li>“무엇이든 해 드립니다”</li><li>“완전 자율”, “100% 정확”</li><li>확인하지 않은 일에 “완료”</li></ul></div>
+  </div>
+</section>
+</div>
+
+<div class="band">
+  <div class="wrap">
+    <span class="label">마크</span>
+    <h2>ㅎ 한 글자: 해, 빈칸, 원</h2>
+    <div class="anatomy">
+      <svg class="construct" viewBox="-3 -2.5 38 39" role="img" aria-label="32단위 그리드 위의 마크 구성도">
+        <g class="g"><path d="M0 0V32M0 0H32"/><path d="M2 0V32M0 2H32"/><path d="M4 0V32M0 4H32"/><path d="M6 0V32M0 6H32"/><path d="M8 0V32M0 8H32"/><path d="M10 0V32M0 10H32"/><path d="M12 0V32M0 12H32"/><path d="M14 0V32M0 14H32"/><path d="M16 0V32M0 16H32"/><path d="M18 0V32M0 18H32"/><path d="M20 0V32M0 20H32"/><path d="M22 0V32M0 22H32"/><path d="M24 0V32M0 24H32"/><path d="M26 0V32M0 26H32"/><path d="M28 0V32M0 28H32"/><path d="M30 0V32M0 30H32"/><path d="M32 0V32M0 32H32"/></g>
+        <use href="#m" width="32" height="32" style="color:#f6f4ed"/>
+        <circle cx="16" cy="22.98" r="4.35" fill="none" stroke="#fa6b3b" stroke-width=".22" stroke-dasharray=".5 .35"/>
+        <path class="dim" d="M2.5 33V35M29.5 33V35M2.5 34H29.5"/>
+        <text x="9.4" y="35.7">가로획 27 · 획 4</text>
+        <path class="dim" d="M25.4 14.3V31.7M24.8 14.3H26M24.8 31.7H26"/>
+        <text x="26.2" y="23.3">원 17.4</text>
+        <text x="20.4" y="3.4">해 = 안쪽 × 0.72</text>
+        <text x="-2.6" y="-1">32 단위 그리드</text>
+      </svg>
+      <div class="parts">
+        <div class="part"><svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="7" fill="#fa6b3b"/></svg>
+          <div><h3>해 · 부탁</h3><p>사용자의 “해줘”이자 떠오르는 해입니다. 작업이 시작되면 가로획 뒤에서 떠오릅니다. 워드마크 j의 점과 같은 해입니다.</p></div></div>
+        <div class="part"><svg viewBox="0 0 32 32"><path d="M3 16H29" stroke="currentColor" stroke-width="4"/></svg>
+          <div><h3>가로획 · 빈칸</h3><p>“Ask Haejo to ____”에서 부탁을 적는 밑줄입니다. 에이전트가 한 번 지나간 길(Flow)이기도 합니다.</p></div></div>
+        <div class="part"><svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="9" fill="none" stroke="currentColor" stroke-width="4"/></svg>
+          <div><h3>원 · 확인된 결과</h3><p>확인까지 끝나면 닫히는 원입니다. 상태 아이콘에서 채워지면 완료, 느낌표로 바뀌면 사용자의 판단이 필요하다는 뜻입니다.</p></div></div>
+      </div>
+    </div>
+    <p class="lineage">점선 원이 원의 안쪽 구멍(지름 9.4)입니다. 해는 이 구멍과 <b>같은 크기로 보이도록</b> 0.72배로 그렸습니다. 꽉 찬 원은 같은 크기의 빈 구멍보다 커 보이기 때문입니다. 가로획은 원의 1.55배로 넓혀 마크가 정사각형을 가로로도 채웁니다.</p>
+  </div>
+</div>
+
+<div class="wrap">
+<section>
+  <span class="label">브랜드 장치</span>
+  <h2>빈칸이 곧 로고입니다</h2>
+  <p>마크의 가로획은 부탁을 적는 밑줄입니다. 그래서 모든 접점에서 <b>밑줄 하나와 그 위의 해</b>가 반복됩니다. 첫 실행 화면의 입력란, 배너의 헤드라인, CLI의 첫 줄, 메뉴 막대가 같은 장치를 씁니다.</p>
+  <div class="apps">
+    <div class="mock">
+      <div class="win">
+        <div class="titlebar"><i></i><i></i><i></i></div>
+        <div class="field"><label>Haejo에게 부탁하기</label>
+          <div class="input"><span>TextEdit에 회의록을 쓰고 <em>저장까지 확인해 줘</em></span><span class="send" aria-hidden="true"><svg viewBox="0 0 14 14"><path d="M7 11V3M3.5 6.5L7 3l3.5 3.5" stroke="#1b211c" stroke-width="2" fill="none"/></svg></span></div>
+        </div>
+        <div class="suggest"><span>Finder 정렬해 줘</span><span>폼 채워 줘</span><span>다시 해 줘</span></div>
+      </div>
+      <span class="cap">첫 실행 · 부탁 입력란 = 가로획</span>
+    </div>
+    <div class="mock">
+      <div class="win">
+        <div>
+          <div class="hrow"><svg viewBox="0 0 20 20" style="color:var(--pine)"><use href="#ringdone"/></svg><div>Finder · 종류별 정렬<small>파일 5개 순서 확인</small></div><span class="t">8.1s</span></div>
+          <div class="hrow"><svg viewBox="0 0 20 20" style="color:var(--pine)"><use href="#ringdone"/></svg><div>계산기 · 7 + 8<small>화면에서 15 확인 · 모델 호출 0회</small></div><span class="t">1.8s</span></div>
+          <div class="hrow"><svg viewBox="0 0 20 20" style="color:var(--amber)"><use href="#ring"/></svg><div>TextEdit · 회의록 저장<small>저장 증거 부족 · 확인 필요</small></div><span class="t">10.4s</span></div>
+        </div>
+      </div>
+      <span class="cap">실행 기록 · 원 = 결과 확인 여부</span>
+    </div>
+    <div class="mock">
+      <div class="term" role="img" aria-label="haejo CLI 출력 예시"><span class="p">$</span> haejo run calculator.json --input a=7 --input b=8
+<span class="s">●</span>  haejo · calculator.json
+━  계산기 열기, 7 + 8 입력     <span class="dim">0.9s</span>
+○  화면에서 15 확인           <span class="k">해 드렸어요</span>
+   <span class="dim">1.8s · 모델 호출 0회</span></div>
+      <span class="cap">CLI · 왼쪽 열을 세로로 읽으면 ㅎ</span>
+    </div>
+    <div class="mock">
+      <div class="menu-wrap">
+        <div class="menubar-strip"><span>Wi-Fi</span><svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 32 32" role="img" >
+  
+  
+  <circle cx="16" cy="3.4" r="3.36" fill="currentColor"/>
+  <path d="M2.3 10.46H29.7" stroke="currentColor" stroke-width="4.6" stroke-linecap="butt"/>
+  <circle cx="16" cy="23.16" r="6.5" fill="none" stroke="currentColor" stroke-width="4.6"/>
+</svg>
+<span>Haejo 하는 중</span><span class="mono">10:42</span></div>
+        <div class="banner-mock" role="img" aria-label="작업 중 배너 예시"><b><svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 32 32" role="img" >
+  
+  
+  <circle cx="16" cy="3.4" r="3.36" fill="currentColor"/>
+  <path d="M2.3 10.46H29.7" stroke="currentColor" stroke-width="4.6" stroke-linecap="butt"/>
+  <circle cx="16" cy="23.16" r="6.5" fill="none" stroke="currentColor" stroke-width="4.6"/>
+</svg>
+Finder 정렬하는 중</b><span>Esc를 누르면 멈춥니다</span></div>
+      </div>
+      <span class="cap">메뉴 막대와 작업 배너</span>
+    </div>
+  </div>
+  <p class="note">화면 예시는 브랜드 적용 방향을 보여 주는 시안입니다. 실제 앱 문구와 동작은 전환 단계에서 정하며, 기록의 시간 값은 README 녹화 시나리오를 참고한 예시입니다.</p>
+</section>
+
+<section>
+  <span class="label">워드마크와 로크업</span>
+  <h2>영문과 한글이 같은 해를 나눠 씁니다</h2>
+  <p>영문 <code>haejo</code>는 브랜드용으로 그린 기하학적 그로테스크입니다. x-높이 16, 획 4.0, 수평으로 자른 끝. a·e·o의 보울은 마크의 원과 같은 정원이고, j의 점은 마크의 해입니다. 단어 안에서 해(j)가 뜨고 원(o)으로 끝납니다.</p>
+  <div class="tiles">
+    <div class="tile l"><svg class="asset" aria-label="haejo 영문 가로형 로크업" xmlns="http://www.w3.org/2000/svg" width="225" height="77" viewBox="0 0 112.5 38.4" role="img" >
+  
+  
+  <circle cx="16" cy="3.7" r="3.38" fill="#fa6b3b"/>
+  <path d="M2.5 10.58H29.5" fill="none" stroke="#1b211c" stroke-width="4.0" stroke-linecap="butt"/>
+  <circle cx="16" cy="22.98" r="6.7" fill="none" stroke="#1b211c" stroke-width="4.0"/>
+  <g transform="translate(37 2.4)"><path d="M2 8V29M2 21A6 6 0 0 1 14 21V29 M32 21A6 6 0 1 0 20 21A6 6 0 1 0 32 21M32 13V29 M37.9 21H49.9A6 6 0 1 0 48.5 24.86 M55.4 13V30A3.6 3.6 0 0 1 51.8 33.6 M73.5 21A6 6 0 1 0 61.5 21A6 6 0 1 0 73.5 21" stroke="#1b211c" stroke-width="4.0" fill="none" stroke-linecap="butt" stroke-linejoin="miter"/><circle cx="55.4" cy="8.3" r="2.72" fill="#fa6b3b"/></g>
+</svg>
+<span class="cap">영문 가로형 · 기본</span></div>
+    <div class="tile l"><svg class="asset" aria-label="해줘 한글 가로형 로크업" xmlns="http://www.w3.org/2000/svg" width="194" height="66" viewBox="0 0 97 33" role="img" >
+  
+  
+  <circle cx="16" cy="3.7" r="3.38" fill="#fa6b3b"/>
+  <path d="M2.5 10.58H29.5" fill="none" stroke="#1b211c" stroke-width="4.0" stroke-linecap="butt"/>
+  <circle cx="16" cy="22.98" r="6.7" fill="none" stroke="#1b211c" stroke-width="4.0"/>
+  <g transform="translate(37 0)"><circle cx="8" cy="3.2" r="2.3" fill="#fa6b3b"/><g stroke="#1b211c" stroke-width="4.0" fill="none" stroke-linecap="butt" stroke-linejoin="miter"><path d="M0.5 8.6H15.5"/><circle cx="8" cy="19.6" r="5.2"/><path d="M21 3V31M21 16.5H28M29.5 1.5V31.5"/><path d="M34 4.5H48M41 4.5L34.5 13.5M41 8.5L48 13.5"/><path d="M32.5 19H49.5M41 19V29.5"/><path d="M58 1.5V31.5M51.5 15H58"/></g></g>
+</svg>
+<span class="cap">한글 가로형 · 국내 채널</span></div>
+    <div class="tile d"><svg class="asset" aria-label="haejo 반전 로크업" xmlns="http://www.w3.org/2000/svg" width="225" height="77" viewBox="0 0 112.5 38.4" role="img" >
+  
+  
+  <circle cx="16" cy="3.7" r="3.38" fill="#fa6b3b"/>
+  <path d="M2.5 10.58H29.5" fill="none" stroke="#f6f4ed" stroke-width="4.0" stroke-linecap="butt"/>
+  <circle cx="16" cy="22.98" r="6.7" fill="none" stroke="#f6f4ed" stroke-width="4.0"/>
+  <g transform="translate(37 2.4)"><path d="M2 8V29M2 21A6 6 0 0 1 14 21V29 M32 21A6 6 0 1 0 20 21A6 6 0 1 0 32 21M32 13V29 M37.9 21H49.9A6 6 0 1 0 48.5 24.86 M55.4 13V30A3.6 3.6 0 0 1 51.8 33.6 M73.5 21A6 6 0 1 0 61.5 21A6 6 0 1 0 73.5 21" stroke="#f6f4ed" stroke-width="4.0" fill="none" stroke-linecap="butt" stroke-linejoin="miter"/><circle cx="55.4" cy="8.3" r="2.72" fill="#fa6b3b"/></g>
+</svg>
+<span class="cap">영문 가로형 · 반전</span></div>
+    <div class="tile l"><svg class="asset" aria-label="haejo 세로형 로크업" xmlns="http://www.w3.org/2000/svg" width="121" height="138" viewBox="0 0 75.5 86" role="img" >
+  
+  
+  <g transform="translate(12.15 0) scale(1.6)">
+    <circle cx="16" cy="3.7" r="3.38" fill="#fa6b3b"/>
+    <path d="M2.5 10.58H29.5" fill="none" stroke="#1b211c" stroke-width="4.0" stroke-linecap="butt"/>
+    <circle cx="16" cy="22.98" r="6.7" fill="none" stroke="#1b211c" stroke-width="4.0"/>
+  </g>
+  <g transform="translate(0 50)"><path d="M2 8V29M2 21A6 6 0 0 1 14 21V29 M32 21A6 6 0 1 0 20 21A6 6 0 1 0 32 21M32 13V29 M37.9 21H49.9A6 6 0 1 0 48.5 24.86 M55.4 13V30A3.6 3.6 0 0 1 51.8 33.6 M73.5 21A6 6 0 1 0 61.5 21A6 6 0 1 0 73.5 21" stroke="#1b211c" stroke-width="4.0" fill="none" stroke-linecap="butt" stroke-linejoin="miter"/><circle cx="55.4" cy="8.3" r="2.72" fill="#fa6b3b"/></g>
+</svg>
+<span class="cap">세로형 · 정사각 배치</span></div>
+  </div>
+  <p class="note">여백은 사방으로 원의 지름 이상. 가로형 최소 너비는 화면 96 px, 인쇄 24 mm.</p>
+</section>
+
+<section>
+  <span class="label">앱 아이콘과 상태</span>
+  <h2>잉크 타일 위의 ㅎ, 해의 위치가 상태</h2>
+  <div class="tiles">
+    <div class="tile w"><svg class="asset" aria-label="앱 아이콘" xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 1024 1024" role="img" >
+  
+  
+  <rect x="100" y="100" width="824" height="824" rx="185.4" fill="#1b211c"/>
+  <rect x="101" y="101" width="822" height="822" rx="184.4" fill="none" stroke="#f6f4ed" stroke-opacity="0.2" stroke-width="3"/>
+  <g transform="translate(240.00 240.00) scale(17.0)">
+    <circle cx="16" cy="3.7" r="3.38" fill="#fa6b3b"/>
+    <path d="M2.5 10.58H29.5" fill="none" stroke="#f6f4ed" stroke-width="4.0" stroke-linecap="butt"/>
+    <circle cx="16" cy="22.98" r="6.7" fill="none" stroke="#f6f4ed" stroke-width="4.0"/>
+  </g>
+</svg>
+<span class="cap">앱 아이콘 · 기본</span></div>
+    <div class="tile w"><svg class="asset" aria-label="밝은 앱 아이콘" xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 1024 1024" role="img" >
+  
+  
+  <rect x="100" y="100" width="824" height="824" rx="185.4" fill="#f6f4ed"/>
+  <rect x="101" y="101" width="822" height="822" rx="184.4" fill="none" stroke="#1b211c" stroke-opacity="0.2" stroke-width="3"/>
+  <g transform="translate(240.00 240.00) scale(17.0)">
+    <circle cx="16" cy="3.7" r="3.38" fill="#fa6b3b"/>
+    <path d="M2.5 10.58H29.5" fill="none" stroke="#1b211c" stroke-width="4.0" stroke-linecap="butt"/>
+    <circle cx="16" cy="22.98" r="6.7" fill="none" stroke="#1b211c" stroke-width="4.0"/>
+  </g>
+</svg>
+<span class="cap">앱 아이콘 · 밝은 변형</span></div>
+  </div>
+  <div class="sizes">
+    <figure><svg class="asset" aria-label="16px 파비콘" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 32 32" role="img" >
+  
+  
+  <rect width="32" height="32" rx="8" fill="#1b211c"/>
+  <g transform="translate(2.4 2.4) scale(0.85)">
+    <circle cx="16" cy="3.4" r="3.36" fill="#fa6b3b"/>
+    <path d="M2.3 10.46H29.7" fill="none" stroke="#f6f4ed" stroke-width="4.6" stroke-linecap="butt"/>
+    <circle cx="16" cy="23.16" r="6.5" fill="none" stroke="#f6f4ed" stroke-width="4.6"/>
+  </g>
+</svg>
+<figcaption>16 px</figcaption></figure>
+    <figure><svg class="asset" aria-label="32px 파비콘" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" role="img" >
+  
+  
+  <rect width="32" height="32" rx="8" fill="#1b211c"/>
+  <g transform="translate(2.4 2.4) scale(0.85)">
+    <circle cx="16" cy="3.4" r="3.36" fill="#fa6b3b"/>
+    <path d="M2.3 10.46H29.7" fill="none" stroke="#f6f4ed" stroke-width="4.6" stroke-linecap="butt"/>
+    <circle cx="16" cy="23.16" r="6.5" fill="none" stroke="#f6f4ed" stroke-width="4.6"/>
+  </g>
+</svg>
+<figcaption>32 px</figcaption></figure>
+    <figure><svg class="asset" aria-label="64px 파비콘" xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 32 32" role="img" >
+  
+  
+  <rect width="32" height="32" rx="8" fill="#1b211c"/>
+  <g transform="translate(2.4 2.4) scale(0.85)">
+    <circle cx="16" cy="3.4" r="3.36" fill="#fa6b3b"/>
+    <path d="M2.3 10.46H29.7" fill="none" stroke="#f6f4ed" stroke-width="4.6" stroke-linecap="butt"/>
+    <circle cx="16" cy="23.16" r="6.5" fill="none" stroke="#f6f4ed" stroke-width="4.6"/>
+  </g>
+</svg>
+<figcaption>64 px</figcaption></figure>
+    <figure><svg class="asset" aria-label="128px 앱 아이콘" xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 1024 1024" role="img" >
+  
+  
+  <rect x="100" y="100" width="824" height="824" rx="185.4" fill="#1b211c"/>
+  <rect x="101" y="101" width="822" height="822" rx="184.4" fill="none" stroke="#f6f4ed" stroke-opacity="0.2" stroke-width="3"/>
+  <g transform="translate(240.00 240.00) scale(17.0)">
+    <circle cx="16" cy="3.7" r="3.38" fill="#fa6b3b"/>
+    <path d="M2.5 10.58H29.5" fill="none" stroke="#f6f4ed" stroke-width="4.0" stroke-linecap="butt"/>
+    <circle cx="16" cy="22.98" r="6.7" fill="none" stroke="#f6f4ed" stroke-width="4.0"/>
+  </g>
+</svg>
+<figcaption>128 px</figcaption></figure>
+  </div>
+  <div class="states">
+    <div class="state"><div class="mb"><svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 32 32" role="img" >
+  
+  
+  <path d="M2.3 10.46H29.7" stroke="currentColor" stroke-width="4.6" stroke-linecap="butt"/>
+  <circle cx="16" cy="23.16" r="6.5" fill="none" stroke="currentColor" stroke-width="4.6"/>
+</svg>
+<span>Haejo</span></div><h3>대기 <span class="chip" style="background:var(--moss)">IDLE</span></h3><p>해가 졌습니다.</p></div>
+    <div class="state"><div class="mb"><svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 32 32" role="img" >
+  
+  
+  <circle cx="16" cy="3.4" r="3.36" fill="currentColor"/>
+  <path d="M2.3 10.46H29.7" stroke="currentColor" stroke-width="4.6" stroke-linecap="butt"/>
+  <circle cx="16" cy="23.16" r="6.5" fill="none" stroke="currentColor" stroke-width="4.6"/>
+</svg>
+<span>Haejo 하는 중</span></div><h3>하는 중 <span class="chip" style="background:var(--sun-text)">WORKING</span></h3><p>해가 떴습니다.</p></div>
+    <div class="state"><div class="mb"><svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 32 32" role="img" >
+  
+  
+  <circle cx="16" cy="3.4" r="3.36" fill="currentColor"/>
+  <path d="M2.3 10.46H29.7" stroke="currentColor" stroke-width="4.6" stroke-linecap="butt"/>
+  <circle cx="16" cy="23.16" r="6.5" fill="currentColor" stroke="currentColor" stroke-width="4.6"/>
+</svg>
+<span>Haejo</span></div><h3>완료 <span class="chip" style="background:var(--pine)">DONE</span></h3><p>원이 채워졌습니다.</p></div>
+    <div class="state"><div class="mb"><svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 32 32" role="img" >
+  
+  
+  <circle cx="16" cy="3.4" r="3.36" fill="currentColor"/>
+  <path d="M2.3 10.46H29.7" stroke="currentColor" stroke-width="4.6" stroke-linecap="butt"/>
+  <path d="M16 15.66V24.96" stroke="currentColor" stroke-width="4.6"/>
+  <circle cx="16" cy="29.26" r="2.7" fill="currentColor"/>
+</svg>
+<span>Haejo 확인 필요</span></div><h3>확인 필요 <span class="chip" style="background:var(--amber)">ASK</span></h3><p>원 대신 느낌표.</p></div>
+  </div>
+  <p class="note">16·32 px에서는 획 4.6의 소형 광학 크기를 씁니다. 메뉴 막대 아이콘은 macOS 템플릿 이미지입니다.</p>
+</section>
+
+<section>
+  <span class="label">모션</span>
+  <h2>해가 떠오르고, 원이 닫힙니다</h2>
+  <div class="motion">
+    <div class="hero-mark">
+      <svg id="heroMark" viewBox="0 0 32 32" role="img" aria-label="작동 애니메이션 미리보기">
+        <defs><clipPath id="sky"><rect width="32" height="8.58"/></clipPath></defs>
+        <g clip-path="url(#sky)"><circle class="sun" cx="16" cy="3.7" r="3.38" fill="#fa6b3b"/></g>
+        <path d="M2.5 10.58H29.5" fill="none" stroke="currentColor" stroke-width="4"/>
+        <circle class="ring" cx="16" cy="22.98" r="6.7" fill="none" stroke="currentColor" stroke-width="4" transform="rotate(-90 16 22.98)"/>
+      </svg>
+      <button class="replay" id="replay" type="button">다시 해줘</button>
+    </div>
+    <div class="timeline" style="flex:1;min-width:min(100%,320px)">
+      <div class="track" role="img" aria-label="0초부터 0.6초 해가 뜸, 0.6초부터 1.7초 원이 닫힘, 2.0초까지 유지, 2.4초까지 해가 짐">
+        <div class="seg" style="left:0;width:25%;background:var(--sun);color:#1b211c">해가 뜸</div>
+        <div class="seg" style="left:25%;width:45%;background:var(--fg);color:var(--bg)">원이 닫힘</div>
+        <div class="seg" style="left:70%;width:15%;color:var(--muted)">유지</div>
+        <div class="seg" style="left:85%;width:15%;background:var(--line);color:var(--fg)">짐</div>
+      </div>
+      <div class="ticks"><span>0.0s</span><span>0.6s</span><span>1.2s</span><span>1.8s</span><span>2.4s</span></div>
+      <p class="note">부탁을 받으면 해가 가로획 뒤에서 떠오르고, 결과가 확인되면 원이 닫힙니다. 원본 <code>haejo-working.svg</code>. 움직임 줄이기 설정에서는 정지된 마크를 보여 줍니다.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <span class="label">컬러와 서체</span>
+  <h2>코럴은 해에만 씁니다</h2>
+  <div class="swatches">
+    <div class="sw"><div style="background:#1b211c"></div><p>Ink<span>#1b211c · 구조, 글자</span></p></div>
+    <div class="sw"><div style="background:#f6f4ed"></div><p>Ivory<span>#f6f4ed · 바탕</span></p></div>
+    <div class="sw"><div style="background:#fa6b3b"></div><p>Sun<span>#fa6b3b · 해, 진행 중</span></p></div>
+    <div class="sw"><div style="background:#c4532c"></div><p>Sun Text<span>#c4532c · 강조 글자</span></p></div>
+    <div class="sw"><div style="background:#2f7a55"></div><p>Pine<span>#2f7a55 · 완료</span></p></div>
+    <div class="sw"><div style="background:#b9800f"></div><p>Amber<span>#b9800f · 확인 필요</span></p></div>
+    <div class="sw"><div style="background:#a8322a"></div><p>Brick<span>#a8322a · 실패</span></p></div>
+  </div>
+  <div class="tbl"><table class="facts">
+    <thead><tr><th>용도</th><th>서체</th><th>이유</th></tr></thead>
+    <tbody>
+      <tr><td>macOS 앱</td><td>시스템 (SF Pro, Apple SD Gothic Neo)</td><td>메뉴·설정이 OS와 어긋나지 않음</td></tr>
+      <tr><td>웹사이트 · 문서</td><td>Pretendard (OFL, 직접 호스팅)</td><td>한글·라틴 굵기와 높이가 고르게 맞음</td></tr>
+      <tr><td>코드 · CLI</td><td>JetBrains Mono 또는 시스템 모노</td><td>Flow JSON과 명령어 가독성</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <span class="label">쓰지 않는 형태</span>
+  <h2>이렇게 바꾸면 Haejo로 읽히지 않습니다</h2>
+  <div class="donts">
+    <div class="dont"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="5.2" r="3.38" fill="#fa6b3b"/><path d="M2.5 10.58H29.5" stroke="currentColor" stroke-width="4"/><circle cx="16" cy="22.98" r="6.7" fill="none" stroke="currentColor" stroke-width="4"/></svg><span class="x">✕ 해를 붙이기</span><p>해와 가로획 사이를 비워 둡니다.</p></div>
+    <div class="dont"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="3.7" r="3.38" fill="currentColor"/><path d="M2.5 10.58H29.5" stroke="#fa6b3b" stroke-width="4"/><circle cx="16" cy="22.98" r="6.7" fill="none" stroke="#fa6b3b" stroke-width="4"/></svg><span class="x">✕ 색 뒤바꾸기</span><p>코럴은 해에만 씁니다.</p></div>
+    <div class="dont"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="5.2" r="5.2" fill="#fa6b3b"/><path d="M2.5 12.6H29.5" stroke="currentColor" stroke-width="4"/><circle cx="16" cy="23.6" r="6" fill="none" stroke="currentColor" stroke-width="4"/></svg><span class="x">✕ 해 키우기</span><p>해가 원보다 무거워집니다.</p></div>
+    <div class="dont"><span class="txt">HAE-JO</span><span class="x">✕ 하이픈 표기</span><p><code>Haejo</code> 한 단어로 씁니다.</p></div>
+  </div>
+</section>
+
+<section>
+  <span class="label">이름</span>
+  <h2>이름 확인 사항</h2>
+  <div class="tbl"><table class="facts">
+    <thead><tr><th>채널</th><th>상태 (2026-11-09 조회)</th><th>제안</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">pypi.org/haejo · npmjs.com/haejo</td><td class="ok">비어 있음 (404)</td><td>지금 선점</td></tr>
+      <tr><td class="mono">github.com/haejo</td><td>개인 계정 있음</td><td><code>Open330/haejo</code></td></tr>
+      <tr><td class="mono">haejo.com · haejo.ai</td><td>DNS 응답 있음, 사용 중으로 보임</td><td>대안 도메인</td></tr>
+      <tr><td class="mono">haejo.dev · haejo.app</td><td>DNS 응답 없음, 등록 여부 미확인</td><td>등록 기관에서 확인</td></tr>
+      <tr><td class="mono">상표</td><td>조회하지 않음</td><td>KIPRIS·USPTO 9·42류 검색</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">표준 로마자 표기는 <code>haejwo</code>이고, <code>jo</code>는 구어 발음을 따른 표기입니다. 이름은 사용자의 반말이고, 제품의 답은 존댓말로 합니다.</p>
+</section>
+
+<section>
+  <span class="label">배너와 공유 카드</span>
+  <h2>README 배너 · 1200×630 공유 카드</h2>
+  <div class="tbl"><svg class="asset" aria-label="Haejo README 배너" xmlns="http://www.w3.org/2000/svg" width="100%" style="min-width:560px;height:auto;display:block" viewBox="0 0 1280 420" role="img" >
+  
+  
+<rect width="1280" height="420" rx="20" fill="#f6f4ed"/>
+<g transform="translate(56 46) scale(1.05)">
+<circle cx="16" cy="3.7" r="3.38" fill="#fa6b3b"/>
+<path d="M2.5 10.58H29.5" fill="none" stroke="#1b211c" stroke-width="4.0" stroke-linecap="butt"/>
+<circle cx="16" cy="22.98" r="6.7" fill="none" stroke="#1b211c" stroke-width="4.0"/>
+<g transform="translate(37 2.4)"><path d="M2 8V29M2 21A6 6 0 0 1 14 21V29 M32 21A6 6 0 1 0 20 21A6 6 0 1 0 32 21M32 13V29 M37.9 21H49.9A6 6 0 1 0 48.5 24.86 M55.4 13V30A3.6 3.6 0 0 1 51.8 33.6 M73.5 21A6 6 0 1 0 61.5 21A6 6 0 1 0 73.5 21" stroke="#1b211c" stroke-width="4.0" fill="none" stroke-linecap="butt" stroke-linejoin="miter"/><circle cx="55.4" cy="8.3" r="2.72" fill="#fa6b3b"/></g>
+</g>
+<g font-family="-apple-system,'Apple SD Gothic Neo','Helvetica Neue',Arial,sans-serif">
+<text x="54" y="190" font-size="62" font-weight="700" letter-spacing="-2.5" fill="#1b211c">Ask Haejo to</text>
+<text x="54" y="262" font-size="62" font-weight="700" letter-spacing="-2.5" fill="#c4532c">use your apps.</text>
+<text x="57" y="312" font-size="20" fill="#5f6b58">It opens Mac and browser apps, does the work, checks the result,</text>
+<text x="57" y="340" font-size="20" fill="#5f6b58">and remembers the steps. For Claude and Codex.</text>
+<text x="57" y="384" font-size="13" letter-spacing="1" fill="#5f6b58">앱을 열고, 입력하고, 결과까지 확인해 줘.</text>
+</g>
+<g transform="translate(760 52)" font-family="-apple-system,'Apple SD Gothic Neo','Helvetica Neue',Arial,sans-serif">
+<rect width="466" height="316" rx="18" fill="#1b211c"/>
+<text x="32" y="52" font-size="15" letter-spacing="2" fill="#aab4a1">ASK HAEJO TO</text>
+<path d="M32 66H434" stroke="#fa6b3b" stroke-width="3"/>
+<circle cx="41" cy="106" r="7" fill="none" stroke="#f6f4ed" stroke-width="2.6"/><text x="62" y="112" font-size="19" fill="#f6f4ed">sort these files by kind</text>
+<circle cx="41" cy="146" r="7" fill="none" stroke="#f6f4ed" stroke-width="2.6"/><text x="62" y="152" font-size="19" fill="#f6f4ed">fill in the form and check it</text>
+<circle cx="41" cy="186" r="7" fill="none" stroke="#f6f4ed" stroke-width="2.6"/><text x="62" y="192" font-size="19" fill="#f6f4ed">log in without showing my password</text>
+<circle cx="41" cy="226" r="7" fill="none" stroke="#f6f4ed" stroke-width="2.6"/><text x="62" y="232" font-size="19" fill="#f6f4ed">do it again with new numbers</text>
+<circle cx="41" cy="266" r="7" fill="none" stroke="#f6f4ed" stroke-width="2.6"/><text x="62" y="272" font-size="19" fill="#f6f4ed">show me what you touched</text>
+</g>
+</svg>
+</div>
+  <div class="tbl"><svg class="asset" aria-label="Haejo 공유 카드" xmlns="http://www.w3.org/2000/svg" width="100%" style="min-width:560px;height:auto;display:block;border-radius:12px" viewBox="0 0 1200 630" role="img" >
+  
+  
+<rect width="1200" height="630" fill="#1b211c"/>
+<defs><radialGradient id="haejo-dawn12" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#fa6b3b" stop-opacity="0.22"/><stop offset="1" stop-color="#fa6b3b" stop-opacity="0"/></radialGradient></defs>
+<circle cx="905" cy="120" r="330" fill="url(#haejo-dawn12)"/>
+<g transform="translate(705 75) scale(15)">
+<circle cx="16" cy="3.7" r="3.38" fill="#fa6b3b"/>
+<path d="M2.5 10.58H29.5" fill="none" stroke="#f6f4ed" stroke-width="4.0" stroke-linecap="butt"/>
+<circle cx="16" cy="22.98" r="6.7" fill="none" stroke="#f6f4ed" stroke-width="4.0"/>
+</g>
+<g transform="translate(72 84) scale(1.5)">
+<g transform="translate(0 0)"><path d="M2 8V29M2 21A6 6 0 0 1 14 21V29 M32 21A6 6 0 1 0 20 21A6 6 0 1 0 32 21M32 13V29 M37.9 21H49.9A6 6 0 1 0 48.5 24.86 M55.4 13V30A3.6 3.6 0 0 1 51.8 33.6 M73.5 21A6 6 0 1 0 61.5 21A6 6 0 1 0 73.5 21" stroke="#f6f4ed" stroke-width="4.0" fill="none" stroke-linecap="butt" stroke-linejoin="miter"/><circle cx="55.4" cy="8.3" r="2.72" fill="#fa6b3b"/></g>
+</g>
+<g font-family="-apple-system,'Apple SD Gothic Neo','Helvetica Neue',Arial,sans-serif">
+<text x="72" y="330" font-size="72" font-weight="700" letter-spacing="-3" fill="#f6f4ed">Ask Haejo to</text>
+<text x="72" y="414" font-size="72" font-weight="700" letter-spacing="-3" fill="#fa6b3b">use your apps.</text>
+<text x="74" y="478" font-size="24" fill="#aab4a1">Does the work. Checks the result. Remembers how.</text>
+<text x="74" y="516" font-size="24" fill="#aab4a1">말하면 해 줍니다. 확인까지.</text>
+<text x="74" y="574" font-size="17" letter-spacing="2" fill="#7f8a77">OPEN330 / HAEJO</text>
+</g>
+</svg>
+</div>
+</section>
+
+<section>
+  <span class="label">전환 계획</span>
+  <h2>이름은 지금 선점하고, 코드는 단계적으로 옮깁니다</h2>
+  <ol class="steps">
+    <li><div><h3>이름 선점</h3><p>PyPI·npm <code>haejo</code>, 도메인, 상표 검색.</p></div></li>
+    <li><div><h3>보이는 표면</h3><p>README 배너와 헤드라인, 사이트, 파비콘, 앱 아이콘, 공유 카드.</p></div></li>
+    <li><div><h3>CLI와 스킬</h3><p><code>haejo</code> 명령 추가, <code>tacto</code>는 안내를 내는 별칭으로 한 릴리스 이상 유지.</p></div></li>
+    <li><div><h3>앱 안의 브랜드 장치</h3><p>첫 실행의 부탁 입력란, 메뉴 막대 4상태, 실행 기록의 원 아이콘, 작동 모션.</p></div></li>
+    <li><div><h3>내부 식별자</h3><p>번들 ID와 헬퍼 앱. TCC 권한을 새 신원으로 다시 받아야 하므로 안내 화면이 필요합니다.</p></div></li>
+    <li><div><h3>Python 패키지</h3><p><code>tacto/</code> → <code>haejo/</code>, 임포트 호환 심 유지 후 제거.</p></div></li>
+  </ol>
+</section>
+</div>
+</main>
+<footer class="wrap">에셋 원본 <code>docs/assets/brand/haejo/</code> (SVG 20개 + <code>haejo-app.icns</code>) · 생성기 <code>setup/build_haejo_brand.py</code></footer>
+<script>
+(function(){
+  const asks=["sort these files by kind.", "fill in the form and check it.", "log in without showing my password.", "do it again with new numbers.", "show me what you touched."];
+  const txt=document.getElementById('blankText');
+  const chips=[...document.querySelectorAll('.chip-btn')];
+  const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let i=0,timer=null;
+  function show(n){
+    i=n; chips.forEach((c,k)=>c.setAttribute('aria-pressed',k===n?'true':'false'));
+    if(reduce){txt.textContent=asks[n];return;}
+    txt.classList.add('out');
+    setTimeout(()=>{txt.textContent=asks[n];txt.classList.remove('out');},220);
+  }
+  chips.forEach((c,k)=>c.addEventListener('click',()=>{clearInterval(timer);timer=null;show(k);}));
+  if(chips[0]) chips[0].setAttribute('aria-pressed','true');
+  if(!reduce) timer=setInterval(()=>show((i+1)%asks.length),2800);
+  document.getElementById('replay').addEventListener('click',()=>{
+    const m=document.getElementById('heroMark');
+    m.classList.remove('sunrise'); void m.getBoundingClientRect(); m.classList.add('sunrise');
+  });
+})();
+</script>

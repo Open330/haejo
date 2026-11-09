@@ -15,7 +15,8 @@ current = ContextVar('haejo_access_log', default=None)
 COMMANDS = frozenset(('doctor', 'apps', 'launch', 'activate', 'open-url', 'keep-awake', 'first-run', 'observe', 'session', 'batch', 'parallel',
                       'document-attachments', 'capture', 'drag', 'vroid-drag', 'vroid-focus',
                       'run', 'replay', 'do', 'web-upload', 'auth'))
-_NAMES = re.compile(r'^haejo-\d{8}T\d{12}Z-[0-9a-f]{32}\.jsonl$')
+# tacto-: logs written before the 2026-11-09 rename; same format, new files use haejo-.
+_NAMES = re.compile(r'^(?:haejo|tacto)-\d{8}T\d{12}Z-[0-9a-f]{32}\.jsonl$')
 _CODE = re.compile(r'^[a-z][a-z0-9_]{0,80}$')
 _BUNDLE = re.compile(r'^[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$')
 _METHODS = frozenset(('credential_input','credential_submit','observe', 'act', 'ask', 'capture', 'list_targets', 'probe', 'selection',

@@ -2,14 +2,14 @@
 
 <div align="center">
 
-![Haejo — Agents use apps. Haejo repeats.](docs/assets/haejo-banner.svg)
+![Haejo — Ask Haejo to use your apps.](docs/assets/haejo-banner.svg)
 
-### Let your agent use your apps. Save the steps. Run them again.
+### Ask Haejo to use your apps.
 
-**Haejo lets agents operate browsers and Mac apps on your behalf.**<br>
-Turn clicks, typing, and checks into a reusable **Flow**.<br>
-Replay it with new inputs. Bring the agent back when judgment is needed.<br>
-**See the apps your agent accessed, the actions it took, and their outcomes in Haejo.**
+**Haejo lets Claude and Codex use your Mac and browser apps for you.**<br>
+It opens apps, clicks and types, and **checks the result** before calling a task done.<br>
+It saves the steps as a reusable **Flow**, so next time it runs with new inputs and no model call.<br>
+**See which apps it used, what it did, and how each task ended.**
 
 [![macOS](docs/assets/badge-macos.svg)](docs/installation.md)
 [![Claude + Codex](docs/assets/badge-agents.svg)](skill/SKILL.md)
@@ -18,6 +18,8 @@ Replay it with new inputs. Bring the agent back when judgment is needed.<br>
 [Release candidate](https://github.com/Open330/tacto/releases/tag/v1.0.0-rc.13) · [How it works](#how-it-works) · [Benchmarks](#benchmarks) · [Documentation](#documentation)
 
 </div>
+
+> **Renamed from Tacto (2026-11-09).** Release candidates up to v1.0.0-rc.13 were published as Tacto (`Tacto.app`, `tacto` command). The next release ships as Haejo. [What changes when you upgrade](docs/haejo-branding.md)
 
 ## See it work in real apps
 
@@ -168,7 +170,6 @@ Replay a saved Flow:
 
 If your agent cannot find the skill, restart its session and check `./skill/install.sh --check`. The Python distribution is `haejo-runtime`; the canonical Python import is `haejo`. The Python wheel alone does not supply the signed native launcher/helper. The permission holder is **Haejo Helper** (`helper/Haejo Helper.app/Contents/MacOS/HaejoHelper`) and the launcher is `launcher/haejo`; bundle identifiers and signing requirements use `ai.callabo.haejo.*`.
 
-> **Python namespace conflict.** The top-level import `haejo` is also used by an unrelated PyPI package (a tactile-sensor simulator). Install this project's distribution, `haejo-runtime`, in its own environment, and never `pip install haejo` for Haejo. Installing both into one environment can overwrite each other's files.
 
 These commands belong to the development checkout, not the main-branch release:
 

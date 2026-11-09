@@ -139,7 +139,7 @@ final class ActivityStore {
     let root: URL
     var logs: URL { root.appendingPathComponent("Logs") }
     var preferencesURL: URL { root.appendingPathComponent("preferences.json") }
-    private let pattern = try! NSRegularExpression(pattern: "^haejo-[0-9]{8}T[0-9]{12}Z-[0-9a-f]{32}\\.jsonl$")
+    private let pattern = try! NSRegularExpression(pattern: "^(haejo|tacto)-[0-9]{8}T[0-9]{12}Z-[0-9a-f]{32}\\.jsonl$")  // tacto-: pre-rename logs
     private var cache: [URL: (Date, Int, ActivityRecord)] = [:]
     let maximumBytes = 1_048_576 + 8192
     init(root: URL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support/Haejo")) { self.root = root }

@@ -13,7 +13,7 @@
         "environment": "disposable local browser page; no external navigation or accounts",
         "entrypoint": "known page target; excludes CLI goal/app routing",
         "fixture": "probe_browser_task.PAGE",
-        "fixture_sha256": "f7a1c8f9e4fe8b38e1810e7ba3befcd6415f36db1ec970359cc4bacbc74e3189",
+        "fixture_sha256": "a70b2ae858b665c3325cf447fc514a090b9915550dc9df55402c890638af25ed",
         "fresh_browser": true,
         "external_effects": false
       },

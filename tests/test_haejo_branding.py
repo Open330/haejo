@@ -55,6 +55,23 @@ class RetiredDiscoveryCleanupTests(HaejoBrandingTests):
         self.assertEqual(['haejo'], sorted(p.name for p in self.bin.iterdir()))
         self.assertEqual(0, self.run_script('--check').returncode)
 
+    def test_owned_tacto_links_from_before_the_rename_are_removed(self):
+        self.assertEqual(0, self.run_script().returncode)
+        alias = self.bin/'tacto'; alias.symlink_to(self.root/'launcher/tacto')
+        old_skill = self.home/'.claude/skills/tacto'; old_skill.symlink_to(self.root/'skill')
+        self.assertEqual(1, self.run_script('--check').returncode)
+        self.assertEqual(0, self.run_script().returncode)
+        self.assertFalse(alias.is_symlink())
+        self.assertFalse(old_skill.is_symlink())
+        self.assertEqual(['haejo'], sorted(p.name for p in self.bin.iterdir()))
+
+    def test_tacto_link_into_another_program_is_preserved(self):
+        self.bin.mkdir(parents=True)
+        foreign = self.home/'unrelated-tacto'; foreign.write_text('not our command')
+        alias = self.bin/'tacto'; alias.symlink_to(foreign)
+        self.assertEqual(0, self.run_script().returncode)
+        self.assertEqual(str(foreign), os.readlink(alias))
+
     def test_foreign_retired_name_is_preserved(self):
         self.bin.mkdir(parents=True)
         foreign = self.home/'unrelated'; foreign.write_text('not our command')

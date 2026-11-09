@@ -112,16 +112,27 @@ else
   ln -sfn "$entry" "$target"
   say "linked: $target -> $entry"
 fi
-# Retirement only: never install or execute the removed command alias.
-retired_command="$bin_dir/nlc"
-if [ -L "$retired_command" ] && our_command_link "$retired_command"; then
-  if [ "$check" = 1 ]; then
-    say "retired command link needs removal: $retired_command"; status=1
-  else
-    rm -- "$retired_command"
-    say "removed retired command link: $retired_command"
+# Retirement only: never install or execute a removed command name.
+# nlc: the first name. tacto: the name before Haejo (2026-11-09). A tacto link is ours
+# when it points at this checkout's former launcher/tacto or .venv/bin/tacto.
+retired_link_ours() {
+  our_command_link "$1" && return 0
+  case "$(readlink "$1" 2>/dev/null)" in
+    "$repo/launcher/$2"|"$repo/.venv/bin/$2") return 0 ;;
+  esac
+  return 1
+}
+for retired_name in nlc tacto; do
+  retired_command="$bin_dir/$retired_name"
+  if [ -L "$retired_command" ] && retired_link_ours "$retired_command" "$retired_name"; then
+    if [ "$check" = 1 ]; then
+      say "retired command link needs removal: $retired_command"; status=1
+    else
+      rm -- "$retired_command"
+      say "removed retired command link: $retired_command"
+    fi
   fi
-fi
+done
 case ":$PATH:" in
   *":$bin_dir:"*) ;;
   *) say "warning: $bin_dir is not on PATH — add it, or agents will not find haejo" ;;
@@ -152,15 +163,17 @@ for parent in "${dirs[@]}"; do
   case "$seen" in *"|$real|"*) continue ;; esac
   seen="$seen|$real|"
   dest="$parent/haejo"
-  retired_skill="$parent/nlc"
-  if [ -L "$retired_skill" ] && ours "$retired_skill"; then
-    if [ "$check" = 1 ]; then
-      say "retired skill link needs removal: $retired_skill"; status=1
-    else
-      rm -- "$retired_skill"
-      say "removed retired skill link: $retired_skill"
+  for retired_name in nlc tacto; do
+    retired_skill="$parent/$retired_name"
+    if [ -L "$retired_skill" ] && ours "$retired_skill"; then
+      if [ "$check" = 1 ]; then
+        say "retired skill link needs removal: $retired_skill"; status=1
+      else
+        rm -- "$retired_skill"
+        say "removed retired skill link: $retired_skill"
+      fi
     fi
-  fi
+  done
   if [ $check = 1 ]; then
     if [ "$(readlink "$dest" 2>/dev/null)" = "$skill" ]; then say "ok: $dest"
     elif [ -e "$dest" ] || [ -L "$dest" ]; then say "stale copy or conflicting link: $dest"; status=1
