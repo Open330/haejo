@@ -50,6 +50,13 @@ assert(center.filtered.count==5 && center.filtered[0].key==open.key)
 assert(center.summary.stringValue.hasPrefix("최근 7개 실행 · 작업 3개"), center.summary.stringValue)
 let texts=center.detail.arrangedSubviews.compactMap{($0 as? NSTextField)?.stringValue}
 assert(texts.contains("수강 진행") && texts.contains{$0.hasPrefix("1. 연속 작업")} && texts.contains{$0.hasPrefix("3. 연속 작업")}, "\(texts)")
+let heads=texts.filter{$0.first?.isNumber == true}
+assert(heads.first!.hasPrefix("3.") && heads.last!.hasPrefix("1."), "newest first: \(heads)")
+var many=open; many.records=(0..<45).map{_ in open.records[0]}
+center.showDetail(many)
+let manyTexts=center.detail.arrangedSubviews.compactMap{($0 as? NSTextField)?.stringValue}
+assert(manyTexts.filter{$0.first?.isNumber == true}.count==ActivityCenter.taskCallLimit && manyTexts.contains{$0.hasPrefix("최근 30회")}, "\(manyTexts.prefix(6))")
+center.showDetail(open)
 center.search.stringValue="수강";center.applyFilter();assert(center.filtered.count==1)
 center.search.stringValue="";center.filter.selectedSegment=1;center.applyFilter();assert(center.filtered.count==1 && center.filtered[0].key==closed.key)
 print("task-groups-pass")

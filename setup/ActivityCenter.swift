@@ -73,7 +73,9 @@ struct ActivityRecord: Equatable {
         ["first-run":"첫 작업", "observe":"앱 관찰", "run":"워크플로 실행", "replay":"워크플로 재사용",
          "do":"에이전트 작업", "session":"연속 작업", "batch":"반복 실행", "doctor":"상태 확인",
          "apps":"앱 목록 확인", "launch":"앱 열기", "capture":"화면 확인", "drag":"드래그",
-         "web-upload":"파일 첨부", "auth":"Vault 위임 로그인"][command] ?? "Tacto 실행"
+         "web-upload":"파일 첨부", "auth":"Vault 위임 로그인", "windows":"창 목록 확인",
+         "open-url":"웹 페이지 열기", "activate":"앱 앞으로 가져오기", "type":"텍스트 입력", "click":"클릭",
+         "press":"키 입력", "read":"내용 읽기", "flows":"워크플로 관리", "show":"워크플로 보기"][command] ?? "Tacto 실행"
     }
     var appName: String {
         ["com.apple.TextEdit":"TextEdit", "com.apple.finder":"Finder", "com.apple.calculator":"계산기",
@@ -630,7 +632,12 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
         detail.addArrangedSubview(activityLabel("작업 · \(g.status) · 호출 \(g.records.count)회" + (failures > 0 ? " (실패 \(failures))" : ""),13,.medium))
         detail.addArrangedSubview(activityLabel("\(dateFormatter.string(from:g.started)) – \(dateFormatter.string(from:g.latest)) · \(g.appNames)",12,secondary:true))
         if let id = g.taskID { detail.addArrangedSubview(activityLabel(id,11,secondary:true)) }
-        for (index, r) in g.records.reversed().enumerated() {
+        // Newest first and bounded, so a long task stays readable and the 2-second refresh stays cheap.
+        let shown = g.records.prefix(ActivityCenter.taskCallLimit)
+        if g.records.count > shown.count { detail.addArrangedSubview(activityLabel("최근 \(shown.count)회를 최신순으로 표시합니다 (전체 \(g.records.count)회).",12,secondary:true)) }
+        else if g.records.count > 1 { detail.addArrangedSubview(activityLabel("최신순으로 표시합니다.",12,secondary:true)) }
+        for (offset, r) in shown.enumerated() {
+            let index = g.records.count - 1 - offset
             let divider = NSBox(); divider.boxType = .separator; detail.addArrangedSubview(divider)
             let head = activityLabel("\(index+1). \(r.title) · \(r.appName) · \(r.status)",14,.semibold)
             if r.failed { head.textColor = .systemRed }
@@ -640,11 +647,14 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
             detail.addArrangedSubview(activityLabel(metrics,11,secondary:true))
             if !r.error.isEmpty { detail.addArrangedSubview(activityLabel(activityErrorMessage(r.error),12)) }
             if r.truncated || r.damaged { detail.addArrangedSubview(activityLabel(r.truncated ? "용량 제한으로 일부 접근 기록이 생략됐습니다." : "일부 기록이 손상되어 읽을 수 없습니다.",12,secondary:true)) }
-            addSteps(r)
+            addSteps(r, limit:ActivityCenter.taskStepLimit)
         }
     }
-    private func addSteps(_ r: ActivityRecord) {
-        for step in r.steps {
+    static let taskCallLimit = 30
+    static let taskStepLimit = 6
+    private func addSteps(_ r: ActivityRecord, limit: Int = .max) {
+        if r.steps.count > limit { detail.addArrangedSubview(activityLabel("단계 \(r.steps.count)개 중 처음 \(limit)개",11,secondary:true)) }
+        for step in r.steps.prefix(limit) {
             let icon = NSImageView(image:NSImage(systemSymbolName:step.outcome == "실패" ? "exclamationmark.circle" : step.operation == "observe" ? "eye" : "cursorarrow",accessibilityDescription:nil) ?? NSImage())
             icon.contentTintColor = step.outcome == "실패" ? .systemRed : .secondaryLabelColor
             icon.widthAnchor.constraint(equalToConstant:18).isActive = true
