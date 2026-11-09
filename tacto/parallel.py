@@ -1,4 +1,8 @@
-"""Parallel operation — run several flows against different apps at once.
+"""Legacy in-process parallel operation against different apps.
+
+For signed macOS window jobs, use ``tacto.parallel_run.run_parallel_jobs`` or
+``tacto parallel manifest.json --helper``. This older API has no independent
+signed helper channels and does not support same-app window scopes.
 
 Each flow gets its own Driver (independent observation registry). AX-action
 steps (click via AXPress, set_value) are per-element and need no focus, so they

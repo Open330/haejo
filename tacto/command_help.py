@@ -182,9 +182,17 @@ def command_help(command, args):
             "Read current accessibility selectors. --json includes capabilities.\n"
             "Use --document to pin a TextEdit document; session reuses the connection."
         )
+    if command == 'parallel':
+        return (
+            'usage: tacto parallel <manifest.json> --helper [--timeout 1..600] [--json]\n'
+            'Manifest: {"schema":1,"jobs":[{"id":"job-1","window_id":123,"flow":{...}}]}.\n'
+            'Use 1..4 distinct live windows from tacto windows APP --helper. Each job has its own signed session.\n'
+            'Only reversible read/click/set_value/type_text steps with structured postconditions; no model calls.\n'
+            'Same-window jobs are refused before dispatch. Unknown effects are never automatically replayed.'
+        )
     if command == "session":
         text = (
-            "usage: tacto session <bundle-id> --helper [--document /absolute/path] [--guide | --reuse-guide] [--steps] [--save /absolute/new.json] [--timings] [--idle-timeout 1..600] [--task new --goal '<goal>' | --task <id>] [--finish-task]\n"
+            "usage: tacto session <bundle-id> --helper [--document /absolute/path] [--guide | --reuse-guide] [--steps] [--save /absolute/new.json] [--receipt /absolute/new.json] [--timings] [--idle-timeout 1..600] [--task new --goal '<goal>' | --task <id>] [--finish-task]\n"
             "exec_command tty=true, yield_time_ms=1000; wait for observation and\n"
             "TACTO_SESSION_READY. write_stdin: one compact Flow JSON line + newline, yield_time_ms=5000.\n"
             "Poll the same session. One flow then exit. --document pins one TextEdit file.\n"

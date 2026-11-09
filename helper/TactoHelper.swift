@@ -5340,12 +5340,50 @@ final class RuntimePublisher {
     var observers: [NSObjectProtocol] = []
     var started = false
     var lastPublish = Date.distantPast
+    /// What this connection is doing right now, as the helper itself knows it.
+    /// Written by the serving thread, read on main; no title or value content.
+    struct Activity: Equatable {
+        var phase: String? = nil, action: String? = nil, outcome: String? = nil
+        var windowID: UInt32? = nil
+    }
+    private let activityLock = NSLock()
+    private var activityValue = Activity()
+    private var activityPublishPending = false
+    var activity: Activity {
+        activityLock.lock(); defer { activityLock.unlock() }; return activityValue
+    }
+    /// Record a transition and coalesce one main-loop publish for it, so a fast
+    /// flow cannot flood the distributed center. Inactive runs publish nothing.
+    func note(_ next: Activity) {
+        activityLock.lock()
+        let changed = activityValue != next
+        activityValue = next
+        let schedule = changed && !activityPublishPending
+        if schedule { activityPublishPending = true }
+        activityLock.unlock()
+        guard schedule else { return }
+        DispatchQueue.main.async {
+            self.activityLock.lock(); self.activityPublishPending = false; self.activityLock.unlock()
+            if self.active { self.publish() }
+        }
+    }
+    func resetActivity() {
+        activityLock.lock(); activityValue = Activity(); activityLock.unlock()
+    }
 
     func publish(active: Bool = true) {
         self.active = active
+        var info: [String:Any] = ["schema":1,"uid":getuid(),"pid":getpid(),"id":id,
+                "target":target,"active":active,"stopped":abortState.isStopped]
+        if active {
+            let now = activity
+            if let v = now.windowID { info["window_id"] = Int(v) }
+            if let v = now.phase { info["phase"] = v }
+            if let v = now.action { info["action"] = v }
+            if let v = now.outcome { info["outcome"] = v }
+        }
         DistributedNotificationCenter.default().postNotificationName(TactoRuntimeStatus.status,
-            object:nil, userInfo:["schema":1,"uid":getuid(),"pid":getpid(),"id":id,
-                "target":target,"active":active,"stopped":abortState.isStopped], deliverImmediately:true)
+            object:nil, userInfo:info, deliverImmediately:true)
     }
     func start(pid: pid_t) {
         target = String((NSRunningApplication(processIdentifier:pid)?.localizedName ?? "앱").prefix(64))
@@ -6004,7 +6042,17 @@ func watchForAbort() {
         // Say so at once, as the indicator's Stop does. The launcher watches
         // this status to stop a model request already in flight; until now an
         // Esc reached only the helper's next request.
-        if abortState.isStopped && RuntimePublisher.shared.active { RuntimePublisher.shared.publish() }
+        if abortState.isStopped && RuntimePublisher.shared.active {
+            RuntimePublisher.shared.publish()
+            // Esc means "stop everything", as the menu's stop-all does. A
+            // parallel job still waiting for a helper has no run here yet, and
+            // its later begin() would not see this press; the batch's stop-all
+            // listener cancels it before it starts. Only a run this helper is
+            // serving forwards it, so an idle helper does not turn stray
+            // presses into batch stops.
+            DistributedNotificationCenter.default().postNotificationName(TactoRuntimeStatus.stopAll,
+                object:nil,userInfo:["schema":1,"uid":getuid()],deliverImmediately:true)
+        }
     }
 }
 
@@ -8525,6 +8573,7 @@ let rendezvousDeadline: TimeInterval = 20
     documentTokens.removeAll()
     savePanelTokens.removeAll()
     abortState.begin()
+    RuntimePublisher.shared.resetActivity()
     serve(connection: conn)
     DispatchQueue.main.sync { RuntimePublisher.shared.publish(active:false) }
     // Serving returned, so the client's end is gone. One client, one lifetime:
@@ -8563,12 +8612,40 @@ let rendezvousDeadline: TimeInterval = 20
             buffer = buffer[buffer.index(after: nl)...]
             guard let msg = (try? JSONSerialization.jsonObject(with: line))
                     as? [String: Any] else { continue }
+            let kind = msg["type"] as? String ?? ""
+            let actName = kind == "act" ? (msg["action"] as? [String:Any])?["name"] as? String : nil
+            let step = TactoRuntimeStatus.Run.token(actName ?? kind)
+            let tracked = kind != "ping"
+            if tracked {
+                RuntimePublisher.shared.note(.init(phase:"running", action:step, outcome:nil,
+                    windowID:ParallelWindowState.shared.current?.id))
+            }
             let reply = session.respond(msg,connection:fd)
+            if tracked {
+                RuntimePublisher.shared.note(.init(phase:"waiting", action:step,
+                    outcome:runtimeOutcome(reply), windowID:ParallelWindowState.shared.current?.id))
+            }
             if var out = try? JSONSerialization.data(withJSONObject: withAbortSource(reply)) {
                 out.append(0x0A)
                 writeAll(fd, out)
             }
         }
+    }
+}
+
+/// The helper's own report of a reply, for the status menu only. An accepted
+/// action is "dispatched": the caller owns postcondition verification.
+@Sendable func runtimeOutcome(_ reply: [String:Any]) -> String? {
+    switch reply["type"] as? String {
+    case "acted"?: return "dispatched"
+    case "error"?:
+        switch reply["effect"] as? String {
+        case "not_started"?: return "not_started"
+        case "unknown"?: return "unknown"
+        default: return "error"
+        }
+    case "observation"?: return "observed"
+    default: return nil
     }
 }
 
@@ -8591,6 +8668,7 @@ func resetPersistentSession(starting: Bool) {
             RuntimePublisher.shared.showBanner = TactoRuntimeStatus.showBanner()
             RuntimePublisher.shared.lastPublish = Date.distantPast
         }
+        RuntimePublisher.shared.resetActivity()
     }
     if starting { abortState.begin() }
 }

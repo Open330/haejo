@@ -6,6 +6,8 @@ enum TactoRuntimeStatus {
     static let status = Notification.Name("ai.callabo.tacto.runtime.status")
     static let query = Notification.Name("ai.callabo.tacto.runtime.query")
     static let stop = Notification.Name("ai.callabo.tacto.runtime.stop")
+    /// Batch coordinators hear this even before a worker acquires a helper.
+    static let stopAll = Notification.Name("ai.callabo.tacto.runtime.stop-all")
 
     struct Run {
         let id: String
@@ -13,6 +15,22 @@ enum TactoRuntimeStatus {
         let target: String
         let stopped: Bool
         let active: Bool
+        /// Optional schema-1 extensions. Older helpers omit them and older
+        /// consumers ignore them; a malformed value is dropped, never guessed.
+        /// `windowID` is only the helper-accepted window scope. `outcome` is
+        /// what the helper itself returned — postconditions are verified by the
+        /// caller, so nothing here claims an effect was verified.
+        let windowID: UInt32?
+        let phase: String?
+        let action: String?
+        let outcome: String?
+        static let phases: Set<String> = ["running","waiting"]
+        static let outcomes: Set<String> = ["observed","dispatched","not_started","unknown","error"]
+        static func token(_ raw: Any?) -> String? {
+            guard let text = raw as? String, (1...32).contains(text.utf8.count),
+                  text.utf8.allSatisfy({ (0x61...0x7a).contains($0) || $0 == 0x5f }) else { return nil }
+            return text
+        }
         init?(_ info: [AnyHashable: Any]) {
             guard let schema = info["schema"] as? NSNumber,
                   CFGetTypeID(schema) != CFBooleanGetTypeID(), schema.doubleValue == 1,
@@ -25,6 +43,39 @@ enum TactoRuntimeStatus {
             else { return nil }
             self.id=id; self.pid=pid.int32Value; self.target=target
             self.stopped=stopped.boolValue; self.active=active.boolValue
+            if let n = info["window_id"] as? NSNumber, CFGetTypeID(n) != CFBooleanGetTypeID(),
+               n.doubleValue > 0, n.doubleValue <= Double(UInt32.max), n.doubleValue == Double(n.uint32Value) {
+                windowID = n.uint32Value
+            } else { windowID = nil }
+            phase = Run.token(info["phase"]).flatMap { Run.phases.contains($0) ? $0 : nil }
+            action = Run.token(info["action"])
+            outcome = Run.token(info["outcome"]).flatMap { Run.outcomes.contains($0) ? $0 : nil }
+        }
+        /// Human words for known helper steps; unknown tokens stay as sent.
+        static let actionLabels: [String:String] = [
+            "observe":"관측", "read":"읽기", "click":"클릭", "set_value":"값 입력", "type_text":"텍스트 입력",
+            "press_key":"키 입력", "resize_window":"창 크기 조절", "probe":"상태 확인", "capture":"화면 캡처",
+            "menu_state":"메뉴 확인", "menu_items":"메뉴 확인", "selection":"선택 읽기", "document_text":"문서 읽기",
+            "foreground_begin":"앞으로 가져오기", "foreground_end":"앞으로 가져오기 해제",
+            "release_targets":"대상 해제", "window_list":"창 목록"]
+        var actionLabel: String? { action.map { Run.actionLabels[$0] ?? $0 } }
+        /// One menu line: app, window and the helper's own current state.
+        var summary: String {
+            var parts = [target]
+            if let windowID { parts.append("창 \(windowID)") }
+            if stopped { parts.append("중단됨") }
+            else if phase == "running" { parts.append(actionLabel.map { "\($0) 중" } ?? "실행 중") }
+            else if phase == "waiting" {
+                switch (actionLabel, outcome) {
+                case let (a?, "dispatched"?): parts.append("대기 · \(a) 전달됨(검증 전)")
+                case let (a?, "not_started"?): parts.append("대기 · \(a) 시작 안 됨")
+                case let (a?, "unknown"?): parts.append("대기 · \(a) 결과 불명")
+                case let (a?, "error"?): parts.append("대기 · \(a) 오류")
+                case (_, "observed"?): parts.append("대기 · 관측 완료")
+                default: parts.append("대기")
+                }
+            }
+            return parts.joined(separator:" · ")
         }
     }
 

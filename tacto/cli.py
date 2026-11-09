@@ -36,6 +36,7 @@ Usage:
        verify independent receiving evidence; supports --journal-dir and --report)
   tacto parameterize <flow> -p 12=a -p 34=b --digits   # concrete IR -> template
   tacto run <flow.json>   # execute a Flow IR file directly (no intent step)
+  tacto parallel <manifest.json> --helper [--json]  # 1..4 checked AX window jobs, isolated signed sessions
       (--helper routes through the signed Swift helper that holds the permissions)
       (signed macOS tasks use the existing Tacto menu; configure the task banner in app Settings)
   tacto replay <name>     # replay a saved flow by name
@@ -699,9 +700,9 @@ def _main(argv=None):
     # Everything that touches the screen, stopped before it can misreport a
     # sandbox as a missing permission. Reading and writing recipes, and
     # learning one, still work in a sandbox.
-    if cmd in ("windows", "doctor", "apps", "launch", "activate", "open-url", "first-run", "observe", "session", "batch", "document-attachments", "capture", "drag", "resize", "hover", "vroid-drag", "vroid-focus", "run", "replay", "do", "eval"):
+    if cmd in ("parallel", "windows", "doctor", "apps", "launch", "activate", "open-url", "first-run", "observe", "session", "batch", "document-attachments", "capture", "drag", "resize", "hover", "vroid-drag", "vroid-focus", "run", "replay", "do", "eval"):
         if sys.platform == "win32":
-            if cmd in ("windows", "doctor", "launch", "activate", "open-url", "first-run", "document-attachments", "capture", "drag", "resize",
+            if cmd in ("parallel", "windows", "doctor", "launch", "activate", "open-url", "first-run", "document-attachments", "capture", "drag", "resize",
                        "hover", "vroid-drag", "vroid-focus"):
                 print(f"{cmd} is macOS-only; see docs/windows.md")
                 return 2
@@ -754,6 +755,9 @@ def _dispatch(cmd, rest):
 
 
 def _dispatch_command(cmd, rest):
+    if cmd == 'parallel':
+        from .parallel_run import main as parallel_main
+        return parallel_main(rest)
     from .command_help import command_help
     help_text = command_help(cmd, rest)
     if help_text is not None:
