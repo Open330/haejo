@@ -1,4 +1,4 @@
-"""Saved-flow library: `tacto flows` data layer and the app's Flow page."""
+"""Saved-flow library: `haejo flows` data layer and the app's Flow page."""
 from pathlib import Path
 import io
 import json
@@ -10,8 +10,8 @@ import tempfile
 import unittest
 from contextlib import redirect_stdout
 
-from tacto import flow_library as L
-from tacto.store import FlowStore
+from haejo import flow_library as L
+from haejo.store import FlowStore
 
 ROOT = Path(__file__).resolve().parents[1]
 KOREAN = '계산기로_곱하기_테스트'
@@ -19,7 +19,7 @@ KOREAN = '계산기로_곱하기_테스트'
 
 def seed(folder, names=None):
     """Write built-in recipes as saved flows (flows/*.json is not tracked)."""
-    from tacto.library import builders
+    from haejo.library import builders
     folder = Path(folder); folder.mkdir(parents=True, exist_ok=True)
     built = builders()
     for name in names or sorted(built):
@@ -123,7 +123,7 @@ class FlowLibraryTests(unittest.TestCase):
         self.assertFalse(Path(self.store.path, 'bad.json').exists())
 
     def test_json_cli_reports_errors_as_codes(self):
-        import tacto.store as store_module
+        import haejo.store as store_module
         original = store_module.default_directory
         store_module.default_directory = lambda: self.store.path
         try:
@@ -147,9 +147,9 @@ class FlowPageTests(unittest.TestCase):
             seed(lib, ['calc_arith', 'textedit_save_as', 'finder_open_folder'])
             (lib / 'broken_one.json').write_text('{"broken": ')
             (folder / 'run.py').write_text(
-                'import sys\nsys.path.insert(0, %r)\nimport tacto.store as s\n'
+                'import sys\nsys.path.insert(0, %r)\nimport haejo.store as s\n'
                 's.default_directory = lambda: %r\ns.builtin_directory = lambda: None\n'
-                'from tacto.flow_library import main\nsys.exit(main(sys.argv[1:]))\n' % (str(ROOT), str(lib)))
+                'from haejo.flow_library import main\nsys.exit(main(sys.argv[1:]))\n' % (str(ROOT), str(lib)))
             (folder / 'ActivityCenter.swift').write_text((ROOT / 'setup/ActivityCenter.swift').read_text().replace('private ', ''))
             (folder / 'main.swift').write_text(r'''
 import AppKit

@@ -1,6 +1,6 @@
 """Actual owned NSSavePanel: multi-column and sidebar single-column witnesses.
 
-Opt-in (TACTO_RUN_NATIVE_SAVE_PANEL_TESTS=1). Only the test's own accessory
+Opt-in (HAEJO_RUN_NATIVE_SAVE_PANEL_TESTS=1). Only the test's own accessory
 fixture is driven: its disclosure triangle and its sidebar Downloads row, by AX
 within that process. Nothing is saved; folder contents are never printed. The
 reader's directory must equal the panel's own in-process directoryURL.
@@ -71,7 +71,7 @@ default:
     }
     do {
         let reader = try NativeSavePanelReader(readAttribute: read, directoryResource: resource)
-        let window = windows.first { attr($0, "AXTitle") as? String == "TACTO Owned Save Single Column Fixture" }!
+        let window = windows.first { attr($0, "AXTitle") as? String == "HAEJO Owned Save Single Column Fixture" }!
         let witness = try reader.read(window)
         emit(["ok": true, "directory": witness.directory.path, "levels": witness.resources.count,
               "single_column_entries_witnessed": reader.budgetUsage["single_column_entries_witnessed"] ?? -1])
@@ -82,12 +82,12 @@ default:
 '''
 
 
-@unittest.skipUnless(sys.platform == 'darwin' and os.environ.get('TACTO_RUN_NATIVE_SAVE_PANEL_TESTS') == '1',
+@unittest.skipUnless(sys.platform == 'darwin' and os.environ.get('HAEJO_RUN_NATIVE_SAVE_PANEL_TESTS') == '1',
                      'opt-in owned native save panel test')
 class OwnedSavePanelColumnTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.folder = tempfile.TemporaryDirectory(prefix='tacto-save-columns-')
+        cls.folder = tempfile.TemporaryDirectory(prefix='haejo-save-columns-')
         base = Path(cls.folder.name)
         cls.fixture, cls.driver = base / 'fixture', base / 'driver'
         for source, binary, extra in ((ROOT / 'tests/fixtures/NativeSaveSingleColumnFixture.swift', cls.fixture, []),
@@ -113,7 +113,7 @@ class OwnedSavePanelColumnTests(unittest.TestCase):
     def test_multi_column_then_sidebar_single_column_match_the_panel(self):
         # An owned, symlink-free folder under this checkout: its parent columns
         # stay small (a huge /private/tmp exceeds the reader's array budget).
-        with tempfile.TemporaryDirectory(prefix='tacto-owned-panel-', dir=str(ROOT)) as folder:
+        with tempfile.TemporaryDirectory(prefix='haejo-owned-panel-', dir=str(ROOT)) as folder:
             target = Path(folder).resolve() / 'a' / 'b'
             target.mkdir(parents=True)
             log = Path(folder) / 'fixture.log'

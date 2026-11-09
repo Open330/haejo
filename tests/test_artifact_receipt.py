@@ -5,8 +5,8 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from tacto.artifact_receipt import ArtifactReceiptError, FreshFileReceipt
-from tacto.commit_evidence import evidence_error, make_event
+from haejo.artifact_receipt import ArtifactReceiptError, FreshFileReceipt
+from haejo.commit_evidence import evidence_error, make_event
 
 
 class Clock:
@@ -130,8 +130,8 @@ class ArtifactReceiptTests(unittest.TestCase):
             self.assertIsNone(adapter.after_commit(self.event, {'type': 'acted'}, context))
 
     def test_replay_confirms_one_real_filesystem_write_with_adapter(self):
-        from tacto.contract import ContextBinding, Resource, SafetyContract, issue_approval
-        from tacto.flow import Flow, Selector, Step, replay
+        from haejo.contract import ContextBinding, Resource, SafetyContract, issue_approval
+        from haejo.flow import Flow, Selector, Step, replay
         adapter = self.adapter()
         path = self.path
         writes = []

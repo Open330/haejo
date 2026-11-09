@@ -2,8 +2,8 @@
 import unittest
 from unittest.mock import patch
 
-import tacto.authoring as authoring
-from tacto.provider_result import ProviderUnavailable
+import haejo.authoring as authoring
+from haejo.provider_result import ProviderUnavailable
 
 
 class UnavailableMemoTests(unittest.TestCase):

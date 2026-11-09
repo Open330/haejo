@@ -1,5 +1,5 @@
 import unittest
-from tacto.checkpoint_tree import equivalent,corresponding_index,snapshot
+from haejo.checkpoint_tree import equivalent,corresponding_index,snapshot
 
 
 class CheckpointTreeTests(unittest.TestCase):

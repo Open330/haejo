@@ -12,7 +12,7 @@ ROOT=Path(__file__).resolve().parents[1]
 @unittest.skipUnless(shutil.which('swift'),'Swift required')
 class ComboOpenButtonTests(unittest.TestCase):
     def test_combo_container_and_rows_refuse_cross_owner_parent_shape_and_scalar_errors(self):
-        source=(ROOT/'helper/TactoHelper.swift').read_text()
+        source=(ROOT/'helper/HaejoHelper.swift').read_text()
         def extract(name):
             part=source[source.index('func '+name+'('):]
             return part[:part.index('\n}\n')+3]
@@ -84,7 +84,7 @@ print(String(data:try! JSONSerialization.data(withJSONObject:result),encoding:.u
         self.assertTrue(all(value is False for value in values.values()),values)
 
     def test_unique_direct_owned_enabled_press_button_and_closed_failures(self):
-        source=(ROOT/'helper/TactoHelper.swift').read_text()
+        source=(ROOT/'helper/HaejoHelper.swift').read_text()
         function=source[source.index('func comboBoxOpenButton('):]
         function=function[:function.index('\n}\n')+3]
         children=source[source.index('func comboBoxChildren('):]

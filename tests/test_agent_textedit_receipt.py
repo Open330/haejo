@@ -7,9 +7,9 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from tacto.agent import Agent
-from tacto.library import textedit_save_as
-from tacto.trace import Trace, TraceDriver, TracingDriver
+from haejo.agent import Agent
+from haejo.library import textedit_save_as
+from haejo.trace import Trace, TraceDriver, TracingDriver
 from test_replay_commit_evidence import TextEditFixture, MemoryStore
 
 
@@ -62,7 +62,7 @@ class AgentTextEditReceiptTests(unittest.TestCase):
         self.assertEqual((None,False,0),self.d.snapshot_calls[0])
         self.assertTrue((self.directory/'보고서.rtf').exists())
     def test_traced_native_commit_snapshot_preserves_dynamic_observation_identity(self):
-        from tacto.document_snapshot import REQUIRED
+        from haejo.document_snapshot import REQUIRED
         class Primitives(SnapshotTextEdit):
             capabilities = REQUIRED
             document_snapshot = None
@@ -132,12 +132,12 @@ class AgentTextEditReceiptTests(unittest.TestCase):
                 self.assertIsNone(Agent(driver=self.d).commit_adapter_for(flow))
                 self.assertEqual([],self.d.snapshot_calls)
     def test_cli_replay_and_live_trace_use_receipt_but_recording_cannot_issue_one(self):
-        from tacto.cli import _run_flow
+        from haejo.cli import _run_flow
         d=TracingDriver(self.d,Trace())
         f=textedit_save_as().bind(filename='보고서.rtf',folder='Downloads')
-        with patch('tacto.cli._make_driver',return_value=d), \
-             patch('tacto.cli._indicator_for',return_value=nullcontext()), \
-             patch('tacto.cli._confirmer',return_value=lambda _:True),redirect_stdout(io.StringIO()):
+        with patch('haejo.cli._make_driver',return_value=d), \
+             patch('haejo.cli._indicator_for',return_value=nullcontext()), \
+             patch('haejo.cli._confirmer',return_value=lambda _:True),redirect_stdout(io.StringIO()):
             self.assertEqual(0,_run_flow(f,[]))
         self.assertEqual(1,self.d.clicks)
         self.assertTrue(self.d.snapshot_calls)

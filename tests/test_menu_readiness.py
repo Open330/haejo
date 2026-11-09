@@ -5,7 +5,7 @@ import json
 import unittest
 from unittest.mock import Mock,patch
 
-from tacto.menu_readiness import wait_menu_enabled
+from haejo.menu_readiness import wait_menu_enabled
 
 
 class MenuReadinessTests(unittest.TestCase):
@@ -92,14 +92,14 @@ class MenuReadinessTests(unittest.TestCase):
 
 class MenuReadinessCliTests(unittest.TestCase):
     def test_wait_option_routes_reads_and_returns_nonzero_when_not_ready(self):
-        from tacto.cli import _dispatch_command
+        from haejo.cli import _dispatch_command
         driver=Mock();driver.menu_state.return_value={'type':'menu_state','enabled':True}
-        with patch('tacto.cli._make_driver',return_value=driver),contextlib.redirect_stdout(io.StringIO()) as out:
+        with patch('haejo.cli._make_driver',return_value=driver),contextlib.redirect_stdout(io.StringIO()) as out:
             status=_dispatch_command('menu-state',['owned','File','Save','--helper','--wait-enabled','1'])
         self.assertEqual(0,status)
         self.assertEqual('ready',json.loads(out.getvalue())['state'])
         driver.act.assert_not_called()
-        with patch('tacto.cli._make_driver',return_value=driver),contextlib.redirect_stdout(io.StringIO()):
+        with patch('haejo.cli._make_driver',return_value=driver),contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(1,_dispatch_command('menu-state',['owned','File','Save','--wait-enabled','0']))
     def test_owned_signed_scenario_is_isolated_offline_without_bootstrap(self):
         import importlib.util
@@ -115,9 +115,9 @@ class MenuReadinessCliTests(unittest.TestCase):
         self.assertEqual({'gui','native'},set(cases[0]['requirements']))
 
     def test_invalid_wait_options_never_construct_driver(self):
-        from tacto.cli import _dispatch_command
+        from haejo.cli import _dispatch_command
         for args in (['--wait-enabled'],['--wait-enabled','nan'],['--wait-enabled','61'],
                      ['--wait-enabled','1','--wait-enabled','2']):
-            with patch('tacto.cli._make_driver') as driver,contextlib.redirect_stdout(io.StringIO()):
+            with patch('haejo.cli._make_driver') as driver,contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(2,_dispatch_command('menu-state',['owned','File','Save',*args]))
             driver.assert_not_called()

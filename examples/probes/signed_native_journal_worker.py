@@ -6,7 +6,7 @@ from pathlib import Path
 import re
 import stat
 
-TARGET = 'ai.callabo.tacto.save-writer-fixture'
+TARGET = 'ai.callabo.haejo.save-writer-fixture'
 
 
 def private_json(path):
@@ -42,7 +42,7 @@ def configuration(path):
     work = Path(cfg['work']) if type(cfg['work']) is str else Path('.')
     caches = (Path.home()/'Library/Caches').resolve()
     if (not work.is_absolute() or work.resolve() != work or work.parent != caches
-            or not work.name.startswith('tacto-save-writer-')):
+            or not work.name.startswith('haejo-save-writer-')):
         raise ValueError('owned fixture work directory required')
     info = work.lstat()
     if (not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid()
@@ -59,18 +59,18 @@ def configuration(path):
 
 
 def execute(driver, config_path, phase):
-    from tacto.helper import InheritedHelperDriver
-    from tacto.dispatch_journal import DurableDispatchDriver
-    from tacto.producer_file_receipt import ProducerObservation, ProducerFileReceipt
-    from tacto.commit_evidence import make_event, evidence_error
-    from tacto.driver import Driver
-    from tacto.native_process_identity import process_start_identity
+    from haejo.helper import InheritedHelperDriver
+    from haejo.dispatch_journal import DurableDispatchDriver
+    from haejo.producer_file_receipt import ProducerObservation, ProducerFileReceipt
+    from haejo.commit_evidence import make_event, evidence_error
+    from haejo.driver import Driver
+    from haejo.native_process_identity import process_start_identity
     from dataclasses import asdict
     if not isinstance(driver,InheritedHelperDriver) or phase not in ('dispatch','restart','reconcile'):
         raise ValueError('signed worker phase required')
     cfg,work = configuration(config_path)
     filename='fresh-'+cfg['nonce']+'.rtf'
-    body='{\\rtf1\\ansi TACTO owned save '+cfg['nonce']+'}'
+    body='{\\rtf1\\ansi HAEJO owned save '+cfg['nonce']+'}'
     destination=work/'output';path=destination/filename
     fd=os.open(work/'callback.jsonl',os.O_RDONLY|os.O_NOFOLLOW)
     try:
@@ -91,9 +91,9 @@ def execute(driver, config_path, phase):
                 raise ValueError('producer completion inconsistent')
             return ProducerObservation(TARGET,cfg['pid'],cfg['start'],cfg['nonce'],1,'written',str(path),expected['sha256'])
         if phase=='reconcile':
-            from tacto.journal_reconciliation import CommitReconciliation,reconcile_journal
-            from tacto.commit_evidence import CommitEvidence,ProducerArtifactEvidence
-            from tacto.existing_file_receipt import _file_state
+            from haejo.journal_reconciliation import CommitReconciliation,reconcile_journal
+            from haejo.commit_evidence import CommitEvidence,ProducerArtifactEvidence
+            from haejo.existing_file_receipt import _file_state
             from examples.probes.signed_native_continuation import run
             original=private_json(work/'worker-original-commit.json')
             if type(original) is not dict or set(original)!={'event','expected'}:

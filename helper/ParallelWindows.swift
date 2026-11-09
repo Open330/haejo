@@ -31,7 +31,7 @@ final class ParallelWindowState: @unchecked Sendable {
 func parallelRefusal(_ code: String) -> [String:Any] {
     ["type":"error","error":code,"effect":"not_started","retryable":code.hasSuffix("busy")]
 }
-func waitForResource(_ lease: TactoScopeLease, _ scope: String, shared: Bool = false,
+func waitForResource(_ lease: HaejoScopeLease, _ scope: String, shared: Bool = false,
                      deadline: Double? = nil, cancelled: () -> Bool = { abortState.isStopped }) -> Bool {
     if scope=="global-input", ParallelWindowState.shared.foregroundOwned { return true }
     let until = min(deadline ?? .infinity,ParallelWindowState.shared.requestDeadline ?? .infinity,ProcessInfo.processInfo.systemUptime+10)
@@ -87,14 +87,14 @@ func windowScopeActionProblem(_ msg:[String:Any], _ scope:ParallelWindowScope) -
     return nil
 }
 final class ParallelSession {
-    private var targets=TactoScopeLease()
+    private var targets=HaejoScopeLease()
     private var scope:ParallelWindowScope?
     private var unscoped=false
-    private var foreground:TactoScopeLease?
+    private var foreground:HaejoScopeLease?
     private var foregroundTarget:String?
     private func beginForeground(_ target:String,deadline:Double?,cancelled:()->Bool) -> [String:Any] {
         if foreground==nil {
-            let lease=TactoScopeLease()
+            let lease=HaejoScopeLease()
             guard waitForResource(lease,"global-input",deadline:deadline,cancelled:cancelled)
             else { return parallelRefusal(cancelled() ? (abortState.isStopped ? "aborted_by_user" : "client_disconnected") : "input_busy") }
             foreground=lease;foregroundTarget=target
@@ -107,7 +107,7 @@ final class ParallelSession {
             guard Set(msg.keys)==Set(["type"]) else {return parallelRefusal("invalid_release_targets")}
             // A coordinator may prepare an app, yield it to another connection,
             // then return for a fresh observation without losing document pins.
-            targets=TactoScopeLease()
+            targets=HaejoScopeLease()
             foreground=nil;foregroundTarget=nil;scope=nil;unscoped=false
             ParallelWindowState.shared.foregroundOwned=false
             ParallelWindowState.shared.current=nil
@@ -146,9 +146,9 @@ final class ParallelSession {
         func stopCode() -> String { abortState.isStopped ? "aborted_by_user" : "client_disconnected" }
         func busy(_ scope: String) -> [String:Any] {
             var refusal = parallelRefusal("target_busy")
-            if let holder = TactoScopeLease.holder(scope) {
+            if let holder = HaejoScopeLease.holder(scope) {
                 refusal.merge(holder) { current, _ in current }
-                refusal["detail"] = "another Tacto client holds this app; finish or end that command (an idle session holds it only until its flow arrives)"
+                refusal["detail"] = "another Haejo client holds this app; finish or end that command (an idle session holds it only until its flow arrives)"
             }
             return refusal
         }

@@ -154,7 +154,7 @@ print(String(data:try! JSONSerialization.data(withJSONObject:rows),encoding:.utf
                 self.assertGreater(row['fast'],0)
 
     def test_counter_diagnostics_keep_closed_numeric_contract(self):
-        from tacto.preparation_diagnostic import preparation_diagnostic
+        from haejo.preparation_diagnostic import preparation_diagnostic
         good={'phase':'binding','reason':'readiness_deadline','elapsed_ms':5,
               'full_context_checks':3,'incremental_context_checks':42}
         self.assertEqual(preparation_diagnostic(good),good)
@@ -164,7 +164,7 @@ print(String(data:try! JSONSerialization.data(withJSONObject:rows),encoding:.utf
             self.assertIsNone(preparation_diagnostic({**good,**updates}))
 
     def test_progress_is_bounded_private_and_survives_marker_extraction(self):
-        from tacto.preparation_diagnostic import preparation_diagnostic, diagnostic_lines, MARKER
+        from haejo.preparation_diagnostic import preparation_diagnostic, diagnostic_lines, MARKER
         progress={'pass':1,'windows':14,'completed':2,'index':2,'target':False,
                   'nodes':1234,'total_nodes':3456,'stage':'tree'}
         value={'phase':'binding','reason':'readiness_deadline','elapsed_ms':4999,

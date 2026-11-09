@@ -1,7 +1,7 @@
 # Acting on consent the user already approved
 
 The user's explicit decision can authorize privacy/terms form operations.
-Privacy or legal wording alone is not a Tacto manual-handoff rule. Preserve the
+Privacy or legal wording alone is not a Haejo manual-handoff rule. Preserve the
 named scope and exclusions, re-observe the controls, and verify their resulting
 values. An instruction to continue a task alone does not grant every consent.
 

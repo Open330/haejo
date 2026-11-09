@@ -6,7 +6,7 @@ import unittest
 import unicodedata
 from unittest.mock import Mock,patch
 
-from tacto.cli import _document_observation,main
+from haejo.cli import _document_observation,main
 
 TARGET='com.apple.TextEdit';PATH='/Users/x/저장 검증.txt'
 CAPS={'evidence.document_text.path_selector','observe.document_token'}
@@ -55,13 +55,13 @@ class ScopeTests(unittest.TestCase):
 
     def test_cli_prints_only_scoped_tree(self):
         driver=self.driver()
-        with patch('tacto.cli._make_driver',return_value=driver),redirect_stdout(io.StringIO()) as output:
+        with patch('haejo.cli._make_driver',return_value=driver),redirect_stdout(io.StringIO()) as output:
             self.assertEqual(0,main(['observe',TARGET,'--document',PATH,'--helper']))
         self.assertEqual('owned only',output.getvalue().strip())
 
     def test_json_observation_preserves_document_pin_without_widening(self):
         driver=self.driver()
-        with patch('tacto.cli._make_driver',return_value=driver),redirect_stdout(io.StringIO()) as output:
+        with patch('haejo.cli._make_driver',return_value=driver),redirect_stdout(io.StringIO()) as output:
             self.assertEqual(0,main(['observe',TARGET,'--document',PATH,'--helper','--json']))
         self.assertEqual('owned only',json.loads(output.getvalue())['tree'])
         driver.observe.assert_called_once_with(TARGET,'tree_full',document_token='native-token')
@@ -69,14 +69,14 @@ class ScopeTests(unittest.TestCase):
     def test_invalid_cli_combinations_never_construct_driver(self):
         for args in [['--document'],['--document',PATH,'--all-windows'],['--document','relative'],
                      ['--document',PATH,'--document',PATH]]:
-            with patch('tacto.cli._make_driver') as driver,redirect_stdout(io.StringIO()):
+            with patch('haejo.cli._make_driver') as driver,redirect_stdout(io.StringIO()):
                 self.assertEqual(2,main(['observe',TARGET,*args]))
             driver.assert_not_called()
 
 
 class PinDiagnosticTests(unittest.TestCase):
     def test_known_backend_refusals_keep_closed_cause_without_observe_or_input(self):
-        from tacto.document_scope import DocumentScopedDriver,DocumentScopeUnavailable
+        from haejo.document_scope import DocumentScopedDriver,DocumentScopeUnavailable
         for detail,expected in [('document read deadline elapsed','read_deadline'),
                                 ('AXSubrole unavailable: -25202','window_subrole_unreadable'),
                                 ('AXStringForRange unavailable: -25212','text_range_unreadable'),
@@ -101,7 +101,7 @@ class PinDiagnosticTests(unittest.TestCase):
             d.observe.assert_not_called();d.act.assert_not_called()
 
     def test_unknown_or_private_details_are_never_echoed_or_prefix_matched(self):
-        from tacto.document_scope import pin_failure_reason
+        from haejo.document_scope import pin_failure_reason
         for detail in ['PRIVATE','AXSubrole unavailable: -25202 PRIVATE','AXWindows unavailable\nPRIVATE',{},None]:
             d=Mock(capabilities=CAPS)
             d.document_text.return_value={'type':'error','error':'document_snapshot_unavailable','detail':detail}
@@ -113,7 +113,7 @@ class PinDiagnosticTests(unittest.TestCase):
     def test_cli_prints_closed_cause_and_never_repeats_pin(self):
         d=Mock(capabilities=CAPS)
         d.document_text.return_value={'type':'error','error':'document_snapshot_unavailable','detail':'document traversal budget exceeded'}
-        with patch('tacto.cli._make_driver',return_value=d),redirect_stdout(io.StringIO()) as out:
+        with patch('haejo.cli._make_driver',return_value=d),redirect_stdout(io.StringIO()) as out:
             self.assertEqual(1,main(['observe',TARGET,'--helper','--document',PATH]))
         self.assertIn('pin_reason=traversal_budget',out.getvalue())
         d.document_text.assert_called_once();d.observe.assert_not_called();d.act.assert_not_called()

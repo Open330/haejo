@@ -1,19 +1,19 @@
 # Optional fast startup
 
-Tacto normally starts a signed helper for each command. This remains the default.
-On macOS, open **Tacto → Settings → 빠른 실행(helper 유지)** to reuse a helper
+Haejo normally starts a signed helper for each command. This remains the default.
+On macOS, open **Haejo → Settings → 빠른 실행(helper 유지)** to reuse a helper
 between commands. Choose an idle timeout from **1–10 minutes** (default **2**).
 The helper exits after that much inactivity. Settings apply on the next command;
 a new warm connection refreshes the idle timeout. Turning the option off uses
 per-command execution next time; an existing idle helper exits on its timer.
 
-For a command or agent session, `TACTO_HELPER_MODE=warm` enables reuse and
-`TACTO_HELPER_MODE=per_command` disables it, overriding the app setting. This does
+For a command or agent session, `HAEJO_HELPER_MODE=warm` enables reuse and
+`HAEJO_HELPER_MODE=per_command` disables it, overriding the app setting. This does
 not change permissions, flow verification or logging. Windows is unaffected.
 
 ```sh
-TACTO_HELPER_MODE=warm tacto apps --helper
-TACTO_HELPER_MODE=per_command tacto observe com.apple.Safari --helper --json
+HAEJO_HELPER_MODE=warm haejo apps --helper
+HAEJO_HELPER_MODE=per_command haejo observe com.apple.Safari --helper --json
 ```
 
 ## Parallel workers (rc.12 and later)
@@ -59,8 +59,8 @@ or model-token savings. Ten simultaneous observation pairs subsequently passed
 in both modes. An earlier isolated 32-second Safari AX stall did not reproduce;
 its root cause remains unconfirmed. Preserve observation diagnostics if it recurs.
 
-For bounded experiments only, `TACTO_HELPER_IDLE_SECONDS=1..600` overrides the
-idle timeout and `TACTO_HELPER_WAIT_SECONDS=0..30` changes lease waiting. The GUI
+For bounded experiments only, `HAEJO_HELPER_IDLE_SECONDS=1..600` overrides the
+idle timeout and `HAEJO_HELPER_WAIT_SECONDS=0..30` changes lease waiting. The GUI
 keeps its simpler minute range. Resident XPC/SMAppService remains an unshipped
 [experiment](../spike/helper-modes/README.md); no resident agent is registered by
 this option.
@@ -82,7 +82,7 @@ releases ownership. Tests use owned fixtures rather than user documents.
 To reproduce after building the signed source launcher and helper:
 
 ```sh
-TACTO_RUN_NATIVE_PARALLEL_TESTS=1 .venv/bin/python -m unittest discover -s tests -p 'test_helper_parallel_native.py' -v
+HAEJO_RUN_NATIVE_PARALLEL_TESTS=1 .venv/bin/python -m unittest discover -s tests -p 'test_helper_parallel_native.py' -v
 ```
 
 Ordinary discovery skips this UI test. These results do not qualify rc.11 or
@@ -97,7 +97,7 @@ remain historical measurements and are not relabeled as rc.12 performance.
 
 ## Window-scoped coordination (development after rc.12)
 
-Use `tacto windows APP --helper` to discover live IDs without a document tree.
+Use `haejo windows APP --helper` to discover live IDs without a document tree.
 It remains available while other connections own windows in that app. Start
 `session APP --window-id ID --helper --guide`, or pass `--window-id ID` to
 `run`/`replay`/`observe`. IDs belong to the current OS windows and are never saved
@@ -123,7 +123,7 @@ app/global input ownership through the helper around presentation. Unrelated
 external automation does not join these locks. Scope loss or unsupported window
 actions return bounded errors rather than selecting a different window.
 
-The reproducible native check is `TACTO_RUN_NATIVE_PARALLEL_TESTS=1` with
+The reproducible native check is `HAEJO_RUN_NATIVE_PARALLEL_TESTS=1` with
 `tests/test_window_parallel_native.py`. The runtime-only benchmark lives in
 `examples/benchmark_parallel_windows.py`; it runs four fixed jobs at concurrency
 1/2/4, with a sequential installed baseline, repeated rounds and sampled worker

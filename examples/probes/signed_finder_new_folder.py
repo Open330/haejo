@@ -24,7 +24,7 @@ NEW_FOLDER = ['File', ['New Folder', '새로운 폴더']]
 
 def _window(pid, title):
     from ApplicationServices import AXUIElementCreateApplication
-    from tacto.driver import _attr
+    from haejo.driver import _attr
     app = AXUIElementCreateApplication(pid)
     hits = [w for w in (_attr(app, 'AXWindows') or []) if _attr(w, 'AXTitle') == title]
     return app, (hits[0] if len(hits) == 1 else None)
@@ -32,7 +32,7 @@ def _window(pid, title):
 
 def _name_fields(window, name):
     """Text fields in the owned window that show the new item's name."""
-    from tacto.driver import _attr
+    from haejo.driver import _attr
     from ApplicationServices import AXUIElementIsAttributeSettable
     found = []
 
@@ -55,7 +55,7 @@ def _subdirectories(folder):
 
 def run_probe(driver):
     from examples.probes.focus_witness import FocusWitness
-    from tacto.driver import _attr
+    from haejo.driver import _attr
     report = {'passed': False, 'scope': 'owned_actual_Finder_background_New_Folder',
               'model_requests': 0, 'cleanup': 'not_started'}
     timeline = []
@@ -63,15 +63,15 @@ def run_probe(driver):
     def phase(name, **extra):
         timeline.append({'phase': name, 't': time.monotonic(), **extra})
     root = Path(__file__).resolve().parents[2]
-    sources = [*root.glob('tacto/*.py'), *root.glob('helper/*.swift'), root / 'launcher/tacto',
-               root / 'helper/Tacto Helper.app/Contents/MacOS/TactoHelper', Path(__file__)]
+    sources = [*root.glob('haejo/*.py'), *root.glob('helper/*.swift'), root / 'launcher/haejo',
+               root / 'helper/Haejo Helper.app/Contents/MacOS/HaejoHelper', Path(__file__)]
     hashes = lambda: {str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest()
                       for p in sources if p.is_file()}
     report['source_before'] = hashes()
-    created = Path(tempfile.mkdtemp(prefix='tacto-finder-new-folder-', dir=Path.home() / 'Library/Caches'))
+    created = Path(tempfile.mkdtemp(prefix='haejo-finder-new-folder-', dir=Path.home() / 'Library/Caches'))
     folder = created.parent.resolve() / created.name
     report['owned_directory'] = str(folder)
-    wanted = 'tacto-renamed-' + secrets.token_hex(6)
+    wanted = 'haejo-renamed-' + secrets.token_hex(6)
     window = None
     pid = None
     witness = None

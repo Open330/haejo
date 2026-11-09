@@ -7,9 +7,9 @@ import sys
 import tempfile
 from unittest.mock import patch
 import unittest
-from tacto.provider_result import ProviderResult,parse_provider_result
-from tacto.provider_observation import summarize_provider_calls
-from tacto.claude_result import ClaudeProtocolError,parse_claude_events
+from haejo.provider_result import ProviderResult,parse_provider_result
+from haejo.provider_observation import summarize_provider_calls
+from haejo.claude_result import ClaudeProtocolError,parse_claude_events
 from tests.test_claude_result import events,stream
 
 class ProviderNumericLimitsTests(unittest.TestCase):
@@ -56,7 +56,7 @@ class ProviderNumericLimitsTests(unittest.TestCase):
 
     @unittest.skipUnless(os.name=='posix','executable local fixture requires POSIX')
     def test_actual_local_cli_overflow_is_closed_without_text_usage_or_cost(self):
-        from tacto.claude_result import claude_result
+        from haejo.claude_result import claude_result
         data=events();data[-1]['total_cost_usd']=10**1000
         with tempfile.TemporaryDirectory() as directory:
             executable=Path(directory)/'claude'
@@ -67,7 +67,7 @@ class ProviderNumericLimitsTests(unittest.TestCase):
                 +'print("\\n".join(json.dumps(row) for row in data))\n')
             executable.chmod(0o700)
             env={**os.environ,'PATH':directory+os.pathsep+os.environ.get('PATH','')}
-            with patch('tacto.claude_result._provider_env',return_value=env):
+            with patch('haejo.claude_result._provider_env',return_value=env):
                 result=claude_result('PRIVATE_INPUT',timeout=5)
         self.assertEqual(result.status,'error')
         self.assertEqual(result.error.code,'ClaudeProtocolError_invalid_cost')
@@ -88,7 +88,7 @@ class ProviderCacheAccountingTests(unittest.TestCase):
                 parse_provider_result(self.result(cached_input_tokens=11,total_input_tokens=total))
 
     def test_attempt_and_summary_cannot_accept_contradictory_cache_telemetry(self):
-        from tacto.provider_result import ProviderAttempt
+        from haejo.provider_result import ProviderAttempt
         from dataclasses import asdict
         attempt=ProviderAttempt('codex','cli-json','invalid_response',.1,
             input_tokens=10,total_input_tokens=10,input_tokens_basis='total',cached_input_tokens=11)

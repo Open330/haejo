@@ -3,7 +3,7 @@ import sys
 import unittest
 from unittest.mock import patch
 
-from tacto import cli
+from haejo import cli
 
 
 class WindowsCliTests(unittest.TestCase):
@@ -14,7 +14,7 @@ class WindowsCliTests(unittest.TestCase):
         from pathlib import Path
         folder = tempfile.TemporaryDirectory()
         self.addCleanup(folder.cleanup)
-        logs = patch("tacto.access_log.log_directory", return_value=Path(folder.name) / "Tacto/Logs")
+        logs = patch("haejo.access_log.log_directory", return_value=Path(folder.name) / "Haejo/Logs")
         logs.start()
         self.addCleanup(logs.stop)
 
@@ -24,7 +24,7 @@ class WindowsCliTests(unittest.TestCase):
             def __init__(self):
                 made.append(self)
         with patch.object(cli.sys, "platform", "win32"), \
-             patch("tacto.windows_driver.WindowsDriver", Fake):
+             patch("haejo.windows_driver.WindowsDriver", Fake):
             self.assertIsInstance(cli._make_driver([]), Fake)
             with self.assertRaises(SystemExit):
                 cli._make_driver(["--helper"])
@@ -33,13 +33,13 @@ class WindowsCliTests(unittest.TestCase):
     def test_screen_commands_skip_macos_session_probes_on_windows(self):
         import sys
         dispatched = []
-        blocked = dict.fromkeys(("tacto.session", "Quartz"))
+        blocked = dict.fromkeys(("haejo.session", "Quartz"))
         with patch.object(cli.sys, "platform", "win32"), \
              patch.dict(sys.modules, blocked), \
-             patch("tacto.windows_driver.keep_awake.__enter__", lambda self: self), \
-             patch("tacto.windows_driver.keep_awake.__exit__", lambda self, *exc: False), \
-             patch("tacto.windows_control.control.__enter__", lambda self: self), \
-             patch("tacto.windows_control.control.__exit__", lambda self, *exc: False), \
+             patch("haejo.windows_driver.keep_awake.__enter__", lambda self: self), \
+             patch("haejo.windows_driver.keep_awake.__exit__", lambda self, *exc: False), \
+             patch("haejo.windows_control.control.__enter__", lambda self: self), \
+             patch("haejo.windows_control.control.__exit__", lambda self, *exc: False), \
              patch.object(cli, "_dispatch", side_effect=lambda cmd, rest: dispatched.append((cmd, rest)) or 0):
             self.assertEqual(0, cli.main(["apps"]))
             for macos_only in ("doctor", "launch", "first-run", "capture", "drag"):
@@ -50,7 +50,7 @@ class WindowsCliTests(unittest.TestCase):
 
     def test_run_and_do_never_load_macos_modules_on_windows(self):
         import sys
-        blocked = dict.fromkeys(("tacto.driver", "tacto.overlay", "tacto.onboard", "tacto.session",
+        blocked = dict.fromkeys(("haejo.driver", "haejo.overlay", "haejo.onboard", "haejo.session",
                                  "AppKit", "Quartz", "ApplicationServices"))
         with patch.object(cli.sys, "platform", "win32"), patch.dict(sys.modules, blocked):
             with cli._indicator_for("notepad", []):
@@ -77,7 +77,7 @@ class WindowsCliTests(unittest.TestCase):
                          {k: values[k] for k in ("LARGE_DECREMENT", "NO_AMOUNT", "LARGE_INCREMENT")})
 
     def test_authoring_names_windows_apps_by_executable(self):
-        from tacto import authoring
+        from haejo import authoring
         class Driver:
             def list_targets(self):
                 return {"apps": [{"id": "notepad.exe", "displayName": "Notepad", "pid": 1, "isRunning": True}]}
@@ -97,8 +97,8 @@ class WindowsCliTests(unittest.TestCase):
     def test_session_observes_receives_and_replays_without_a_helper(self):
         import contextlib, io, json, os
         from tests.test_windows_driver import Backend, notepad
-        from tacto.flow_session import run_session
-        from tacto.windows_driver import WindowsDriver
+        from haejo.flow_session import run_session
+        from haejo.windows_driver import WindowsDriver
         window, named = notepad()
         made = []
         def make(argv):
@@ -123,13 +123,13 @@ class WindowsCliTests(unittest.TestCase):
         self.assertEqual(0, result, (messages, out.getvalue()))
         self.assertEqual([[]], made)
         self.assertEqual("hi", named["Text editor"].props["value"])
-        self.assertTrue(any(m.startswith("TACTO_SESSION_READY") for m in messages))
+        self.assertTrue(any(m.startswith("HAEJO_SESSION_READY") for m in messages))
 
-    @unittest.skipUnless(sys.platform == "darwin", "tacto.driver imports macOS frameworks")
+    @unittest.skipUnless(sys.platform == "darwin", "haejo.driver imports macOS frameworks")
     def test_macos_selection_is_unchanged(self):
         with patch.object(cli.sys, "platform", "darwin"), \
-             patch("tacto.driver.Driver") as driver, \
-             patch("tacto.helper.InheritedHelperDriver") as helper:
+             patch("haejo.driver.Driver") as driver, \
+             patch("haejo.helper.InheritedHelperDriver") as helper:
             cli._make_driver([])
             cli._make_driver(["--helper"])
         driver.assert_called_once_with()

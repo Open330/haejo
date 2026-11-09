@@ -12,9 +12,9 @@ sys.path.insert(0,str(ROOT))
 
 
 def run(output):
-    import tacto.codex_result as provider
-    from tacto.provider_observation import summarize_provider_calls
-    sources=[ROOT/'tacto/codex_result.py',ROOT/'tacto/provider_io.py',Path(__file__).resolve()]
+    import haejo.codex_result as provider
+    from haejo.provider_observation import summarize_provider_calls
+    sources=[ROOT/'haejo/codex_result.py',ROOT/'haejo/provider_io.py',Path(__file__).resolve()]
     def manifest():
         return {str(p.relative_to(ROOT)):hashlib.sha256(p.read_bytes()).hexdigest() for p in sources}
     fd=os.open(output,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)

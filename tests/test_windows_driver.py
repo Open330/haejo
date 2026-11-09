@@ -2,9 +2,9 @@
 import sys
 import unittest
 
-from tacto.general import candidates
-from tacto.flow import Selector, TargetMissing
-from tacto.windows_driver import WindowsDriver
+from haejo.general import candidates
+from haejo.flow import Selector, TargetMissing
+from haejo.windows_driver import WindowsDriver
 
 
 class Element:
@@ -226,7 +226,7 @@ class WindowsDriverTests(unittest.TestCase):
                 self.assertEqual(fail_on, len(sent))
 
     def test_esc_during_an_action_stops_its_next_input(self):
-        from tacto import windows_control
+        from haejo import windows_control
         self.addCleanup(windows_control._stop.clear)
         # Esc arrives while the list is opening: nothing more is selected.
         obs = self.observe()
@@ -435,8 +435,8 @@ class WindowsDriverTests(unittest.TestCase):
         self.assertEqual(1, Selector(identifier="save").resolve(tree)[0])
 
     def test_engine_replay_accepts_windows_results(self):
-        from tacto.contract import Resource, SafetyContract
-        from tacto.flow import Flow, Step, replay
+        from haejo.contract import Resource, SafetyContract
+        from haejo.flow import Flow, Step, replay
         contract = SafetyContract(effects=["read"], reversibility="reversible", resource=Resource(scope="entry"))
         result = replay(self.driver, Flow(name="read", target="notepad", steps=[
             Step(action="read", selector=Selector(identifier="body"), safety=contract)]))
@@ -451,7 +451,7 @@ class WindowsDriverTests(unittest.TestCase):
         self.assertEqual("target_missing", self.driver.probe(obs["obs_id"], "notepad", 999)["error"])
 
     def test_esc_stops_before_dispatch_and_ends_waits(self):
-        from tacto import windows_control
+        from haejo import windows_control
         obs = self.observe()
         index = self.index(obs, title="Save")
         windows_control._stop.set()
@@ -466,7 +466,7 @@ class WindowsDriverTests(unittest.TestCase):
         self.assertEqual("acted", self.act(self.observe(), "click", element_index=index)["type"])
 
     def test_control_is_a_quiet_no_op_off_windows_and_resets_the_flag(self):
-        from tacto import windows_control
+        from haejo import windows_control
         windows_control._stop.set()
         with windows_control.control():
             self.assertFalse(windows_control.stopped())
@@ -492,7 +492,7 @@ class OwnerDisabledModalTests(unittest.TestCase):
     """A top window is modal when the same-process window owning it is disabled."""
 
     def evidence(self, *, owner=7, owner_pid=10, enabled=False, alive=(True, True), reowned=7):
-        from tacto.uia_backend import _disables_its_owner
+        from haejo.uia_backend import _disables_its_owner
         alive = iter(alive)
         owners = iter([owner, reowned])
         return _disables_its_owner(

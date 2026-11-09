@@ -1,12 +1,12 @@
 """[selected] marks the chosen button of a set, and does not leak into values.
 
 2026-10-09: System Settings' Light / Dark / Auto showed no selection in the
-tree, so "which appearance is set?" could not be answered (TACTO 0/2)."""
+tree, so "which appearance is set?" could not be answered (HAEJO 0/2)."""
 import pathlib
 import unittest
 
-from tacto.driver import _line_attr
-from tacto.flow import Selector
+from haejo.driver import _line_attr
+from haejo.flow import Selector
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 LINE = "136 Button  Description: Light, Help: Use a light appearance. [selected]"
@@ -26,10 +26,10 @@ class SelectedMarkerTests(unittest.TestCase):
         self.assertEqual(136, idx)
 
     def test_both_backends_render_it_only_for_true(self):
-        swift = (ROOT / "helper/TactoHelper.swift").read_text()
+        swift = (ROOT / "helper/HaejoHelper.swift").read_text()
         self.assertIn('(attr(el, kAXSelectedAttribute as String) as? Bool) == true', swift)
         self.assertIn('(selected ? " [selected]" : "")', swift)
-        driver = (ROOT / "tacto/driver.py").read_text()
+        driver = (ROOT / "haejo/driver.py").read_text()
         self.assertIn('" [selected]" if _attr(el, "AXSelected") is True else ""', driver)
 
 

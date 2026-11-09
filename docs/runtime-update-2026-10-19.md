@@ -16,10 +16,10 @@ updates its download target to Preview 3.
 - Optional benchmark profiling separates event arrival, Flow input waiting,
   runtime observation and replay. It does not measure pure provider inference.
 
-The new latency measurements include both a fast Tacto run and an error/recovery
+The new latency measurements include both a fast Haejo run and an error/recovery
 run. Lower input-token usage is not a guarantee of lower elapsed time. See the
-[latency profile](tacto-latency-profile-20261019.md) and
-[native comparison limits](tacto-native-matched-validation-20261019.md).
+[latency profile](haejo-latency-profile-20261019.md) and
+[native comparison limits](haejo-native-matched-validation-20261019.md).
 
 This remains an Apple Silicon macOS developer preview. Fresh-Mac installation,
 full environment parity, actual human typing/caret preservation and broad

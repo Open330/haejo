@@ -8,7 +8,7 @@ import re
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = (ROOT / 'helper/TactoHelper.swift').read_text()
+SOURCE = (ROOT / 'helper/HaejoHelper.swift').read_text()
 
 
 def menu_case():
@@ -184,19 +184,19 @@ class PreparedMenuTextTests(unittest.TestCase):
         self.assertNotIn('postToPid', body)
 
     def test_python_and_launcher_accept_text_only_for_menu_with_the_capability(self):
-        from tacto.helper import HelperDriver
-        from tacto.protocol import ACTION_PARAMS
+        from haejo.helper import HelperDriver
+        from haejo.protocol import ACTION_PARAMS
         self.assertIn('text', ACTION_PARAMS['menu'])
         h = HelperDriver.__new__(HelperDriver)
         h.capabilities = set()
         self.assertEqual('menu_text_unavailable',
                          h.act('o1', 'com.apple.finder', {'name': 'menu', 'path': ['File', 'New Folder'], 'text': 'x'})['error'])
-        launcher = (ROOT / 'launcher/tacto.swift').read_text()
+        launcher = (ROOT / 'launcher/haejo.swift').read_text()
         self.assertIn('"menu":             (["name", "path"], ["focused_document", "text"]),', launcher)
         # A direct backend must not drop the name and create an unnamed folder.
         import sys
         if sys.platform == 'darwin':
-            from tacto.driver import Driver
+            from haejo.driver import Driver
             direct=Driver.__new__(Driver)
             response=direct.act('o1','com.apple.finder',{'name':'menu','path':['File','New Folder'],'text':'x'})
             self.assertEqual('menu_text_unavailable',response['error'])

@@ -26,11 +26,11 @@ import tempfile
 import time
 from pathlib import Path
 
-TARGET = 'ai.callabo.tacto.menu-fixture'
+TARGET = 'ai.callabo.haejo.menu-fixture'
 
 
 def main(driver, output: Path) -> dict:
-    from tacto.driver import Driver, _attr
+    from haejo.driver import Driver, _attr
     from ApplicationServices import AXUIElementCreateApplication
 
     root = Path(__file__).resolve().parents[2]
@@ -44,12 +44,12 @@ def main(driver, output: Path) -> dict:
     process = None
     try:
         with tempfile.TemporaryDirectory() as work:
-            app = Path(work) / 'TACTO Menu Fixture.app'
+            app = Path(work) / 'HAEJO Menu Fixture.app'
             binary = app / 'Contents/MacOS/NativeMenuFixture'
             binary.parent.mkdir(parents=True)
             (app / 'Contents/Info.plist').write_bytes(plistlib.dumps({
                 'CFBundleIdentifier': TARGET, 'CFBundleExecutable': binary.name,
-                'CFBundleName': 'TACTO Menu Fixture', 'CFBundlePackageType': 'APPL',
+                'CFBundleName': 'HAEJO Menu Fixture', 'CFBundlePackageType': 'APPL',
                 'CFBundleVersion': '1', 'LSUIElement': True}))
             captured = Path(work) / 'NativeMenuFixture.swift'
             captured.write_bytes(source)
@@ -78,8 +78,8 @@ def main(driver, output: Path) -> dict:
                         if hit is not None:
                             return hit
                     return None
-                node = find(element, 'tacto-fixture-state')
-                counter = find(element, 'tacto-fixture-make-key-count')
+                node = find(element, 'haejo-fixture-state')
+                counter = find(element, 'haejo-fixture-make-key-count')
                 return {'state': _attr(node, 'AXValue') if node else None,
                         'make_key_count': _attr(counter, 'AXValue') if counter else None,
                         'app_ax_frontmost': _attr(element, 'AXFrontmost')}
@@ -94,7 +94,7 @@ def main(driver, output: Path) -> dict:
                     continue
                 if parts[1] == 'Window' and window is None:
                     window = int(parts[0])
-                if 'tacto-fixture-make-key' in line and 'count' not in line and button is None:
+                if 'haejo-fixture-make-key' in line and 'count' not in line and button is None:
                     button = int(parts[0])
             assert window is not None and button is not None, (window, button)
 

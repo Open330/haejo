@@ -163,7 +163,7 @@ print(String(data: try! JSONSerialization.data(withJSONObject: report), encoding
 class SwiftContinuationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        source = (ROOT / 'helper/TactoHelper.swift').read_text()
+        source = (ROOT / 'helper/HaejoHelper.swift').read_text()
         walker = source[source.index('func walk(_ el: AXUIElement, depth: Int, out:'):]
         walker = walker[:walker.index('\n}\n') + 3]
         omission = segment(source, '/// What an observation left unread', '// MARK: - Session state')
@@ -171,7 +171,7 @@ class SwiftContinuationTests(unittest.TestCase):
         functions = segment(source, '/// Keep what an observation left unread, behind an opaque single-use id.',
                             'func observe(_ target: String, requireWindow')
         script = STUBS + omission + state + walker + functions + DRIVER
-        with tempfile.TemporaryDirectory(prefix='tacto-continuation-') as directory:
+        with tempfile.TemporaryDirectory(prefix='haejo-continuation-') as directory:
             path = Path(directory) / 'main.swift'
             path.write_text(script)
             run = subprocess.run(['swift', str(path)], capture_output=True, text=True, timeout=120)
@@ -234,13 +234,13 @@ class SwiftContinuationTests(unittest.TestCase):
 
 class ContinuationWiringSourceTests(unittest.TestCase):
     def test_any_action_retires_and_observe_routes_continuation(self):
-        source = (ROOT / 'helper/TactoHelper.swift').read_text()
+        source = (ROOT / 'helper/HaejoHelper.swift').read_text()
         act = source[source.index('    case "act":'):]
         self.assertIn('latestContinuation = nil', act[:act.index('var sensitiveInputAuthorized')])
         observe = source[source.index('    case "observe":'):source.index('    case "act":')]
         self.assertIn('return observeContinuation(', observe)
         self.assertIn('"observe.continuation_v1"', source)
-        launcher = (ROOT / 'launcher/tacto.swift').read_text()
+        launcher = (ROOT / 'launcher/haejo.swift').read_text()
         self.assertIn('"continuation"]', launcher)
         self.assertIn('guard type == "observe", msg["reveal"] == nil, msg["window_identity"] == nil', launcher)
 

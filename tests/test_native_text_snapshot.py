@@ -2,7 +2,7 @@
 from dataclasses import FrozenInstanceError
 import unittest
 
-from tacto.native_text_snapshot import read_complete_text, TextSnapshotError
+from haejo.native_text_snapshot import read_complete_text, TextSnapshotError
 
 
 class AXReads:

@@ -1,20 +1,20 @@
 ## The loop
 
 ```bash
-tacto apps --helper                         # running apps through the signed backend
-tacto observe com.apple.calculator --helper # the accessibility tree to write selectors against
+haejo apps --helper                         # running apps through the signed backend
+haejo observe com.apple.calculator --helper # the accessibility tree to write selectors against
 # ... you write flows/<name>.json ...
-tacto run flows/<name>.json --helper         # execute through the same backend
-tacto flows save flows/<name>.json           # keep a flow that worked; next time: tacto replay <name> --helper
+haejo run flows/<name>.json --helper         # execute through the same backend
+haejo flows save flows/<name>.json           # keep a flow that worked; next time: haejo replay <name> --helper
 ```
 
-A flow saved with `tacto flows save` lands in the library: `tacto flows` lists
-it, the Tacto app's 저장된 Flow page shows its inputs and steps, and a later
+A flow saved with `haejo flows save` lands in the library: `haejo flows` lists
+it, the Haejo app's 저장된 Flow page shows its inputs and steps, and a later
 request replays it without authoring again. Give it a name that says what it
 does (`finder_open_folder`, not `test1`) and its request sentences as
 `intents`, with inputs written as `{{name}}`.
 
-Write the file yourself. Do **not** call `tacto compile` from here — that spawns
+Write the file yourself. Do **not** call `haejo compile` from here — that spawns
 another model to do what you are already doing.
 
 
@@ -33,10 +33,10 @@ Each line is `<indent><index> <Role>  Key: value, Key2: value`:
 Indices are **volatile** — they change on every observation. Never put one in a
 recipe; select by meaning instead.
 
-`tacto observe` prints the uniquely focused window and summarizes the others.
+`haejo observe` prints the uniquely focused window and summarizes the others.
 If focus is absent or more than one window is marked, it prints all windows.
 When a file chooser, attachment dialog or expected control is missing, first
-read `tacto observe <app> --helper --all-windows`; indices remain unchanged.
+read `haejo observe <app> --helper --all-windows`; indices remain unchanged.
 A condensed tree is not proof that another window does not exist.
 
 
@@ -101,7 +101,7 @@ when the label and the clickable element differ — a list row identified by its
 inner text — match the label and act on the row with
 `"click_ancestor": ["Row", "Cell"]`.
 
-**Is a menu command available right now?** `tacto menu-state <bundle-id> <Menu>
+**Is a menu command available right now?** `haejo menu-state <bundle-id> <Menu>
 <Item> --helper` reads it without pressing anything. A background app often
 reports items disabled that work in front (Save, New Folder) — that is the
 app's own state, not something a retry changes.
@@ -122,9 +122,9 @@ capabilities and provide an input selector, ContextBinding and an explicit
 attribute postcondition; `unverified_ok` cannot waive this contract. Tab,
 shift+Tab and arrows are allowed; Escape and shortcuts are not.
 **To save a TextEdit document that already has a file, replay the built-in
-`textedit_save`** — `tacto replay textedit_save -p document=/abs/path/name.txt
+`textedit_save`** — `haejo replay textedit_save -p document=/abs/path/name.txt
 -p name=name.txt --helper --yes`. The absolute path is on the window's line in
-`tacto observe`: `Window  Title: name.txt, …, Document: /abs/path/name.txt`. The focused TextEdit window must be that
+`haejo observe`: `Window  Title: name.txt, …, Document: /abs/path/name.txt`. The focused TextEdit window must be that
 document (its title is checked right before the press), and the run ends
 `done` only when the file on disk holds exactly the document's text (plain
 `.txt` only; it certifies the saved state — macOS autosave may have written it
@@ -132,7 +132,7 @@ document (its title is checked right before the press), and the run ends
 `commit_unverified`: nothing witnessed the file.
 
 **To work in one exact document** when an app has several open (TextEdit),
-read just that window: `tacto observe com.apple.TextEdit --helper --document
+read just that window: `haejo observe com.apple.TextEdit --helper --document
 /abs/path/name.txt` (it fails rather than guess when no window, or more than
 one, shows that file). In a recipe, scope to it with the path as the ancestor:
 `{"role": "TextArea", "identifier": "First Text View", "ancestor":
@@ -146,7 +146,7 @@ postcondition on the window, e.g. `{"field": {"role": "Window", "title":
 "<folder name>"}, "attribute": "Title", "equals": "<folder name>"}`, then
 read `statusBarText` with `"in_focused_window": true` for the item count.
 Prefer this over Go > Go to Folder…: that menu brings Finder to the front
-(Tacto reports the app observed in front and stops sending after that step).
+(Haejo reports the app observed in front and stops sending after that step).
 
 `Return` is allowed in one place only, with `--helper`: the Go to Folder
 sheet's path field (`"identifier": "PathTextField"` inside the `GoToWindow`
@@ -188,7 +188,7 @@ toggle, say so with `skip_if` instead.
 
 **Name the surprises a step expects** with `"on_uncertain"`, when a step can
 meet a screen no recipe can predict — a dialog left open by an earlier run, a
-list whose rows are ambiguous. Given a budget (`tacto do --think`), such a step
+list whose rows are ambiguous. Given a budget (`haejo do --think`), such a step
 hands the surprise back for one judgment instead of ending the run; without one
 it fails with that error as usual. Values: `target_ambiguous`, `target_missing`,
 `action_failed`, `postcondition_timeout`. Declare it only where judgment is

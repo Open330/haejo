@@ -7,7 +7,7 @@ from unittest.mock import Mock,MagicMock,patch
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'examples/probes'))
 import signed_document_pin_reliability as probe
-from tacto.pin_diagnostic import format_pin_diagnostic
+from haejo.pin_diagnostic import format_pin_diagnostic
 
 
 class PinReliabilityProbeTests(unittest.TestCase):

@@ -5,13 +5,13 @@ import threading
 import unittest
 from unittest.mock import Mock, patch
 
-from tacto.command_help import calculator_example
-from tacto.flow_session import read_session_flow, run_session
+from haejo.command_help import calculator_example
+from haejo.flow_session import read_session_flow, run_session
 
 
 class SessionObservationPagingTests(unittest.TestCase):
     def test_pinned_presence_wait_reads_tail_under_same_token_and_keeps_latest_indices(self):
-        from tacto.document_scope import DocumentScopedDriver
+        from haejo.document_scope import DocumentScopedDriver
         from tests import test_document_scoped_driver as cases
         inner = cases.ScopedDriverTests().inner()
         inner.capabilities = {*inner.capabilities, 'observe.continuation_v1'}
@@ -30,7 +30,7 @@ class SessionObservationPagingTests(unittest.TestCase):
         inner.act.assert_not_called()
 
     def test_pinned_document_continuation_keeps_one_token_and_current_indices(self):
-        from tacto.document_scope import DocumentScopedDriver
+        from haejo.document_scope import DocumentScopedDriver
         inner = Mock(capabilities={'evidence.document_text.path_selector', 'observe.document_token'})
         inner.document_text.return_value = {'type': 'document_text', 'document_path': '/owned/document.txt',
             'document_token': 'same-pin', 'text': 'owned', 'text_complete': True}
@@ -59,7 +59,7 @@ class SessionObservationPagingTests(unittest.TestCase):
         master, slave = pty.openpty()
         def emit(message):
             messages.append(message)
-            if message.startswith('TACTO_SESSION_READY'):
+            if message.startswith('HAEJO_SESSION_READY'):
                 payload = (json.dumps(next(replies)) + '\n').encode()
                 def write():
                     offset = 0
@@ -93,8 +93,8 @@ class SessionObservationPagingTests(unittest.TestCase):
         self.assertEqual(0, result)
         self.assertEqual(2, app.observe.call_count)
         self.assertEqual({'continuation': 'PRIVATE-cursor'}, app.observe.call_args.kwargs)
-        self.assertEqual(1, sum(m.startswith('TACTO_FLOW_GUIDE') for m in messages))
-        self.assertEqual(2, sum(m.startswith('TACTO_SESSION_READY') for m in messages))
+        self.assertEqual(1, sum(m.startswith('HAEJO_FLOW_GUIDE') for m in messages))
+        self.assertEqual(2, sum(m.startswith('HAEJO_SESSION_READY') for m in messages))
         self.assertIn('has_more_observation', '\n'.join(messages))
         self.assertNotIn('PRIVATE', '\n'.join(messages))
         runner.assert_called_once()
@@ -125,7 +125,7 @@ class SessionObservationPagingTests(unittest.TestCase):
         runner.assert_called_once()
 
     def test_label_lookup_passes_the_existing_document_pin_without_widening(self):
-        from tacto.document_scope import DocumentScopedDriver
+        from haejo.document_scope import DocumentScopedDriver
         from tests import test_document_scoped_driver as cases
         inner = cases.ScopedDriverTests().inner()
         inner.capabilities = {*inner.capabilities, 'observe.reveal'}
@@ -153,8 +153,8 @@ class SessionObservationPagingTests(unittest.TestCase):
 
     def test_continuation_preserves_original_input_deadline(self):
         callback = Mock()
-        with patch('tacto.flow_session.time.monotonic', side_effect=[100, 101, 104]), \
-             patch('tacto.flow_session.read_flow_line', side_effect=['{"observe_next":true}', TimeoutError()]) as read:
+        with patch('haejo.flow_session.time.monotonic', side_effect=[100, 101, 104]), \
+             patch('haejo.flow_session.read_flow_line', side_effect=['{"observe_next":true}', TimeoutError()]) as read:
             with self.assertRaises(TimeoutError):
                 read_session_flow(3, 5, lambda _: None, observe_next=callback)
         self.assertEqual([4, 1], [call.args[1] for call in read.call_args_list])
@@ -162,8 +162,8 @@ class SessionObservationPagingTests(unittest.TestCase):
 
     def test_mixed_command_is_repairable_before_observation_or_flow_dispatch(self):
         callback = Mock()
-        with patch('tacto.flow_session.os.isatty', return_value=True), \
-             patch('tacto.flow_session.read_flow_line', side_effect=[
+        with patch('haejo.flow_session.os.isatty', return_value=True), \
+             patch('haejo.flow_session.read_flow_line', side_effect=[
                  '{"observe_next":true,"steps":["PRIVATE"]}', json.dumps(calculator_example())]):
             messages = []
             flow = read_session_flow(3, 5, messages.append, observe_next=callback)

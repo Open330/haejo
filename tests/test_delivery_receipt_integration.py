@@ -13,11 +13,11 @@ from unittest.mock import patch
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
-from tacto.commit_evidence import AttachmentEvidence, evidence_error
-from tacto.contract import ContextBinding, Resource, SafetyContract, issue_approval
-from tacto.delivery_receipt import (DeliveredMessageReceipt, InboxDelivery, PendingDelivery,
+from haejo.commit_evidence import AttachmentEvidence, evidence_error
+from haejo.contract import ContextBinding, Resource, SafetyContract, issue_approval
+from haejo.delivery_receipt import (DeliveredMessageReceipt, InboxDelivery, PendingDelivery,
                                  InboxTemporarilyUnavailable)
-from tacto.flow import Flow, Selector, Step, replay
+from haejo.flow import Flow, Selector, Step, replay
 
 
 @unittest.skipUnless(importlib.util.find_spec('playwright'), 'optional Playwright required')
@@ -122,7 +122,7 @@ class DeliveryReceiptIntegrationTests(unittest.TestCase):
         self.thread.start()
         self.addCleanup(self.stop_server)
         self.origin = f'http://127.0.0.1:{self.server.server_port}'
-        from tacto.browser import BrowserDriver
+        from haejo.browser import BrowserDriver
         self.driver = BrowserDriver(headless=True)
         self.addCleanup(self.driver.close)
         self.driver.goto(self.origin + '/')
@@ -173,7 +173,7 @@ class DeliveryReceiptIntegrationTests(unittest.TestCase):
         folder=tempfile.TemporaryDirectory();self.addCleanup(folder.cleanup)
         path=Path(folder.name)/'검토.txt';data='소유 첨부 원문 🧪'.encode();path.write_bytes(data)
         self.attachment_payload=[{'filename':path.name,'content':base64.b64encode(data).decode()}]
-        # Only file creation is fixture bootstrap. The public TACTO chooser
+        # Only file creation is fixture bootstrap. The public HAEJO chooser
         # route selects this non-sensitive file into the owned loopback form.
         observation=self.driver.observe()
         indices=[i for i,node in enumerate(self.driver._latest['page']['nodes'])
@@ -301,9 +301,9 @@ class DeliveryReceiptIntegrationTests(unittest.TestCase):
 
 
     def run_general_delivery(self, *, lose_response=False, fail_receipt=False):
-        from tacto.general import run
-        from tacto.contract import Envelope
-        from tacto.outcome import Check, OutcomeSpec
+        from haejo.general import run
+        from haejo.contract import Envelope
+        from haejo.outcome import Check, OutcomeSpec
         receipt = DeliveredMessageReceipt(target='page', account='fixture-sender',
             recipient='fixture-recipient', text=self.text, attachments=(), bind_request=self.bind,
             read_inbox=self.read_inbox, timeout_seconds=.15, poll_interval=.01)
@@ -344,7 +344,7 @@ class DeliveryReceiptIntegrationTests(unittest.TestCase):
         return result, spec
 
     def test_general_lost_response_resolves_from_independent_inbox_without_resend(self):
-        from tacto.outcome import DONE, verify
+        from haejo.outcome import DONE, verify
         result, spec = self.run_general_delivery(lose_response=True)
         self.assertTrue(result.ok, result.why)
         outcome = verify(spec,result,result.after_tree)
@@ -532,8 +532,8 @@ class DeliveryReceiptIntegrationTests(unittest.TestCase):
         self.assertEqual('commit_unverified', result.log[-1]['error'])
 
     def run_registered_upload(self, *, approve=True, corrupt=False, after_read=False, general=False, live_provider=None, allow_upload=True, change_after_approval=False, paged=False, registration_count=2, paging_budget=2500, max_pages=8, planner_goal=None, wanted_scope='owned_attachment', selection_callback='send'):
-        from tacto.browser_upload import BrowserUploadDriver, BrowserUploadScope, BrowserUploadFile
-        from tacto.flow import pin_params
+        from haejo.browser_upload import BrowserUploadDriver, BrowserUploadScope, BrowserUploadFile
+        from haejo.flow import pin_params
         # Only this owned loopback form opts into automatic send on selection.
         if selection_callback=='send_and_clear':
             self.driver._page.evaluate("() => { attachments.onchange=()=>{const pending=send.onclick();attachments.value='';return pending}; }")
@@ -573,7 +573,7 @@ class DeliveryReceiptIntegrationTests(unittest.TestCase):
         binding=ContextBinding(title='attachments',operation='upload',params_digest=pin_params(params))
         steps=[Step('upload',selector,params=params,safety=safety,binding=binding)]
         if after_read:
-            from tacto.flow import Postcondition
+            from haejo.flow import Postcondition
             steps.insert(0,Step('read',Selector(title='body'),
                 safety=SafetyContract(effects=['read']),
                 postcondition=Postcondition(field=Selector(title='body'),attribute='Value',equals=self.text.replace('\n',' '))))
@@ -582,10 +582,10 @@ class DeliveryReceiptIntegrationTests(unittest.TestCase):
         approvals={int(after_read):issue_approval(binding,safety)} if approve else {}
         if corrupt:self.mode='corrupt_attachment'
         if general:
-            from tacto.general import run
-            from tacto.contract import Envelope
-            from tacto.outcome import OutcomeSpec, Check
-            from tacto.ask import what_to_do_here, ask
+            from haejo.general import run
+            from haejo.contract import Envelope
+            from haejo.outcome import OutcomeSpec, Check
+            from haejo.ask import what_to_do_here, ask
             self.plan_calls=0;self.upload_approval_descriptions=[];self.paged_plan_records=[]
             def plan(goal,candidates,history):
                 self.plan_calls+=1
@@ -594,7 +594,7 @@ class DeliveryReceiptIntegrationTests(unittest.TestCase):
                 question=what_to_do_here(goal,candidates,history)
                 if live_provider:
                     if paged:
-                        from tacto.ask import ask_here_paged
+                        from haejo.ask import ask_here_paged
                         import tiktoken
                         counter=lambda text:len(tiktoken.get_encoding('o200k_base').encode_ordinary(text))
                         answer=ask_here_paged(goal,candidates,history,provider=live_provider,
@@ -670,7 +670,7 @@ class DeliveryReceiptIntegrationTests(unittest.TestCase):
         self.assertEqual('confirmed',result.events[-1]['state'])
 
     def test_general_registered_upload_chooses_host_scope_and_receives_exact_bytes_once(self):
-        from tacto.outcome import verify, DONE
+        from haejo.outcome import verify, DONE
         result=self.run_registered_upload(general=True)
         self.assertTrue(result.ok,result.why)
         self.assertEqual(DONE,verify(self.general_upload_spec,result,result.after_tree).state)
@@ -683,8 +683,8 @@ class DeliveryReceiptIntegrationTests(unittest.TestCase):
         recorded=next(a for visit in result.visits for a in visit.actions if a['do']=='upload')
         self.assertEqual('owned_attachment',recorded['scope'])
         self.assertEqual(result.events[0]['action']['attachment_digest'],recorded['attachment_digest'])
-        from tacto.promote import candidate_from, to_flow
-        from tacto.contract import Envelope
+        from haejo.promote import candidate_from, to_flow
+        from haejo.contract import Envelope
         candidate=candidate_from(result,'page','send owned attachment',
             envelope=Envelope(quote='send owned attachment',allows=frozenset({'read','transmit'}),scope='entry'))
         promoted=to_flow(candidate,'owned_upload')

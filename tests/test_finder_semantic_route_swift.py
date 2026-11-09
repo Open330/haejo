@@ -6,8 +6,8 @@ ROOT=Path(__file__).resolve().parents[1]
 class FinderSemanticRouteTests(unittest.TestCase):
  @classmethod
  def setUpClass(cls):
-  cls.work=tempfile.TemporaryDirectory(prefix='tacto-finder-route-');base=Path(cls.work.name);cls.binary=base/'route'
-  source=(ROOT/'helper/TactoHelper.swift').read_text();click=source[source.index('    case "click":'):source.index('    case "set_value":')]
+  cls.work=tempfile.TemporaryDirectory(prefix='haejo-finder-route-');base=Path(cls.work.name);cls.binary=base/'route'
+  source=(ROOT/'helper/HaejoHelper.swift').read_text();click=source[source.index('    case "click":'):source.index('    case "set_value":')]
   route=click[click.index('        var advertised: CFArray?'):click.index('        if let token = savePanelToken,')]
   harness=r'''import Foundation
 import ApplicationServices

@@ -1,8 +1,8 @@
 """Compact edits preserve explicit values, receiving checks and contracts."""
 import copy,json,unittest
-from tacto.flow import Flow
-from tacto.flow_errors import feedback
-from tacto.command_help import session_guide
+from haejo.flow import Flow
+from haejo.flow_errors import feedback
+from haejo.command_help import session_guide
 from tests.test_document_session import DocumentSessionTests,TARGET,PATH
 
 class CompactEditTests(unittest.TestCase):
@@ -87,7 +87,7 @@ class CompactEditTests(unittest.TestCase):
                 args=[TARGET,'--helper','--document',PATH,'--guide']
                 saved=Path(tmp)/'flow.json'
                 if save: args += ['--save',str(saved)]
-                with patch('tacto.task.note_visible_document_result') as note:
+                with patch('haejo.task.note_visible_document_result') as note:
                     code,_,messages=helper.run_session(inner,args=args,doc=doc)
                 self.assertEqual(1,code)
                 if save: note.assert_not_called()
@@ -97,7 +97,7 @@ class CompactEditTests(unittest.TestCase):
 
 class BoundEditSessionTests(unittest.TestCase):
     def test_single_step_uses_existing_scope_and_same_contract(self):
-        from tacto.flow_session import decode_session_flow
+        from haejo.flow_session import decode_session_flow
         helper=CompactEditTests();step=helper.document()['steps'][0]
         flow=decode_session_flow(json.dumps(step),TARGET,PATH)
         expected=helper.parse(helper.document())
@@ -105,12 +105,12 @@ class BoundEditSessionTests(unittest.TestCase):
         self.assertEqual(TARGET,flow.target)
         self.assertNotIn('check_value',json.loads(flow.to_json())['steps'][0])
     def test_step_only_without_document_does_not_guess_a_target(self):
-        from tacto.flow_session import decode_session_flow
+        from haejo.flow_session import decode_session_flow
         with self.assertRaises(ValueError) as caught:
             decode_session_flow('{"set_value":"PRIVATE"}',TARGET)
         self.assertNotIn('PRIVATE',feedback(caught.exception))
     def test_full_flow_is_unchanged_and_step_cannot_inject_a_target(self):
-        from tacto.flow_session import decode_session_flow
+        from haejo.flow_session import decode_session_flow
         helper=CompactEditTests();full=helper.document()
         self.assertEqual(helper.parse(full),decode_session_flow(json.dumps(full),TARGET,PATH))
         with self.assertRaises(ValueError):
@@ -138,8 +138,8 @@ class EditCheckSemanticsTests(unittest.TestCase):
         helper=CompactEditTests();doc=helper.document();doc.pop('check_defaults')
         flow=helper.parse(doc);self.assertEqual(flow.steps[0].selector,flow.steps[0].postcondition.field)
     def test_postcondition_timeout_does_not_send_protected_values_to_repair(self):
-        from tacto.command_help import calculator_example
-        from tacto.flow import replay
+        from haejo.command_help import calculator_example
+        from haejo.flow import replay
         from tests.test_flow_safety_defaults import Calculator
         secret='PRIVATE_PASSWORD_SENTINEL'
         flow=Flow.from_json(__import__('json').dumps(calculator_example()))
@@ -159,7 +159,7 @@ class EditCheckSemanticsTests(unittest.TestCase):
 
 class LiteralEditSessionTests(unittest.TestCase):
     def test_template_looking_body_scope_and_evidence_remain_literal(self):
-        from tacto.flow_session import decode_session_flow,prepare_session_flow
+        from haejo.flow_session import decode_session_flow,prepare_session_flow
         text='literal {{name}} and 😀'
         doc=CompactEditTests().document(text);step=doc['steps'][0]
         step['safety']['evidence'][0]['value']='Write literal {{name}}'
@@ -173,7 +173,7 @@ class LiteralEditSessionTests(unittest.TestCase):
         self.assertEqual(text,restored.steps[0].params['value'])
         self.assertEqual(text,restored.steps[0].postcondition.equals)
     def test_step_only_unknown_header_keys_are_not_silently_ignored(self):
-        from tacto.flow_session import decode_session_flow
+        from haejo.flow_session import decode_session_flow
         for name in ('tables','derived','literal_params','description','unknown'):
             with self.subTest(name=name),self.assertRaises(ValueError):
                 decode_session_flow(json.dumps({'set_value':'PRIVATE',name:{}}),TARGET,PATH)

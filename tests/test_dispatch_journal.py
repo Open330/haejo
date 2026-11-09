@@ -7,7 +7,7 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import Mock, patch
-from tacto.dispatch_journal import DurableDispatchDriver
+from haejo.dispatch_journal import DurableDispatchDriver
 
 
 class DispatchJournalTests(unittest.TestCase):
@@ -35,7 +35,7 @@ class DispatchJournalTests(unittest.TestCase):
 
     def test_prewrite_failure_sends_nothing_and_unknown_reply_blocks_followup(self):
         with DurableDispatchDriver(self.driver,self.directory) as driver:
-            with patch('tacto.dispatch_journal.os.fsync',side_effect=OSError()):
+            with patch('haejo.dispatch_journal.os.fsync',side_effect=OSError()):
                 reply=driver.act('obs','owned',{'name':'click'})
             self.assertEqual('not_started',reply['effect']);self.driver.act.assert_not_called()
         with tempfile.TemporaryDirectory() as folder:
@@ -46,7 +46,7 @@ class DispatchJournalTests(unittest.TestCase):
             self.driver.act.assert_called_once()
 
     def test_known_recipe_restarted_from_beginning_does_not_write_again(self):
-        from tacto.agent import Agent
+        from haejo.agent import Agent
         from tests.test_replay_commit_evidence import TextEditFixture,MemoryStore
         app=TextEditFixture(write=True);app.install_evidence()
         with DurableDispatchDriver(app,self.directory) as driver:
@@ -61,7 +61,7 @@ class DispatchJournalTests(unittest.TestCase):
     def test_reply_log_failure_preserves_unknown_effect_and_blocks_more_input(self):
         with DurableDispatchDriver(self.driver,self.directory) as driver:
             # Reservation file + directory sync succeed; reply sync fails.
-            with patch('tacto.dispatch_journal.os.fsync',side_effect=[None,None,OSError()]):
+            with patch('haejo.dispatch_journal.os.fsync',side_effect=[None,None,OSError()]):
                 reply=driver.act('obs','owned',{'name':'click'})
             self.assertEqual('dispatch_journal_write_failed',reply['error'])
             self.assertEqual('unknown',reply['effect'])
@@ -90,7 +90,7 @@ class DispatchJournalTests(unittest.TestCase):
         script=r'''
 import os,sys
 from urllib.request import Request,urlopen
-from tacto.dispatch_journal import DurableDispatchDriver
+from haejo.dispatch_journal import DurableDispatchDriver
 class Driver:
     def act(self,*args,**kwargs):
         with urlopen(Request(sys.argv[2],data=b'owned',method='POST'),timeout=2) as response:

@@ -7,13 +7,13 @@ import types
 import unittest
 from unittest.mock import patch
 
-from tacto.preparation_diagnostic import MARKER, diagnostic_lines, preparation_diagnostic
+from haejo.preparation_diagnostic import MARKER, diagnostic_lines, preparation_diagnostic
 from tests.test_product_comparison_provenance import comparison
 
 
 class PreparationDiagnosticTransportTests(unittest.TestCase):
     def test_identity_cause_is_closed_and_only_valid_for_identity_refusal(self):
-        from tacto.preparation_diagnostic import IDENTITY_CAUSES
+        from haejo.preparation_diagnostic import IDENTITY_CAUSES
         base={'phase':'binding','reason':'identity_changed','elapsed_ms':1}
         for cause in IDENTITY_CAUSES:
             value={**base,'identity_cause':cause}
@@ -100,7 +100,7 @@ class PreparationDiagnosticTransportTests(unittest.TestCase):
             def summary(self): return {'initial':'fixture', 'activations':[]}
 
         diagnostic = MARKER + json.dumps(self.detail())
-        item = {'type':'command_execution', 'command':'tacto run owned.json --helper',
+        item = {'type':'command_execution', 'command':'haejo run owned.json --helper',
                 'aggregated_output': diagnostic + '\nPRIVATE_SENTINEL'}
         events = [{'type':'item.started', 'item':item}, {'type':'item.completed', 'item':item}]
 
@@ -113,17 +113,17 @@ class PreparationDiagnosticTransportTests(unittest.TestCase):
              patch.object(comparison, '_locked', return_value=False), \
              patch.object(comparison, '_agent_executable_available',return_value=True), \
              patch.object(comparison, 'source_manifest', return_value={'sha256':'fixed','files':{}}), \
-             patch('tacto.helper.InheritedHelperDriver.available',return_value=True), \
-             patch('tacto.codex_result.subprocess.Popen',side_effect=AssertionError('unit test must not spawn an external process')), \
+             patch('haejo.helper.InheritedHelperDriver.available',return_value=True), \
+             patch('haejo.codex_result.subprocess.Popen',side_effect=AssertionError('unit test must not spawn an external process')), \
              patch.object(comparison, '_run_agent', side_effect=run):
-            result = comparison.run_one(task, 'tacto')
+            result = comparison.run_one(task, 'haejo')
         self.assertEqual([self.detail()], result['reported_preparation_diagnostics'])
         self.assertEqual('failed', result['status'])
         self.assertFalse(result['oracle_passed'])
         self.assertNotIn('PRIVATE_SENTINEL', json.dumps(result))
 
     def test_replay_retains_diagnostics_when_postcondition_times_out(self):
-        from tacto.flow import replay
+        from haejo.flow import replay
         from tests.test_prepare_window_replay import App, PrepareWindowReplayTests
         diagnostic = {**self.detail(), 'phase':'dispatch', 'reason':'dispatched_unverified'}
         response = {'type':'acted', 'input_route':'window_prepare',
@@ -136,7 +136,7 @@ class PreparationDiagnosticTransportTests(unittest.TestCase):
         self.assertEqual([diagnostic], result.preparation_diagnostics)
 
     def test_refusal_retains_diagnostics_without_creating_dispatch_event(self):
-        from tacto.flow import replay
+        from haejo.flow import replay
         from tests.test_prepare_window_replay import App, PrepareWindowReplayTests
         app = App(response={'type':'error', 'effect':'not_started', 'error':'action_failed',
                             'preparation_diagnostic':self.detail()})
@@ -148,7 +148,7 @@ class PreparationDiagnosticTransportTests(unittest.TestCase):
     def test_cli_without_trace_emits_diagnostic_after_postcondition_failure(self):
         import contextlib
         import io
-        from tacto import cli
+        from haejo import cli
         from tests.test_prepare_window_replay import App, PrepareWindowReplayTests
         detail = {**self.detail(), 'phase':'dispatch', 'reason':'dispatched_unverified'}
         app = App(changes=False, response={'type':'acted', 'input_route':'window_prepare',

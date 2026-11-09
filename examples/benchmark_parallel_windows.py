@@ -11,24 +11,24 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output-dir',type=Path,required=True)
     parser.add_argument('--repetitions',type=int,default=5)
-    parser.add_argument('--baseline-cli',type=Path,default=Path('/Applications/Tacto.app/Contents/Resources/runtime/launcher/tacto'))
+    parser.add_argument('--baseline-cli',type=Path,default=Path('/Applications/Haejo.app/Contents/Resources/runtime/launcher/haejo'))
     args=parser.parse_args()
     if not args.output_dir.is_absolute() or args.output_dir.exists() or not 3<=args.repetitions<=20:
         parser.error('use a new absolute output directory and 3..20 repetitions')
     b=args.output_dir;b.mkdir(mode=0o700)
-    candidate=ROOT/'launcher/tacto';baseline=args.baseline_cli.resolve()
+    candidate=ROOT/'launcher/haejo';baseline=args.baseline_cli.resolve()
     assert candidate.is_file() and baseline.is_file()
     app=b/'Benchmark.app';binary=app/'Contents/MacOS/Benchmark';binary.parent.mkdir(parents=True)
     built=subprocess.run(['swiftc',str(ROOT/'tests/fixtures/NativeWindowParallelFixture.swift'),'-o',str(binary)],capture_output=True,text=True,timeout=60)
     (b/'fixture-build.log').write_text(built.stdout+built.stderr);built.check_returncode()
-    target='ai.callabo.tacto.windowbenchmark'
-    (app/'Contents/Info.plist').write_bytes(plistlib.dumps({'CFBundleIdentifier':target,'CFBundleExecutable':'Benchmark','CFBundleName':'Tacto Window Benchmark','CFBundlePackageType':'APPL','LSUIElement':True}))
+    target='ai.callabo.haejo.windowbenchmark'
+    (app/'Contents/Info.plist').write_bytes(plistlib.dumps({'CFBundleIdentifier':target,'CFBundleExecutable':'Benchmark','CFBundleName':'Haejo Window Benchmark','CFBundlePackageType':'APPL','LSUIElement':True}))
     subprocess.run(['codesign','--force','--sign','-',str(app)],check=True,capture_output=True)
     state=b/'state.json';fixture=subprocess.Popen([str(binary),str(state)],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
-    env=dict(os.environ,TACTO_HELPER_MODE='warm',TACTO_HELPER_IDLE_SECONDS='120')
+    env=dict(os.environ,HAEJO_HELPER_MODE='warm',HAEJO_HELPER_IDLE_SECONDS='120')
     rows=[]
     def provenance(cli):
-        helper=cli.parent.parent/'helper/Tacto Helper.app/Contents/MacOS/TactoHelper'
+        helper=cli.parent.parent/'helper/Haejo Helper.app/Contents/MacOS/HaejoHelper'
         info=cli.parents[3]/'Info.plist'
         metadata=plistlib.loads(info.read_bytes()) if info.is_file() else {}
         result={'launcher_sha256':hashlib.sha256(cli.read_bytes()).hexdigest(),
@@ -36,7 +36,7 @@ def main():
         if cli==candidate:
             result.update(source_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
                           source_dirty=bool(subprocess.check_output(['git','status','--porcelain'],cwd=ROOT).strip()))
-        else:result.update(release=metadata.get('TactoReleaseTag'),source_commit=metadata.get('TactoSourceCommit'))
+        else:result.update(release=metadata.get('HaejoReleaseTag'),source_commit=metadata.get('HaejoSourceCommit'))
         return result
     provenances={'candidate':provenance(candidate),'baseline':provenance(baseline)}
     def snapshot():
@@ -44,7 +44,7 @@ def main():
         for line in subprocess.check_output(['ps','-axo','pid=,rss=,time=,comm='],text=True).splitlines():
             f=line.split(None,3)
             if len(f)!=4:continue
-            if f[3] not in (str(candidate.parent.parent/'helper/Tacto Helper.app/Contents/MacOS/TactoHelper'),str(baseline.parent.parent/'helper/Tacto Helper.app/Contents/MacOS/TactoHelper')):continue
+            if f[3] not in (str(candidate.parent.parent/'helper/Haejo Helper.app/Contents/MacOS/HaejoHelper'),str(baseline.parent.parent/'helper/Haejo Helper.app/Contents/MacOS/HaejoHelper')):continue
             parts=f[2].split(':');cpu=float(parts[-1])+60*int(parts[-2])+(3600*int(parts[-3]) if len(parts)>2 else 0)
             result[int(f[0])]={'rss_kib':int(f[1]),'cpu_seconds':cpu,'arm':'candidate' if f[3].startswith(str(ROOT)+'/') else 'baseline'}
         return result
@@ -56,11 +56,11 @@ def main():
         watcher=threading.Thread(target=monitor,daemon=True);watcher.start();started=time.monotonic()
         def job(index):
             text=f'bench-{round_index}-{index}'
-            selector={'identifier':'window-editor','ancestor':f'Tacto scoped window {index}'}
+            selector={'identifier':'window-editor','ancestor':f'Haejo scoped window {index}'}
             safety={'effects':['write_ephemeral'],'reversibility':'reversible','resource':{'object_type':'benchmark entry','scope':'entry'}}
             flow={'name':'fixed-window-job','target':target,'steps':[
                 {'action':'set_value','selector':selector,'params':{'value':text},'safety':safety,'postcondition':{'field':selector,'attribute':'Value','equals':text}},
-                {'action':'click','selector':{'identifier':'window-press','ancestor':f'Tacto scoped window {index}'},'safety':safety,'postcondition':{'field':selector,'attribute':'Value','equals':text+'|pressed'}}]}
+                {'action':'click','selector':{'identifier':'window-press','ancestor':f'Haejo scoped window {index}'},'safety':safety,'postcondition':{'field':selector,'attribute':'Value','equals':text+'|pressed'}}]}
             path=b/f'{label}-{round_index}-{index}.json';path.write_text(json.dumps(flow))
             command=[str(cli),'run',str(path),'--helper','--think','0']
             if scoped:command+=['--window-id',str(ids[index])]

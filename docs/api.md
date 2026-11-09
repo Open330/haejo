@@ -1,6 +1,6 @@
 # Python API
 
-`tacto resize <bundle-id> --helper --window "Now Playing Overlay" --width 600
+`haejo resize <bundle-id> --helper --window "Now Playing Overlay" --width 600
 --height 360` resizes the selected window in points, without activation or a
 keyboard-focus requirement. It uses AXSize first; when the size is not settable,
 it sends one window-bound bottom-right resize stroke, allowing window geometry
@@ -21,13 +21,13 @@ use global HID events. `input_route` identifies `ax_window_size` or
 
 Vault 위임 로그인은 `CredentialStore`에 앱·사이트·Vault item과
 `fill`/`login` 수준을 한 번 등록하고 `run_login(store, name, driver)`로 실행한다.
-비밀값을 Flow 매개변수로 넘기지 않는다. CLI는 `tacto auth login NAME --helper`이며,
+비밀값을 Flow 매개변수로 넘기지 않는다. CLI는 `haejo auth login NAME --helper`이며,
 SDK의 `BrowserDriver`는 호출자가 유지하는 브라우저 context에서 `target: "page"`를
 사용할 수 있다. CLI는 별도 임시 브라우저를 만들지 않고 실제 앱을 조작한다.
 설정·스키마·결과 코드는 [위임 로그인 안내](../skill/references/credentials.md)에 있다.
 이 기능은 rc.10부터 제공한다.
 
-CLI `tacto observe <app> --helper --json`은 backend 응답 전체를 JSON으로 출력한다.
+CLI `haejo observe <app> --helper --json`은 backend 응답 전체를 JSON으로 출력한다.
 기본 text 출력의 focused-window 요약을 적용하지 않으며 `custom_selects`의
 state/options/visible/scroll_direction 같은 관측 metadata를 보존한다.
 `--document <path>`는 JSON에서도 기존 문서 scope를 유지한다. observation
@@ -42,7 +42,7 @@ once under their window, using the normal node budget and selectors. A signed
 with each attribute's AX error and element presence. This is discovery metadata;
 it does not certify that a control is enabled or that a close occurred.
 
-CLI(`tacto …`)가 하는 일은 모두 Python에서도 할 수 있습니다. 이 문서는 공개 진입점과 그 약속을
+CLI(`haejo …`)가 하는 일은 모두 Python에서도 할 수 있습니다. 이 문서는 공개 진입점과 그 약속을
 정리합니다. 흐름 전체의 설명은 [`recipes.md`](recipes.md), IR 작성 가이드는
 [`../skill/SKILL.md`](../skill/SKILL.md)에 있습니다.
 
@@ -111,11 +111,11 @@ RPCs, before waiting for an independent agent. Keeping the preparation
 connection open otherwise keeps its app leases and can cause `target_busy` in
 the agent being evaluated.
 
-## 레시피 (IR) — `tacto.flow`
+## 레시피 (IR) — `haejo.flow`
 
 ```python
-from tacto.flow import Flow, Step, Selector, Capture, Postcondition, replay
-from tacto.contract import SafetyContract, Resource
+from haejo.flow import Flow, Step, Selector, Capture, Postcondition, replay
+from haejo.contract import SafetyContract, Resource
 
 flow = Flow.from_json(open("flows/sqrt.json").read())   # 검사하며 읽음 (잘못된 IR은 ValueError)
 concrete = flow.bind(n="49")                              # 입력 채우기 · for_each 펼치기 (분기 안까지)
@@ -148,11 +148,11 @@ Use `"safety":{"effects":["read"]}` for a read-only step in that flow.
 This is a JSON authoring shorthand, not a new policy or implicit authorization.
 Loading expands independent per-step contracts before binding, policy, dispatch
 and result checks. `Flow.to_json()` emits expanded contracts for existing
-consumers. Missing meaning remains a runtime refusal. `tacto run --help` includes
+consumers. Missing meaning remains a runtime refusal. `haejo run --help` includes
 a complete Calculator example; ordinary authors need not read this manual.
 
-`tacto run flow.json --helper --think 0 --timings` prints aggregate driver-call
-and replay durations as `TACTO_TIMINGS` on stderr, without UI values or action
+`haejo run flow.json --helper --think 0 --timings` prints aggregate driver-call
+and replay durations as `HAEJO_TIMINGS` on stderr, without UI values or action
 parameters. Polling duration includes the driver's internal observations.
 This measures local replay, not an outer agent's model latency or billed cost.
 
@@ -169,8 +169,8 @@ representation, so policy, bindings and result verification are unchanged.
 
 ### One-flow signed session
 
-`tacto session <bundle-id> --helper [--document /absolute/path] [--timings] [--idle-timeout 1..600]` observes,
-prints `TACTO_SESSION_READY`, accepts one minified newline-terminated Flow JSON
+`haejo session <bundle-id> --helper [--document /absolute/path] [--timings] [--idle-timeout 1..600]` observes,
+prints `HAEJO_SESSION_READY`, accepts one minified newline-terminated Flow JSON
 record on stdin, replays on that signed connection, and exits. Input is bounded
 to1 MiB and the default input deadline is90 seconds. Replay refreshes the
 observation; it never acts on a borrowed index from another invocation.
@@ -184,7 +184,7 @@ steps and idle expiry end the session before input. The session does not read
 stdin as approval; ordinary user-intent policy and host receipts still apply.
 For one TextEdit file add `--document /absolute/path --guide`; this pins it once
 on the same connection and never widens after a failed observation. Saved Flow
-files do not retain this scope: use the returned `TACTO_FLOW_SCOPE` replay argv
+files do not retain this scope: use the returned `HAEJO_FLOW_SCOPE` replay argv
 with `--document` each time. Visible text does not prove Save or persistence.
 Use ordinary `run` for explicit/interactive approval, provider judgment and
 restart journals. No daemon or shared external socket is created.
@@ -202,9 +202,9 @@ restart journals. No daemon or shared external socket is created.
   `question, choices, into, extract_from, compose, branches, goal` 의 뜻은 [`recipes.md`](recipes.md#판단-단계-decide)에.
 - `Flow.intents` 는 레시피가 답하는 문장입니다(`"계산기에서 {{n}}의 제곱근 구해줘"`).
 - `Flow.runtime_names()` 는 실행 중에만 생기는 이름(capture, 판단)입니다. `bind()`는 이 이름을 채우지 않고 남겨 둡니다.
-- `tacto.flow.every_step(steps)` 는 분기 안까지 포함한 모든 단계를 순서대로 돌려줍니다.
+- `haejo.flow.every_step(steps)` 는 분기 안까지 포함한 모든 단계를 순서대로 돌려줍니다.
 
-`tacto show <name | flow.json>`는 기존 전체 IR을 표시한다. 저장 Flow를 에이전트
+`haejo show <name | flow.json>`는 기존 전체 IR을 표시한다. 저장 Flow를 에이전트
 문맥에 넣을 때는 `--compact`를 사용하면 파서 기본값과 들여쓰기를 생략한다.
 파일 읽기는 실행·저장·원본 변경을 하지 않으며 기본 출력은 그대로다.
 
@@ -264,7 +264,7 @@ event ID·action digest·obs ID에 결합한 패널 token과 receipt context를 
 `commit_unverified`로 중단한다. 상태 영수증은 남지만 재시도하지 않는다.
 일반 실행의 `exactly_once` 저장 조건에는 이 증거만으로 성공할 수 없다.
 
-`tacto.producer_file_receipt.ProducerFileReceipt`는 협력하는 앱의 완료 콜백을
+`haejo.producer_file_receipt.ProducerFileReceipt`는 협력하는 앱의 완료 콜백을
 호스트가 신뢰할 수 있게 읽는 경우에만 쓴다. 준비할 때 앱·PID·프로세스 시작
 시각·nonce와 콜백 순서를 고정하고, 한 번의 새 완료와 신규 파일의 정확한
 UTF-8 바이트를 대조하여 `ProducerArtifactEvidence`를 만든다. 기대값의
@@ -307,10 +307,10 @@ UTF-8 바이트를 대조하여 `ProducerArtifactEvidence`를 만든다. 기대�
 | `learned` | `{(판단 이름, 답): [단계]}` — 이번 실행에서 새로 조작한 분기. **저장은 호출자의 몫** |
 | `events`, `commit_evidence` | 커밋 이벤트와 그 증거 |
 
-## 에이전트 — `tacto.agent.Agent`
+## 에이전트 — `haejo.agent.Agent`
 
 ```python
-from tacto.agent import Agent
+from haejo.agent import Agent
 agent = Agent(driver=None, store=None, narrate=None, author=None, judge=None,
               interpret=None, general=None, outcome_context=None,
               commit_adapter_factory=None, decide=None, review=None)
@@ -323,12 +323,12 @@ print(turn.status, turn.say)          # Turn(status, say, flow, detail)
 - `think=None` 이면 에이전트 실행에서 승격된 레시피는 1, 나머지는 0.
 - `ask` 는 승인 질문에 답합니다(실행 전 `authorize`, 실행 중 `confirm` 모두).
 - 성공한 실행 뒤: 요청 읽기로 찾았다면 그 말투를, 새 분기를 조작했다면 그 분기를 저장합니다.
-- 콜백을 주지 않으면 해당 기능은 꺼집니다. `tacto do` 가 붙이는 콜백은 `tacto/cli.py` 의 `do` 명령을 보면 됩니다.
+- 콜백을 주지 않으면 해당 기능은 꺼집니다. `haejo do` 가 붙이는 콜백은 `haejo/cli.py` 의 `do` 명령을 보면 됩니다.
 
-## 모델에 묻는 콜백 — `tacto.judge`
+## 모델에 묻는 콜백 — `haejo.judge`
 
 ```python
-from tacto.judge import model_judge, model_decider
+from haejo.judge import model_judge, model_decider
 escalate = model_judge(target="com.apple.calculator", provider="auto", narrate=print)
 decide = model_decider(provider="auto", narrate=print)      # decide.compose 포함
 ```
@@ -336,10 +336,10 @@ decide = model_decider(provider="auto", narrate=print)      # decide.compose 포
 둘 다 서명된 런처 안에서는 런처의 중계로 모델을 부릅니다(`authoring.reach_model`). 런처 안에서는
 모델 CLI가 PATH에 없기 때문입니다.
 
-## 실행 기록 → 레시피 — `tacto.promote`
+## 실행 기록 → 레시피 — `haejo.promote`
 
 ```python
-from tacto.promote import (candidate_from, CandidateStore, parameters, deployable,
+from haejo.promote import (candidate_from, CandidateStore, parameters, deployable,
                          lift_screen_values, decision_prompt, checked_decisions,
                          with_decisions, replays_the_walk)
 
@@ -357,10 +357,10 @@ CandidateStore().record(c, request, name)         # 레시피 옆 _candidates/ �
 맞지 않으면 다음 단계로 진행하지 않는다. 지원 키는 Tab·shift+Tab·방향키이고 Escape는
 제외한다. 이 조건은 저장·제출·단축키의 권한이나 완료 증거가 아니다.
 
-판단 지점 검토(`tacto promote` 가 하는 것):
+판단 지점 검토(`haejo promote` 가 하는 것):
 
 ```python
-from tacto.authoring import reach_model, _extract_json
+from haejo.authoring import reach_model, _extract_json
 proposed = _extract_json(reach_model(decision_prompt(c), "auto", expect_json=True))["decisions"]
 ok, refused = checked_decisions(c, proposed, request)     # 기록이 뒷받침하는 것만
 flow = with_decisions(flow, ok, goal=c.goal, taken_names=frozenset())
@@ -370,23 +370,23 @@ assert replays_the_walk(flow, concrete, ok)               # 기록 당시 답으
 `lift_screen_values(c, flow, request)` 는 화면에서 읽은 값을 입력한 단계를 복사/추출/쓰기로 바꾸고
 `(flow, {단계: 끼워 넣은 단계 수})` 를 돌려줍니다.
 
-## 화면 단위 루프 — `tacto.general.run`
+## 화면 단위 루프 — `haejo.general.run`
 
 ```python
-from tacto.general import run
+from haejo.general import run
 result = run(driver, target, goal, ask_here, *, max_screens=8, approve=None, narrate=None,
              envelope=None, witnesses=None, ask_where=None, spec=None,
              timeout_seconds=None, cancelled=None, prepare_commit=None, after_commit=None)
 ```
 
-`ask_here(goal, candidates, done_so_far)` 가 화면마다 불립니다(`tacto.ask.ask_here_paged` 가 모델 구현).
+`ask_here(goal, candidates, done_so_far)` 가 화면마다 불립니다(`haejo.ask.ask_here_paged` 가 모델 구현).
 결과의 `ok`, `verified`, `said`, `visits`, `effects` 를 보세요.
 
 ## 저장소
 
-- `tacto.store.FlowStore(path=None)` — `list()`, `has(name)`, `load(name)`, `save(flow)`. 기본 위치는
-  소스 체크아웃이면 `flows/`, 설치본이면 `$XDG_DATA_HOME/tacto/flows` (없으면 `~/.local/share/tacto/flows`).
-- `tacto.promote.CandidateStore(path=None)` — `list()`, `get(name)`, `record(c, request, name)`. 기본 위치는
+- `haejo.store.FlowStore(path=None)` — `list()`, `has(name)`, `load(name)`, `save(flow)`. 기본 위치는
+  소스 체크아웃이면 `flows/`, 설치본이면 `$XDG_DATA_HOME/haejo/flows` (없으면 `~/.local/share/haejo/flows`).
+- `haejo.promote.CandidateStore(path=None)` — `list()`, `get(name)`, `record(c, request, name)`. 기본 위치는
   레시피 옆의 `_candidates/`. 여기 있는 것은 재실행되지 않습니다.
 
 
@@ -400,7 +400,7 @@ Python native/signed helper `press_key`는 `press_key.element_bound` capability�
 attribute postcondition이 필요하다. signed helper도 같은 binding과 공유 입력 기한을 검증한다. [창 입력 계약](native-window-input.md)을 참고한다.
 
 
-For native screenshot proposals, `tacto.native_visual_actions` exposes
+For native screenshot proposals, `haejo.native_visual_actions` exposes
 `capture_window`, `NativeVisualClickExecutor`, and `run_native_visual`. Window
 image pixels are mapped explicitly to native points and rechecked before a
 host-authorized public `click_point`. See [native visual contracts](native-visual.md)
@@ -409,8 +409,8 @@ remaining deadlines, host verification and the bounded signed image-model
 relay. Model output does not authorize input or verify document completion.
 
 
-`tacto.general.run` accepts optional `visual_scope`, a trusted
-`tacto.general_visual.NativeVisualScope` built with `window_selector`, `planner`,
+`haejo.general.run` accepts optional `visual_scope`, a trusted
+`haejo.general_visual.NativeVisualScope` built with `window_selector`, `planner`,
 `authorize`, `verify`, and known `effects`. Optional `when` switches between AX
 and visual reasoning, while `verify_step` must independently confirm a pending
 visual input before another action or a return to AX. Both paths share the same
@@ -420,7 +420,7 @@ Envelope or replace consequential completion evidence. Results expose
 AX recipe promotion. See [native image scope contracts](native-visual.md).
 
 
-`tacto.flow.replay(..., visual_scopes={"green": scope})` supports an explicit
+`haejo.flow.replay(..., visual_scopes={"green": scope})` supports an explicit
 `Step("visual", params={"scope":"green", "max_screens":2,
 "timeout_seconds":10}, intent_text="green once", safety=contract)`.
 `scope` is a host-registered `NativeVisualScope`; JSON carries its name, never
@@ -453,7 +453,7 @@ input_actions; ordinary AX planning does not acquire an opaque input target; see
 
 A NativeVisualScope may set `input_actions=frozenset({"key","text"})` to permit
 image proposals of those kinds. Defaults remain click only. The host planner
-may use `tacto.visual.plan_native_input(capture, goal, history,
+may use `haejo.visual.plan_native_input(capture, goal, history,
 input_actions=frozenset({"key","text"}), provider="codex", model=None, timeout=60)`.
 The mapped capture and host callback do not identify or focus an opaque first
 responder; prepare and verify it explicitly. `NativeVisualClickExecutor.input`
@@ -463,7 +463,7 @@ receiving events; incomplete proof stops before later input. The shared one-use
 registry forbids spending the same image as both a click and a keyboard input.
 
 Trusted hosts can explicitly continue causal commit journals with
-`tacto.journal_reconciliation.CommitReconciliation` and `reconcile_journal`.
+`haejo.journal_reconciliation.CommitReconciliation` and `reconcile_journal`.
 `reconcile_and_replay(guard, commits, read_evidence, continuation, **replay_options)`
 connects that proof gate to an explicitly authored new Flow, preserving ordinary
 replay approval and typed receipt requirements. It freezes the Flow and static
@@ -531,7 +531,7 @@ registered candidates through the adapter as described below.
 
 ### Live process CPU metadata
 
-`tacto.process_cpu.sample_process_cpu(pid)` returns a frozen ProcessCpuSample with
+`haejo.process_cpu.sample_process_cpu(pid)` returns a frozen ProcessCpuSample with
 PID/start identity, raw user/system CPU and Mach timebase. `cpu_delta_ns(before,
 after)` rejects changed identity/clock or either regressing counter and converts
 the integer delta without float loss. `verify_cpu_clock()` compares a short,
@@ -543,7 +543,7 @@ not remote model cost or atomic liveness.
 
 ### CLI browser upload registration
 
-`tacto web-upload /absolute/private/config.json --scope owned --check` validates
+`haejo web-upload /absolute/private/config.json --scope owned --check` validates
 the selected registration and snapshots its files without browser/network/input.
 Omit `--check` to open a fresh headless Chromium session, review the exact
 account/recipient/body/file manifest and approve upload. Noninteractive execution
@@ -714,7 +714,7 @@ string are refused before native element lookup/menu input. No trimming, coercio
 or Unicode normalization is applied to this parameter equality. HTML selects
 retain their separate label/value semantics.
 
-`tacto.protocol.native_selection_parameters_problem(action)` returns a closed
+`haejo.protocol.native_selection_parameters_problem(action)` returns a closed
 reason or None. Both Python native paths and the helper client use it; the signed
 helper independently enforces the same rule at act entry and advertises
 `select_option.strict_parameters`. Wrapper/helper refusal is
@@ -723,14 +723,14 @@ The signed launcher already rejects non-string payload fields; the helper guard
 also covers matching-type semantic mismatches. Ordinary observation, menu pin,
 selection identity, approval and receiving checks still apply to valid input.
 
-`tacto eval signed_native_selection_parameters --report NEW.json` checks 40
+`haejo eval signed_native_selection_parameters --report NEW.json` checks 40
 parameter/observation refusal cases through the installed signed channel. It
 addresses no valid observed control and does not prove an option-selection task.
 Use the separate actual owned ComboBox scenario for receiving-effect verification.
 
 ### Partial provider usage summaries
 
-`tacto.provider_observation.summarize_provider_calls(records)` retains observed
+`haejo.provider_observation.summarize_provider_calls(records)` retains observed
 route attempts without counting the logical final result twice. Its
 `unaggregated_costs` lists reported amounts with unknown currency or basis as
 individual observations, including request/attempt indices and missing_fields.
@@ -769,7 +769,7 @@ the other app; it does not establish ordinary app or continuous typing parity.
 
 ### Captured attachment payload inventory (trusted Python host)
 
-`tacto.document_attachments.attachment_inventory(body, ...)` inspects an already
+`haejo.document_attachments.attachment_inventory(body, ...)` inspects an already
 decoded native attributed string. The host must obtain the complete intended
 source/export strings independently; a partial AX RTF range cannot establish
 that missing attachment payloads were preserved. No Flow/CLI attachment or
@@ -799,7 +799,7 @@ slash. The authoritative native document readers normalize it only when the
 remaining path is an existing canonical directory. Syntax-only parsing and
 user-supplied document selectors remain unchanged; selectors use the canonical
 path without a terminal slash. This normalization grants no save/export authority.
-The isolated signed evaluator `tacto eval signed_document_attachments` opens one
+The isolated signed evaluator `haejo eval signed_document_attachments` opens one
 new private owned RTFD fixture in already-running background TextEdit, retains the
 window, and records actual signed RTF export payload comparison and sampled input
 audit. It never saves, edits or sends. Missing attachments or changed input keep
@@ -808,7 +808,7 @@ the scenario failed. See the actual partial result (local evidence: `../reviews/
 
 #### Captured private RTFD package reader (trusted host only)
 
-`tacto.document_packages.capture_rtfd_package(path, *, max_entries=256,
+`haejo.document_packages.capture_rtfd_package(path, *, max_entries=256,
 max_depth=16, max_payload_bytes=8*1024*1024, max_utf16_units=10000,
 timeout_seconds=3)` returns `CapturedRTFDPackage`: a decoded native body, bounded
 attachment inventory, captured entry/byte counts and sampled stability. Paths
@@ -831,10 +831,10 @@ See the actual owned package result (local evidence: `../reviews/rtfd-package-pa
 
 ### Session guide and compact click input
 
-`tacto session <bundle-id> --helper --guide` returns a trusted minimal authoring
+`haejo session <bundle-id> --helper --guide` returns a trusted minimal authoring
 guide and the initial observation in the same invocation. Normal session framing
 and policy still apply. No guide is emitted without the flag. With --timings,
-TACTO_SESSION_TIMINGS gives monotonic offsets for observation_ready_seconds,
+HAEJO_SESSION_TIMINGS gives monotonic offsets for observation_ready_seconds,
 input_ready_seconds, flow_received_seconds, replay_done_seconds and
 session_done_seconds. Input waiting is not pure model inference.
 `flow_input_attempts`, `flow_input_corrections` and `flow_input_utf8_bytes` are
@@ -852,7 +852,7 @@ steps. This format works in run and session, including nested branches.
 
 ### Focused Flow authoring and selector repair
 
-`tacto session <bundle-id> --helper --reuse-guide --save /absolute/new.json`
+`haejo session <bundle-id> --helper --reuse-guide --save /absolute/new.json`
 adds parameter/template instructions only on request. A successful replay saves
 the unbound Flow privately; current parameter defaults are bound only for replay.
 Existing output paths refuse before UI work. Failed replay never saves a Flow.
@@ -865,13 +865,13 @@ click/action-selector conflicts, unsupported actions, action parameter shape,
 and top-level params object shape. Other schema errors receive a generic short
 hint; not every schema error has a specialized correction yet.
 
-`tacto run <flow.json> --helper --think 0 --repair-packet /absolute/new-packet.json`
+`haejo run <flow.json> --helper --think 0 --repair-packet /absolute/new-packet.json`
 writes a private packet only for a selector-resolution failure before dispatch.
 It contains the failed action/selector, result check and up to six scoped
 candidate selectors. It adds no driver observations or model calls. Success,
 unknown completion and nested/dynamic flows do not produce selector packets.
 
-`tacto repair <template.json> --packet <packet.json> --selector '<JSON>' --out <new.json>`
+`haejo repair <template.json> --packet <packet.json> --selector '<JSON>' --out <new.json>`
 is an offline transformation. It requires matching target, action, step index
 and old selector, a unique candidate in the packet, and a new output path. It
 changes only the selector, preserving the rest of the expanded Flow. Candidate
@@ -940,10 +940,10 @@ Literal learning and validation (internal validation record; not published).
 
 ### Bounded saved-Flow batch
 
-`tacto batch <flow.json | saved name> --helper [--max-jobs 1..1000] [--idle-timeout 1..600] [--timings]`
+`haejo batch <flow.json | saved name> --helper [--max-jobs 1..1000] [--idle-timeout 1..600] [--timings]`
 loads one immutable, fixed-target deterministic Flow and keeps one signed
-connection. A saved name loads the recipe `tacto replay <name>` would run (a
-built-in from the code); a path, or anything ending in `.json`, is a file. After TACTO_BATCH_READY, send newline-terminated objects containing
+connection. A saved name loads the recipe `haejo replay <name>` would run (a
+built-in from the code); a path, or anything ending in `.json`, is a file. After HAEJO_BATCH_READY, send newline-terminated objects containing
 only params, with string values. Per-job normal replay authorization, fresh
 observation and completion checks remain. By default no model is called.
 Opt-in selector repair is described below; interactive approval, document scope
@@ -976,17 +976,17 @@ Checkpoint comparison ignores numeric indexes and at most two completely bare
 Group wrapper changes per comparison. It retains every other raw body, flag,
 value, node order and kept ancestor path. Raw selector uniqueness and selected
 node correspondence, result checks and native readiness guards are unchanged.
-[Complex scenario verification](tacto-complex-scenarios-2026-10-14.md).
+[Complex scenario verification](haejo-complex-scenarios-2026-10-14.md).
 
 
 ### Window-bound drag (signed macOS helper)
 
-`tacto capture <bundle-id> --helper --window TITLE --output window.png` writes
+`haejo capture <bundle-id> --helper --window TITLE --output window.png` writes
 a private PNG (refusing existing output files) and reports `pixel_to_point` scale
 factors. Multiply image pixel coordinates by these factors for drag coordinates.
 It uses the existing Screen Recording grant of the installed signed app.
 
-`tacto drag <bundle-id> --helper --from X Y --to X Y [--window TITLE]`
+`haejo drag <bundle-id> --helper --from X Y --to X Y [--window TITLE]`
 sends one continuous left-button stroke. `--via X Y` can be repeated up to 12
 times; duration is 0.1–2 seconds (default 0.6). Coordinates are window-relative
 points from the top-left, including the titlebar. `--prepare` prepares a background
@@ -1031,7 +1031,7 @@ A pinned TextEdit session that performs a fresh body read after an uncertain
 `set_value` now presents one scope-specific summary. `body_verified` means the
 requested body is visible and no Flow steps remain; `body_verified_partial`
 means steps remain. `body_mismatch` and `body_unavailable` require inspection.
-The existing `TACTO_DOCUMENT_STATE` fields remain unchanged. This presentation
+The existing `HAEJO_DOCUMENT_STATE` fields remain unchanged. This presentation
 performs no additional write or read, does not verify Save or writer attribution,
 and preserves the Flow exit status, failure log and template-save eligibility.
 Ordinary unscoped commands keep their existing summaries.

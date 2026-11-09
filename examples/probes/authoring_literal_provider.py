@@ -12,12 +12,12 @@ import time
 from contextlib import nullcontext
 from unittest.mock import patch
 
-from tacto.authoring import author
-from tacto.browser import BrowserDriver
-from tacto.flow import replay
-from tacto.model_budget import model_deadline
-from tacto.provider_observation import capture_provider_calls, summarize_provider_calls
-from tacto.store import FlowStore
+from haejo.authoring import author
+from haejo.browser import BrowserDriver
+from haejo.flow import replay
+from haejo.model_budget import model_deadline
+from haejo.provider_observation import capture_provider_calls, summarize_provider_calls
+from haejo.store import FlowStore
 
 
 def author_refusal(error):
@@ -37,7 +37,7 @@ def run(output, providers, *, repair_rounds=0, inject_initial_ambiguity=False):
     if inject_initial_ambiguity and repair_rounds != 1:
         raise ValueError('initial ambiguity injection requires one correction round')
     root=Path(__file__).resolve().parents[2]
-    paths=sorted((root/'tacto').glob('*.py'))+[Path(__file__).resolve(),root/'pyproject.toml']
+    paths=sorted((root/'haejo').glob('*.py'))+[Path(__file__).resolve(),root/'pyproject.toml']
     def manifest():
         return {str(path.relative_to(root)):hashlib.sha256(path.read_bytes()).hexdigest() for path in paths}
     output=Path(output)
@@ -58,7 +58,7 @@ def run(output, providers, *, repair_rounds=0, inject_initial_ambiguity=False):
                 driver=BrowserDriver()
                 driver._page.set_content('<label>{{field}}<input value="correct" readonly></label>'
                                          '<label>Different<input value="wrong" readonly></label>')
-                import tacto.authoring as authoring_module
+                import haejo.authoring as authoring_module
                 real_reach=authoring_module.reach_model
                 def injected_reach(*args,**kwargs):
                     nonlocal injected
@@ -70,7 +70,7 @@ def run(output, providers, *, repair_rounds=0, inject_initial_ambiguity=False):
                             'captures':[{'name':'result','field':{'role':'textbox','title':'{{field}}'}}],
                             'safety':{'effects':['read'],'data_classes':['none']}}]})
                     return real_reach(*args,**kwargs)
-                instrument=(patch('tacto.authoring.reach_model',side_effect=injected_reach)
+                instrument=(patch('haejo.authoring.reach_model',side_effect=injected_reach)
                             if inject_initial_ambiguity else nullcontext())
                 with capture_provider_calls() as records, model_deadline(time.monotonic()+120), instrument:
                     flow=author('Read the Value of the textbox whose literal label is {{field}}. '

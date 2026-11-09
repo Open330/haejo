@@ -9,11 +9,11 @@ from pathlib import Path
 import unittest
 from unittest.mock import Mock, patch
 
-from tacto.auto_repair import AutoRepair
-from tacto.cli import _run_flow
-from tacto.continuation_state import ReplayContinuation
-from tacto.flow import Capture, Flow, Postcondition, Selector, Step, replay
-from tacto.flow_batch import BatchDriver
+from haejo.auto_repair import AutoRepair
+from haejo.cli import _run_flow
+from haejo.continuation_state import ReplayContinuation
+from haejo.flow import Capture, Flow, Postcondition, Selector, Step, replay
+from haejo.flow_batch import BatchDriver
 from tests import test_auto_repair as helpers
 from tests.test_runtime_contract import App, contract
 
@@ -80,7 +80,7 @@ class CaptureContinuationTests(unittest.TestCase):
             return _run_flow(*args,**{**kwargs,'_on_result':collect})
         automatic=AutoRepair(chooser=chooser or Mock(return_value=helpers.response('{"candidate":0}')))
         with contextlib.redirect_stdout(output),contextlib.redirect_stderr(output), \
-                patch('tacto.cli._indicator_for',return_value=contextlib.nullcontext()):
+                patch('haejo.cli._indicator_for',return_value=contextlib.nullcontext()):
             code,learned=automatic.run(flow or recipe(),{},flags or ['--helper'],
                 driver=BatchDriver(app),run_flow=runner,emit=messages.append)
         return code,learned,app,automatic,results,output.getvalue(),messages

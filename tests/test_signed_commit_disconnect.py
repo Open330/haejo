@@ -10,7 +10,7 @@ import threading
 import unittest
 from unittest.mock import Mock, patch
 
-from tacto.helper import InheritedHelperDriver, HelperUnavailable
+from haejo.helper import InheritedHelperDriver, HelperUnavailable
 
 ROOT = Path(__file__).resolve().parents[1]
 PROBE = runpy.run_path(str(ROOT / 'examples/probes/signed-commit-disconnect.py'))
@@ -85,7 +85,7 @@ class SignedCommitDisconnectTests(unittest.TestCase):
         report = {'passed':False, 'error_class':'AssertionError',
                   'input_audit':{'raw_report':{'baseline':'PRIVATE_INPUT_SENTINEL'}}}
         with patch('runpy.run_path', return_value={'main':Mock(return_value=report)}), \
-                patch('tacto.helper.InheritedHelperDriver') as driver, \
+                patch('haejo.helper.InheritedHelperDriver') as driver, \
                 contextlib.redirect_stdout(io.StringIO()) as out, \
                 self.assertRaises(AssertionError) as failure:
             driver.available.return_value = True

@@ -52,7 +52,7 @@ class ConcurrentTypingTests(unittest.TestCase):
 
     def test_participation_is_explicit_true_before_helper_or_manifest(self):
         for value in (False, None, 1, 'true'):
-            with self.subTest(value=value), patch('tacto.helper.InheritedHelperDriver.available') as available, \
+            with self.subTest(value=value), patch('haejo.helper.InheritedHelperDriver.available') as available, \
                     patch.object(probe, 'prepared_fixtures') as prepared:
                 report = self.run_refused(participant_confirmed=value)
                 self.assertEqual('human_participation_required', report['refusal'])
@@ -62,7 +62,7 @@ class ConcurrentTypingTests(unittest.TestCase):
     @requires_signed_build
 
     def test_unsigned_driver_cannot_lookup_or_launch(self):
-        with patch('tacto.helper.InheritedHelperDriver.available') as available, \
+        with patch('haejo.helper.InheritedHelperDriver.available') as available, \
                 patch.object(probe, 'prepared_fixtures') as prepared:
             report = self.run_refused(driver=object(), participant_confirmed=True)
             self.assertEqual('signed_helper_required', report['refusal'])
@@ -91,11 +91,11 @@ class ConcurrentTypingTests(unittest.TestCase):
     @requires_signed_build
 
     def test_interrupt_is_preserved_and_report_finalized(self):
-        from tacto.helper import InheritedHelperDriver
+        from haejo.helper import InheritedHelperDriver
         driver = object.__new__(InheritedHelperDriver)
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / 'report'
-            with patch('tacto.helper.InheritedHelperDriver.available', return_value=True), \
+            with patch('haejo.helper.InheritedHelperDriver.available', return_value=True), \
                     patch.object(probe, 'prepared_fixtures', side_effect=KeyboardInterrupt), \
                     patch.object(probe.subprocess, 'Popen') as launch, self.assertRaises(KeyboardInterrupt):
                 probe.run(Path('/missing'), output, Path('/missing'), driver=driver, participant_confirmed=True)
@@ -121,7 +121,7 @@ class TypingEvaluatorTests(unittest.TestCase):
         cls.module = load('examples/eval.py', 'typing_eval')
 
     def test_default_scenario_skips_without_native_driver(self):
-        with patch('tacto.helper.InheritedHelperDriver.available') as available:
+        with patch('haejo.helper.InheritedHelperDriver.available') as available:
             self.assertEqual('human_participation_required', self.module.scenario_signed_concurrent_typing())
         available.assert_not_called()
 
@@ -142,8 +142,8 @@ class TypingEvaluatorTests(unittest.TestCase):
             calls = []
             def run(*args, **kwargs):
                 calls.append((args, kwargs)); return 0
-            with patch('tacto.helper.InheritedHelperDriver.available', return_value=True), \
-                    patch('tacto.helper.InheritedHelperDriver') as signed, \
+            with patch('haejo.helper.InheritedHelperDriver.available', return_value=True), \
+                    patch('haejo.helper.InheritedHelperDriver') as signed, \
                     patch('runpy.run_path', return_value={'run': run}), \
                     patch.object(self.module, '__file__', str(reviews.parent/'examples/eval.py')):
                 self.assertTrue(self.module.scenario_signed_concurrent_typing(base, witness, True))

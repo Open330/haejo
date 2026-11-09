@@ -19,7 +19,7 @@ class TaskBenchmarkTests(unittest.TestCase):
 
     def success(self):
         event = dict(event='result', passed=True, loop_ok=True,
-                     dom_result='TACTO-2026-confirmed', said='TACTO-2026-confirmed')
+                     dom_result='HAEJO-2026-confirmed', said='HAEJO-2026-confirmed')
         with patch.object(bench, '_run_bounded', return_value=(0, json.dumps(event))):
             return bench.run_task(self.manifest, 'input-next-read')
 
@@ -29,7 +29,7 @@ class TaskBenchmarkTests(unittest.TestCase):
         self.assertEqual(3, len(result['evidence']))
         self.assertIsNone(result['model'])
         event = dict(event='result', passed=True, loop_ok=True,
-                     dom_result='WRONG', said='TACTO-2026-confirmed')
+                     dom_result='WRONG', said='HAEJO-2026-confirmed')
         with patch.object(bench, '_run_bounded', return_value=(0, json.dumps(event))):
             result = bench.run_task(self.manifest, 'input-next-read')
         self.assertEqual('failed', result['status'])
@@ -38,9 +38,9 @@ class TaskBenchmarkTests(unittest.TestCase):
         baseline = bench.run_task(self.manifest, 'input-next-read', 'codex-computer-use')
         self.assertEqual('unavailable', baseline['status'])
         summary = bench.summarize(self.manifest, [self.success(), baseline])
-        self.assertEqual(0.2, summary['totals']['tacto']['planned_task_completion_rate'])
+        self.assertEqual(0.2, summary['totals']['haejo']['planned_task_completion_rate'])
         self.assertEqual(0, summary['totals']['codex-computer-use']['planned_task_completion_rate'])
-        self.assertEqual(4, summary['totals']['tacto']['missing_tasks'])
+        self.assertEqual(4, summary['totals']['haejo']['missing_tasks'])
         self.assertFalse(summary['equivalence_established'])
 
     def test_unimplemented_task_never_executes(self):
@@ -75,8 +75,8 @@ class TaskBenchmarkTests(unittest.TestCase):
         failed = copy.deepcopy(passed)
         failed.update(run_id='retry-failed', status='failed', reason='oracle failed')
         summary = bench.summarize(self.manifest, [passed, failed])
-        self.assertEqual(0, summary['totals']['tacto']['fully_passed_tasks'])
-        self.assertEqual(1, summary['totals']['tacto']['passed_runs'])
+        self.assertEqual(0, summary['totals']['haejo']['fully_passed_tasks'])
+        self.assertEqual(1, summary['totals']['haejo']['passed_runs'])
 
     def test_timeout_and_missing_outcome_do_not_pass(self):
         with patch.object(bench, '_run_bounded', side_effect=subprocess.TimeoutExpired('probe', 180)):
@@ -105,10 +105,10 @@ class TaskBenchmarkTests(unittest.TestCase):
     def test_source_snapshot_hashes_allowlist_bytes_and_effective_manifest(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            (root / 'tacto').mkdir()
+            (root / 'haejo').mkdir()
             (root / 'examples').mkdir()
             (root / 'reviews').mkdir()
-            (root / 'tacto/core.py').write_text('original')
+            (root / 'haejo/core.py').write_text('original')
             for name in ('task_benchmark.py', 'benchmark_web_runner.py', 'probe_browser_task.py'):
                 (root / 'examples' / name).write_text(name)
             manifest_file = root / 'reviews/manifest.json'
@@ -119,9 +119,9 @@ class TaskBenchmarkTests(unittest.TestCase):
                 (root / '.venv').mkdir()
                 (root / '.venv/ignored.py').write_text('environment noise')
                 self.assertEqual(first['source_sha256'], bench.source_snapshot(self.manifest, manifest_file)['source_sha256'])
-                (root / 'tacto/core.py').write_text('changed')
+                (root / 'haejo/core.py').write_text('changed')
                 self.assertNotEqual(first['source_sha256'], bench.source_snapshot(self.manifest, manifest_file)['source_sha256'])
-                (root / 'tacto/core.py').write_text('original')
+                (root / 'haejo/core.py').write_text('original')
                 manifest_file.write_text(json.dumps(self.manifest) + '\n')
                 self.assertNotEqual(first['source_sha256'], bench.source_snapshot(self.manifest, manifest_file)['source_sha256'])
                 altered = copy.deepcopy(self.manifest)
@@ -177,7 +177,7 @@ class ExternalBenchmarkTests(unittest.TestCase):
         self.manifest = json.loads(bench.DEFAULT_MANIFEST.read_text())
 
     def test_observed_provider_metadata_preserves_unknown_and_attempt_totals(self):
-        from tacto.provider_result import ProviderResult, ProviderAttempt
+        from haejo.provider_result import ProviderResult, ProviderAttempt
         observed = ProviderResult('request', 'auto', 'claude', 'cli', 'ok', 'secret', None, 1,
             model='observed-model', output_tokens=4,
             attempts=(ProviderAttempt('claude', 'cli', 'ok', 1, output_tokens=4),)).to_dict()
@@ -201,7 +201,7 @@ class ExternalBenchmarkTests(unittest.TestCase):
         task = self.manifest['tasks'][0]
         with tempfile.TemporaryDirectory() as directory:
             artifact = Path(directory) / 'raw.json'
-            artifact.write_text('{"observed":"TACTO-2026-confirmed"}')
+            artifact.write_text('{"observed":"HAEJO-2026-confirmed"}')
             record = dict(task_id=task['id'], condition_id=bench.condition_id(task),
                 system='codex-computer-use', run_id='external-run', status='passed',
                 elapsed_seconds=10, provider=None, model=None, environment={'sky':'0.7.1'},
@@ -243,13 +243,13 @@ except ImportError:
 @unittest.skipUnless(HAS_BROWSER, 'optional playwright dependency not installed')
 class WebBenchmarkFixtureTests(unittest.TestCase):
     def test_input_probe_records_actual_provider_requests_through_common_boundary(self):
-        from tacto.provider_result import ProviderResult
+        from haejo.provider_result import ProviderResult
         spec = importlib.util.spec_from_file_location('probe_browser_task',
             bench.ROOT / 'examples/probe_browser_task.py')
         probe = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(probe)
         answers = iter([
-            {'actions': [{'pick': 0, 'do': 'set_value', 'value': 'TACTO-2026'},
+            {'actions': [{'pick': 0, 'do': 'set_value', 'value': 'HAEJO-2026'},
                          {'pick': 1, 'do': 'click'}]},
             {'actions': [{'pick': 0, 'do': 'read'}]},
             {'done': True, 'actions': []}])
@@ -262,7 +262,7 @@ class WebBenchmarkFixtureTests(unittest.TestCase):
                 model='observed-test-model', input_tokens=10, output_tokens=3)
         output = io.StringIO()
         with patch('sys.argv', ['probe_browser_task', '--provider', 'claude']), \
-             patch('sys.stdout', output), patch('tacto.authoring._try_cli', side_effect=provider):
+             patch('sys.stdout', output), patch('haejo.authoring._try_cli', side_effect=provider):
             self.assertEqual(0, probe.main(), output.getvalue())
         result = json.loads(output.getvalue().splitlines()[-1])
         self.assertTrue(result['passed'])

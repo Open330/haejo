@@ -15,7 +15,7 @@ final class OwnedCounter {
     private(set) var lastPID: Int?
 
     init(udid: String, connection: IUDTXConnection, services: FixtureServices, pid: Int, heading: String) throws {
-        guard pid > 0, heading.hasPrefix("Tacto test "), heading.count == 19,
+        guard pid > 0, heading.hasPrefix("Haejo test "), heading.count == 19,
               heading.suffix(8).allSatisfy({ $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "-" || $0 == "_") }) else {
             throw ProbeError.invalidRequest
         }

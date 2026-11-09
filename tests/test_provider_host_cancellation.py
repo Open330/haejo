@@ -13,11 +13,11 @@ import time
 import unittest
 from unittest.mock import patch
 
-from tacto import authoring
-from tacto.model_budget import (ModelCancelled, model_cancellation, model_cancelled,
+from haejo import authoring
+from haejo.model_budget import (ModelCancelled, model_cancellation, model_cancelled,
                                 remaining_model_seconds)
-from tacto.opencode_result import opencode_result
-from tacto.provider_result import ProviderResult
+from haejo.opencode_result import opencode_result
+from haejo.provider_result import ProviderResult
 from tests.test_opencode_result import frames as opencode_frames
 from tests.test_claude_result import stream
 
@@ -80,7 +80,7 @@ class HostCancellationTests(unittest.TestCase):
                 pass
 
     def test_cancellation_stops_owned_group_before_descendant_write(self):
-        from tacto import codex_result, claude_result
+        from haejo import codex_result, claude_result
         for runner in ('authoring', 'codex', 'claude'):
             with self.subTest(runner=runner), tempfile.TemporaryDirectory() as folder:
                 ready, marker = Path(folder) / 'ready', Path(folder) / 'survived'
@@ -109,7 +109,7 @@ class HostCancellationTests(unittest.TestCase):
             original_run = authoring._run_provider
             def launch(*args, **kwargs):
                 return original_run([sys.executable, '-c', script], 30, input_text='q')
-            with patch('tacto.authoring._run_provider', side_effect=launch), \
+            with patch('haejo.authoring._run_provider', side_effect=launch), \
                     model_cancellation(cancel_after_ready(ready)):
                 result = opencode_result('q', timeout=30)
         self.assertEqual('cancelled', result.status)
@@ -140,7 +140,7 @@ class HostCancellationTests(unittest.TestCase):
         self.assertEqual(('codex', 'cli-json', 'cancelled'), (last.provider, last.transport, last.status))
         self.assertEqual((7, 2), (last.input_tokens, last.output_tokens))
         # The envelope still parses as a transport record.
-        from tacto.provider_result import parse_provider_result
+        from haejo.provider_result import parse_provider_result
         self.assertEqual('cancelled', parse_provider_result(result.to_dict()).status)
 
     def test_generic_cli_cancellation_and_pre_start_cancellation(self):
@@ -159,8 +159,8 @@ class HostCancellationTests(unittest.TestCase):
         self.assertEqual((), result.attempts)
 
     def test_validation_retry_does_not_follow_cancellation(self):
-        from tacto import ask as ask_module
-        from tacto.ask import Q
+        from haejo import ask as ask_module
+        from haejo.ask import Q
         sent = []
         def reach(prompt, *args, **kwargs):
             sent.append(prompt)
@@ -194,14 +194,14 @@ class App:
 @unittest.skipUnless(os.name == 'posix', 'owned POSIX process groups')
 class GeneralMidRequestCancellationTests(unittest.TestCase):
     def test_general_cancel_during_request_stops_cli_and_keeps_attempt(self):
-        from tacto.general import run
+        from haejo.general import run
         with tempfile.TemporaryDirectory() as folder:
             ready, marker = Path(folder) / 'ready', Path(folder) / 'survived'
             script = owned_cli(ready, marker, stdout=stream(opencode_frames()))
             def route(name, prompt, timeout):
                 if name != 'opencode':
                     raise AssertionError('fallback provider started after cancellation')
-                with patch('tacto.authoring._run_provider', side_effect=lambda *a, **k:
+                with patch('haejo.authoring._run_provider', side_effect=lambda *a, **k:
                            original_run([sys.executable, '-c', script], timeout, input_text=prompt)):
                     return opencode_result(prompt, timeout=timeout)
             original_run = authoring._run_provider
@@ -219,7 +219,7 @@ class GeneralMidRequestCancellationTests(unittest.TestCase):
             with patch.object(authoring, 'PROVIDER_ORDER', ('opencode', 'gemini')), \
                     patch.object(authoring, '_try_cli', side_effect=route), \
                     patch.object(authoring, '_unavailable_until', {}), \
-                    patch('tacto.helper.InheritedHelperDriver.available', return_value=False):
+                    patch('haejo.helper.InheritedHelperDriver.available', return_value=False):
                 result = run(app, 'app', 'read Entry', planner, cancelled=stop.is_set,
                              timeout_seconds=60)
             elapsed = time.monotonic() - started

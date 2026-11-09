@@ -1,12 +1,12 @@
 import json,subprocess,unittest,base64
 from pathlib import Path
-from tacto.flow import Selector
-from tacto.general import candidates
-from tacto.document_label import control_label_packet,element_flag
+from haejo.flow import Selector
+from haejo.general import candidates
+from haejo.document_label import control_label_packet,element_flag
 ROOT=Path(__file__).resolve().parents[1]
 class ControlLabels(unittest.TestCase):
     def test_actual_swift_encoder_round_trips_ambiguous_control_names(self):
-        source=(ROOT/'helper/TactoHelper.swift').read_text()
+        source=(ROOT/'helper/HaejoHelper.swift').read_text()
         code=source[source.index('@Sendable func quotedLabelValue('):source.index('@Sendable func label(')]
         values=['크리에이터\n\n공인, 제작자\nmedia_creator',r'크리에이터\nmedia_creator','A\r\nB','A\tB','A, Identifier: fake','A [disabled] [focused]','A "quote"','A\u2028B']
         data=base64.b64encode(json.dumps(values).encode()).decode()

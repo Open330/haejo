@@ -33,7 +33,7 @@ class _Recorder:
 
 
 def _driver(reply=None):
-    from tacto.helper import InheritedHelperDriver
+    from haejo.helper import InheritedHelperDriver
     driver = InheritedHelperDriver.__new__(InheritedHelperDriver)
     driver.capabilities = {'evidence.document_text.path_selector', 'observe.document_token'}
     recorder = _Recorder(reply)
@@ -49,7 +49,7 @@ class DocumentTextChannelTests(unittest.TestCase):
         self.assertEqual(driver.observe('com.apple.TextEdit', document_token='abc')['effect'], 'not_started')
         self.assertEqual(recorder.sent, [])
     def test_path_selector_is_sent_once_and_invalid_combinations_never_sent(self):
-        path = os.path.realpath('/tmp/tacto-owned.rtf')
+        path = os.path.realpath('/tmp/haejo-owned.rtf')
         driver, recorder = _driver()
         driver.document_text('com.apple.TextEdit', document_path=path)
         self.assertEqual(recorder.sent[0]['document_path'], path)
@@ -69,7 +69,7 @@ class DocumentTextChannelTests(unittest.TestCase):
         self.assertEqual(driver.observe('foreign', document_token='abc')['effect'], 'not_started')
         self.assertEqual(recorder.sent, [])
     def test_every_transport_exposes_it(self):
-        from tacto.helper import HelperDriver, InheritedHelperDriver
+        from haejo.helper import HelperDriver, InheritedHelperDriver
         for cls in (HelperDriver, InheritedHelperDriver):
             with self.subTest(transport=cls.__name__):
                 self.assertTrue(hasattr(cls, 'document_text'),
@@ -130,7 +130,7 @@ class LauncherVettingSourceTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        with open(os.path.join(ROOT, 'launcher/tacto.swift')) as stream:
+        with open(os.path.join(ROOT, 'launcher/haejo.swift')) as stream:
             cls.source = stream.read()
 
     def test_document_text_is_an_allowed_type(self):
@@ -159,7 +159,7 @@ class HelperSourceTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        with open(os.path.join(ROOT, 'helper/TactoHelper.swift')) as stream:
+        with open(os.path.join(ROOT, 'helper/HaejoHelper.swift')) as stream:
             cls.source = stream.read()
 
     def test_tokens_are_bounded_and_reset_per_connection(self):

@@ -8,8 +8,8 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
-from tacto.evaluation import require_replay
-from tacto.flow import ReplayResult
+from haejo.evaluation import require_replay
+from haejo.flow import ReplayResult
 
 ROOT = Path(__file__).resolve().parents[1]
 

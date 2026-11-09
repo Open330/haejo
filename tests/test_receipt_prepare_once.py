@@ -4,10 +4,10 @@ from pathlib import Path
 import unittest
 from unittest.mock import patch
 
-from tacto.artifact_receipt import ArtifactReceiptError,FreshFileReceipt
-from tacto.commit_evidence import make_event
-from tacto.existing_file_receipt import ExistingTextFileReceipt
-from tacto.textedit_receipt import make_textedit_receipt
+from haejo.artifact_receipt import ArtifactReceiptError,FreshFileReceipt
+from haejo.commit_evidence import make_event
+from haejo.existing_file_receipt import ExistingTextFileReceipt
+from haejo.textedit_receipt import make_textedit_receipt
 from tests.test_existing_file_receipt import Doc,save_event
 from tests.test_textedit_receipt import SnapshotDriver
 from tests.test_transcript_receipt import Chat,receipt
@@ -77,7 +77,7 @@ class ReceiptPrepareOnceTests(unittest.TestCase):
 
     def test_textedit_wrong_panel_attempt_cannot_be_repaired_on_same_adapter(self):
         path=self.directory/'owned.rtf';driver=SnapshotDriver(path)
-        with patch('tacto.textedit_receipt.Path.home',return_value=self.root):
+        with patch('haejo.textedit_receipt.Path.home',return_value=self.root):
             adapter=make_textedit_receipt(driver,target='com.apple.TextEdit',directory=str(self.directory),filename=path.name)
         driver.panel['filename']='other.rtf'
         with self.assertRaises(ArtifactReceiptError):adapter.prepare_commit(self.event)

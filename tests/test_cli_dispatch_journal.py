@@ -6,9 +6,9 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from tacto import cli
-from tacto.dispatch_journal import DurableDispatchDriver
-from tacto.library import textedit_save_as
+from haejo import cli
+from haejo.dispatch_journal import DurableDispatchDriver
+from haejo.library import textedit_save_as
 from tests.test_replay_commit_evidence import MemoryStore, TextEditFixture
 
 
@@ -23,8 +23,8 @@ class CLIDispatchJournalTests(unittest.TestCase):
         self.recipe.write_text(self.flow.to_json())
         self.app = TextEditFixture(write=True)
         self.app.install_evidence()
-        self.enterContext(patch('tacto.driver.Driver', return_value=self.app))
-        self.enterContext(patch('tacto.agent.FlowStore', return_value=MemoryStore()))
+        self.enterContext(patch('haejo.driver.Driver', return_value=self.app))
+        self.enterContext(patch('haejo.agent.FlowStore', return_value=MemoryStore()))
         self.enterContext(patch.object(cli, '_indicator_for', side_effect=lambda *args: contextlib.nullcontext()))
         self.output = self.enterContext(contextlib.redirect_stdout(io.StringIO()))
 
@@ -41,7 +41,7 @@ class CLIDispatchJournalTests(unittest.TestCase):
         self.assertIs(self.app, cli._make_driver([]))
 
     def test_do_flag_is_removed_from_intent_and_scoped_descriptor_is_closed(self):
-        from tacto.agent import Agent
+        from haejo.agent import Agent
         captured = {}
         class Host(Agent):
             def handle(self, intent, **kwargs):
@@ -49,8 +49,8 @@ class CLIDispatchJournalTests(unittest.TestCase):
                 captured['driver'] = self.driver
                 return super().handle(intent, **kwargs)
         with patch.object(cli, 'Agent', Host), \
-             patch('tacto.onboard.run', return_value=True), \
-             patch('tacto.session.preflight', return_value={'verdict':'ready'}):
+             patch('haejo.onboard.run', return_value=True), \
+             patch('haejo.session.preflight', return_value={'verdict':'ready'}):
             self.assertEqual(0, cli._dispatch('do', ['"proof.rtf" 로 저장해줘', '--strict', '--yes',
                                                     '--journal-dir', str(self.directory)]))
         self.assertEqual('"proof.rtf" 로 저장해줘', captured['intent'])
@@ -59,8 +59,8 @@ class CLIDispatchJournalTests(unittest.TestCase):
         self.assertEqual(1, len(self.app.writes))
 
     def test_do_ir_redirect_inherits_journal_without_flag_in_task(self):
-        with patch('tacto.session.sandboxed', return_value=False), \
-             patch('tacto.session.KeepAwake', side_effect=contextlib.nullcontext):
+        with patch('haejo.session.sandboxed', return_value=False), \
+             patch('haejo.session.KeepAwake', side_effect=contextlib.nullcontext):
             args = [str(self.recipe), '--yes', '--journal-dir', str(self.directory)]
             self.assertEqual(0, cli._dispatch('do', args))
             self.assertEqual(1, cli._dispatch('do', args))
@@ -70,7 +70,7 @@ class CLIDispatchJournalTests(unittest.TestCase):
         trace = self.root / 'trace.json'
         args = [str(self.recipe), '--yes', '--helper', '--trace', str(trace),
                 '--journal-dir', str(self.directory)]
-        with patch('tacto.helper.InheritedHelperDriver', return_value=self.app) as helper:
+        with patch('haejo.helper.InheritedHelperDriver', return_value=self.app) as helper:
             self.assertEqual(0, cli._dispatch('run', args))
             self.assertEqual(1, cli._dispatch('run', args))
         self.assertEqual(2, helper.call_count)
@@ -83,7 +83,7 @@ class CLIDispatchJournalTests(unittest.TestCase):
                           ('replay', ['x','--journal-dir=/a','--journal-dir=/b']),
                           ('observe', ['app','--journal-dir=/a'])]:
             with self.subTest(cmd=cmd,args=args), patch.object(cli, '_make_driver') as factory, \
-                 patch('tacto.onboard.run') as onboard:
+                 patch('haejo.onboard.run') as onboard:
                 self.assertEqual(2, cli._dispatch(cmd,args))
                 factory.assert_not_called()
                 onboard.assert_not_called()

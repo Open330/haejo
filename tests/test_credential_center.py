@@ -72,7 +72,7 @@ print("native credential management, stdin-only secret, immutable review and thr
             binary=directory/'fixture'
             result=subprocess.run(['swiftc','ActivityCenter.swift','main.swift','-o',str(binary)],cwd=directory,capture_output=True,text=True,timeout=90)
             self.assertEqual(0,result.returncode,result.stderr)
-            artifacts=Path(os.environ.get('TACTO_CREDENTIAL_UI_ARTIFACTS',str(directory/'render'))).absolute()
+            artifacts=Path(os.environ.get('HAEJO_CREDENTIAL_UI_ARTIFACTS',str(directory/'render'))).absolute()
             result=subprocess.run([str(binary),str(artifacts)],capture_output=True,text=True,timeout=30)
             self.assertEqual(0,result.returncode,result.stderr)
             self.assertEqual(3,len(list(artifacts.glob('vault-tab-*.png'))))

@@ -1,12 +1,12 @@
 """Live document evidence must never be represented as replayable trace data."""
 import unittest
-from tacto.trace import Trace, TracingDriver, TraceDriver
+from haejo.trace import Trace, TracingDriver, TraceDriver
 
 
 class DocumentTextTraceTests(unittest.TestCase):
     def test_new_live_save_primitives_forward_without_retaining_body_or_tokens(self):
         from unittest.mock import Mock
-        from tacto.document_snapshot import REQUIRED, SnapshotDriver, CAPABILITY
+        from haejo.document_snapshot import REQUIRED, SnapshotDriver, CAPABILITY
         live = Mock()
         live.capabilities = REQUIRED
         trace = Trace()

@@ -1,7 +1,7 @@
 import unittest
 import sys
 from unittest.mock import Mock
-from tacto.app_launch import launch_app
+from haejo.app_launch import launch_app
 
 
 class Backend:
@@ -29,7 +29,7 @@ class Backend:
 class AppLaunchTests(unittest.TestCase):
     @unittest.skipUnless(sys.platform == 'darwin', 'native AppKit configuration')
     def test_native_launch_configuration_does_not_activate_or_create_duplicate_instance(self):
-        from tacto.app_launch import NativeLaunchBackend
+        from haejo.app_launch import NativeLaunchBackend
         backend = NativeLaunchBackend.__new__(NativeLaunchBackend)
         backend.workspace = Mock()
         result = backend.start('/Applications/Calculator.app')
@@ -131,7 +131,7 @@ class PresentationTests(unittest.TestCase):
             return self.accept
 
     def test_explicit_presentation_activates_only_the_existing_process(self):
-        from tacto.app_launch import present_app
+        from haejo.app_launch import present_app
         b = self.PresentationBackend()
         r = present_app('com.example.App', 42, backend=b, clock=lambda:b.time)
         self.assertTrue(r['foreground_verified'])
@@ -139,7 +139,7 @@ class PresentationTests(unittest.TestCase):
         self.assertEqual(0, b.starts)
 
     def test_already_front_does_not_activate_again_and_identity_changes_do_not_activate(self):
-        from tacto.app_launch import present_app
+        from haejo.app_launch import present_app
         b = self.PresentationBackend(); b.front = 42
         self.assertTrue(present_app('com.example.App', 42, backend=b)['foreground_verified'])
         self.assertEqual(0, b.activations)
@@ -148,7 +148,7 @@ class PresentationTests(unittest.TestCase):
         self.assertEqual(0, b.activations)
 
     def test_activation_failure_or_timeout_never_relaunches(self):
-        from tacto.app_launch import present_app
+        from haejo.app_launch import present_app
         for field in ('accept', 'show', 'ready'):
             b = self.PresentationBackend(); setattr(b, field, False)
             r = present_app('com.example.App', 42, backend=b, clock=lambda:b.time)

@@ -1,4 +1,4 @@
-"""P0 smoke test: reproduce the codex calculator demo through the TACTO driver.
+"""P0 smoke test: reproduce the codex calculator demo through the HAEJO driver.
 
 Clicks 1 2 × 3 4 = in Calculator using only L2 messages, re-observing after
 every act (D3/D7), and verifies 408 appears in the final tree.
@@ -8,7 +8,7 @@ import re
 import sys
 
 sys.path.insert(0, __file__.rsplit("/", 2)[0])
-from tacto.driver import Driver
+from haejo.driver import Driver
 
 TARGET = "com.apple.calculator"
 # Button labels as they appear in Calculator's AX tree (Korean or English UI).

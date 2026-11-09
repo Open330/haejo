@@ -13,7 +13,7 @@ import subprocess
 import tempfile
 import time
 
-TARGET='ai.callabo.tacto.modality-fixture'
+TARGET='ai.callabo.haejo.modality-fixture'
 MODES=('clear','window_sheet','deep_sheet','app_modal','panel','popover_transient','popover_semitransient','nested_sheet')
 STATE_FLAGS=('appkit_sheet_attached','appkit_modal_window','custom_sheet_is_synthetic',
              'panel_visible','popover_shown','nested_sheet_attached')
@@ -53,36 +53,36 @@ def main(driver, output):
 
 
 def _run(driver,report):
-    from tacto.helper import InheritedHelperDriver
+    from haejo.helper import InheritedHelperDriver
     if not isinstance(driver,InheritedHelperDriver) or not InheritedHelperDriver.available():
         raise RuntimeError('signed_helper_required')
     if 'diagnostic.readiness_preflight' not in driver.capabilities:
         raise RuntimeError('preflight_capability_unavailable')
-    from tacto.driver import Driver
-    from tacto.flow import Selector
-    from tacto.modal_presence import modal_presence
-    from tacto.input_audit_process import ProcessInputAudit
-    from tacto.native_process_identity import process_start_identity
+    from haejo.driver import Driver
+    from haejo.flow import Selector
+    from haejo.modal_presence import modal_presence
+    from haejo.input_audit_process import ProcessInputAudit
+    from haejo.native_process_identity import process_start_identity
     from examples.probes.signed_readiness_scale import native_elements
     from ApplicationServices import (AXUIElementCreateApplication,AXUIElementCopyAttributeValue,
         AXUIElementSetMessagingTimeout,AXUIElementGetTypeID)
     from CoreFoundation import CFGetTypeID,CFArrayGetTypeID,CFStringGetTypeID,CFBooleanGetTypeID,CFEqual
     root=Path(__file__).resolve().parents[2]
-    paths=list((root/'tacto').glob('*.py'))+list((root/'helper').glob('*.swift'))+[
+    paths=list((root/'haejo').glob('*.py'))+list((root/'helper').glob('*.swift'))+[
         Path(__file__).resolve(),root/'examples/probes/signed_readiness_scale.py',root/'examples/eval.py',
-        root/'tests/fixtures/NativeModalityFixture.swift',root/'launcher/tacto',root/'launcher/tacto.swift',
-        root/'helper/tacto-helper',root/'helper/Tacto Helper.app/Contents/MacOS/TactoHelper',
-        root/'helper/Tacto Helper.app/Contents/Info.plist',root/'helper/build.sh',root/'helper/bundle.sh',root/'signing.sh']
+        root/'tests/fixtures/NativeModalityFixture.swift',root/'launcher/haejo',root/'launcher/haejo.swift',
+        root/'helper/haejo-helper',root/'helper/Haejo Helper.app/Contents/MacOS/HaejoHelper',
+        root/'helper/Haejo Helper.app/Contents/Info.plist',root/'helper/build.sh',root/'helper/bundle.sh',root/'signing.sh']
     def manifest():return {str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(paths)}
     report['source_subset_before']=manifest();host=Driver()
     host._pump(.05)
     if host._resolve(TARGET,launch=False) is not None:raise RuntimeError('owned_fixture_already_running')
     try:
-        with tempfile.TemporaryDirectory(prefix='tacto-modality-') as directory:
+        with tempfile.TemporaryDirectory(prefix='haejo-modality-') as directory:
             work=Path(directory);binary=work/'Modality.app/Contents/MacOS/Modality';binary.parent.mkdir(parents=True)
             info=binary.parent.parent/'Info.plist'
             info.write_bytes(plistlib.dumps({'CFBundleIdentifier':TARGET,'CFBundleExecutable':'Modality',
-                'CFBundlePackageType':'APPL','CFBundleName':'TACTO Modality','LSUIElement':True}))
+                'CFBundlePackageType':'APPL','CFBundleName':'HAEJO Modality','LSUIElement':True}))
             subprocess.run(['xcrun','swiftc','-O','-warnings-as-errors','-parse-as-library',
                 str(root/'tests/fixtures/NativeModalityFixture.swift'),'-o',str(binary)],capture_output=True,check=True,timeout=60)
             report['fixture_artifact']={'binary_sha256':hashlib.sha256(binary.read_bytes()).hexdigest(),
@@ -113,7 +113,7 @@ def _run(driver,report):
                             observation=driver.observe(TARGET,'tree_full')
                             if observation.get('type')!='observation':raise RuntimeError('owned_observation_unavailable')
                             case['deep_sheet_role_seen']=any(len(line.split())>1 and line.split()[1]=='Sheet' for line in observation['tree'].splitlines())
-                            index,_=Selector(role='Window',title='TACTO Modality A').resolve(observation['tree'])
+                            index,_=Selector(role='Window',title='HAEJO Modality A').resolve(observation['tree'])
                             deadline=time.monotonic()+3;read_count=0
                             def read(node,name):
                                 nonlocal read_count

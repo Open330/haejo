@@ -1,12 +1,12 @@
 # Claude CLI result adapter
 
-`tacto.claude_result.claude_result(prompt, *, model=None, timeout=120,
+`haejo.claude_result.claude_result(prompt, *, model=None, timeout=120,
 image_bytes=None, image_media_type='image/png')` is the restricted Claude
 adapter used by planning and the visual API when provider="claude". It can
 also be called directly for a structured result.
 
 Each invocation supplies one user message on stdin in a fresh temporary working
-directory. It creates separate Tacto request and Claude session UUIDs. The CLI is
+directory. It creates separate Haejo request and Claude session UUIDs. The CLI is
 started with `--tools ''`, strict empty MCP configuration, safe mode, disabled
 skills/Chrome, denied permission prompts, and `--no-session-persistence`.
 `--system-prompt-snapshot off` also disables rendered prompt snapshots. Startup

@@ -1,6 +1,6 @@
 """Actual browser delivery survives malformed adapter acknowledgements."""
 import unittest
-from tacto.general import run
+from haejo.general import run
 from tests.test_general_budget import App,plan
 
 
@@ -33,7 +33,7 @@ class MalformedDispatchTests(unittest.TestCase):
         self.assertEqual('unknown',result.certainty)
 
     def test_known_gates_and_pre_dispatch_refusal_are_preserved(self):
-        from tacto.protocol import normalize_action_response
+        from haejo.protocol import normalize_action_response
         for response in ({'type':'confirm_request'}, {'type':'handoff_request'},
                          {'type':'error','effect':'not_started'}, {'type':'acted'}):
             self.assertIs(response,normalize_action_response(response))
@@ -54,8 +54,8 @@ except ImportError:
 @unittest.skipUnless(HAS_BROWSER,'optional playwright dependency not installed')
 class BrowserMalformedDispatchTests(unittest.TestCase):
     def test_real_click_is_not_repeated_or_promoted_in_general_and_replay(self):
-        from tacto.browser import BrowserDriver
-        from tacto.flow import Flow,Step,Selector,replay
+        from haejo.browser import BrowserDriver
+        from haejo.flow import Flow,Step,Selector,replay
         from urllib.parse import quote
         for mode in ('general','replay'):
             with self.subTest(mode=mode):
@@ -77,7 +77,7 @@ class BrowserMalformedDispatchTests(unittest.TestCase):
                         self.assertEqual(1,len(asked))
                         self.assertEqual('unknown',result.certainty)
                     else:
-                        from tacto.contract import Envelope,ContextBinding
+                        from haejo.contract import Envelope,ContextBinding
                         flow=Flow('one_click','page',[Step('click',selector=Selector(role='Button',title='Next'),
                             safety=Envelope.minimal().contract_for({'write_ephemeral'},'owned button'),
                             binding=ContextBinding(bundle_id='data:',role='Button',operation='click'))],schema=2)

@@ -5,7 +5,7 @@ ROOT=Path(__file__).resolve().parents[1]
 @unittest.skipUnless(sys.platform=='darwin' and shutil.which('swift'),'macOS Swift required')
 class OptionalIndicatorTests(unittest.TestCase):
     def test_presentation_failures_do_not_block_but_lock_and_stop_do(self):
-        source=(ROOT/'helper/TactoHelper.swift').read_text()
+        source=(ROOT/'helper/HaejoHelper.swift').read_text()
         code=source[source.index('func readyControlTargetFrames('):source.index('/// Presentation diagnostic only.')].replace('CGSessionCopyCurrentDictionary()', 'testSessionDictionary()')
         harness=r'''
 import Foundation

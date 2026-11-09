@@ -1,7 +1,7 @@
-# Tacto access records
+# Haejo access records
 
-Tacto automatically records supported computer-use CLI invocations. Open
-**실행 기록 보기** from the app or menu bar to read them inside Tacto: search
+Haejo automatically records supported computer-use CLI invocations. Open
+**실행 기록 보기** from the app or menu bar to read them inside Haejo: search
 by app/task, filter failed or incomplete runs, select a run and follow its
 operation timeline, duration and result. New records refresh while the history
 window is active; closing/minimizing it or switching apps pauses refresh work.
@@ -9,7 +9,7 @@ window is active; closing/minimizing it or switching apps pauses refresh work.
 **설정** (also Command–comma) controls automatic logging, retention (7/30/90
 days), and **작업 중 배너 표시**. The fixed first task always brings its
 verified result document forward; it has no presentation setting. Disabling the banner hides only the upper-right panel; the existing
-Tacto menu shows active tasks and **현재 작업 중단**, and Esc still stops input.
+Haejo menu shows active tasks and **현재 작업 중단**, and Esc still stops input.
 When the banner is on but the target's windows leave no free corner on any
 screen (a maximized browser), the task continues the same way without the
 panel instead of being refused; a panel that exists but cannot be seen still
@@ -22,9 +22,9 @@ removes recognized local access receipts, preserving saved workflows and other
 files. Mac permissions and agent connection remain available through
 **Mac 권한·에이전트**.
 
-For file-level diagnostics, `tacto logs` lists recent filenames and `tacto logs
---json` returns metadata. `tacto logs --open` opens the underlying macOS folder,
-`~/Library/Application Support/Tacto/Logs/`. The app's normal record viewer does
+For file-level diagnostics, `haejo logs` lists recent filenames and `haejo logs
+--json` returns metadata. `haejo logs --open` opens the underlying macOS folder,
+`~/Library/Application Support/Haejo/Logs/`. The app's normal record viewer does
 not require navigating that folder.
 
 Each CLI invocation has one JSONL file with ordered command/access start and end
@@ -36,7 +36,7 @@ of only showing the exit code. First-task results also include the stage, failur
 and whether foreground presentation was verified. A missing end record means an
 interrupted or unknown outcome; it never authorizes repeating an input.
 
-These are Tacto's observable accesses, not the outer agent's full conversation
+These are Haejo's observable accesses, not the outer agent's full conversation
 or private reasoning. Screen trees, screenshots, field values, document titles,
 paths from input arguments, prompts and provider replies are not stored in the
 automatic access receipts. There is no automatic upload. Detailed screen/action
@@ -50,7 +50,7 @@ selectors, provider/item references, scope and expiry; local credential values
 are stored in macOS Keychain, not in these JSON files. See
 [credential delegation](../skill/references/credentials.md).
 
-The Tacto/Logs directories are owner-only on POSIX, with 0600 files. Receipts
+The Haejo/Logs directories are owner-only on POSIX, with 0600 files. Receipts
 are capped at approximately 1 MiB per invocation, 200 files, 20 MiB total and
 30 days by default (adjustable in the app). Cleanup occurs at the next logged invocation and only removes owned
 files matching the receipt naming scheme. A capped invocation records

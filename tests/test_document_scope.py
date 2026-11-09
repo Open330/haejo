@@ -7,8 +7,8 @@ import unittest
 from contextlib import redirect_stdout
 from unittest.mock import patch
 
-from tacto.cli import document_window_view, main
-from tacto.flow import Selector
+from haejo.cli import document_window_view, main
+from haejo.flow import Selector
 
 PATH = '/Users/x/저장 검증.txt'
 TREE = '\n'.join([
@@ -72,7 +72,7 @@ class DocumentScopeTests(unittest.TestCase):
         self.assertIsNone(Selector._attr('0 Window Title: "Document: \\"/owned/name\\" [focused]"','Document'))
 
     def test_window_quotes_are_single_line_and_title_cannot_add_document(self):
-        from tacto.document_label import quote_value
+        from haejo.document_label import quote_value
         title='fake, Document: "/owned/name" [focused]\n\u2028\x85'
         line='0 Window Title: '+quote_value(title)
         self.assertEqual(1,len(line.splitlines()))
@@ -80,7 +80,7 @@ class DocumentScopeTests(unittest.TestCase):
         self.assertIsNone(Selector._attr(line,'Document'))
 
     def test_literal_focus_marker_does_not_select_unfocused_window(self):
-        from tacto.cli import focused_window_view
+        from haejo.cli import focused_window_view
         tree=('0 Window Title: "decoy [focused]"\n  1 TextArea Identifier: First Text View\n'
               '2 Window Title: "actual" [focused]\n  3 TextArea Identifier: First Text View')
         selected=Selector(role='TextArea',identifier='First Text View',in_focused_window=True)
@@ -90,7 +90,7 @@ class DocumentScopeTests(unittest.TestCase):
         self.assertNotIn('1 TextArea',shown)
         self.assertIn('decoy [focused]',shown)
         self.assertNotIn('"decoy',shown)
-        from tacto.document_label import window_flag
+        from haejo.document_label import window_flag
         self.assertFalse(window_flag('0 Window Title: "bad [focused]" unexpected','focused'))
 
     def test_cli_prints_only_that_window_and_refuses_bad_arguments(self):
@@ -102,7 +102,7 @@ class DocumentScopeTests(unittest.TestCase):
             def observe(self, *a, **k):
                 assert k=={'document_token':'owned'}
                 return {'type': 'observation','document_token':'owned', 'tree':document_window_view(TREE,PATH)}
-        with patch('tacto.cli._make_driver', return_value=D()):
+        with patch('haejo.cli._make_driver', return_value=D()):
             out = io.StringIO()
             with redirect_stdout(out):
                 code = main(['observe', 'com.apple.TextEdit', '--document', PATH])

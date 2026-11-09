@@ -3,12 +3,12 @@
 To parameterize individual Calculator digit clicks, use `--digits`:
 
 ```sh
-tacto parameterize flows/calc_12x34.json -p 12=a -p 34=b -p 408=result \
+haejo parameterize flows/calc_12x34.json -p 12=a -p 34=b -p 408=result \
   --digits --derived='result={{a}} * {{b}}'
 ```
 
 This transforms recipe IR without running the UI or calling a model. A derived
-value uses bounded arithmetic, not Python evaluation. Read `tacto show <name>`
+value uses bounded arithmetic, not Python evaluation. Read `haejo show <name>`
 to inspect the saved recipe; replay with requested parameter values.
 
 ## Literal data

@@ -8,8 +8,8 @@ window, and found nothing — `calendar_reads_today` failed on a real week.
 import unittest
 from unittest.mock import patch
 
-from tacto import driver
-from tacto.flow import Selector, _where
+from haejo import driver
+from haejo.flow import Selector, _where
 
 
 TREE = "\n".join([

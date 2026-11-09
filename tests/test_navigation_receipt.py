@@ -3,8 +3,8 @@ import json
 import unittest
 from unittest.mock import patch
 
-from tacto.commit_evidence import CommitEvidence, NavigationEvidence, evidence_error, make_event
-from tacto.navigation_receipt import NavigationReceipt, normalized_url, page_url, window_identity, window_of
+from haejo.commit_evidence import CommitEvidence, NavigationEvidence, evidence_error, make_event
+from haejo.navigation_receipt import NavigationReceipt, normalized_url, page_url, window_identity, window_of
 
 URL = 'https://example.com/expected'
 FIELD = 'WEB_BROWSER_ADDRESS_AND_SEARCH_FIELD'
@@ -169,8 +169,8 @@ class ReceiptTests(unittest.TestCase):
 class ReplayTests(unittest.TestCase):
     def run_flow(self, loads, capability=True, before='https://old.example/'):
         from tests.test_bound_return import App, CAPS, step
-        from tacto.flow import Flow, Selector, Postcondition, replay, pin_params
-        from tacto.contract import ContextBinding
+        from haejo.flow import Flow, Selector, Postcondition, replay, pin_params
+        from haejo.contract import ContextBinding
 
         class Browser(App):
             def observe(self, *args, **kwargs):
@@ -187,7 +187,7 @@ class ReplayTests(unittest.TestCase):
                                          destination_identity_from={'identifier': FIELD, 'attribute': 'Value'}),
                   postcondition=Postcondition(field=Selector(identifier='navigation-status'),
                                               attribute='Value', equals='done'))
-        with patch('tacto.flow._approved', return_value=True):
+        with patch('haejo.flow._approved', return_value=True):
             return app, replay(app, Flow('navigate', 'com.apple.Safari', [st], schema=2))
 
     def test_a_loaded_destination_completes_the_replay(self):
@@ -199,7 +199,7 @@ class ReplayTests(unittest.TestCase):
 
     def test_another_page_stays_unverified_and_is_not_resent(self):
         from unittest.mock import patch as patching
-        from tacto.navigation_receipt import NavigationReceipt as Receipt
+        from haejo.navigation_receipt import NavigationReceipt as Receipt
         with patching.dict(Receipt.__init__.__kwdefaults__, {'timeout_seconds': 0.2, 'poll_interval': 0.05}):
             app, result = self.run_flow('https://example.com/login')
         self.assertEqual(1, len(app.calls))

@@ -5,7 +5,7 @@ import unittest
 from unittest import mock
 
 from tests.test_app_launch import Backend, PresentationTests
-from tacto.app_launch import activate_app, launch_app, present_app
+from haejo.app_launch import activate_app, launch_app, present_app
 
 
 class LockedBackend(PresentationTests.PresentationBackend):
@@ -34,13 +34,13 @@ class LockedScreenTests(unittest.TestCase):
         self.assertNotIn('hint', r)
 
     def test_native_backend_reads_lock_before_console(self):
-        from tacto.app_launch import NativeLaunchBackend
+        from haejo.app_launch import NativeLaunchBackend
         backend = NativeLaunchBackend.__new__(NativeLaunchBackend)
         for state, problem in (({'locked': True, 'on_console': True}, 'screen_locked'),
                                ({'locked': False, 'on_console': True}, None),
                                ({'locked': None, 'on_console': True}, 'gui_session_unavailable'),
                                ({'locked': False, 'on_console': None}, 'gui_session_unavailable')):
-            with self.subTest(state=state), mock.patch('tacto.session.lock_state', return_value=state):
+            with self.subTest(state=state), mock.patch('haejo.session.lock_state', return_value=state):
                 self.assertEqual(problem, backend.session_problem())
                 self.assertEqual(problem is None, backend.session_ready())
 
@@ -49,7 +49,7 @@ class KeepAwakeTests(unittest.TestCase):
     """Fake processes: pid -> (start time, command) as /bin/ps reports them."""
 
     def harness(self, folder):
-        from tacto import session
+        from haejo import session
         live, killed, started = {}, [], []
 
         class Proc:
@@ -120,7 +120,7 @@ class KeepAwakeTests(unittest.TestCase):
             self.assertEqual({}, live)      # every holder started was stopped, none left running
 
     def test_a_holder_that_cannot_be_recorded_is_ended(self):
-        from tacto import session
+        from haejo import session
         ended = []
 
         class Proc:
@@ -131,7 +131,7 @@ class KeepAwakeTests(unittest.TestCase):
         self.assertEqual([9], ended)
 
     def test_bounds_and_usage(self):
-        from tacto import session, cli
+        from haejo import session, cli
         for bad in (0, 481, 1.5, '60'):
             with self.subTest(bad=bad), self.assertRaises(ValueError):
                 session.keep_awake_for(bad, state_dir='/nonexistent', run=None)
@@ -141,10 +141,10 @@ class KeepAwakeTests(unittest.TestCase):
                 with self.subTest(argv=argv):
                     self.assertEqual(2, cli.main(argv))
             with mock.patch('sys.platform', 'darwin'), \
-                 mock.patch('tacto.session.keep_awake_for', side_effect=RuntimeError('unverified')):
+                 mock.patch('haejo.session.keep_awake_for', side_effect=RuntimeError('unverified')):
                 self.assertEqual(1, cli.main(['keep-awake', '--minutes', '30']))
             with mock.patch('sys.platform', 'darwin'), \
-                 mock.patch('tacto.session.stop_keep_awake', return_value={'stopped': False, 'unverified': True}):
+                 mock.patch('haejo.session.stop_keep_awake', return_value={'stopped': False, 'unverified': True}):
                 self.assertEqual(1, cli.main(['keep-awake', '--stop']))
 
 

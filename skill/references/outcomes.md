@@ -11,7 +11,7 @@ toggle, say so with `skip_if` instead.
 
 **Name the surprises a step expects** with `"on_uncertain"`, when a step can
 meet a screen no recipe can predict — a dialog left open by an earlier run, a
-list whose rows are ambiguous. Given a budget (`tacto do --think`), such a step
+list whose rows are ambiguous. Given a budget (`haejo do --think`), such a step
 hands the surprise back for one judgment instead of ending the run; without one
 it fails with that error as usual. Values: `target_ambiguous`, `target_missing`,
 `action_failed`, `postcondition_timeout`. Declare it only where judgment is

@@ -4,7 +4,7 @@ import threading
 import time
 import unittest
 
-from tacto.flow_session import MAX_FLOW_BYTES, read_flow_line
+from haejo.flow_session import MAX_FLOW_BYTES, read_flow_line
 
 
 class WindowsSessionInputTests(unittest.TestCase):
@@ -40,7 +40,7 @@ class WindowsSessionInputTests(unittest.TestCase):
 
 class BoundedReaderTests(unittest.TestCase):
     def test_the_reader_does_not_run_ahead_of_its_consumer(self):
-        from tacto.flow_session import _windows_reader
+        from haejo.flow_session import _windows_reader
         read_fd, write_fd = os.pipe()
         total = 32 * 65536
         written = []

@@ -9,12 +9,12 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
-from tacto import ask_provider
-from tacto.helper import InheritedHelperDriver
-from tacto.provider_images import encode_image, decode_image
-from tacto.provider_observation import capture_provider_calls
-from tacto.provider_result import ProviderResult, ProviderError
-from tacto.visual import VisualCapture, VisualError, query_visual
+from haejo import ask_provider
+from haejo.helper import InheritedHelperDriver
+from haejo.provider_images import encode_image, decode_image
+from haejo.provider_observation import capture_provider_calls
+from haejo.provider_result import ProviderResult, ProviderError
+from haejo.visual import VisualCapture, VisualError, query_visual
 
 PNG=b'\x89PNG\r\n\x1a\nprivate own pixels'
 ROOT=Path(__file__).resolve().parents[1]
@@ -63,7 +63,7 @@ class ImageRelayTests(unittest.TestCase):
             driver.ask_launcher_result.side_effect=TimeoutError('private failure') if status=='timeout' else None
             with patch.object(InheritedHelperDriver,'available',return_value=True), \
                  patch.object(InheritedHelperDriver,'__new__',return_value=driver), \
-                 patch('tacto.claude_result.claude_result') as direct, capture_provider_calls() as calls:
+                 patch('haejo.claude_result.claude_result') as direct, capture_provider_calls() as calls:
                 if status=='ok':
                     answer=query_visual(capture,'green?',provider='claude',model='requested')
                     self.assertEqual('green',answer['answer'])
@@ -80,8 +80,8 @@ class ImageRelayTests(unittest.TestCase):
         stdout=io.StringIO()
         with patch('sys.argv',['ask_provider','--image-envelope','--result-envelope','--provider','claude','--timeout','2']), \
              patch('sys.stdin',io.StringIO(body)),patch('sys.stdout',stdout), \
-             patch('tacto.claude_result.claude_result',return_value=result()) as claude, \
-             patch('tacto.authoring.ask_model_result') as text:
+             patch('haejo.claude_result.claude_result',return_value=result()) as claude, \
+             patch('haejo.authoring.ask_model_result') as text:
             self.assertEqual(0,ask_provider.main())
         claude.assert_called_once_with('own image question',model='requested',timeout=2,image_bytes=PNG)
         text.assert_not_called();self.assertEqual(10,json.loads(stdout.getvalue())['input_tokens'])
@@ -92,12 +92,12 @@ class ImageRelayTests(unittest.TestCase):
                               ('claude',{'prompt':'q','image':encode_image(PNG),'model':'--tool'})]:
             with patch('sys.argv',['ask_provider','--image-envelope','--result-envelope','--provider',provider]), \
                  patch('sys.stdin',io.StringIO(json.dumps(body))),patch('sys.stdout',io.StringIO()), \
-                 patch('sys.stderr',io.StringIO()),patch('tacto.claude_result.claude_result') as call:
+                 patch('sys.stderr',io.StringIO()),patch('haejo.claude_result.claude_result') as call:
                 self.assertEqual(1,ask_provider.main());call.assert_not_called()
 
     @unittest.skipUnless(sys.platform=='darwin' and shutil.which('swift'),'Swift required')
     def test_actual_launcher_rejects_noncanonical_images_and_wrong_routes(self):
-        source=(ROOT/'launcher/tacto.swift').read_text()
+        source=(ROOT/'launcher/haejo.swift').read_text()
         schema=source[source.index('let allowedTypes:'):source.index('// MARK: - Socket plumbing')]
         requests=[{'type':'ask','prompt':'own question','provider':'claude','image':encode_image(PNG),'model':'requested'}]
         for provider in ('auto','opencode','/bin/tool'):

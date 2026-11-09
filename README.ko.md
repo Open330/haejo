@@ -2,20 +2,20 @@
 
 <div align="center">
 
-![Tacto — Agents use apps. Tacto repeats.](docs/assets/tacto-banner.svg)
+![Haejo — Agents use apps. Haejo repeats.](docs/assets/haejo-banner.svg)
 
 ### 에이전트의 앱 조작을 저장하고, 다음에도 실행하세요.
 
-**Tacto는 에이전트가 브라우저와 Mac 앱을 조작하게 하는 도구입니다.**<br>
+**Haejo는 에이전트가 브라우저와 Mac 앱을 조작하게 하는 도구입니다.**<br>
 에이전트가 화면을 읽고 클릭·입력하는 작업을 Flow라는 실행 순서로 저장합니다.<br>
 같은 작업은 입력값만 바꿔 재생하고, 결과를 확인하세요.<br>
-**에이전트가 어떤 앱에서 무엇을 했는지, Tacto 실행 기록에서 직접 확인하세요.**
+**에이전트가 어떤 앱에서 무엇을 했는지, Haejo 실행 기록에서 직접 확인하세요.**
 
 [![macOS](docs/assets/badge-macos.svg)](docs/installation.md)
 [![Claude + Codex](docs/assets/badge-agents.svg)](skill/SKILL.md)
 [![Status](docs/assets/badge-status.svg)](#getting-started)
 
-[시작하기](#getting-started) &nbsp;·&nbsp; [작동 방식](#how-it-works) &nbsp;·&nbsp; [벤치마크](#benchmarks) &nbsp;·&nbsp; [온보딩 웹사이트](sites/tacto/README.md) &nbsp;·&nbsp; [문서](#documentation)
+[시작하기](#getting-started) &nbsp;·&nbsp; [작동 방식](#how-it-works) &nbsp;·&nbsp; [벤치마크](#benchmarks) &nbsp;·&nbsp; [온보딩 웹사이트](sites/haejo/README.md) &nbsp;·&nbsp; [문서](#documentation)
 
 </div>
 
@@ -23,7 +23,7 @@
 
 ## 실제 앱에서 이런 일을 맡깁니다
 
-[![실제 Wikipedia 화면에서 검색·이동하는 Tacto 실행](docs/assets/tacto-wikipedia-demo.gif)](sites/tacto/dist/assets/demos/browser-wikipedia.mp4)
+[![실제 Wikipedia 화면에서 검색·이동하는 Haejo 실행](docs/assets/haejo-wikipedia-demo.gif)](sites/haejo/dist/assets/demos/browser-wikipedia.mp4)
 
 **실제 앱·웹사이트 8개와 공개 테스트 2개, 총 10개 상황의 실행 영상**을 제공합니다.
 위 GIF는 실제 실행 영상의 미리보기입니다. 클릭하면 원본 MP4를 볼 수 있습니다.
@@ -31,20 +31,20 @@ GitHub의 접근성 설정에서 애니메이션 자동재생을 끄면 정지 �
 
 | 앱·사이트 | 맡긴 작업과 확인한 결과 | 실제 영상 |
 | :--- | :--- | :--- |
-| TextEdit | 워크숍 메모 입력 후 별도 저장 검증으로 디스크·문서 내용 일치 확인 | [약 10초](sites/tacto/dist/assets/demos/native-textedit.mp4) |
-| Finder | 파일 종류 정렬 → 이름 오름차순 정렬, 파일 5개 확인 | [약 8초](sites/tacto/dist/assets/demos/native-finder.mp4) |
-| Google 번역 | 영어 합성 예문 입력 → 한국어 출력 별도 확인 | [약 7초](sites/tacto/dist/assets/demos/browser-translate.mp4) |
-| GitHub | 열린 버그만 필터링하고 댓글 많은 순서로 조회 | [약 9초](sites/tacto/dist/assets/demos/browser-github.mp4) |
-| UnitConverters.net | 3.5 m → 11.482939633 ft, 별도 계산식과 대조 | [약 9초](sites/tacto/dist/assets/demos/browser-units.mp4) |
-| Markdown Live Preview | 기존 예제 앞부분을 계획으로 수정, 제목·목록·굵은 글씨 확인 | [약 18초](sites/tacto/dist/assets/demos/browser-markdown.mp4) |
-| Wikipedia | Seoul 검색 후 History 항목 도착 | [약 14초](sites/tacto/dist/assets/demos/browser-wikipedia.mp4) |
-| Mac 계산기 | 같은 Flow에 다른 입력값을 넣어 15·12 확인 | [약 14초](sites/tacto/dist/assets/demos/calculator-guided.mp4) |
+| TextEdit | 워크숍 메모 입력 후 별도 저장 검증으로 디스크·문서 내용 일치 확인 | [약 10초](sites/haejo/dist/assets/demos/native-textedit.mp4) |
+| Finder | 파일 종류 정렬 → 이름 오름차순 정렬, 파일 5개 확인 | [약 8초](sites/haejo/dist/assets/demos/native-finder.mp4) |
+| Google 번역 | 영어 합성 예문 입력 → 한국어 출력 별도 확인 | [약 7초](sites/haejo/dist/assets/demos/browser-translate.mp4) |
+| GitHub | 열린 버그만 필터링하고 댓글 많은 순서로 조회 | [약 9초](sites/haejo/dist/assets/demos/browser-github.mp4) |
+| UnitConverters.net | 3.5 m → 11.482939633 ft, 별도 계산식과 대조 | [약 9초](sites/haejo/dist/assets/demos/browser-units.mp4) |
+| Markdown Live Preview | 기존 예제 앞부분을 계획으로 수정, 제목·목록·굵은 글씨 확인 | [약 18초](sites/haejo/dist/assets/demos/browser-markdown.mp4) |
+| Wikipedia | Seoul 검색 후 History 항목 도착 | [약 14초](sites/haejo/dist/assets/demos/browser-wikipedia.mp4) |
+| Mac 계산기 | 같은 Flow에 다른 입력값을 넣어 15·12 확인 | [약 14초](sites/haejo/dist/assets/demos/calculator-guided.mp4) |
 
-<a href="sites/tacto/dist/assets/demos/native-textedit.mp4"><img src="sites/tacto/dist/assets/demos/native-textedit-poster.png" alt="실제 TextEdit 문서 입력과 저장 상태 확인" width="48%"></a>
-<a href="sites/tacto/dist/assets/demos/native-finder.mp4"><img src="sites/tacto/dist/assets/demos/native-finder-poster.png" alt="실제 Finder에서 파일 정렬" width="48%"></a>
+<a href="sites/haejo/dist/assets/demos/native-textedit.mp4"><img src="sites/haejo/dist/assets/demos/native-textedit-poster.png" alt="실제 TextEdit 문서 입력과 저장 상태 확인" width="48%"></a>
+<a href="sites/haejo/dist/assets/demos/native-finder.mp4"><img src="sites/haejo/dist/assets/demos/native-finder-poster.png" alt="실제 Finder에서 파일 정렬" width="48%"></a>
 
-공개 테스트 환경의 [상품 확인](sites/tacto/dist/assets/demos/browser-shopping.mp4)과
-[폼 작성](sites/tacto/dist/assets/demos/browser-form.mp4)도 제공합니다. 구매·등록은 하지 않았습니다.
+공개 테스트 환경의 [상품 확인](sites/haejo/dist/assets/demos/browser-shopping.mp4)과
+[폼 작성](sites/haejo/dist/assets/demos/browser-form.mp4)도 제공합니다. 구매·등록은 하지 않았습니다.
 브라우저 사례는 **Python BrowserDriver + Flow가 여는 별도 Chromium**이며 개인 Chrome·Safari 탭 연결은 지원 범위 밖입니다.
 
 TextEdit 입력은 저장 증거 부족으로 멈춘 뒤 별도 Save의 저장 상태 검증이 통과했습니다.
@@ -52,34 +52,34 @@ Google 번역도 입력 전송의 전달 증명과 화면의 한국어 출력 �
 Markdown은 나머지 예제가 남는 부분 수정입니다. 모든 사례가 자동으로 끝까지 완료됐다는 주장은 하지 않습니다.
 영상에는 설명용 포인터와 촬영 대기가 포함되어 속도·토큰 벤치마크로 사용할 수 없습니다.
 
-[10개 사례의 실제 조건·결과·한계](docs/tacto-everyday-examples-2026-10-15.md) ·
-[온보딩 페이지](sites/tacto/README.md)
+[10개 사례의 실제 조건·결과·한계](docs/haejo-everyday-examples-2026-10-15.md) ·
+[온보딩 페이지](sites/haejo/README.md)
 
 ## 반복 재사용을 확인한 자체 테스트 앱
 
-[![Tacto가 자체 macOS 테스트 앱에서 실제로 입력·계산·검토한 결과](sites/tacto/dist/assets/demos/workflow-guided-poster.png)](sites/tacto/dist/assets/demos/workflow-guided.mp4)
+[![Haejo가 자체 macOS 테스트 앱에서 실제로 입력·계산·검토한 결과](sites/haejo/dist/assets/demos/workflow-guided-poster.png)](sites/haejo/dist/assets/demos/workflow-guided.mp4)
 
 **실제 앱 창 촬영에 조작 위치를 보여주는 안내 포인터를 추가했습니다.** 자체 macOS 테스트 앱에서 같은 11단계 Flow를
 다른 입력값으로 5회 재생했습니다. 결과 89·34·62·79·108과 작업별 완료 1회를 확인했습니다.
 
-[반복 작업 영상 · 약 17초](sites/tacto/dist/assets/demos/workflow-guided.mp4) ·
-[실제 계산기 영상 · 약 14초](sites/tacto/dist/assets/demos/calculator-guided.mp4) ·
-[계산기 원본 스크린샷](sites/tacto/dist/assets/demos/calculator-result.png) ·
-[촬영 조건과 한계](docs/tacto-recorded-demos-2026-10-15.md)
+[반복 작업 영상 · 약 17초](sites/haejo/dist/assets/demos/workflow-guided.mp4) ·
+[실제 계산기 영상 · 약 14초](sites/haejo/dist/assets/demos/calculator-guided.mp4) ·
+[계산기 원본 스크린샷](sites/haejo/dist/assets/demos/calculator-result.png) ·
+[촬영 조건과 한계](docs/haejo-recorded-demos-2026-10-15.md)
 
 포인터·클릭 효과는 설명용으로 추가했으며 실제 시스템 커서 이동 기록이 아닙니다.
-[반복 작업 원본](sites/tacto/dist/assets/demos/workflow-replay.mp4) · [계산기 원본](sites/tacto/dist/assets/demos/calculator.mp4)도 제공합니다.
+[반복 작업 원본](sites/haejo/dist/assets/demos/workflow-replay.mp4) · [계산기 원본](sites/haejo/dist/assets/demos/calculator.mp4)도 제공합니다.
 영상은 작성된 Flow의 실행을 보여주며 자연어 작성 과정의 녹화가 아닙니다.
 테스트 앱은 상용 업무 앱이 아닙니다. 정상 재생 중 모델 호출은 없지만 최초 작성 비용은 별도입니다.
 
 ## 에이전트가 한 일을 직접 확인하세요
 
-**작업은 맡기고, 접근 내역은 확인하세요.** Tacto를 통해 접근한 앱과 수행한
+**작업은 맡기고, 접근 내역은 확인하세요.** Haejo를 통해 접근한 앱과 수행한
 동작, 결과, 소요 시간을 앱 안의 실행 기록에서 볼 수 있습니다. 작업을 검색하고,
 실패하거나 완료를 확인하지 못한 실행을 골라 단계별 타임라인을 확인하세요.
 로그 폴더를 찾아갈 필요가 없습니다.
 
-![실제 접근 기록 여러 개와 선택한 TextEdit 작업의 동작·결과·시간을 함께 보여주는 앱 미리보기](sites/tacto/dist/assets/tacto-activity.png)
+![실제 접근 기록 여러 개와 선택한 TextEdit 작업의 동작·결과·시간을 함께 보여주는 앱 미리보기](sites/haejo/dist/assets/haejo-activity.png)
 
 기록은 이 Mac에 저장됩니다. 설정에서 자동 저장과 보관 기간(7·30·90일)을
 선택할 수 있습니다. 화면 내용·입력값·프롬프트와 에이전트의 내부 추론은
@@ -96,7 +96,7 @@ rc.11은 앱 설정에서 Vault 연결과 위임 파일의 끌어놓기·검토�
 에이전트가 앱 화면을 읽고 버튼을 누르고 내용을 입력합니다.
 이처럼 사용자를 대신해 컴퓨터를 조작하는 기능을 **computer use**라고 부릅니다.
 처음에는 에이전트가 앱을 관찰하고 작업 방법을 만듭니다. 그 흐름을 **Flow**로 저장하면,
-다음에는 입력값을 바꿔 다시 실행할 수 있습니다. 대상을 찾고, 동작하고, 결과를 확인하는 반복은 Tacto 런타임이 맡습니다.
+다음에는 입력값을 바꿔 다시 실행할 수 있습니다. 대상을 찾고, 동작하고, 결과를 확인하는 반복은 Haejo 런타임이 맡습니다.
 
 | 한 번 작성 | 여러 번 실행 | 필요한 순간에 개입 |
 | :--- | :--- | :--- |
@@ -109,13 +109,13 @@ rc.11은 앱 설정에서 Vault 연결과 위임 파일의 끌어놓기·검토�
 
 | 맡긴 일 | 앱에서 수행한 동작 | 확인한 결과 |
 | :--- | :--- | :--- |
-| 텍스트 문서 작성·저장 | TextEdit에서 내용을 편집하고 저장한 파일과 문서 내용을 대조 | Tacto 1회 성공, 최종 내용 일치 |
+| 텍스트 문서 작성·저장 | TextEdit에서 내용을 편집하고 저장한 파일과 문서 내용을 대조 | Haejo 1회 성공, 최종 내용 일치 |
 | 여러 건의 같은 양식 처리 | 값 입력·검토·계산·완료 확인까지 11단계 재생 | 자체 테스트 앱에서 서로 다른 10건 모두 완료, 재생 중 모델 호출 0회 |
 | 버튼 변경 후 이어서 실행 | 변경된 계산·검토 버튼을 해당 단계에서 수리하고 계속 실행 | 자체 테스트 앱의 한 작업에서 버튼 2개 수리 후 완료, 모델 호출 2회 |
 
 [TextEdit 실행 기록](docs/benchmark-records.md#정확한-textedit-저장-상태의-실제-비교) ·
-[반복·복구 실행 기록](docs/tacto-complex-scenarios-2026-10-14.md) ·
-[사례를 보여주는 랜딩페이지](sites/tacto/README.md)
+[반복·복구 실행 기록](docs/haejo-complex-scenarios-2026-10-14.md) ·
+[사례를 보여주는 랜딩페이지](sites/haejo/README.md)
 
 문서 저장은 단회 관측이고, 반복·복구는 개발 버전의 자체 앱에서 검증했습니다.
 다른 업무 앱의 호환성·문서 형식·반복 안정성은 별도로 확인해야 합니다.
@@ -124,15 +124,15 @@ rc.11은 앱 설정에서 Vault 연결과 위임 파일의 끌어놓기·검토�
 서명된 macOS 도우미에서 [같은 창 안의 드래그](docs/native-drag.md)를 지원합니다. 슬라이더·텍스트 선택·캔버스 경로를 AppKit과 실제 TextEdit에서 확인했습니다. 앱 사이의 파일 드롭은 이 경로의 지원 범위에 포함되지 않습니다.
 
 ```sh
-tacto capture <bundle-id> --helper --window 'Exact title' --output window.png
-tacto drag <bundle-id> --helper --window 'Exact title' --from 20 80 --to 220 80
-tacto resize <bundle-id> --helper --window 'Exact title' --width 600 --height 360
+haejo capture <bundle-id> --helper --window 'Exact title' --output window.png
+haejo drag <bundle-id> --helper --window 'Exact title' --from 20 80 --to 220 80
+haejo resize <bundle-id> --helper --window 'Exact title' --width 600 --height 360
 ```
 
-실제 커서 위치에 반응하는 앱(마우스를 올렸을 때의 효과, 커서를 피하는 캐릭터)은 `tacto hover`로 시험합니다. 버튼을 누르지 않고 관찰한 창 안으로 커서를 옮기고, 커서가 그 자리에 있는 동안 창을 캡처할 수 있으며, 끝나면 커서를 원래 자리로 돌려놓습니다. 그 사이 사용자가 마우스를 움직이면 즉시 멈춥니다. [hover 안내](skill/references/hover.md).
+실제 커서 위치에 반응하는 앱(마우스를 올렸을 때의 효과, 커서를 피하는 캐릭터)은 `haejo hover`로 시험합니다. 버튼을 누르지 않고 관찰한 창 안으로 커서를 옮기고, 커서가 그 자리에 있는 동안 창을 캡처할 수 있으며, 끝나면 커서를 원래 자리로 돌려놓습니다. 그 사이 사용자가 마우스를 움직이면 즉시 멈춥니다. [hover 안내](skill/references/hover.md).
 
 ```sh
-tacto hover <bundle-id> --helper --to 120 80 --hold 1 --capture during.png
+haejo hover <bundle-id> --helper --to 120 80 --hold 1 --capture during.png
 ```
 
 <a id="how-it-works"></a>
@@ -141,21 +141,21 @@ tacto hover <bundle-id> --helper --to 120 80 --hold 1 --capture during.png
 
 ```text
 처음     Claude / Codex → 앱 관찰 → Flow 작성·저장
-다음     저장한 Flow + 새 입력값 → Tacto 실행·결과 확인
-반복     같은 Flow + 다른 입력값 → Tacto 실행·결과 확인
+다음     저장한 Flow + 새 입력값 → Haejo 실행·결과 확인
+반복     같은 Flow + 다른 입력값 → Haejo 실행·결과 확인
 ```
 
 보고서 입력, 여러 항목 처리, 같은 앱에서 반복하는 다단계 작업에 재사용할 수 있는 실행 단위를 만듭니다.
-Tacto는 실행할 때 대상을 새 관찰에서 찾고 결과 조건을 검사합니다.
+Haejo는 실행할 때 대상을 새 관찰에서 찾고 결과 조건을 검사합니다.
 
 <details>
 <summary>화면이 바뀌거나 완료 여부가 불확실하면?</summary>
 
 개발 버전의 자동 수리는 지원되는 정적 선택자 실패에 대해 필요한 후보만 에이전트에 전달합니다.
 확인된 checkpoint 이후부터 재개하며, 이미 완료됐을 수 있는 동작은 그대로 다시 보내지 않습니다.
-모든 UI 변화나 crash를 복구하는 기능은 아닙니다. [자동 개입의 지원 범위](docs/tacto-auto-repair-2026-10-14.md)
+모든 UI 변화나 crash를 복구하는 기능은 아닙니다. [자동 개입의 지원 범위](docs/haejo-auto-repair-2026-10-14.md)
 
-네이티브 작업 상태와 **현재 작업 중단**은 기존 Tacto 메뉴 막대 아이콘에서 확인합니다. 도우미 아이콘을 별도로 만들지 않으며, Esc로도 중단할 수 있습니다. **설정 → 작업 중 배너 표시**를 끄면 다음 작업부터 우상단 배너를 숨깁니다.
+네이티브 작업 상태와 **현재 작업 중단**은 기존 Haejo 메뉴 막대 아이콘에서 확인합니다. 도우미 아이콘을 별도로 만들지 않으며, Esc로도 중단할 수 있습니다. **설정 → 작업 중 배너 표시**를 끄면 다음 작업부터 우상단 배너를 숨깁니다.
 
 </details>
 
@@ -166,12 +166,12 @@ Tacto는 실행할 때 대상을 새 관찰에서 찾고 결과 조건을 검사
 **macOS용 1.0.0-rc.13 정식 출시 후보**입니다.
 README는 한국어·영어로 제공하며, 앱 온보딩과 상세 가이드는 현재 주로 한국어입니다.
 
-공개 배포본은 Apple Silicon용 **Tacto.app과 DMG의 Developer ID 서명·Apple 공증·Gatekeeper 검사**를 거쳐 제공합니다.
+공개 배포본은 Apple Silicon용 **Haejo.app과 DMG의 Developer ID 서명·Apple 공증·Gatekeeper 검사**를 거쳐 제공합니다.
 [Release 페이지](https://github.com/Open330/tacto/releases)에서 배포 상태와 첨부 파일을 확인하세요.
-[Tacto 출시 후보 다운로드](https://github.com/Open330/tacto/releases/tag/v1.0.0-rc.13) · Apple Silicon · macOS 27.0.1 · 출시 후보(정식 안정 버전 아님).
+[Haejo 출시 후보 다운로드](https://github.com/Open330/tacto/releases/tag/v1.0.0-rc.13) · Apple Silicon · macOS 27.0.1 · 출시 후보(정식 안정 버전 아님).
 
 1.0.0-rc.13은 승인한 비밀번호 입력의 강제 사람 전환과 별도 Vault 등록 요구를 제거합니다. 비밀값을 에이전트에 노출하지 않는 선택형 Vault 로그인은 유지합니다. 같은 앱의 독립 AX 창도 명시적 창 범위로 병렬 처리하고, 같은 창·앱 전체·입력 자원 충돌은 전송 전에 대기합니다. 취소한 요청은 나중에 실행하지 않습니다. 실제 macOS 암호 필드와 Safari의 값 수신·포커스 이동 후 유지·로그 가림, 창 병렬 실행과 대기·재개를 검증했습니다. 회귀 3,046건, 사유 있는 제외20건이며 남은 실패·오류는 없습니다. 초기 문서 링크 누락과 수정 후 재검증은 릴리즈 검증 기록에 구분했습니다. 신규 서명·공증, 산출물·보안 검사, 세 Mac 동일 번들 설치와 기존 권한·데이터 보존을 확인했습니다. 정식 안정 버전의 검증은 별도입니다.
-DMG를 다운로드했다면 `Tacto.app`을 `Applications`로 드래그한 뒤 앱의 시작 안내를 따릅니다.
+DMG를 다운로드했다면 `Haejo.app`을 `Applications`로 드래그한 뒤 앱의 시작 안내를 따릅니다.
 이 방식에는 사용자의 개발용 인증서나 소스 빌드가 필요하지 않습니다.
 
 rc.13 배포본은 소스 `f9f85c8` 기준입니다. 설치한 앱에 연결된 스킬이 해당 버전의 안내입니다.
@@ -180,7 +180,7 @@ rc.13 배포본은 소스 `f9f85c8` 기준입니다. 설치한 앱에 연결된 
 
 설정 후 **첫 작업 시작**을 누르면 설치된 Claude Code·Codex를 감지해 새 CLI 대화를 엽니다. 명령 하나로 TextEdit 실행·새 문서 생성·환영 문구 입력과 확인을 처리하며, 내부 모델 호출은 없습니다. 에이전트 CLI 자체의 최초 신뢰·로그인 확인은 나타날 수 있습니다.
 
-Tacto는 Dock 아이콘 없이 메뉴 막대에서 실행됩니다. 설정 창을 닫아도 백그라운드에 남으며, 메뉴 막대 아이콘에서 설정을 다시 열거나 종료할 수 있습니다.
+Haejo는 Dock 아이콘 없이 메뉴 막대에서 실행됩니다. 설정 창을 닫아도 백그라운드에 남으며, 메뉴 막대 아이콘에서 설정을 다시 열거나 종료할 수 있습니다.
 
 Mac 3대에서 설치·권한·Claude/Codex 연결·업데이트를 확인했고, 두 번째 Mac에서 새 Claude Code·Codex 대화가 Finder 첫 작업을 완료했습니다. 다른 macOS 버전, 사람이 직접 하는 새 설치와 베타 검증은 남아 있습니다. Windows·Intel Mac 빌드는 제공하지 않습니다.
 기존 개발용 서명에서의 실제 앱 검증은 Finder·Safari 40회 성공, TextEdit 저장은 사용자가 앱을 앞으로 가져온 뒤 재시도 20/20 성공입니다.
@@ -192,22 +192,22 @@ Apple 발급 코드 서명 인증서가 필요합니다. 런처·도우미를 �
 
 ```sh
 git clone https://github.com/Open330/tacto.git
-cd tacto
+cd haejo
 uv sync
 ./build.sh
 ./skill/install.sh
-~/.local/bin/tacto doctor
+~/.local/bin/haejo doctor
 ```
 
-`doctor`와 앱의 ‘허용할 앱’ 안내에 따라 **Tacto Helper**의 macOS 권한을 허용한 뒤, Claude 또는 Codex에 요청하세요.
+`doctor`와 앱의 ‘허용할 앱’ 안내에 따라 **Haejo Helper**의 macOS 권한을 허용한 뒤, Claude 또는 Codex에 요청하세요.
 
-> Tacto 스킬로 계산기에서 12 × 34를 계산하고 결과를 확인해줘.<br>
+> Haejo 스킬로 계산기에서 12 × 34를 계산하고 결과를 확인해줘.<br>
 > 같은 작업을 다시 쓸 수 있도록 매개변수가 있는 Flow로 저장해줘.
 
 저장한 Flow 파일을 실행할 때는:
 
 ```sh
-~/.local/bin/tacto run flow.json --helper
+~/.local/bin/haejo run flow.json --helper
 ```
 
 [설치·권한 안내](docs/installation.md) · [Windows(실험적)](docs/windows.md) · [Flow 작성 가이드](docs/recipes.md) · [에이전트 스킬](skill/SKILL.md)
@@ -216,18 +216,18 @@ uv sync
 <summary>설치 문제와 개발 버전의 반복 실행</summary>
 
 스킬을 찾지 못하면 에이전트 세션을 다시 열고 `./skill/install.sh --check`로 연결을 확인하세요.
-Python 배포 이름은 `tacto-runtime`이고 기본 import는 `tacto`입니다.
+Python 배포 이름은 `haejo-runtime`이고 기본 import는 `haejo`입니다.
 Python wheel만으로는 서명된 macOS 런처·helper를 사용할 수 없습니다.
-권한용 앱은 **Tacto Helper**(`helper/Tacto Helper.app/Contents/MacOS/TactoHelper`)이고 실행기는 `launcher/tacto`입니다. 번들 식별자와 서명 요구조건은 `ai.callabo.tacto.*`를 사용합니다.
+권한용 앱은 **Haejo Helper**(`helper/Haejo Helper.app/Contents/MacOS/HaejoHelper`)이고 실행기는 `launcher/haejo`입니다. 번들 식별자와 서명 요구조건은 `ai.callabo.haejo.*`를 사용합니다.
 
-> **Python 이름 충돌 주의.** 최상위 import 이름 `tacto`는 PyPI의 다른 패키지(촉각 센서 시뮬레이터)도 사용합니다. 이 프로젝트의 배포 이름은 `tacto-runtime`이며 별도 가상환경에 설치하세요. Tacto를 위해 `pip install tacto`를 실행하지 마세요. 두 패키지를 한 환경에 설치하면 서로의 파일을 덮어쓸 수 있습니다.
+> **Python 이름 충돌 주의.** 최상위 import 이름 `haejo`는 PyPI의 다른 패키지(촉각 센서 시뮬레이터)도 사용합니다. 이 프로젝트의 배포 이름은 `haejo-runtime`이며 별도 가상환경에 설치하세요. Haejo를 위해 `pip install haejo`를 실행하지 마세요. 두 패키지를 한 환경에 설치하면 서로의 파일을 덮어쓸 수 있습니다.
 선택적 Playwright backend는 별도 Chromium 페이지를 사용합니다.
 
 다음 batch·자동 수리 명령은 개발 checkout 기준이며 아직 기본 브랜치의 배포 기능이 아닙니다.
 
 ```sh
-~/.local/bin/tacto batch template.json --helper < jobs.jsonl
-~/.local/bin/tacto batch template.json --helper --auto-repair codex < jobs.jsonl
+~/.local/bin/haejo batch template.json --helper < jobs.jsonl
+~/.local/bin/haejo batch template.json --helper --auto-repair codex < jobs.jsonl
 ```
 
 </details>
@@ -236,17 +236,17 @@ Python wheel만으로는 서명된 macOS 런처·helper를 사용할 수 없습�
 
 ## 반복 추론을 줄이면 무엇이 달라질까요?
 
-**개발 버전의 Tacto·Sky 비교에서 전체 입력 토큰 53.5% 감소를 관측했습니다.**
+**개발 버전의 Haejo·Sky 비교에서 전체 입력 토큰 53.5% 감소를 관측했습니다.**
 같은 요청 모델·추론 강도와 테스트 앱의 초기 상태를 맞춘 독립 새 대화 3쌍의 결과입니다.
 
-| 지표 | Tacto | Sky |
+| 지표 | Haejo | Sky |
 | :--- | ---: | ---: |
 | 작업 성공 | 3/3 | 3/3 |
 | 전체 입력 토큰 | **201,447** | 433,312 |
 | 평균 시간 | **42.10초** | 46.17초 |
 
 작은 표본의 관측값입니다. 모든 작업에서 더 빠르다는 뜻은 아니며 한 케이스에서는 Sky가 더 빨랐습니다.
-[측정 조건과 전체 결과 →](docs/tacto-matched-comparison-2026-10-14.md)
+[측정 조건과 전체 결과 →](docs/haejo-matched-comparison-2026-10-14.md)
 
 <details>
 <summary>캐시·출력·복잡한 Flow 재사용 결과</summary>
@@ -255,30 +255,30 @@ Python wheel만으로는 서명된 macOS 런처·helper를 사용할 수 없습�
 최초 작성·실행·최종 응답을 포함하고 테스트 준비 시간은 제외했습니다.
 실제 serving model·서버 캐시·청구비용은 미확인입니다.
 
-- 캐시 읽기 제외 입력: Tacto 22,119 / Sky 50,592 (**56.3% 감소**).
-- 출력: Tacto 1,605 / Sky 1,604.
+- 캐시 읽기 제외 입력: Haejo 22,119 / Sky 50,592 (**56.3% 감소**).
+- 출력: Haejo 1,605 / Sky 1,604.
 - 시간 합계: **8.8% 감소**. 이 측정은 10회 재사용 비교가 아닙니다.
 - 별도의 11단계 테스트 앱: 정상 작업 **13/13 완료**, 기대 중단 **5/5**, 한 작업에서 버튼 2개 수리.
 - 해당 테스트의 정상 10회 반복은 모델 호출 **0회**. 실제 업무 앱 전체의 성공률을 대신하지 않습니다.
 
-[복잡한 시나리오 결과](docs/tacto-complex-scenarios-2026-10-14.md)
+[복잡한 시나리오 결과](docs/haejo-complex-scenarios-2026-10-14.md)
 
 </details>
 
 ## 먼저 흐름을 살펴보세요
 
-[온보딩 랜딩페이지](https://open330.github.io/tacto/)([소스](sites/tacto/README.md))에서 재생·수리·중단 예시와 설치 안내를 제공합니다.
+[온보딩 랜딩페이지](https://open330.github.io/tacto/)([소스](sites/haejo/README.md))에서 재생·수리·중단 예시와 설치 안내를 제공합니다.
 실제 앱이나 모델을 실행하지 않는 인터랙티브 소개입니다.
 
 ```sh
-python3 sites/tacto/serve.py
+python3 sites/haejo/serve.py
 ```
 
 `http://127.0.0.1:8787`에서 확인할 수 있습니다.
 
 <a id="documentation"></a>
 
-macOS 설정의 **빠른 실행(helper 유지)**을 켜면 다음 작업의 시작 시간을 줄일 수 있습니다. 기본은 꺼짐이며 유휴 시간은 1–10분입니다. `TACTO_HELPER_MODE=warm` / `per_command`가 앱 설정보다 우선합니다. 동시 실행은 최대 10초 대기 후 `helper_busy`로 안내합니다. [동작과 측정 범위](docs/helper-execution.md). rc.13은 서로 다른 앱과 명시적으로 범위를 지정한 같은 앱의 독립 AX 창을 최대 네 작업자로 병렬 처리합니다. 앱 전체 작업은 직렬 처리합니다.
+macOS 설정의 **빠른 실행(helper 유지)**을 켜면 다음 작업의 시작 시간을 줄일 수 있습니다. 기본은 꺼짐이며 유휴 시간은 1–10분입니다. `HAEJO_HELPER_MODE=warm` / `per_command`가 앱 설정보다 우선합니다. 동시 실행은 최대 10초 대기 후 `helper_busy`로 안내합니다. [동작과 측정 범위](docs/helper-execution.md). rc.13은 서로 다른 앱과 명시적으로 범위를 지정한 같은 앱의 독립 AX 창을 최대 네 작업자로 병렬 처리합니다. 앱 전체 작업은 직렬 처리합니다.
 
 ## 필요한 문서부터
 
@@ -291,23 +291,23 @@ macOS 설정의 **빠른 실행(helper 유지)**을 켜면 다음 작업의 시�
 
 | 목적 | 명령 |
 | :--- | :--- |
-| 설치·환경 확인 | `tacto doctor` |
-| 앱·화면 관찰 | `tacto apps`, `tacto observe`, `tacto menu-state` |
-| 자연어·Flow 실행 | `tacto do`, `tacto run`, `tacto replay` |
-| Flow 작성·매개변수화 | `tacto compile`, `tacto parameterize` |
-| 저장 Flow·후보 관리 | `tacto list`, `tacto show`, `tacto candidates`, `tacto promote` |
-| 평가 | `tacto eval` |
+| 설치·환경 확인 | `haejo doctor` |
+| 앱·화면 관찰 | `haejo apps`, `haejo observe`, `haejo menu-state` |
+| 자연어·Flow 실행 | `haejo do`, `haejo run`, `haejo replay` |
+| Flow 작성·매개변수화 | `haejo compile`, `haejo parameterize` |
+| 저장 Flow·후보 관리 | `haejo list`, `haejo show`, `haejo candidates`, `haejo promote` |
+| 평가 | `haejo eval` |
 
 다음은 **개발 checkout 전용이며 기본 브랜치에는 없는 명령**입니다.
 
 | 목적 | 개발본 전용 명령 |
 | :--- | :--- |
-| 반복·세션·수리 | `tacto batch`, `tacto session`, `tacto repair` |
-| 문서 첨부 관찰 | `tacto document-attachments` |
-| 브라우저 파일 등록 | `tacto web-upload` |
-| VRoid 전용 실험 | `tacto vroid-focus`, `tacto vroid-drag` — `TACTO_ENABLE_EXPERIMENTAL_FOREGROUND=1`로 별도 빌드한 개발용 진단 경로. 기본 빌드 제외 |
+| 반복·세션·수리 | `haejo batch`, `haejo session`, `haejo repair` |
+| 문서 첨부 관찰 | `haejo document-attachments` |
+| 브라우저 파일 등록 | `haejo web-upload` |
+| VRoid 전용 실험 | `haejo vroid-focus`, `haejo vroid-drag` — `HAEJO_ENABLE_EXPERIMENTAL_FOREGROUND=1`로 별도 빌드한 개발용 진단 경로. 기본 빌드 제외 |
 
-`tacto --help`로 현재 checkout의 명령을 확인하세요.
+`haejo --help`로 현재 checkout의 명령을 확인하세요.
 네이티브 작업은 서명된 런처를 사용하고 필요한 명령에 `--helper`를 지정합니다.
 
 </details>
@@ -315,18 +315,18 @@ macOS 설정의 **빠른 실행(helper 유지)**을 켜면 다음 작업의 시�
 <details>
 <summary><strong>문서 찾아보기</strong></summary>
 
-- [GUI·브랜딩 독립 검토와 수정 결과](docs/tacto-gui-review-2026-10-17.md)
-- [로고·시각 아이덴티티](docs/tacto-visual-identity.md)
-- [랜딩페이지 개선·검증](docs/tacto-landing-engineering-2026-10-15.md)
-- [실제 촬영 영상·스크린샷](docs/tacto-recorded-demos-2026-10-15.md)
-- [실제 앱·웹 일상 작업 10개](docs/tacto-everyday-examples-2026-10-15.md)
-- [초기 브라우저 사용 예제 3개](docs/tacto-browser-examples-2026-10-15.md)
+- [GUI·브랜딩 독립 검토와 수정 결과](docs/haejo-gui-review-2026-10-17.md)
+- [로고·시각 아이덴티티](docs/haejo-visual-identity.md)
+- [랜딩페이지 개선·검증](docs/haejo-landing-engineering-2026-10-15.md)
+- [실제 촬영 영상·스크린샷](docs/haejo-recorded-demos-2026-10-15.md)
+- [실제 앱·웹 일상 작업 10개](docs/haejo-everyday-examples-2026-10-15.md)
+- [초기 브라우저 사용 예제 3개](docs/haejo-browser-examples-2026-10-15.md)
 - [출시 범위·검증 조건과 최종 DMG 검사](docs/release-readiness.md)
 - [베타 참여 안내](docs/beta-participant-guide.md)
-- [첫 작업 품질 개선·교차 검토](docs/tacto-quality-review-2026-10-19.md)
-- [네이티브 서명·기본 빌드·설치 UX 수정 결과](docs/tacto-native-release-fixes-2026-10-16.md)
-- [전체 개선 peer 검토와 잔여 출시 제한](docs/tacto-peer-review-2026-10-16.md)
-- [Tacto 이름·배포 식별자](docs/tacto-branding.md)
+- [첫 작업 품질 개선·교차 검토](docs/haejo-quality-review-2026-10-19.md)
+- [네이티브 서명·기본 빌드·설치 UX 수정 결과](docs/haejo-native-release-fixes-2026-10-16.md)
+- [전체 개선 peer 검토와 잔여 출시 제한](docs/haejo-peer-review-2026-10-16.md)
+- [Haejo 이름·배포 식별자](docs/haejo-branding.md)
 - [Python API](docs/api.md)
 - [새 파일 저장의 host receipt](docs/artifact-receipts.md)
 - [비교 실행 기록](docs/benchmark-records.md)
@@ -343,9 +343,9 @@ macOS 설정의 **빠른 실행(helper 유지)**을 켜면 다음 작업의 시�
 - [모델 호출의 시간 예산](docs/model-deadlines.md)
 - [Native window image reads](docs/native-visual.md)
 - [네이티브 창별 입력의 현재 지원 범위](docs/native-window-input.md)
-- [Flow의 자동 에이전트 개입](docs/tacto-auto-repair-2026-10-14.md)
-- [복잡한 11단계 작업과 실패 시나리오 검증](docs/tacto-complex-scenarios-2026-10-14.md)
-- [같은 요청 조건에서 Tacto·Sky 비교](docs/tacto-matched-comparison-2026-10-14.md)
+- [Flow의 자동 에이전트 개입](docs/haejo-auto-repair-2026-10-14.md)
+- [복잡한 11단계 작업과 실패 시나리오 검증](docs/haejo-complex-scenarios-2026-10-14.md)
+- [같은 요청 조건에서 Haejo·Sky 비교](docs/haejo-matched-comparison-2026-10-14.md)
 - [Signed provider 응답](docs/provider-envelope.md)
 - [실행 기록에서 워크플로로 — 판단은 필요한 곳에만](docs/recipes.md)
 - [Native RTF save receipts](docs/rtf-receipts.md)
@@ -357,7 +357,7 @@ macOS 설정의 **빠른 실행(helper 유지)**을 켜면 다음 작업의 시�
 
 ---
 
-**Tacto** · Local execution. Reusable computer use.<br>
+**Haejo** · Local execution. Reusable computer use.<br>
 Release candidate · [MIT License](LICENSE)
 
 
@@ -367,14 +367,14 @@ Release candidate · [MIT License](LICENSE)
 - [dispatch-journal](docs/dispatch-journal.md)
 - [journal-reconciliation](docs/journal-reconciliation.md)
 - [menu-readiness](docs/menu-readiness.md)
-- [tacto-attended-operation-design](docs/tacto-attended-operation-design.md)
-- [tacto-authoring-literal-validation](docs/tacto-authoring-literal-validation.md)
-- [tacto-capture-continuation-validation](docs/tacto-capture-continuation-validation.md)
-- [tacto-latency-profile-20261019](docs/tacto-latency-profile-20261019.md)
-- [tacto-native-matched-validation-20261019](docs/tacto-native-matched-validation-20261019.md)
-- [tacto-native-resumption-validation](docs/tacto-native-resumption-validation.md)
-- [tacto-provider-paging-validation](docs/tacto-provider-paging-validation.md)
-- [tacto-textedit-saved-state-validation](docs/tacto-textedit-saved-state-validation.md)
+- [haejo-attended-operation-design](docs/haejo-attended-operation-design.md)
+- [haejo-authoring-literal-validation](docs/haejo-authoring-literal-validation.md)
+- [haejo-capture-continuation-validation](docs/haejo-capture-continuation-validation.md)
+- [haejo-latency-profile-20261019](docs/haejo-latency-profile-20261019.md)
+- [haejo-native-matched-validation-20261019](docs/haejo-native-matched-validation-20261019.md)
+- [haejo-native-resumption-validation](docs/haejo-native-resumption-validation.md)
+- [haejo-provider-paging-validation](docs/haejo-provider-paging-validation.md)
+- [haejo-textedit-saved-state-validation](docs/haejo-textedit-saved-state-validation.md)
 - [window-preparation-diagnostics](docs/window-preparation-diagnostics.md)
 
 </details>

@@ -13,7 +13,7 @@ ROOT=Path(__file__).resolve().parents[1]
 @unittest.skipUnless(sys.platform=='darwin' and shutil.which('swift'), 'macOS Swift required')
 class HelperWindowKeyTests(unittest.TestCase):
     def test_actual_cf_boolean_index_guard_and_navigation_whitelist(self):
-        helper=(ROOT/'helper/TactoHelper.swift').read_text()
+        helper=(ROOT/'helper/HaejoHelper.swift').read_text()
         branch=helper[helper.index('    case "press_key":'):helper.index('    case "scroll":',helper.index('    case "press_key":'))]
         source=(ROOT/'helper/WindowInput.swift').read_text()
         keys=source[source.index('func nativeNavigationKey('):source.index('func buildNativeWindowKey(')]  # includes nativeSubmitKey
@@ -89,7 +89,7 @@ precondition(checked(["name":"press_key","element_index":0,"key":"Escape"])["eff
 precondition(calls==7)
 print(String(data:try! JSONSerialization.data(withJSONObject:responses),encoding:.utf8)!)
 '''
-        with tempfile.TemporaryDirectory(prefix='tacto-helper-key-shape-') as directory:
+        with tempfile.TemporaryDirectory(prefix='haejo-helper-key-shape-') as directory:
             script=Path(directory)/'main.swift'
             script.write_text('import Foundation\nimport AppKit\nimport ApplicationServices\n'+keys+harness)
             result=subprocess.run(['swift',str(script)],capture_output=True,text=True,timeout=30)

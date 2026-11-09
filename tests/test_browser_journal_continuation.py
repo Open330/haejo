@@ -15,12 +15,12 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
-from tacto.commit_evidence import CommitEvidence, DeliveryEvidence
-from tacto.contract import ContextBinding, SafetyContract, Resource, issue_approval
-from tacto.delivery_receipt import DeliveredMessageReceipt, InboxDelivery, PendingDelivery
-from tacto.dispatch_journal import DurableDispatchDriver
-from tacto.flow import Flow, Step, Selector, replay
-from tacto.journal_reconciliation import CommitReconciliation, reconcile_and_replay, JournalReconciliationError
+from haejo.commit_evidence import CommitEvidence, DeliveryEvidence
+from haejo.contract import ContextBinding, SafetyContract, Resource, issue_approval
+from haejo.delivery_receipt import DeliveredMessageReceipt, InboxDelivery, PendingDelivery
+from haejo.dispatch_journal import DurableDispatchDriver
+from haejo.flow import Flow, Step, Selector, replay
+from haejo.journal_reconciliation import CommitReconciliation, reconcile_and_replay, JournalReconciliationError
 
 
 def recipe(label):
@@ -61,7 +61,7 @@ def receipt_for(driver, origin, key, expected):
 WORKER = r"""
 import json,os,sys
 from pathlib import Path
-from tacto.browser import BrowserDriver
+from haejo.browser import BrowserDriver
 from tests.test_browser_journal_continuation import *
 root=Path(sys.argv[1]); config=json.loads((root/'host.json').read_text())
 class LostReply(BrowserDriver):
@@ -146,7 +146,7 @@ class BrowserJournalContinuationTests(unittest.TestCase):
         return CommitEvidence(event['event_id'],event['action_digest'],DeliveryEvidence(row.message_id,row.recipient,row.account,row.body_sha256,()))
 
     def test_receipt_gated_flow_sends_only_new_approved_message(self):
-        from tacto.browser import BrowserDriver
+        from haejo.browser import BrowserDriver
         with closing(BrowserDriver(headless=True)) as driver:
             driver.goto(self.origin+'/second')
             receipt=receipt_for(driver,self.origin,self.key,self.second)
@@ -167,7 +167,7 @@ class BrowserJournalContinuationTests(unittest.TestCase):
         self.assertEqual(2,len(list((self.root/'journal').iterdir())))
 
     def test_missing_original_receipt_keeps_new_flow_blocked(self):
-        from tacto.browser import BrowserDriver
+        from haejo.browser import BrowserDriver
         self.messages.clear()
         with closing(BrowserDriver(headless=True)) as driver:
             driver.goto(self.origin+'/second')
@@ -180,7 +180,7 @@ class BrowserJournalContinuationTests(unittest.TestCase):
         self.assertEqual(1,len(list((self.root/'journal').iterdir())))
 
     def test_old_receipt_does_not_approve_new_transmission(self):
-        from tacto.browser import BrowserDriver
+        from haejo.browser import BrowserDriver
         with closing(BrowserDriver(headless=True)) as driver:
             driver.goto(self.origin+'/second')
             flow,_=recipe('Send second owned message')

@@ -2,10 +2,10 @@
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
-from tacto.helper import InheritedHelperDriver
-from tacto.observation_state import retryable_observation_error
+from haejo.helper import InheritedHelperDriver
+from haejo.observation_state import retryable_observation_error
 try:
-    from tacto.driver import Driver
+    from haejo.driver import Driver
 except ImportError:
     Driver = None
 
@@ -18,8 +18,8 @@ class Clock:
 
 class ObservationWaitErrorsTests(unittest.TestCase):
     def backends(self):
-        result = [(InheritedHelperDriver.wait_until, 'tacto.helper.time')]
-        if Driver is not None: result.append((Driver.wait_until, 'tacto.driver.time'))
+        result = [(InheritedHelperDriver.wait_until, 'haejo.helper.time')]
+        if Driver is not None: result.append((Driver.wait_until, 'haejo.driver.time'))
         return result
 
     def run_wait(self, fn, module, observe, predicate=lambda tree:tree == 'ready'):

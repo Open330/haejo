@@ -5,7 +5,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from tacto.helper import HelperDriver
+from haejo.helper import HelperDriver
 
 ROOT=Path(__file__).resolve().parents[1]
 SECRET='owned-transport-fixture-secret'
@@ -25,17 +25,17 @@ class Transport(unittest.TestCase):
         self.assertEqual(['read','set_value','click'],[r['action']['name'] for r in d.requests]);self.assertTrue(all(r['credential_origin']=='https://example.test' for r in d.requests))
         self.assertNotIn(SECRET,str(d.requests[0]));self.assertNotIn(SECRET,str(d.requests[-1]))
     def test_access_receipts_exclude_values(self):
-        from tacto.access_log import AccessLog,AccessLoggingDriver
+        from haejo.access_log import AccessLog,AccessLoggingDriver
         with tempfile.TemporaryDirectory() as tmp:
-            log=AccessLog('auth',root=Path(tmp)/'Tacto'/'Logs');d=AccessLoggingDriver(self.driver(),log)
+            log=AccessLog('auth',root=Path(tmp)/'Haejo'/'Logs');d=AccessLoggingDriver(self.driver(),log)
             d.credential_input('obs','com.apple.Safari',1,SECRET,expected_origin='https://example.test');log.finish(0);log.close()
-            content=''.join(p.read_text() for p in (Path(tmp)/'Tacto'/'Logs').glob('*.jsonl'))
+            content=''.join(p.read_text() for p in (Path(tmp)/'Haejo'/'Logs').glob('*.jsonl'))
             self.assertNotIn(SECRET,content);self.assertIn('credential_input',content);self.assertIn('com.apple.Safari',content)
 
 @unittest.skipUnless(sys.platform=='darwin' and shutil.which('swift'),'Swift/macOS required')
 class NativeScope(unittest.TestCase):
     def test_actual_native_origin_and_ancestor_logic(self):
-        s=(ROOT/'helper/TactoHelper.swift').read_text();code=s[s.index('func credentialURLOrigin'):s.index('func credentialElementAllowed')]
+        s=(ROOT/'helper/HaejoHelper.swift').read_text();code=s[s.index('func credentialURLOrigin'):s.index('func credentialElementAllowed')]
         harness='''
 let native:[(String,String?)]=[("AXTextField",nil),("AXWindow",nil)]
 let own:[(String,String?)]=[("AXTextField",nil),("AXWebArea","https://example.test/login"),("AXWindow",nil)]
@@ -57,7 +57,7 @@ print(String(data:try! JSONSerialization.data(withJSONObject:[credentialPathAllo
         self.assertEqual('acted',result['type']);self.assertTrue(d.requests[0]['sensitive_input_authorized'])
 
     def test_actual_launcher_rejects_scope_on_unrelated_operations(self):
-        s=(ROOT/'launcher/tacto.swift').read_text();schema=s[s.index('let allowedTypes:'):s.index('// MARK: - Socket plumbing')]
+        s=(ROOT/'launcher/haejo.swift').read_text();schema=s[s.index('let allowedTypes:'):s.index('// MARK: - Socket plumbing')]
         harness='''
 let base:[String:Any]=["type":"act","obs_id":"own","target":"com.apple.Safari","credential_origin":"https://example.test","action":["name":"set_value","element_index":1,"value":"owned-fixture"]]
 var cases=[base]

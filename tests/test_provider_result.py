@@ -8,38 +8,38 @@ import tempfile
 import time
 import unittest
 import uuid
-from tacto.provider_result import ProviderResult
+from haejo.provider_result import ProviderResult
 from unittest.mock import patch
 
-from tacto.authoring import ask_model_result, reach_model_result, _run_provider
+from haejo.authoring import ask_model_result, reach_model_result, _run_provider
 
 
 class ProviderResultTests(unittest.TestCase):
     def test_opencode_zero_exit_auth_error_is_never_an_answer(self):
         frame={'type':'error','timestamp':1791684300370,'sessionID':'ses_owned',
             'error':{'name':'UnknownError','data':{'message':'Error: Token refresh failed: 401'}}}
-        from tacto.provider_result import classify_unavailable
+        from haejo.provider_result import classify_unavailable
         output=json.dumps(frame)
         self.assertEqual('authentication_failed',classify_unavailable(output,provider='opencode'))
         self.assertIsNone(classify_unavailable(output,provider='claude'))
         for want_json in (False,True):
-            with patch('tacto.authoring.shutil.which',return_value='/owned/opencode'), \
-                 patch('tacto.authoring._run_provider',return_value=subprocess.CompletedProcess([],0,output,'')):
+            with patch('haejo.authoring.shutil.which',return_value='/owned/opencode'), \
+                 patch('haejo.authoring._run_provider',return_value=subprocess.CompletedProcess([],0,output,'')):
                 result=ask_model_result('q','opencode',expect_json=want_json)
             self.assertEqual('authentication_failed',result.error.code)
             self.assertEqual('error',result.status);self.assertIsNone(result.text)
             self.assertIsNone(result.cost);self.assertIsNone(result.input_tokens)
 
     def test_opencode_generic_model_error_object_is_not_cli_auth_refusal(self):
-        from tacto.provider_result import classify_unavailable
+        from haejo.provider_result import classify_unavailable
         for value in ('Token refresh failed: 401','an explanation of Error: Token refresh failed: 401',
                       json.dumps({'type':'error','error':{'message':'Error: Token refresh failed: 401'}})):
             self.assertIsNone(classify_unavailable(value,provider='opencode'))
 
 
     def test_observed_unsupported_client_is_closed_and_keeps_usage_unknown(self):
-        from tacto.provider_result import classify_unavailable
-        from tacto.provider_observation import provider_failure_reason
+        from haejo.provider_result import classify_unavailable
+        from haejo.provider_observation import provider_failure_reason
         output='Error authenticating: IneligibleTierError: PRIVATE account details UNSUPPORTED_CLIENT'
         self.assertEqual('unsupported_client',classify_unavailable('',output,provider='gemini'))
         for provider in (None,'claude','codex','opencode'):
@@ -47,8 +47,8 @@ class ProviderResultTests(unittest.TestCase):
         for value in ('UNSUPPORTED_CLIENT','This client is no longer supported',
                       'Error authenticating: IneligibleTierError: other reason'):
             self.assertIsNone(classify_unavailable(value,provider='gemini'))
-        with patch('tacto.authoring.shutil.which',return_value='/owned/gemini'), \
-             patch('tacto.authoring._run_provider',return_value=subprocess.CompletedProcess([],55,'',output)):
+        with patch('haejo.authoring.shutil.which',return_value='/owned/gemini'), \
+             patch('haejo.authoring._run_provider',return_value=subprocess.CompletedProcess([],55,'',output)):
             result=ask_model_result('private prompt','gemini',expect_json=True)
         self.assertEqual('error',result.status)
         self.assertEqual('unsupported_client',result.error.code)
@@ -60,8 +60,8 @@ class ProviderResultTests(unittest.TestCase):
     def test_auto_records_actual_fallback_without_inventing_telemetry(self):
         def muxa(provider, prompt, timeout):
             return '{"ok":true}' if provider == 'codex' else None
-        with patch('tacto.authoring._try_muxa', side_effect=muxa), \
-             patch('tacto.authoring._try_cli', return_value=None):
+        with patch('haejo.authoring._try_muxa', side_effect=muxa), \
+             patch('haejo.authoring._try_cli', return_value=None):
             result = ask_model_result('private prompt', expect_json=True)
         self.assertEqual(('ok', 'codex', 'muxa'),
                          (result.status, result.provider, result.transport))
@@ -74,8 +74,8 @@ class ProviderResultTests(unittest.TestCase):
         self.assertNotIn('private prompt', json.dumps(result.to_dict()))
 
     def test_failure_is_structured_and_does_not_leak_provider_output(self):
-        with patch('tacto.authoring._try_muxa', side_effect=ValueError('SECRET')) , \
-             patch('tacto.authoring._try_cli', return_value='malformed SECRET'):
+        with patch('haejo.authoring._try_muxa', side_effect=ValueError('SECRET')) , \
+             patch('haejo.authoring._try_cli', return_value='malformed SECRET'):
             result = ask_model_result('question', 'codex', expect_json=True)
         self.assertEqual('error', result.status)
         self.assertEqual('codex', result.provider)
@@ -83,8 +83,8 @@ class ProviderResultTests(unittest.TestCase):
         self.assertNotIn('SECRET', json.dumps(result.to_dict()))
 
     def test_deadline_is_timeout_even_if_last_transport_expires(self):
-        with patch('tacto.authoring._try_muxa', return_value=None), \
-             patch('tacto.authoring._try_cli', side_effect=subprocess.TimeoutExpired('private', 1)):
+        with patch('haejo.authoring._try_muxa', return_value=None), \
+             patch('haejo.authoring._try_cli', side_effect=subprocess.TimeoutExpired('private', 1)):
             result = ask_model_result('q', 'codex')
         self.assertEqual('timeout', result.status)
         self.assertIsNone(result.text)
@@ -92,7 +92,7 @@ class ProviderResultTests(unittest.TestCase):
         self.assertFalse(result.cancellation_supported)
 
     def test_launcher_auto_cannot_claim_provider_identity(self):
-        with patch('tacto.helper.InheritedHelperDriver') as helper:
+        with patch('haejo.helper.InheritedHelperDriver') as helper:
             helper.available.return_value = True
             helper.return_value.ask_launcher_result.return_value = ProviderResult(
                 str(uuid.uuid4()), 'auto', None, 'launcher', 'ok', '{}', None, 0)
@@ -103,7 +103,7 @@ class ProviderResultTests(unittest.TestCase):
         self.assertIsNone(result.provider)
 
     def test_launcher_pinned_and_request_ids_are_local_unique(self):
-        with patch('tacto.helper.InheritedHelperDriver') as helper:
+        with patch('haejo.helper.InheritedHelperDriver') as helper:
             helper.available.return_value = True
             helper.return_value.ask_launcher_result.side_effect = lambda *a, **k: ProviderResult(
                 str(uuid.uuid4()), 'gemini', 'gemini', 'launcher', 'ok', 'answer', None, 0)
@@ -129,10 +129,10 @@ class ProviderResultTests(unittest.TestCase):
 
 class CliUnavailableTests(unittest.TestCase):
     def run_cli(self, code, stdout, stderr=''):
-        from tacto.authoring import _try_cli
+        from haejo.authoring import _try_cli
         done = subprocess.CompletedProcess([], code, stdout, stderr)
-        with patch('tacto.authoring.shutil.which', return_value='/bin/codex'), \
-             patch('tacto.authoring._run_provider', return_value=done):
+        with patch('haejo.authoring.shutil.which', return_value='/bin/codex'), \
+             patch('haejo.authoring._run_provider', return_value=done):
             return _try_cli('opencode', 'q', 5)
 
     def test_failed_run_is_named_when_a_person_can_fix_it(self):
@@ -151,9 +151,9 @@ class CliUnavailableTests(unittest.TestCase):
             self.assertEqual('OpenCodeProtocolError',result.error.code)
 
     def test_attempts_carry_the_reason_code_not_provider_output(self):
-        from tacto.provider_result import ProviderUnavailable
-        with patch('tacto.authoring._try_muxa', return_value=None), \
-             patch('tacto.authoring._try_cli', side_effect=ProviderUnavailable('usage_limit')):
+        from haejo.provider_result import ProviderUnavailable
+        with patch('haejo.authoring._try_muxa', return_value=None), \
+             patch('haejo.authoring._try_cli', side_effect=ProviderUnavailable('usage_limit')):
             result = ask_model_result('q', 'codex', expect_json=True)
         self.assertEqual('error', result.status)
         self.assertIn('usage_limit', result.error.message)

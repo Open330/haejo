@@ -8,7 +8,7 @@ import time
 import unittest
 from unittest.mock import patch
 
-from tacto.claude_result import (ClaudeProtocolError, claude_result,
+from haejo.claude_result import (ClaudeProtocolError, claude_result,
                                input_message, parse_claude_events, _run_claude)
 
 
@@ -18,10 +18,10 @@ def events(session='session-1'):
         {'type': 'rate_limit_event', 'session_id': session},
         {'type': 'assistant', 'session_id': session, 'parent_tool_use_id': None,
          'message': {'role': 'assistant', 'model': 'observed-model', 'usage': {'output_tokens': 3},
-                     'content': [{'type': 'text', 'text': 'TACTO-OK'}]}},
+                     'content': [{'type': 'text', 'text': 'HAEJO-OK'}]}},
         {'type': 'result', 'session_id': session, 'subtype': 'success', 'is_error': False,
          'num_turns': 1, 'stop_reason': 'end_turn', 'permission_denials': [],
-         'result': 'TACTO-OK', 'usage': {'input_tokens': 10, 'output_tokens': 7, 'cache_read_input_tokens': 50},
+         'result': 'HAEJO-OK', 'usage': {'input_tokens': 10, 'output_tokens': 7, 'cache_read_input_tokens': 50},
          'total_cost_usd': 0.003, 'modelUsage': {'observed-model': {'costBasis': 'list'}}}]
 
 
@@ -42,7 +42,7 @@ class ClaudeResultTests(unittest.TestCase):
                     'original_model': 'observed-model', 'content': 'PRIVATE'})
                 data[-1].update(is_error=True, num_turns=2)
                 return exit_code, stream(data), 'PRIVATE'
-            with self.subTest(exit_code=exit_code), patch('tacto.claude_result._run_claude', side_effect=launch) as call:
+            with self.subTest(exit_code=exit_code), patch('haejo.claude_result._run_claude', side_effect=launch) as call:
                 result = claude_result('owned fixture')
             self.assertEqual('error', result.status)
             self.assertEqual('ClaudeProtocolError_model_refusal', result.error.code)
@@ -53,7 +53,7 @@ class ClaudeResultTests(unittest.TestCase):
             call.assert_called_once()
 
     def test_refusal_diagnostic_rejects_incomplete_foreign_or_tool_enabled_stream(self):
-        from tacto.claude_result import _observed_refusal_no_fallback
+        from haejo.claude_result import _observed_refusal_no_fallback
         data = events()
         data.insert(-1, {'type': 'system', 'subtype': 'model_refusal_no_fallback',
             'session_id': 'session-1', 'uuid': '12345678-1234-1234-1234-123456789abc',
@@ -82,7 +82,7 @@ class ClaudeResultTests(unittest.TestCase):
                     'uuid': '12345678-1234-1234-1234-123456789abd', 'commands': []}
         for prefix in ([notice], [notice, commands], [commands, notice]):
             result = parse_claude_events(stream(prefix + events()), 'session-1')
-            self.assertEqual('TACTO-OK', result['text'])
+            self.assertEqual('HAEJO-OK', result['text'])
             self.assertEqual(7, result['output_tokens'])
         for variant in (
                 [notice, notice] + events(),
@@ -111,7 +111,7 @@ class ClaudeResultTests(unittest.TestCase):
     def test_one_exact_empty_commands_notice_can_precede_init(self):
         notice = {'type':'system','subtype':'commands_changed','session_id':'session-1',
                   'uuid':'12345678-1234-1234-1234-123456789abc','commands':[]}
-        self.assertEqual(parse_claude_events(stream([notice] + events()), 'session-1')['text'], 'TACTO-OK')
+        self.assertEqual(parse_claude_events(stream([notice] + events()), 'session-1')['text'], 'HAEJO-OK')
         for prefix in ([notice, notice], [{**notice, 'commands':['unexpected']}],
                        [{**notice, 'uuid':'malformed'}], [{**notice, 'extra':'unobserved'}],
                        [{**notice, 'session_id':'other'}], [notice, events()[2]]):
@@ -135,7 +135,7 @@ class ClaudeResultTests(unittest.TestCase):
                 'original_model':'original-model','fallback_model':'fallback-model'})
             data[-1]['num_turns'] = 2
             return 0, stream(data), 'private stderr'
-        with patch('tacto.claude_result._run_claude', side_effect=launch):
+        with patch('haejo.claude_result._run_claude', side_effect=launch):
             result = claude_result('owned fixture')
         self.assertEqual(result.status, 'error')
         self.assertIsNone(result.text)
@@ -157,11 +157,11 @@ class ClaudeResultTests(unittest.TestCase):
                 data = [{**item, 'session_id': sid if item['session_id'] == 'session-1'
                          else item['session_id']} for item in variant]
                 return 0, stream(data), 'private provider stderr'
-            with self.subTest(code=code), patch('tacto.claude_result._run_claude', side_effect=launch):
+            with self.subTest(code=code), patch('haejo.claude_result._run_claude', side_effect=launch):
                 result = claude_result('owned fixture prompt')
             self.assertEqual('ClaudeProtocolError_' + code, result.error.code)
             self.assertNotIn('private provider stderr', json.dumps(result.to_dict()))
-        with patch('tacto.claude_result._run_claude',
+        with patch('haejo.claude_result._run_claude',
                    side_effect=ClaudeProtocolError('private unknown diagnostic')):
             result = claude_result('q')
         self.assertEqual('ClaudeProtocolError', result.error.code)
@@ -171,7 +171,7 @@ class ClaudeResultTests(unittest.TestCase):
         progress = {'type': 'system', 'subtype': 'thinking_tokens', 'session_id': 'session-1'}
         data = events()
         data.insert(2, progress)
-        self.assertEqual('TACTO-OK', parse_claude_events(stream(data), 'session-1')['text'])
+        self.assertEqual('HAEJO-OK', parse_claude_events(stream(data), 'session-1')['text'])
         for invalid in ([progress] + events(), events() + [progress],
                         [events()[0], {**progress, 'session_id': 'other'}] + events()[1:]):
             with self.subTest(invalid=invalid), self.assertRaises(ClaudeProtocolError):
@@ -248,7 +248,7 @@ class ClaudeResultTests(unittest.TestCase):
             self.assertEqual('private prompt',json.loads(payload)['message']['content'][0]['text'])
             sid=argv[argv.index('--session-id')+1]
             return 0,stream(events(sid)),''
-        with patch('tacto.claude_result._run_claude',side_effect=launch):
+        with patch('haejo.claude_result._run_claude',side_effect=launch):
             result=claude_result('private prompt',model='requested-alias')
         self.assertEqual('ok',result.status)
         self.assertEqual('observed-model',result.model)
@@ -258,14 +258,14 @@ class ClaudeResultTests(unittest.TestCase):
         self.assertFalse(directories[0].exists())
 
     def test_timeout_nonzero_and_invalid_deadline_are_structured(self):
-        with patch('tacto.claude_result._run_claude',side_effect=subprocess.TimeoutExpired('SECRET',1)):
+        with patch('haejo.claude_result._run_claude',side_effect=subprocess.TimeoutExpired('SECRET',1)):
             result=claude_result('q')
         self.assertEqual('timeout',result.status)
         self.assertNotIn('SECRET',json.dumps(result.to_dict()))
-        with patch('tacto.claude_result._run_claude',return_value=(1,'','')):
+        with patch('haejo.claude_result._run_claude',return_value=(1,'','')):
             self.assertEqual('error',claude_result('q').status)
         for timeout in (0,-1,True,float('nan'),float('inf')):
-            with patch('tacto.claude_result._run_claude') as launch:
+            with patch('haejo.claude_result._run_claude') as launch:
                 self.assertEqual('error',claude_result('q',timeout=timeout).status)
                 launch.assert_not_called()
 
@@ -283,28 +283,28 @@ class ClaudeResultTests(unittest.TestCase):
     def test_commands_changed_notice_is_not_a_turn(self):
         items = events()
         items.insert(1, {'type': 'system', 'subtype': 'commands_changed', 'session_id': 'session-1'})
-        self.assertEqual('TACTO-OK', parse_claude_events(stream(items), 'session-1')['text'])
+        self.assertEqual('HAEJO-OK', parse_claude_events(stream(items), 'session-1')['text'])
 
     def test_failed_run_names_a_fixable_state_without_keeping_output(self):
         for stdout, stderr, reason in (
                 ('Not logged in · Please run /login SECRET', '', 'not_logged_in'),
                 ('', 'Claude AI usage limit reached SECRET', 'usage_limit')):
-            with patch('tacto.claude_result._run_claude', return_value=(1, stdout, stderr)):
+            with patch('haejo.claude_result._run_claude', return_value=(1, stdout, stderr)):
                 result = claude_result('q')
             self.assertEqual(('error', reason), (result.status, result.error.code))
             self.assertNotIn('SECRET', json.dumps(result.to_dict()))
 
     def test_gemini_auth_diagnostic_in_failed_claude_output_is_not_gemini_refusal(self):
         output='Error authenticating: IneligibleTierError: SECRET UNSUPPORTED_CLIENT'
-        with patch('tacto.claude_result._run_claude',return_value=(1,'',output)):
+        with patch('haejo.claude_result._run_claude',return_value=(1,'',output)):
             result=claude_result('q')
         self.assertEqual('error',result.status)
         self.assertNotEqual('unsupported_client',result.error.code)
         self.assertNotIn('SECRET',json.dumps(result.to_dict()))
 
     def test_closed_unsupported_client_reason_preserves_error_envelope(self):
-        with patch('tacto.claude_result._run_claude',return_value=(1,'','')), \
-             patch('tacto.claude_result.classify_unavailable',return_value='unsupported_client'):
+        with patch('haejo.claude_result._run_claude',return_value=(1,'','')), \
+             patch('haejo.claude_result.classify_unavailable',return_value='unsupported_client'):
             result=claude_result('q')
         self.assertEqual(('error','unsupported_client'),(result.status,result.error.code))
 
@@ -315,7 +315,7 @@ class ClaudeResultTests(unittest.TestCase):
             items[2]['message']['content'][0]['text'] = 'your usage limit and quota'
             items[3]['result'] = 'your usage limit and quota'
             return 0, stream(items), ''
-        with patch('tacto.claude_result._run_claude', side_effect=launch):
+        with patch('haejo.claude_result._run_claude', side_effect=launch):
             result = claude_result('q')
         self.assertEqual('ok', result.status)
 
@@ -343,7 +343,7 @@ if __name__=='__main__':
 
 class PreInitDiagnosticTests(unittest.TestCase):
     def test_protocol_stays_strict_and_only_closed_event_family_is_retained(self):
-        from tacto.claude_result import ClaudeProtocolError, parse_claude_events
+        from haejo.claude_result import ClaudeProtocolError, parse_claude_events
         for kind,subtype,expected in [('system','commands_changed','system_commands_changed'),
                 ('system','private-content','system_other'),('assistant',None,'assistant'),
                 ('rate_limit_event',None,'rate_limit_event'),('private-content',None,'unknown')]:
@@ -356,11 +356,11 @@ class PreInitDiagnosticTests(unittest.TestCase):
         self.assertIsNone(ClaudeProtocolError('event before initialization',diagnostic='private-content').diagnostic)
 
     def test_provider_error_keeps_safe_diagnostic_without_raw_stream_content(self):
-        from tacto.claude_result import claude_result
+        from haejo.claude_result import claude_result
         def failed(argv,payload,timeout,cwd):
             session=argv[argv.index('--session-id')+1]
             return 0,json.dumps({'type':'assistant','session_id':session,'secret':'private-value'}),''
-        with patch('tacto.claude_result._run_claude',side_effect=failed):
+        with patch('haejo.claude_result._run_claude',side_effect=failed):
             result=claude_result('owned test prompt')
         self.assertEqual('error',result.status)
         self.assertEqual('ClaudeProtocolError_before_init',result.error.code)

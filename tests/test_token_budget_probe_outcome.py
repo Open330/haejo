@@ -48,8 +48,8 @@ class TokenBudgetProbeOutcomeTests(unittest.TestCase):
         self.assertFalse(outcome['comparison_eligible'])
 
     def test_opencode_routes_to_structured_adapter_without_claude_fallback(self):
-        with patch('tacto.opencode_result.opencode_result',return_value='owned-result') as adapter, \
-             patch('tacto.claude_result.claude_result') as claude:
+        with patch('haejo.opencode_result.opencode_result',return_value='owned-result') as adapter, \
+             patch('haejo.claude_result.claude_result') as claude:
             self.assertEqual('owned-result',self.live('opencode','owned prompt',2))
         adapter.assert_called_once_with('owned prompt',timeout=2)
         claude.assert_not_called()

@@ -8,10 +8,10 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from tacto.commit_evidence import ArtifactEvidence, CommitEvidence, SavePanelCommitPreparation
-from tacto.contract import Envelope
-from tacto.general import run
-from tacto.outcome import DONE, spec_for, verify
+from haejo.commit_evidence import ArtifactEvidence, CommitEvidence, SavePanelCommitPreparation
+from haejo.contract import Envelope
+from haejo.general import run
+from haejo.outcome import DONE, spec_for, verify
 
 
 class FileMenuApp:
@@ -108,7 +108,7 @@ class GeneralMenuCommitTests(unittest.TestCase):
         return result, verify(spec, result, result.after_tree)
 
     def test_preparation_failure_reports_closed_code_and_never_saves(self):
-        from tacto.document_snapshot import SnapshotUnavailable
+        from haejo.document_snapshot import SnapshotUnavailable
         for error, expected in ((SnapshotUnavailable('snapshot_save_panel_unavailable'),
                                 'snapshot_save_panel_unavailable'),
                                (RuntimeError('PRIVATE_SENTINEL'), None)):

@@ -16,21 +16,21 @@ class AgentLifecycle(unittest.TestCase):
     def test_missing_executable_live_probe_reports_preflight_without_model_or_process_observation(self):
         with patch.object(comparison,'_agent_executable_available',return_value=False), \
              patch.object(comparison,'_run_agent') as run, \
-             patch('tacto.process_responsibility.observe_responsibility') as observe:
+             patch('haejo.process_responsibility.observe_responsibility') as observe:
             result=comparison._live_agent_probe()
         self.assertEqual('agent_executable_unavailable_in_spawn_environment',result['reason'])
         self.assertFalse(result['agent_executed']);self.assertFalse(result['comparison_eligible'])
         self.assertFalse(result['source_changed']);run.assert_not_called();observe.assert_not_called()
 
     def test_missing_executable_preflight_never_opens_fixture_or_starts_model(self):
-        from tacto.helper import InheritedHelperDriver
+        from haejo.helper import InheritedHelperDriver
         setup,cleanup,oracle=Mock(),Mock(),Mock()
         task=comparison.Task('owned','goal',oracle,setup=setup,cleanup=cleanup)
         with patch.object(comparison,'_agent_executable_available',return_value=False), \
              patch.object(comparison,'_locked',return_value=False), \
              patch.object(InheritedHelperDriver,'available',return_value=True), \
              patch.object(comparison,'_run_agent') as run:
-            result=comparison.run_one(task,'tacto')
+            result=comparison.run_one(task,'haejo')
         self.assertEqual('not_run',result['status'])
         self.assertIsNone(result['oracle_passed'])
         self.assertEqual('not_requested',result['cleanup_status'])
@@ -54,7 +54,7 @@ class AgentLifecycle(unittest.TestCase):
     def test_host_absolute_executable_is_used_without_changing_prompt_or_environment(self):
         records = []
         with patch.object(comparison, '_AGENT_EXECUTABLE', '/host/codex'), \
-             patch('tacto.codex_result._run_codex') as run:
+             patch('haejo.codex_result._run_codex') as run:
             comparison._run_agent(['codex', 'exec', '-'], 'owned prompt', 12, records)
         run.assert_called_once_with(['/host/codex', 'exec', '-'], 'owned prompt', 12, records, cwd='/tmp')
 
@@ -77,7 +77,7 @@ class AgentLifecycle(unittest.TestCase):
         fixture.setUp()
         diagnostic = {'samples':[{'status':'observed'}], 'descendants_observed':False}
         try:
-            for arm in ('tacto', 'sky'):
+            for arm in ('haejo', 'sky'):
                 result = fixture.execute(observations=[diagnostic], arm=arm)
                 self.assertTrue(result['oracle_passed'])
                 self.assertEqual([diagnostic], result['agent_primary_process_diagnostics'])
@@ -112,7 +112,7 @@ class AgentLifecycle(unittest.TestCase):
     def test_owned_real_timeout_uses_group_cleanup_and_keeps_observations(self):
         records = []
         with patch.object(comparison, '_AGENT_EXECUTABLE', sys.executable), \
-             patch('tacto.process_responsibility.observe_responsibility', return_value={'status':'observed'}), \
+             patch('haejo.process_responsibility.observe_responsibility', return_value={'status':'observed'}), \
              self.assertRaises(subprocess.TimeoutExpired):
             comparison._run_agent(['codex', '-c', 'import time;time.sleep(10)'], '', .03, records)
         self.assertEqual(1, len(records))

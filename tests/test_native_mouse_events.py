@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
-from tacto import native_mouse_events as mouse
+from haejo import native_mouse_events as mouse
 
 
 class FakeBackend:
@@ -139,7 +139,7 @@ class AccessibilityScrollTests(unittest.TestCase):
     """
     def setUp(self):
         from types import SimpleNamespace
-        from tacto import driver
+        from haejo import driver
         self.m = driver
         owner_patch=patch.object(driver,'AXUIElementGetPid',return_value=(0,41))
         owner_patch.start();self.addCleanup(owner_patch.stop)
@@ -220,8 +220,8 @@ class AccessibilityScrollTests(unittest.TestCase):
             self.assertEqual([.6],calls)
             # A recovery-enabled replay must not run the setter again after
             # this exact direct-driver error response, even though it changed.
-            from tacto.flow import Flow,Selector,Step,replay
-            from tacto.contract import SafetyContract,Resource
+            from haejo.flow import Flow,Selector,Step,replay
+            from haejo.contract import SafetyContract,Resource
             direct=self.d;attrs=self.attrs;bar=self.vertical
             class Adapter:
                 def identity(self,target):return target

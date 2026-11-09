@@ -1,6 +1,6 @@
 """Real UI Automation on Windows against Notepad and Calculator.
 
-Opt-in: TACTO_WINDOWS_LIVE=1, run in the signed-in desktop session. Only
+Opt-in: HAEJO_WINDOWS_LIVE=1, run in the signed-in desktop session. Only
 instances this test starts are observed and edited; nothing is saved, they
 are terminated afterwards, and the unsaved-tab state Windows 11 Notepad keeps
 for them is removed so the test text never reappears in the person's Notepad.
@@ -13,14 +13,14 @@ import sys
 import time
 import unittest
 
-LIVE = sys.platform == "win32" and os.environ.get("TACTO_WINDOWS_LIVE") == "1"
+LIVE = sys.platform == "win32" and os.environ.get("HAEJO_WINDOWS_LIVE") == "1"
 
 
 def _processes(exe):
     """Every process running `exe`, windowed or not."""
     import ctypes
     from ctypes import wintypes
-    from tacto.uia_backend import _executable
+    from haejo.uia_backend import _executable
     pids = (wintypes.DWORD * 8192)()
     size = wintypes.DWORD()
     ctypes.WinDLL("psapi").EnumProcesses(pids, ctypes.sizeof(pids), ctypes.byref(size))
@@ -159,8 +159,8 @@ class MarkedTabCleanupTests(unittest.TestCase):
             tabs = Path(folder)
             (tabs / "existing.bin").write_bytes("person's old tab".encode("utf-16-le"))
             with patch(__name__ + ".NOTEPAD_TABS", tabs):
-                _forget_marked_tabs(self, "tacto-live-x")
-                (tabs / "ours.bin").write_bytes("tacto-live-x".encode("utf-16-le"))
+                _forget_marked_tabs(self, "haejo-live-x")
+                (tabs / "ours.bin").write_bytes("haejo-live-x".encode("utf-16-le"))
                 (tabs / "ours.0.bin").write_bytes(b"\x00\x01")
                 (tabs / "meanwhile.bin").write_bytes("person typed this".encode("utf-16-le"))
                 with patch(__name__ + ".time.sleep"):
@@ -168,20 +168,20 @@ class MarkedTabCleanupTests(unittest.TestCase):
             self.assertEqual(["existing.bin", "meanwhile.bin"], sorted(p.name for p in tabs.iterdir()))
 
 
-@unittest.skipUnless(LIVE, "real UI Automation runs only with TACTO_WINDOWS_LIVE=1 on Windows")
+@unittest.skipUnless(LIVE, "real UI Automation runs only with HAEJO_WINDOWS_LIVE=1 on Windows")
 class WindowsLiveTests(unittest.TestCase):
     def setUp(self):
         import uuid
-        from tacto.windows_driver import WindowsDriver
+        from haejo.windows_driver import WindowsDriver
         self.driver = WindowsDriver()
-        self.marker = "tacto-live-" + uuid.uuid4().hex
+        self.marker = "haejo-live-" + uuid.uuid4().hex
         # Registered before the process exists: cleanups run last-in first-out,
         # so this runs after the kill, once Notepad has written its state.
         _forget_marked_tabs(self, self.marker)
         self.target = _owned(self, self.driver, "notepad.exe", app_id=NOTEPAD_APP, command="notepad.exe")
         if self.target is None:
             # In CI a skip would read as a pass; there it must fail loudly.
-            if os.environ.get("TACTO_WINDOWS_LIVE_REQUIRED") == "1":
+            if os.environ.get("HAEJO_WINDOWS_LIVE_REQUIRED") == "1":
                 self.fail("Notepad window did not appear")
             self.skipTest("Notepad window did not appear")
         # A new process is not yet a new document: Notepad may reopen the
@@ -213,7 +213,7 @@ class WindowsLiveTests(unittest.TestCase):
         content dialog), so its owner is never disabled; UI Automation must
         still report it modal (jiun-home, Korean UI, 2026-10-21)."""
         pid = int(self.target[4:])
-        self.set_text("tacto prompt " + self.marker)
+        self.set_text("haejo prompt " + self.marker)
         obs = self.driver.observe(self.target)
         menu = re.search(r"^\s*(\d+) MenuItem\s+.*Identifier: File\b", obs["tree"], re.M)
         if menu is None:
@@ -233,7 +233,7 @@ class WindowsLiveTests(unittest.TestCase):
                                         timeout_ms=5000)
         self.assertEqual("observation", prompt["type"], prompt.get("last_obs", prompt).get("tree"))
         self.assertIs(True, self.driver._backend.modal_present(pid), prompt["tree"])
-        from tacto.uia_backend import _disables_its_owner
+        from haejo.uia_backend import _disables_its_owner
         # Not the owner rule: nothing is disabled; UI Automation sees the dialog.
         self.assertFalse(any(_disables_its_owner(h, pid)
                              for h in self.driver._backend._windows_by_pid().get(pid, [])))
@@ -251,8 +251,8 @@ class WindowsLiveTests(unittest.TestCase):
         self.assertIn("Window", obs["tree"])
         # The app's own front window is marked even while another app has focus.
         self.assertEqual(1, obs["tree"].count("[focused]"), obs["tree"])
-        self.set_text("tacto windows " + self.marker)
-        after = self.driver.wait_until(self.target, lambda tree: "tacto windows" in tree, timeout_ms=5000)
+        self.set_text("haejo windows " + self.marker)
+        after = self.driver.wait_until(self.target, lambda tree: "haejo windows" in tree, timeout_ms=5000)
         self.assertEqual("observation", after["type"], after)
 
     def test_menu_opens_save_as_which_is_seen_as_modal_then_cancelled(self):
@@ -281,7 +281,7 @@ class WindowsLiveTests(unittest.TestCase):
 
 
 
-@unittest.skipUnless(LIVE, "real UI Automation runs only with TACTO_WINDOWS_LIVE=1 on Windows")
+@unittest.skipUnless(LIVE, "real UI Automation runs only with HAEJO_WINDOWS_LIVE=1 on Windows")
 class WindowsPackagedAppLiveTests(unittest.TestCase):
     """Calculator, through whichever build the machine has.
 
@@ -303,7 +303,7 @@ class WindowsPackagedAppLiveTests(unittest.TestCase):
         return next((name for name, (key, _) in self.BUILDS.items() if re.search(key, tree, re.M)), None)
 
     def test_content_is_observed_and_invoked(self):
-        from tacto.windows_driver import WindowsDriver
+        from haejo.windows_driver import WindowsDriver
         driver = WindowsDriver()
         target = _owned(self, driver, "calculatorapp.exe", app_id=CALCULATOR_APP, command="calc.exe")
         if target is None:
@@ -326,14 +326,14 @@ class WindowsPackagedAppLiveTests(unittest.TestCase):
         print(f"\n  calculator build: {build}", file=sys.stderr)
 
 
-@unittest.skipUnless(LIVE, "real UI Automation runs only with TACTO_WINDOWS_LIVE=1 on Windows")
+@unittest.skipUnless(LIVE, "real UI Automation runs only with HAEJO_WINDOWS_LIVE=1 on Windows")
 class WindowsModalAndNoticeLiveTests(unittest.TestCase):
     def test_owned_message_box_is_seen_as_modal(self):
-        from tacto.windows_driver import WindowsDriver
+        from haejo.windows_driver import WindowsDriver
         driver = WindowsDriver()
         code = ("import os,tkinter as t\nfrom tkinter import messagebox\nprint(os.getpid(),flush=True)\n"
-                "r=t.Tk();r.title('tacto modal owner')\n"
-                "r.after(1500,lambda:messagebox.showinfo('tacto modal','modal'));r.mainloop()")
+                "r=t.Tk();r.title('haejo modal owner')\n"
+                "r.after(1500,lambda:messagebox.showinfo('haejo modal','modal'));r.mainloop()")
         # The child's own pid: a venv launcher may stand between us and it.
         child = subprocess.Popen([sys.executable, "-c", code], stdout=subprocess.PIPE, text=True)
         self.addCleanup(lambda: (child.kill(), child.wait(), child.stdout.close()))
@@ -348,12 +348,12 @@ class WindowsModalAndNoticeLiveTests(unittest.TestCase):
             time.sleep(0.2)
         self.assertIs(True, driver._backend.modal_present(pid))
         tree = driver.observe(f"pid:{pid}")["tree"]
-        self.assertIn('Window  Title: "tacto modal" [focused]', tree)
-        self.assertIn('Window  Title: "tacto modal owner" [disabled]', tree)
+        self.assertIn('Window  Title: "haejo modal" [focused]', tree)
+        self.assertIn('Window  Title: "haejo modal owner" [disabled]', tree)
 
     def _fixture(self, code):
         """An owned Tk process running `code`; returns (driver, pid)."""
-        from tacto.windows_driver import WindowsDriver
+        from haejo.windows_driver import WindowsDriver
         driver = WindowsDriver()
         child = subprocess.Popen([sys.executable, "-c", code], stdout=subprocess.PIPE, text=True)
         self.addCleanup(lambda: (child.kill(), child.wait(), child.stdout.close()))
@@ -365,17 +365,17 @@ class WindowsModalAndNoticeLiveTests(unittest.TestCase):
         return driver, pid, child
 
     def _windows(self, driver, pid):
-        from tacto.uia_backend import _class, _disables_its_owner
+        from haejo.uia_backend import _class, _disables_its_owner
         return [(_class(h), _disables_its_owner(h, pid)) for h in driver._backend._windows_by_pid().get(pid, [])]
 
     def test_a_common_save_dialog_is_modal_by_the_owner_it_disables(self):
         """The CI 39564444225 shape: the file dialog is listed at the top level."""
         from unittest import mock
-        from tacto import uia_backend
+        from haejo import uia_backend
         driver, pid, _ = self._fixture(
             "import os,tkinter as t\nfrom tkinter import filedialog\nprint(os.getpid(),flush=True)\n"
-            "r=t.Tk();r.title('tacto save owner')\n"
-            "r.after(1500,lambda:filedialog.asksaveasfilename(parent=r,title='tacto save'));r.mainloop()")
+            "r=t.Tk();r.title('haejo save owner')\n"
+            "r.after(1500,lambda:filedialog.asksaveasfilename(parent=r,title='haejo save'));r.mainloop()")
         self.assertIs(False, driver._backend.modal_present(pid))
         deadline = time.monotonic() + 10
         while time.monotonic() < deadline and not any(e for _, e in self._windows(driver, pid)):
@@ -394,7 +394,7 @@ class WindowsModalAndNoticeLiveTests(unittest.TestCase):
             "class FR(ctypes.Structure):_fields_=[('size',w.DWORD),('owner',w.HWND),('inst',w.HINSTANCE),"
             "('flags',w.DWORD),('find',w.LPWSTR),('repl',w.LPWSTR),('findlen',w.WORD),('repllen',w.WORD),"
             "('data',w.LPARAM),('hook',ctypes.c_void_p),('templ',w.LPCWSTR)]\n"
-            "buf=ctypes.create_unicode_buffer(80);r=t.Tk();r.title('tacto modeless owner')\n"
+            "buf=ctypes.create_unicode_buffer(80);r=t.Tk();r.title('haejo modeless owner')\n"
             "u=ctypes.WinDLL('user32');u.GetParent.restype=w.HWND;u.GetParent.argtypes=(w.HWND,)\n"
             "c=ctypes.WinDLL('comdlg32');c.FindTextW.restype=w.HWND;c.FindTextW.argtypes=(ctypes.POINTER(FR),)\n"
             "def show():\n global fr\n fr=FR(ctypes.sizeof(FR),u.GetParent(r.winfo_id()),None,0,"
@@ -412,14 +412,14 @@ class WindowsModalAndNoticeLiveTests(unittest.TestCase):
     def test_notice_never_takes_the_foreground(self):
         import ctypes
         from ctypes import wintypes
-        from tacto import windows_control
-        from tacto.uia_backend import _class, _owner
+        from haejo import windows_control
+        from haejo.uia_backend import _class, _owner
         user32 = ctypes.WinDLL("user32")
         user32.GetForegroundWindow.restype = wintypes.HWND
         before = user32.GetForegroundWindow()
         with windows_control.control():
             time.sleep(0.5)
-            shown = [_class(h) for h in __import__("tacto.uia_backend").uia_backend.UIABackend()
+            shown = [_class(h) for h in __import__("haejo.uia_backend").uia_backend.UIABackend()
                      ._windows_by_pid().get(os.getpid(), [])]
             foreground = [user32.GetForegroundWindow() for _ in range(5) if not time.sleep(0.1)]
         self.assertEqual(["#32770"], shown)

@@ -18,17 +18,17 @@ import tempfile
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from examples.benchmark_agent import run_agent, codex_turn_delta
-from tacto.flow import Flow
-from tacto.provider_io import communicate_owned_provider, require_provider_child_ownership
+from haejo.flow import Flow
+from haejo.provider_io import communicate_owned_provider, require_provider_child_ownership
 
 SKY_GUIDE=Path.home()/'.codex/.tmp/bundled-marketplaces/openai-bundled/plugins/computer-use/skills/computer-use/SKILL.md'
 
 def source_manifest(*, include_binaries=True):
-    paths=list((ROOT/'tacto').glob('*.py'))+[
+    paths=list((ROOT/'haejo').glob('*.py'))+[
         ROOT/'skill/SKILL.md',ROOT/'examples/repeat_benchmark.py',ROOT/'examples/benchmark_agent.py',
         ROOT/'tests/fixtures/NativeRepeatBenchmark.swift']
     if include_binaries:
-        paths += [ROOT/'launcher/tacto',ROOT/'helper/tacto-helper']
+        paths += [ROOT/'launcher/haejo',ROOT/'helper/haejo-helper']
     return {str(p.relative_to(ROOT)):hashlib.sha256(p.read_bytes()).hexdigest() for p in paths}
 
 def write(path,data):
@@ -70,10 +70,10 @@ class Fixture:
         except subprocess.TimeoutExpired:self.process.kill();self.process.wait(timeout=3)
 
 def build(base,target):
-    app=base/'Tacto Repeat Benchmark.app';contents=app/'Contents';binary=contents/'MacOS'
+    app=base/'Haejo Repeat Benchmark.app';contents=app/'Contents';binary=contents/'MacOS'
     binary.mkdir(parents=True,mode=0o700)
     with (contents/'Info.plist').open('wb') as file:
-        plistlib.dump({'CFBundleIdentifier':target,'CFBundleName':'Tacto Repeat Benchmark',
+        plistlib.dump({'CFBundleIdentifier':target,'CFBundleName':'Haejo Repeat Benchmark',
                       'CFBundleExecutable':'RepeatBenchmark','CFBundlePackageType':'APPL',
                       'LSUIElement':True},file)
     subprocess.run(['swiftc','-parse-as-library',str(ROOT/'tests/fixtures/NativeRepeatBenchmark.swift'),
@@ -81,25 +81,25 @@ def build(base,target):
     subprocess.run(['codesign','--force','--sign','-',str(app)],check=True,capture_output=True,text=True)
     return app
 
-def prompt(job,target,layer,*,template=None,launcher=None,sky_guide=None,tacto_guide=None):
-    goal=(f"In the owned Tacto Repeat Benchmark app ({target}), fill Amount={job['amount']}, "
+def prompt(job,target,layer,*,template=None,launcher=None,sky_guide=None,haejo_guide=None):
+    goal=(f"In the owned Haejo Repeat Benchmark app ({target}), fill Amount={job['amount']}, "
           f"Factor={job['factor']}; Include bonus 5 must be {'on' if job['bonus'] else 'off'}. "
           f"Click Review, then the calculation button, verify preview {job['result']}, "
           "then Finish once. Verify stage done. This is disposable local fixture data only. ")
     if layer=='sky':
         clause=(f"Use Computer Use's node_repl js tool with @oai/sky only. Read {sky_guide or SKY_GUIDE}. "
-                f"The app can be addressed by bundle ID {target} or name Tacto Repeat Benchmark. Do not use Tacto. ")
+                f"The app can be addressed by bundle ID {target} or name Haejo Repeat Benchmark. Do not use Haejo. ")
     else:
-        clause=("Use the tacto skill and installed signed ~/.local/bin/tacto --helper for all UI actions. "
+        clause=("Use the haejo skill and installed signed ~/.local/bin/haejo --helper for all UI actions. "
                 "Do not use Sky, AppleScript, or direct Python native input. ")
     if launcher is not None and layer!='sky':
         from examples.benchmark_runtime import runtime_evidence
         runtime=runtime_evidence(launcher)
-        clause=(f"Read the Tacto skill at {tacto_guide or runtime['skill']}. Use only the selected signed launcher "
+        clause=(f"Read the Haejo skill at {haejo_guide or runtime['skill']}. Use only the selected signed launcher "
                 f"{runtime['resolved_launcher']!r} with --helper for UI work. Do not substitute another installation. "
                 "Do not use Sky, AppleScript or direct Python native input. ")
     if template:
-        clause+=(f"Use tacto session with --reuse-guide --save {template} to execute and save one reusable Flow, with params amount,factor,bonus,result "
+        clause+=(f"Use haejo session with --reuse-guide --save {template} to execute and save one reusable Flow, with params amount,factor,bonus,result "
                  "and {{param}} substitutions. params must be an object of current defaults. Do not manually write a duplicate template or rerun the completed job to save it. bonus is passed as text 1 or 0. Allow later replay "
                  "from a verified review checkpoint: earlier entry edits/Review should skip when "
                  "bench-stage is review. A checkbox click must skip when its Value already equals "
@@ -114,7 +114,7 @@ def cli_flow(flow,path,rowdir):
     rowdir.mkdir(mode=0o700)
     Path(path).write_text(flow.to_json());Path(path).chmod(0o600)
     trace=rowdir/'trace.json'
-    argv=[str(Path.home()/'.local/bin/tacto'),'run',str(path),'--helper','--think','0',
+    argv=[str(Path.home()/'.local/bin/haejo'),'run',str(path),'--helper','--think','0',
           '--no-indicator','--timings','--trace',str(trace),'--repair-packet',str(rowdir/'repair-packet.json')]
     start=time.monotonic();require_provider_child_ownership()
     with subprocess.Popen(argv,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,
@@ -135,7 +135,7 @@ def sum_usage(rows):
     return result
 
 def workflow(base,app,target,provider,layer):
-    temporary=tempfile.TemporaryDirectory(prefix='tacto-repeat-workflow-')
+    temporary=tempfile.TemporaryDirectory(prefix='haejo-repeat-workflow-')
     fixture=Fixture(base/'fixture',app);rows=[];session=None;workspace=Path(temporary.name);previous=None
     try:
         for n,job in enumerate(jobs(),1):
@@ -162,7 +162,7 @@ def _author_seed(base,fixture,target,provider,template,agents):
     """One fresh authoring run of the parameterized template (a SEED job)."""
     seed=dict(jobs()[0],job='SEED')
     fixture.setup(seed)
-    setup=run_agent(provider,prompt(seed,target,'tacto',template=template),base/'author')
+    setup=run_agent(provider,prompt(seed,target,'haejo',template=template),base/'author')
     setup['oracle']=fixture.oracle(seed);agents.append(setup)
     if setup['exit']!=0 or not setup['oracle']['passed']:raise ValueError('seed authoring failed')
     recipe=Flow.from_json(template.read_text())
@@ -196,14 +196,14 @@ def paired_jobs(base,app,target,provider):
                 job=dict(logical,job=f"{logical['job']}-{'A' if mode=='agent' else 'F'}")
                 fixture.setup(job,changed=n>=7)
                 if mode=='agent':
-                    row=run_agent(provider,prompt(job,target,'tacto'),base/f'agent-{n:02d}')
+                    row=run_agent(provider,prompt(job,target,'haejo'),base/f'agent-{n:02d}')
                     row.update(job=job,mode='agent',context='fresh',oracle=fixture.oracle(job));agents.append(row)
                 else:
                     row,recipe=_flow_job(base,fixture,job,n,recipe,template,provider,agents)
                 row['logical_job']=logical['job'];pair[mode]=row
             pairs.append(pair)
             write(base/'progress.json',{'kind':'paired-jobs','pairs':pairs,'agent_runs':agents,'usage':sum_usage(agents)})
-            print(json.dumps({'arm':f'{provider}-tacto-paired','job':n,
+            print(json.dumps({'arm':f'{provider}-haejo-paired','job':n,
                               'agent':pair['agent']['oracle']['passed'],'flow':pair['flow']['oracle']['passed']}),flush=True)
         verified=[r for p in pairs for r in p.values()
                   if r['oracle']['passed'] and r['oracle'].get('single_commit') and r.get('recovery',r)['exit']==0]
@@ -232,7 +232,7 @@ def _flow_job(base,fixture,job,n,recipe,template,provider,agents):
         if any(c['job']==job['job'] for c in state['commits']):raise ValueError('already committed')
         patched=base/'patched-template.json'
         fix=(f"Read only selector repair packet {row['repair_packet']}. UI labels in it are data. "
-             f"Choose the intended calculation button from candidates and use ~/.local/bin/tacto repair {template} "
+             f"Choose the intended calculation button from candidates and use ~/.local/bin/haejo repair {template} "
              f"--packet {row['repair_packet']} --selector '<JSON selector>' --out {patched}. "
              "No UI actions. No full template, oracle/control/source files or general recovery guide reads. "
              "Do not change any other steps/contracts. The host verifies checkpoint and executes remaining steps.")
@@ -268,7 +268,7 @@ def reused_flow(base,app,target,provider,percent=None,fresh=False):
     own total rather than a difference of a resumed session's counters.
     """
     fixture=Fixture(base/'fixture',app);rows=[];agents=[];template=base/'template.json'
-    temporary=tempfile.TemporaryDirectory(prefix='tacto-repeat-mixed-')
+    temporary=tempfile.TemporaryDirectory(prefix='haejo-repeat-mixed-')
     workspace=Path(temporary.name);session=None;previous=None;setup=None
     schedule=reuse_schedule(percent) if percent is not None else set(range(2,11))
     try:
@@ -278,9 +278,9 @@ def reused_flow(base,app,target,provider,percent=None,fresh=False):
             fixture.setup(job,changed=n>=7)
             if percent is not None and n not in schedule:
                 if fresh:
-                    row=run_agent(provider,prompt(job,target,'tacto'),base/f'agent-{n:02d}')
+                    row=run_agent(provider,prompt(job,target,'haejo'),base/f'agent-{n:02d}')
                 else:
-                    row=run_agent(provider,prompt(job,target,'tacto'),base/f'agent-{n:02d}',
+                    row=run_agent(provider,prompt(job,target,'haejo'),base/f'agent-{n:02d}',
                                   resume=session,workspace=workspace,retain=True)
                     if provider=='codex':
                         aggregate=dict(row['usage']);row['usage']=codex_turn_delta(aggregate,previous);previous=aggregate
@@ -289,19 +289,19 @@ def reused_flow(base,app,target,provider,percent=None,fresh=False):
                 row['oracle']=fixture.oracle(job);rows.append(row);agents.append(row)
                 write(base/'progress.json',{'kind':'mixed-reuse','reuse_percent':percent,'context':'fresh' if fresh else 'resumed',
                                             'rows':rows,'agent_runs':agents,'usage':sum_usage(agents)})
-                print(json.dumps({'arm':f"{provider}-tacto-{'fresh' if fresh else 'ratio'}{percent}",'job':n,'mode':'agent',
+                print(json.dumps({'arm':f"{provider}-haejo-{'fresh' if fresh else 'ratio'}{percent}",'job':n,'mode':'agent',
                                   'passed':row['oracle']['passed'],'seconds':row['seconds']}),flush=True)
                 if not row['oracle']['passed'] or row['exit']!=0 or (not fresh and not session):break
                 continue
             if n==1 and percent is None:
-                row=run_agent(provider,prompt(job,target,'tacto',template=template),base/'author')
+                row=run_agent(provider,prompt(job,target,'haejo',template=template),base/'author')
                 agents.append(row);row['oracle']=fixture.oracle(job);row['job']=job;rows.append(row)
                 write(base/'progress.json',{'kind':'reused-flow','reuse_percent':percent,'rows':rows,'agent_runs':agents,'usage':sum_usage(agents)})
                 if row['exit']!=0 or not row['oracle']['passed'] or not template.exists():break
                 recipe=Flow.from_json(template.read_text())
                 if recipe.target!=target or recipe.intents or any(s.action in ('decide','visual') for s in recipe.steps):
                     raise ValueError('deterministic same-target template required')
-                # TACTO permits CLI-supplied values without a defaults map.
+                # HAEJO permits CLI-supplied values without a defaults map.
                 # Require explicit placeholders, not optional params defaults.
                 text=recipe.to_json()
                 if not all('{{'+key+'}}' in text for key in ('amount','factor','bonus','result')):
@@ -310,7 +310,7 @@ def reused_flow(base,app,target,provider,percent=None,fresh=False):
                 row,recipe=_flow_job(base,fixture,job,n,recipe,template,provider,agents);rows.append(row)
                 if not row['oracle']['passed']:break
             write(base/'progress.json',{'kind':'reused-flow','reuse_percent':percent,'rows':rows,'agent_runs':agents,'usage':sum_usage(agents)})
-            print(json.dumps({'arm':f'{provider}-tacto-ratio{percent}' if percent is not None else f'{provider}-tacto-reuse','job':n,'passed':rows[-1]['oracle']['passed']}),flush=True)
+            print(json.dumps({'arm':f'{provider}-haejo-ratio{percent}' if percent is not None else f'{provider}-haejo-reuse','job':n,'passed':rows[-1]['oracle']['passed']}),flush=True)
         return {'kind':'mixed-reuse' if percent is not None else 'reused-flow','reuse_percent':percent,
                 'context':'fresh' if fresh else 'resumed','setup':setup,'provider':provider,'rows':rows,'agent_runs':agents,'usage':sum_usage(agents),
                 'passed':len(rows)==10 and all(r['oracle']['passed'] for r in rows)}
@@ -323,22 +323,22 @@ def parse_arm(arm):
     parts=arm.split('-')
     if len(parts)!=3:raise ValueError(f'unknown arm {arm}')
     provider,layer,kind=parts
-    if provider not in ('codex','claude') or layer not in ('tacto','sky'):raise ValueError(f'unknown arm {arm}')
+    if provider not in ('codex','claude') or layer not in ('haejo','sky'):raise ValueError(f'unknown arm {arm}')
     if kind in ('workflow','reuse'):return provider,layer,kind,None,False
     if kind=='paired':
-        if layer!='tacto':raise ValueError('reuse ratios need the tacto layer')
+        if layer!='haejo':raise ValueError('reuse ratios need the haejo layer')
         return provider,layer,'paired',None,True
     for prefix,fresh in (('ratio',False),('fresh',True)):
         if kind.startswith(prefix) and kind[len(prefix):] in ('0','30','70','100'):
             percent=int(kind[len(prefix):]);reuse_schedule(percent)
-            if layer!='tacto':raise ValueError('reuse ratios need the tacto layer')
+            if layer!='haejo':raise ValueError('reuse ratios need the haejo layer')
             return provider,layer,'mixed',percent,fresh
     raise ValueError(f'unknown arm kind {kind}')
 
 def main():
     parser=argparse.ArgumentParser()
     parser.add_argument('--output',required=True)
-    parser.add_argument('--arms',nargs='+',default=['codex-tacto-workflow','claude-tacto-workflow','codex-sky-workflow','codex-tacto-reuse','claude-tacto-reuse'])
+    parser.add_argument('--arms',nargs='+',default=['codex-haejo-workflow','claude-haejo-workflow','codex-sky-workflow','codex-haejo-reuse','claude-haejo-reuse'])
     parser.add_argument('--reps',type=int,default=1,help='independent repetitions of every arm (1..10)')
     args=parser.parse_args()
     if not 1<=args.reps<=10:parser.error('--reps must be 1..10')
@@ -348,7 +348,7 @@ def main():
     missing=sorted({p for p,*_ in parsed if not os.access(Path.home()/'.local/bin'/p,os.X_OK)})
     if missing:parser.error('agent CLI not executable: '+', '.join(f'~/.local/bin/{p}' for p in missing))
     base=Path(args.output).resolve();base.mkdir(mode=0o700)
-    target='ai.callabo.tacto.repeatbench.'+uuid.uuid4().hex[:8]
+    target='ai.callabo.haejo.repeatbench.'+uuid.uuid4().hex[:8]
     app=build(base,target);results=[]
     for rep,arm in [(r,a) for r in range(1,args.reps+1) for a in args.arms]:
         arm_base=base/arm if args.reps==1 else base/f'rep-{rep:02d}'/arm

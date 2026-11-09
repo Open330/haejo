@@ -17,12 +17,12 @@ from examples.probes.signed_owned_textedit import SignedOwnedTextEdit, TARGET
 
 def run_probe(driver):
     from examples.probes.focus_witness import FocusWitness
-    from tacto.agent import Agent
-    from tacto.commit_evidence import DocumentSaveEvidence
-    from tacto.document_snapshot import SnapshotDriver, SnapshotUnavailable, REQUIRED, _window_index
-    from tacto.flow import replay
-    from tacto.library import textedit_save_as
-    from tacto.textedit_receipt import make_textedit_receipt
+    from haejo.agent import Agent
+    from haejo.commit_evidence import DocumentSaveEvidence
+    from haejo.document_snapshot import SnapshotDriver, SnapshotUnavailable, REQUIRED, _window_index
+    from haejo.flow import replay
+    from haejo.library import textedit_save_as
+    from haejo.textedit_receipt import make_textedit_receipt
 
     report = {'passed':False, 'scope':'owned_actual_TextEdit_guarded_Save_As_transition',
               'model_requests':0, 'comparison_eligible':False,
@@ -33,19 +33,19 @@ def run_probe(driver):
     def phase(name):
         timeline.append({'phase':name, 't':time.monotonic()})
     root = Path(__file__).resolve().parents[2]
-    sources = [*root.glob('tacto/*.py'), *root.glob('helper/*.swift'),
-               root/'examples/eval.py', root/'launcher/tacto.swift', root/'launcher/tacto', root/'helper/tacto-helper',
-               root/'helper/Tacto Helper.app/Contents/MacOS/TactoHelper', Path(__file__)]
+    sources = [*root.glob('haejo/*.py'), *root.glob('helper/*.swift'),
+               root/'examples/eval.py', root/'launcher/haejo.swift', root/'launcher/haejo', root/'helper/haejo-helper',
+               root/'helper/Haejo Helper.app/Contents/MacOS/HaejoHelper', Path(__file__)]
     hashes = lambda: {str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest()
                       for p in sources if p.is_file()}
     report['source_before'] = hashes()
     if not REQUIRED <= set(getattr(driver, 'capabilities', ())):
         return {**report, 'failure_code':'native_capability_unavailable'}
     nonce = secrets.token_hex(12)
-    body = 'Tacto native Save As '+nonce+'\nExact receiving text.\n'
-    directory = Path(tempfile.mkdtemp(prefix='tacto-save-as-')).resolve()
+    body = 'Haejo native Save As '+nonce+'\nExact receiving text.\n'
+    directory = Path(tempfile.mkdtemp(prefix='haejo-save-as-')).resolve()
     source = directory/('source-'+nonce+'.rtf')
-    destination = (Path.home()/'Downloads').resolve()/('tacto-save-as-'+nonce+'.rtf')
+    destination = (Path.home()/'Downloads').resolve()/('haejo-save-as-'+nonce+'.rtf')
     fixture = SignedOwnedTextEdit(driver, source.name)
     source.write_bytes(b'{\\rtf1\\ansi '+body.replace('\n','\\par\n').encode('ascii')+b'}')
     source.chmod(0o600)
@@ -192,7 +192,7 @@ def run_probe(driver):
                 # Cancel only this owned document's observed Save panel, once.
                 # A missing/unknown response remains in the report; no retry.
                 if fixture.token and not report['passed']:
-                    from tacto.flow import Selector
+                    from haejo.flow import Selector
                     observation = driver.observe(TARGET, document_token=fixture.token)
                     if observation.get('type')=='observation':
                         try:

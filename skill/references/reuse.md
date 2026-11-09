@@ -1,6 +1,6 @@
 # Save and reuse only when repetition needs it
 
-For a new reusable task, start `tacto session <bundle-id> --helper --reuse-guide
+For a new reusable task, start `haejo session <bundle-id> --helper --reuse-guide
 --save /absolute/new.json` with the normal interactive tools. The one guide
 includes the parameter format and observation. Send one Flow: the successful
 run saves that same unbound template privately. Do not write a duplicate Flow
@@ -12,16 +12,16 @@ Use `{{amount}}` in `params.value` and `{{result}}` in a result check. Session
 binds those defaults for this run and saves placeholders for later jobs:
 
 ```sh
-tacto run /absolute/new.json --helper --think 0 -p amount=17 -p result=85
+haejo run /absolute/new.json --helper --think 0 -p amount=17 -p result=85
 ```
 
 To parameterize an existing concrete Flow without any model/UI input:
 
 ```sh
-tacto parameterize /absolute/concrete.json -p 11=amount -p 38=result -o /absolute/template.json
+haejo parameterize /absolute/concrete.json -p 11=amount -p 38=result -o /absolute/template.json
 ```
 
-For a verified `tacto do` walk candidate, use `tacto candidates` then `tacto promote
+For a verified `haejo do` walk candidate, use `haejo candidates` then `haejo promote
 <name> -p 25=n --no-decisions`. Digit sequences/derived formulas: read
 [parameterization details](parameterization.md) only if the task requires them.
 

@@ -9,7 +9,7 @@ import unittest
 @unittest.skipUnless(shutil.which('swift'), 'Swift required')
 class NativeProcessResolverTests(unittest.TestCase):
     def test_bundle_name_policy_order_and_case_contract_and_name_read_cost(self):
-        source = (Path(__file__).resolve().parents[1] / 'helper/TactoHelper.swift').read_text()
+        source = (Path(__file__).resolve().parents[1] / 'helper/HaejoHelper.swift').read_text()
         function = source[source.index('func pid(forBundle bundle: String)'):]
         function = function[:function.index('\n}\n') + 3]
         script = '''import Foundation
@@ -70,7 +70,7 @@ NSWorkspace.shared.apps=[]
 precondition(pid(forBundle:"missing")==nil)
 print(checked)
 '''
-        with tempfile.TemporaryDirectory(prefix='tacto-resolver-contract-') as work:
+        with tempfile.TemporaryDirectory(prefix='haejo-resolver-contract-') as work:
             path = Path(work) / 'main.swift'
             path.write_text(script)
             run = subprocess.run(['swift', str(path)], capture_output=True, text=True, timeout=60)

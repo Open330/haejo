@@ -7,12 +7,12 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
-from tacto.agent import Agent
-from tacto.commit_evidence import ArtifactEvidence, CommitEvidence
-from tacto.cli import _confirmer
-from tacto.contract import ContextBinding, Destination, Resource, SafetyContract, issue_approval, policy
-from tacto.flow import Flow, Postcondition, Selector, Step, replay
-from tacto.safety import classify
+from haejo.agent import Agent
+from haejo.commit_evidence import ArtifactEvidence, CommitEvidence
+from haejo.cli import _confirmer
+from haejo.contract import ContextBinding, Destination, Resource, SafetyContract, issue_approval, policy
+from haejo.flow import Flow, Postcondition, Selector, Step, replay
+from haejo.safety import classify
 
 TARGET = 'example.owned.consent'
 

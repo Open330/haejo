@@ -4,10 +4,10 @@ selected row, send the message in its field). The helper is told the host
 vouched (submit_authorized); everything else stays as for a bound key."""
 from dataclasses import replace
 import unittest
-from tacto.contract import Envelope, ContextBinding
-from tacto.flow import Flow, Step, Selector, Postcondition, replay, pin_params
-from tacto.helper import HelperDriver
-from tacto.protocol import window_key_reobservation
+from haejo.contract import Envelope, ContextBinding
+from haejo.flow import Flow, Step, Selector, Postcondition, replay, pin_params
+from haejo.helper import HelperDriver
+from haejo.protocol import window_key_reobservation
 
 CAPS = {'action.press_key', 'press_key.element_bound', 'press_key.no_escape', 'press_key.return_bound'}
 SENT = {'type': 'acted', 'input_route': 'window_bound_submit_key', 'posted_events': 1,
@@ -115,7 +115,7 @@ class BoundReturnReplayTests(unittest.TestCase):
                 self.assertNotIn('navigation_contract_required', str(result.log))
 
     def test_trace_preserves_bound_submit_and_replays_the_same_contract(self):
-        from tacto.trace import TracingDriver, TraceDriver
+        from haejo.trace import TracingDriver, TraceDriver
         class NamedArgumentsApp(App):
             def act(self, obs_id, target, action, **kwargs):
                 return super().act(obs_id, target, action, **kwargs)

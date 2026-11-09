@@ -5,9 +5,9 @@ import gc
 import weakref
 from unittest.mock import patch
 
-from tacto.visual import capture_browser
-from tacto.visual_actions import VisualClickExecutor, run_visual
-from tacto.capture_ledger import CaptureLedger
+from haejo.visual import capture_browser
+from haejo.visual_actions import VisualClickExecutor, run_visual
+from haejo.capture_ledger import CaptureLedger
 
 try:
     import playwright.sync_api
@@ -19,7 +19,7 @@ except ImportError:
 @unittest.skipUnless(WEB, 'optional playwright dependency not installed')
 class VisualActions(unittest.TestCase):
     def setUp(self):
-        from tacto.browser import BrowserDriver
+        from haejo.browser import BrowserDriver
         self.driver = BrowserDriver()
         self.addCleanup(self.driver.close)
         self.driver.goto("""data:text/html,<style>body{margin:0}</style><canvas id='c' width='200' height='100'></canvas><script>
@@ -162,7 +162,7 @@ class VisualActions(unittest.TestCase):
 
     def test_full_ledger_cannot_forget_prior_click_to_allow_new_input(self):
         ledger=CaptureLedger(1);action={'action':'click','x':30,'y':30}
-        with patch('tacto.visual_actions._SPENT_CAPTURES',ledger):
+        with patch('haejo.visual_actions._SPENT_CAPTURES',ledger):
             first=self.capture()
             self.assertEqual('dispatched',VisualClickExecutor(self.driver).click(first,action,lambda *args:True)['effect'])
             event=VisualClickExecutor(self.driver).click(self.capture(),action,lambda *args:True)

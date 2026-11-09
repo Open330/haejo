@@ -3,9 +3,9 @@ import json
 import unittest
 from unittest.mock import patch
 
-from tacto.contract import Envelope
-from tacto.flow import Flow, ReadyHint, Selector, Step, replay
-from tacto.helper import HelperDriver
+from haejo.contract import Envelope
+from haejo.flow import Flow, ReadyHint, Selector, Step, replay
+from haejo.helper import HelperDriver
 
 SAFETY = Envelope.minimal().contract_for({"write_ephemeral"}, "entry")
 DISPLAY = Selector(identifier="display")
@@ -68,8 +68,8 @@ def press(identifier, hint=None):
 
 
 def run(pad, clock, flow):
-    with patch("tacto.helper.time.monotonic", side_effect=clock.monotonic), \
-         patch("tacto.helper.time.sleep", side_effect=clock.sleep):
+    with patch("haejo.helper.time.monotonic", side_effect=clock.monotonic), \
+         patch("haejo.helper.time.sleep", side_effect=clock.sleep):
         return replay(pad, flow.bind())
 
 
@@ -164,7 +164,7 @@ class ReadyHintFormatTests(unittest.TestCase):
 
 class BuiltinHintTests(unittest.TestCase):
     def test_only_calculator_recipes_carry_hints(self):
-        from tacto.library import builders
+        from haejo.library import builders
         built = {name: build() for name, build in builders().items()}
         with_hints = sorted(name for name, flow in built.items() if any(st.ready_when for st in flow.steps))
         self.assertEqual(["calc_12x34", "calc_arith", "calc_multiply"], with_hints)
@@ -173,7 +173,7 @@ class BuiltinHintTests(unittest.TestCase):
 
     def test_arithmetic_hints_name_each_exact_display(self):
         # Read off Calculator on macOS 27; the minus is U+2212.
-        from tacto.library import builders
+        from haejo.library import builders
         for op, shown in (("+", "+"), ("-", "\u2212"), ("*", "×"), ("/", "÷")):
             flow = builders()["calc_arith"]().bind(a="75", b="81", op=op)
             with self.subTest(op=op):

@@ -9,7 +9,7 @@ import sys
 import tempfile
 import unittest
 import unittest.mock
-from tacto.native_hover import hover_problem, main
+from haejo.native_hover import hover_problem, main
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -194,8 +194,8 @@ print("HOVER_PASS")
             self.assertEqual('HOVER_PASS', result.stdout.strip())
 
     def test_launcher_and_helper_gate_hover_like_other_coordinates(self):
-        launcher = (ROOT / 'launcher/tacto.swift').read_text()
-        helper = (ROOT / 'helper/TactoHelper.swift').read_text()
+        launcher = (ROOT / 'launcher/haejo.swift').read_text()
+        helper = (ROOT / 'helper/HaejoHelper.swift').read_text()
         self.assertIn('"hover":            (["name", "element_index", "to", "duration", "hold"], ["via", "capture"])', launcher)
         for source in (launcher, helper):
             self.assertIn('["click_point", "drag", "hover", "vroid_drag", "vroid_focus"]', source)

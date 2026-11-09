@@ -60,7 +60,7 @@ final class NonKeyDragPanel:NSPanel {
         } else {
             window=NSWindow(contentRect:NSRect(x:200,y:200,width:480,height:300),styleMask:[.titled,.closable,.resizable],backing:.buffered,defer:false)
         }
-        window.title="Tacto Drag Fixture"
+        window.title="Haejo Drag Fixture"
         if CommandLine.arguments.contains("--floating") {window.level = .floating}
         window.isReleasedWhenClosed=false
         if CommandLine.arguments.contains("--borderless") {

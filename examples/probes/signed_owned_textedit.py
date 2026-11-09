@@ -37,7 +37,7 @@ class SignedOwnedTextEdit:
     def prepare(self):
         if self.directory is not None:
             raise RuntimeError('owned_fixture_already_created')
-        self.directory = Path(tempfile.mkdtemp(prefix='tacto-signed-owned-')).resolve()
+        self.directory = Path(tempfile.mkdtemp(prefix='haejo-signed-owned-')).resolve()
         st=self.directory.lstat()
         self.directory_identity=(st.st_dev,st.st_ino)
         self.path=self.directory/self.name
@@ -137,7 +137,7 @@ class SignedOwnedTextEdit:
         return None
 
     def write(self, text):
-        from tacto.flow import Selector
+        from haejo.flow import Selector
         if not isinstance(text,str) or 'action.set_value' not in self.driver.capabilities:
             raise RuntimeError('owned_fixture_write_unavailable')
         obs=self.driver.observe(TARGET,document_token=self.token)
@@ -155,7 +155,7 @@ class SignedOwnedTextEdit:
         if self.token is None:
             return None
         reply=self.driver.document_window_status(TARGET,self.token)
-        from tacto.helper import DOCUMENT_WINDOW_STATUS_REASONS
+        from haejo.helper import DOCUMENT_WINDOW_STATUS_REASONS
         valid=(type(reply) is dict and reply.get('type')=='document_window_status'
                and reply.get('document_token')==self.token
                and reply.get('same_process_verified') is True
@@ -197,7 +197,7 @@ class SignedOwnedTextEdit:
         return 'closed'
 
     def cleanup(self):
-        from tacto.flow import Selector
+        from haejo.flow import Selector
         state=self.status()
         if state is None:
             return 'document_status_unavailable_left_as_is'

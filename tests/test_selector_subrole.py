@@ -1,5 +1,5 @@
 import json,unittest
-from tacto.flow import Selector,Flow,Step
+from haejo.flow import Selector,Flow,Step
 TREE='0 Window  Title: owned\n  1 Button  Subrole: AXCloseButton\n  2 Button  Subrole: AXMinimizeButton'
 class SubroleSelectors(unittest.TestCase):
     def test_close_and_minimize_are_distinct(self):
@@ -18,7 +18,7 @@ class SubroleSelectors(unittest.TestCase):
 
 class SubroleConsent(unittest.TestCase):
     def test_minimize_approval_cannot_authorize_close(self):
-        from tacto.contract import ContextBinding,SafetyContract,Resource,issue_approval,validate
+        from haejo.contract import ContextBinding,SafetyContract,Resource,issue_approval,validate
         old=ContextBinding(bundle_id='test',role='Button',subrole='AXMinimizeButton',operation='click')
         new=ContextBinding(bundle_id='test',role='Button',subrole='AXCloseButton',operation='click')
         safety=SafetyContract(effects=['write_ephemeral'],reversibility='reversible',resource=Resource(scope='entry'))
@@ -28,7 +28,7 @@ class SubroleConsent(unittest.TestCase):
         self.assertFalse(validate(ContextBinding(role='Button'),new).ok)
 
     def test_old_binding_digest_is_unchanged_when_subrole_is_absent(self):
-        from tacto.contract import ContextBinding
+        from haejo.contract import ContextBinding
         from dataclasses import asdict
         import hashlib
         binding=ContextBinding(bundle_id='test',role='Button')
@@ -36,7 +36,7 @@ class SubroleConsent(unittest.TestCase):
         self.assertEqual(hashlib.sha256(json.dumps(old,sort_keys=True,default=str).encode()).hexdigest()[:32],binding.digest())
 
     def test_authoring_pins_the_observed_subrole(self):
-        from tacto.authoring import _to_flow
+        from haejo.authoring import _to_flow
         f=_to_flow({'schema':2,'name':'owned','target':'test','steps':[{'action':'click','selector':{'role':'Button','subrole':'AXCloseButton','ancestor':'owned'}}]})
         self.assertEqual('AXCloseButton',f.steps[0].binding.subrole)
 
@@ -44,7 +44,7 @@ class SubroleRepairIdentity(unittest.TestCase):
     def test_offline_repair_cannot_omit_a_pinned_subrole(self):
         from pathlib import Path
         import tempfile
-        from tacto.repair_packet import patch_selector
+        from haejo.repair_packet import patch_selector
         f=Flow('owned','app',[Step('click',Selector(role='Button',subrole='AXCloseButton',ancestor='owned'))])
         packet={'schema':1,'target':'app','step_index':0,'effect':'not_started','error':'target_missing',
                 'action':'click','selector':json.loads(f.to_json())['steps'][0]['selector'],

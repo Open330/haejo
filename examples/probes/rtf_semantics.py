@@ -1,5 +1,5 @@
 """Known owned rich-text witness; no GUI input or general format attestation."""
-TEXT = 'TACTO signed RTF witness 한글 😀\n'
+TEXT = 'HAEJO signed RTF witness 한글 😀\n'
 
 
 def utf16_span(segment):
@@ -17,7 +17,7 @@ def rich_source():
     if font is None: raise ValueError('witness_font_unavailable')
     body.addAttribute_value_range_(NSFontAttributeName, font, (0, body.length()))
     manager = NSFontManager.sharedFontManager()
-    for segment, trait in (('TACTO', NSBoldFontMask), ('signed', NSItalicFontMask)):
+    for segment, trait in (('HAEJO', NSBoldFontMask), ('signed', NSItalicFontMask)):
         body.addAttribute_value_range_(NSFontAttributeName,
             manager.convertFont_toHaveTrait_(font, trait), utf16_span(segment))
     body.addAttribute_value_range_(NSUnderlineStyleAttributeName, 1, utf16_span('RTF'))
@@ -46,7 +46,7 @@ def verify_witness(raw):
         return range(start, start + count)
     manager = NSFontManager.sharedFontManager()
     snapshot = {}
-    for segment, trait in (('TACTO', NSBoldFontMask), ('signed', NSItalicFontMask)):
+    for segment, trait in (('HAEJO', NSBoldFontMask), ('signed', NSItalicFontMask)):
         fonts = [attribute(NSFontAttributeName, i) for i in indices(segment)]
         if any(f is None or not manager.traitsOfFont_(f) & trait
                or abs(f.pointSize() - 14) > .001 or f.familyName() != 'Helvetica' for f in fonts):
@@ -132,8 +132,8 @@ def read_owned_document_font_signatures(document_path,expected_pid,expected_text
     """Independent metadata read of an already owned document; no UI action."""
     import math,os,stat
     from pathlib import Path
-    from tacto.driver import Driver
-    from tacto.model_budget import model_deadline,remaining_model_seconds
+    from haejo.driver import Driver
+    from haejo.model_budget import model_deadline,remaining_model_seconds
     import time
     from ApplicationServices import (AXValueCreate,kAXValueCFRangeType,
         AXUIElementCopyParameterizedAttributeValue,AXUIElementSetMessagingTimeout)

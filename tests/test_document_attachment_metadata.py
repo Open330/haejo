@@ -13,8 +13,8 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
 
-from tacto.helper import HelperDriver, InheritedHelperDriver
-from tacto.trace import Trace, TraceDriver, TracingDriver
+from haejo.helper import HelperDriver, InheritedHelperDriver
+from haejo.trace import Trace, TraceDriver, TracingDriver
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -89,12 +89,12 @@ class AttachmentChannelTests(unittest.TestCase):
         self.assertEqual(replay.document_attachment_metadata('com.apple.TextEdit','token')['effect'],'not_started')
 
     def test_cli_requires_signed_route_and_checks_source_position_binding(self):
-        from tacto.cli import _dispatch
+        from haejo.cli import _dispatch
         driver=Mock();path='/private/tmp/owned.rtfd'
         text={'type':'document_text','document_token':'token','document_path':path,'text':'한😀\ufffc'}
         driver.document_text.return_value=text
         driver.document_attachment_metadata.return_value={**reply(),'document_path':path}
-        with patch('tacto.cli._make_driver',return_value=driver),contextlib.redirect_stdout(io.StringIO()) as output:
+        with patch('haejo.cli._make_driver',return_value=driver),contextlib.redirect_stdout(io.StringIO()) as output:
             self.assertEqual(2,_dispatch('document-attachments',[path]))
             driver.document_text.assert_not_called()
             self.assertEqual(0,_dispatch('document-attachments',[path,'--helper']))
@@ -112,7 +112,7 @@ class AttachmentChannelTests(unittest.TestCase):
 @unittest.skipUnless(sys.platform=='darwin' and shutil.which('swift'),'macOS Swift required')
 class AttachmentSwiftTests(unittest.TestCase):
     def test_actual_launcher_schema_accepts_only_pinned_read_request(self):
-        source=(ROOT/'launcher/tacto.swift').read_text()
+        source=(ROOT/'launcher/haejo.swift').read_text()
         schema=source[source.index('let allowedTypes:'):source.index('// MARK: - Socket plumbing')]
         checks=r'''
 let root:[String:Any]=["type":"document_attachment_metadata","target":"com.apple.TextEdit","document_token":"token"]
@@ -135,7 +135,7 @@ print("SCHEMA_PASS")
         self.assertEqual(result.stdout.strip(),expected)
 
     def test_actual_handler_identity_metadata_stability_limits_and_timeout(self):
-        source=(ROOT/'helper/TactoHelper.swift').read_text()
+        source=(ROOT/'helper/HaejoHelper.swift').read_text()
         handler=source[source.index('func documentAttachmentMetadata('):source.index('func documentScopedSaveAction(')]
         harness=r'''
 import Foundation

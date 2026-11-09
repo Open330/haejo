@@ -3,8 +3,8 @@ import json
 import unittest
 from unittest.mock import Mock
 
-from tacto.repair_packet import candidate_packet_page, selector_candidate_nodes
-from tacto.flow import Selector
+from haejo.repair_packet import candidate_packet_page, selector_candidate_nodes
+from haejo.flow import Selector
 from tests import test_auto_repair as helpers
 response = helpers.response
 from tests.test_flow_batch import SignedCalculator

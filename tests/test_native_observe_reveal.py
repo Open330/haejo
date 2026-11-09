@@ -55,7 +55,7 @@ class NativeRevealTests(unittest.TestCase):
         return json.loads(result.stdout)
 
     def test_real_walk_reveals_late_child_with_bounded_exact_scans(self):
-        code = (ROOT / 'helper/TactoHelper.swift').read_text()
+        code = (ROOT / 'helper/HaejoHelper.swift').read_text()
         code = code[code.index('let interactableRoles:'):code.index('// MARK: - Session state')]
         checks = r'''
 put(1, "Window", Array(2...3001))
@@ -117,7 +117,7 @@ print("{\"passed\":true,\"late_child\":2999,\"scan_nodes\":2940,\"global_cap\":5
         self.assertTrue(self.execute(SUPPORT + code + checks)['passed'])
 
     def test_launcher_accepts_only_bounded_observe_labels(self):
-        code = (ROOT / 'launcher/tacto.swift').read_text()
+        code = (ROOT / 'launcher/haejo.swift').read_text()
         schema = code[code.index('let allowedTypes:'):code.index('// MARK: - Socket plumbing')]
         checks = r'''
 let base: [String: Any] = ["type":"observe", "target":"owned.fixture", "reveal":["late-file"]]

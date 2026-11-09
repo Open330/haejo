@@ -8,9 +8,9 @@ import subprocess
 import tempfile
 import unittest
 
-from tacto.contract import Envelope, ContextBinding
-from tacto.flow import Flow, Step, Selector, Postcondition, replay, pin_params
-from tacto.protocol import RETURN_CAPABILITY, window_key_reobservation
+from haejo.contract import Envelope, ContextBinding
+from haejo.flow import Flow, Step, Selector, Postcondition, replay, pin_params
+from haejo.protocol import RETURN_CAPABILITY, window_key_reobservation
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 GOOD = {'type': 'acted', 'input_route': 'window_submit_key', 'posted_events': 1,
@@ -135,13 +135,13 @@ class ReturnProtocolTests(unittest.TestCase):
         self.assertFalse(window_key_reobservation(ret, pair, Finder.capabilities))
 
     def test_return_is_not_navigation(self):
-        from tacto.protocol import NAVIGATION_KEYS
+        from haejo.protocol import NAVIGATION_KEYS
         self.assertNotIn('Return', NAVIGATION_KEYS)
 
 
 class HelperReturnBoundaryTests(unittest.TestCase):
     """Source checks: the helper's own scoping of Return."""
-    swift = (ROOT / 'helper/TactoHelper.swift').read_text()
+    swift = (ROOT / 'helper/HaejoHelper.swift').read_text()
     window_input = (ROOT / 'helper/WindowInput.swift').read_text()
     dispatch = (ROOT / 'helper/WindowDispatch.swift').read_text()
 
@@ -200,7 +200,7 @@ class HelperReturnJudgementTests(unittest.TestCase):
     """The helper's real returnTargetRefusal, run against a fake AX read."""
 
     def test_cases(self):
-        swift = (ROOT / 'helper/TactoHelper.swift').read_text()
+        swift = (ROOT / 'helper/HaejoHelper.swift').read_text()
         code = ('typealias AXRead = (AXUIElement, String) throws -> (AXError, CFTypeRef?)\n'
                 + swift[swift.index('// AXRead: see WindowInput.swift.'):swift.index('// Keys that only move the focus ring.')])
         harness = r'''
@@ -249,7 +249,7 @@ for (name, tree) in cases { out[name] = run(tree) }
 out["deadline spent"] = returnTargetRefusal(el(1), read: boundedAXRead(until: 0)) ?? "ALLOWED"
 print(String(data: try! JSONSerialization.data(withJSONObject: out), encoding: .utf8)!)
 '''
-        with tempfile.TemporaryDirectory(prefix='tacto-return-judge-') as directory:
+        with tempfile.TemporaryDirectory(prefix='haejo-return-judge-') as directory:
             script = pathlib.Path(directory) / 'main.swift'
             script.write_text(harness)
             result = subprocess.run(['swift', str(script)], capture_output=True, text=True, timeout=120)

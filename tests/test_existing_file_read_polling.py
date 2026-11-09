@@ -6,9 +6,9 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from tacto.artifact_receipt import ArtifactReceiptError
-from tacto.commit_evidence import CommitEvidence, make_event
-from tacto.existing_file_receipt import ExistingTextFileReceipt, SAVE_PATH
+from haejo.artifact_receipt import ArtifactReceiptError
+from haejo.commit_evidence import CommitEvidence, make_event
+from haejo.existing_file_receipt import ExistingTextFileReceipt, SAVE_PATH
 
 
 class Clock:
@@ -74,7 +74,7 @@ class ExistingFileReadPollingTests(unittest.TestCase):
                 changed = True
                 change()
             return data
-        return patch('tacto.existing_file_receipt.os.read', side_effect=boundary)
+        return patch('haejo.existing_file_receipt.os.read', side_effect=boundary)
 
     def test_document_changes_during_exact_file_read_cannot_issue_saved_state(self):
         with self.eof(lambda:setattr(self.doc,'text','changed document')):
@@ -124,7 +124,7 @@ class ExistingFileReadPollingTests(unittest.TestCase):
             result=read(*args,**kwargs);self.clock.now=.04
             return result
         with patch.object(self.doc,'document_text',side_effect=slow_document), \
-                patch('tacto.existing_file_receipt._file_state') as file_reader:
+                patch('haejo.existing_file_receipt._file_state') as file_reader:
             with self.assertRaisesRegex(ArtifactReceiptError,'file_readback_deadline'):
                 self.after()
         file_reader.assert_not_called()
@@ -186,7 +186,7 @@ class ExistingFileReadPollingTests(unittest.TestCase):
                 self.replace()
             return opener(path, flags, *args, **kwargs)
 
-        with patch('tacto.existing_file_receipt.os.open', side_effect=opening):
+        with patch('haejo.existing_file_receipt.os.open', side_effect=opening):
             self.assertIs(type(self.after()), CommitEvidence)
         self.assertEqual([.01], self.clock.sleeps)
 
@@ -201,7 +201,7 @@ class ExistingFileReadPollingTests(unittest.TestCase):
                 raise FileNotFoundError(errno.ENOENT, 'PRIVATE_SENTINEL')
             return opener(path, flags, *args, **kwargs)
 
-        with patch('tacto.existing_file_receipt.os.open', side_effect=opening):
+        with patch('haejo.existing_file_receipt.os.open', side_effect=opening):
             self.assertIs(type(self.after()), CommitEvidence)
         self.assertEqual([.01], self.clock.sleeps)
 
@@ -213,7 +213,7 @@ class ExistingFileReadPollingTests(unittest.TestCase):
                     self.doc, document_path=str(self.path), timeout_seconds=.03,
                     poll_interval=.01, clock=self.clock, sleep=self.clock.sleep)
                 self.context = self.receipt.prepare_commit(self.event)
-                with patch('tacto.existing_file_receipt.os.open',
+                with patch('haejo.existing_file_receipt.os.open',
                            side_effect=OSError(error, 'PRIVATE_SENTINEL')) as opener:
                     with self.assertRaises(ArtifactReceiptError) as failure:
                         self.after()
@@ -243,7 +243,7 @@ class ExistingFileReadPollingTests(unittest.TestCase):
     def test_public_error_text_alone_does_not_authorize_polling(self):
         error = ArtifactReceiptError('file_changed_during_read')
         error.public_code = 'file_changed_during_read'
-        with patch('tacto.existing_file_receipt._file_state', side_effect=error) as reader:
+        with patch('haejo.existing_file_receipt._file_state', side_effect=error) as reader:
             with self.assertRaises(ArtifactReceiptError):
                 self.after()
         self.assertEqual(1, reader.call_count)

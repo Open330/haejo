@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 @unittest.skipUnless(shutil.which('swift'), 'Swift required')
 class WindowPreparationDiagnosticsTests(unittest.TestCase):
     def test_actual_background_handler_phase_reason_and_effect(self):
-        source = (ROOT / 'helper/TactoHelper.swift').read_text()
+        source = (ROOT / 'helper/HaejoHelper.swift').read_text()
         fn = source[source.index('func prepareBackgroundWindow('):]
         fn = fn[:fn.index('\n}\n') + 3]
         element_state = source[source.index('var latestElementGeneration = UUID()'):]
@@ -176,7 +176,7 @@ for mode in ["success", "identity", "context", "nodes", "deadline", "titlebar", 
 }
 print(String(data:try! JSONSerialization.data(withJSONObject:rows),encoding:.utf8)!)
 '''
-        with tempfile.TemporaryDirectory(prefix='tacto-preparation-diagnostic-') as directory:
+        with tempfile.TemporaryDirectory(prefix='haejo-preparation-diagnostic-') as directory:
             script = Path(directory) / 'main.swift'
             script.write_text(harness)
             run = subprocess.run(['swift', str(script)], capture_output=True, text=True, timeout=60)
@@ -281,7 +281,7 @@ for mode in ["normal", "expired", "set_failure", "reset_failure"] {
 }
 print(String(data:try! JSONSerialization.data(withJSONObject:rows),encoding:.utf8)!)
 '''
-        with tempfile.TemporaryDirectory(prefix='tacto-read-scope-counter-') as directory:
+        with tempfile.TemporaryDirectory(prefix='haejo-read-scope-counter-') as directory:
             path = Path(directory) / 'main.swift'; path.write_text(script)
             run = subprocess.run(['swift', str(path)], capture_output=True, text=True, timeout=60)
         self.assertEqual(0, run.returncode, run.stderr)

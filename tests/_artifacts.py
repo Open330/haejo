@@ -9,7 +9,7 @@ from pathlib import Path
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-SIGNED_BUILD = ('launcher/tacto', 'helper/Tacto Helper.app/Contents/MacOS/TactoHelper', 'helper/tacto-helper')
+SIGNED_BUILD = ('launcher/haejo', 'helper/Haejo Helper.app/Contents/MacOS/HaejoHelper', 'helper/haejo-helper')
 
 
 def missing_signed_build():

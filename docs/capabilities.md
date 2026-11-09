@@ -32,7 +32,7 @@ native AX 진단·테스트 카운터 검증 모드를 추가한다. 실기기�
 HID 연결 PING은 확인했다. 탭 전 PID 검사에서 차단된 뒤 기기가 연결 불가 상태가
 되어 실제 탭·수신 결과 검증은 미완료다. 일반 앱용 live IOSSession은 없으며,
 일반 CLI의 iOS 대상은 macOS로 우회하지 않고 거부한다.
-`tacto do`는 현재 macOS 경로이며, 브라우저와 시각 API는 Python에서 명시적으로
+`haejo do`는 현재 macOS 경로이며, 브라우저와 시각 API는 Python에서 명시적으로
 사용한다. wheel 설치만으로 서명된 macOS helper가 설치되지는 않는다.
 
 저장·전송의 host receipt 검사는 일반 실행과 flow replay에 연결되어 있다. 기존 저장
@@ -112,7 +112,7 @@ Chromium 과제를 Codex·Claude 백본으로 수행했다. 다른 provider가 �
 Codex·Claude CLI를 지원하며 두 백본의 실제 canvas 클릭을 확인했다.
 
 후보 paging은 모든 후보의 원래 번호를 유지하며, 기본 prompt 예산은 UTF-8 byte를
-보수적으로 센다. 정확한 token 계수가 필요하면 provider tokenizer를 전달한다. 이 예산은 Tacto 요청 본문에 적용되며 provider CLI의 숨은 시스템 지침·도구 정의까지 포함한 전체 context 상한은 아니다.
+보수적으로 센다. 정확한 token 계수가 필요하면 provider tokenizer를 전달한다. 이 예산은 Haejo 요청 본문에 적용되며 provider CLI의 숨은 시스템 지침·도구 정의까지 포함한 전체 context 상한은 아니다.
 넘치는 후보를 조용히 자르지 않으며 읽지 못한 페이지는 명시적으로 남긴다.
 
 일반 실행의 시간·취소 검사는 호출 사이에서 확인하는 방식이다. 실행 중인 driver나

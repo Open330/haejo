@@ -14,8 +14,8 @@ import unittest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from unittest.mock import patch
 
-from tacto import cli
-from tacto.web_upload_cli import load_registration, ConfigurationRefused, _canonical_url
+from haejo import cli
+from haejo.web_upload_cli import load_registration, ConfigurationRefused, _canonical_url
 from tests import test_delivery_receipt_integration as fixture_module
 
 
@@ -60,7 +60,7 @@ class WebUploadCLITests(unittest.TestCase):
     def test_check_reads_only_selected_registration_without_browser_or_network(self):
         self.config['scopes']['unselected'] = {'files':[{'path':'/does/not/exist'}]}
         self.write_config()
-        with patch('tacto.browser.BrowserDriver', side_effect=AssertionError('no browser')):
+        with patch('haejo.browser.BrowserDriver', side_effect=AssertionError('no browser')):
             code, result = self.run_cli('--check')
         self.assertEqual(0,code); self.assertFalse(result['authorizes_input'])
         self.assertEqual(0,self.fixture.posts); self.assertEqual(0,self.fixture.inbox_reads)
@@ -72,7 +72,7 @@ class WebUploadCLITests(unittest.TestCase):
 
     def test_symlink_and_nonprivate_configuration_refuse_before_browser(self):
         self.path.chmod(0o644)
-        with patch('tacto.browser.BrowserDriver', side_effect=AssertionError('no browser')):
+        with patch('haejo.browser.BrowserDriver', side_effect=AssertionError('no browser')):
             self.assertEqual(1,self.run_cli('--yes')[0])
             self.path.chmod(0o600)
             self.file.unlink(); self.file.symlink_to(self.path)
@@ -144,12 +144,12 @@ class WebUploadCLITests(unittest.TestCase):
                   'http://example.com\\@other.example/', 'http:example.com',
                   'http:///example.com/', 'http://example.com:65536/',
                   'http://[broken]/', 'file:///tmp/a', 'http://%40example.com/']
-        from tacto.web_upload_cli import _snapshot
+        from haejo.web_upload_cli import _snapshot
         for value in values:
             with self.subTest(value=value):
                 self.config['url'] = value
                 self.write_config()
-                with patch('tacto.web_upload_cli._snapshot', wraps=_snapshot) as snapshot:
+                with patch('haejo.web_upload_cli._snapshot', wraps=_snapshot) as snapshot:
                     with self.assertRaises(ConfigurationRefused):
                         load_registration(self.path, 'owned')
                     self.assertEqual(1, snapshot.call_count)
@@ -183,7 +183,7 @@ class WebUploadCLITests(unittest.TestCase):
 
     def test_interruption_keeps_closed_report_and_original_interrupt(self):
         report=self.root/'interrupted.json'
-        with patch('tacto.web_upload_cli.execute',side_effect=KeyboardInterrupt):
+        with patch('haejo.web_upload_cli.execute',side_effect=KeyboardInterrupt):
             with self.assertRaises(KeyboardInterrupt):self.run_cli('--yes','--report',str(report))
         result=json.loads(report.read_text())
         self.assertFalse(result['ok']);self.assertEqual('unknown',result['effect'])
@@ -238,7 +238,7 @@ class WebUploadCLITests(unittest.TestCase):
         journal=self.root/'journal'; journal.mkdir(mode=0o700)
         # Exercise this checkout's signed entry, not an unrelated installed
         # preview selected through the person's global command alias.
-        command=[str(Path(__file__).resolve().parents[1]/'launcher/tacto'),'web-upload',str(self.path),'--scope','owned','--yes',
+        command=[str(Path(__file__).resolve().parents[1]/'launcher/haejo'),'web-upload',str(self.path),'--scope','owned','--yes',
                  '--journal-dir',str(journal)]
         first=subprocess.run(command,capture_output=True,text=True,timeout=30)
         self.assertEqual(0,first.returncode,first.stdout+first.stderr)

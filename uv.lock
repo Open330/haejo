@@ -709,7 +709,7 @@ wheels = [
 ]
 
 [[package]]
-name = "tacto-runtime"
+name = "haejo-runtime"
 version = "1.0.0"
 source = { editable = "." }
 dependencies = [

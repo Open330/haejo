@@ -2,12 +2,12 @@ import Foundation
 import CoreFoundation
 
 /// Ephemeral UI metadata only. Notifications never authorize input or reset an abort.
-enum TactoRuntimeStatus {
-    static let status = Notification.Name("ai.callabo.tacto.runtime.status")
-    static let query = Notification.Name("ai.callabo.tacto.runtime.query")
-    static let stop = Notification.Name("ai.callabo.tacto.runtime.stop")
+enum HaejoRuntimeStatus {
+    static let status = Notification.Name("ai.callabo.haejo.runtime.status")
+    static let query = Notification.Name("ai.callabo.haejo.runtime.query")
+    static let stop = Notification.Name("ai.callabo.haejo.runtime.stop")
     /// Batch coordinators hear this even before a worker acquires a helper.
-    static let stopAll = Notification.Name("ai.callabo.tacto.runtime.stop-all")
+    static let stopAll = Notification.Name("ai.callabo.haejo.runtime.stop-all")
 
     struct Run {
         let id: String
@@ -81,7 +81,7 @@ enum TactoRuntimeStatus {
 
     /// Read once without creating files. Invalid/foreign/symlinked files use defaults.
     static func preferences(in directory: URL = FileManager.default.homeDirectoryForCurrentUser
-        .appendingPathComponent("Library/Application Support/Tacto")) -> [String:Any] {
+        .appendingPathComponent("Library/Application Support/Haejo")) -> [String:Any] {
         guard (try? directory.resourceValues(forKeys:[.isSymbolicLinkKey]).isSymbolicLink) != true else { return [:] }
         let fd = open(directory.appendingPathComponent("preferences.json").path, O_RDONLY | O_NOFOLLOW | O_NONBLOCK)
         guard fd >= 0 else { return [:] }
@@ -98,7 +98,7 @@ enum TactoRuntimeStatus {
         return object
     }
     static func showBanner(in directory: URL = FileManager.default.homeDirectoryForCurrentUser
-        .appendingPathComponent("Library/Application Support/Tacto")) -> Bool {
+        .appendingPathComponent("Library/Application Support/Haejo")) -> Bool {
         guard let value = preferences(in:directory)["show_control_banner"] as? NSNumber,
               CFGetTypeID(value) == CFBooleanGetTypeID() else { return true }
         return value.boolValue
@@ -116,11 +116,11 @@ enum TactoRuntimeStatus {
            CFGetTypeID(n) != CFBooleanGetTypeID(), !["d","f"].contains(String(cString:n.objCType)),
            (1...10).contains(n.intValue) { minutes = n.intValue }
         // An explicit per_command disables the GUI option. No resident route ships.
-        let mode = environment["TACTO_HELPER_MODE"].map { $0 == "warm" ? "warm" : "per_command" }
+        let mode = environment["HAEJO_HELPER_MODE"].map { $0 == "warm" ? "warm" : "per_command" }
             ?? (enabled ? "warm" : "per_command")
         var seconds = minutes * 60
         // Development/automation override; GUI range remains 1–10 minutes.
-        if let raw = environment["TACTO_HELPER_IDLE_SECONDS"], let n = Int(raw), (1...600).contains(n) { seconds = n }
+        if let raw = environment["HAEJO_HELPER_IDLE_SECONDS"], let n = Int(raw), (1...600).contains(n) { seconds = n }
         return HelperSettings(mode:mode,idleSeconds:seconds)
     }
 }

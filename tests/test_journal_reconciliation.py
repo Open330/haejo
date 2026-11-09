@@ -11,10 +11,10 @@ from unittest.mock import Mock
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.request import Request, urlopen
 
-from tacto.commit_evidence import (CommitEvidence, DeliveryEvidence, TranscriptEvidence,
+from haejo.commit_evidence import (CommitEvidence, DeliveryEvidence, TranscriptEvidence,
                                 ProducerArtifactEvidence, SavedFileStateEvidence, make_event)
-from tacto.dispatch_journal import DurableDispatchDriver
-from tacto.journal_reconciliation import CommitReconciliation, JournalReconciliationError, reconcile_journal, reconcile_and_replay
+from haejo.dispatch_journal import DurableDispatchDriver
+from haejo.journal_reconciliation import CommitReconciliation, JournalReconciliationError, reconcile_journal, reconcile_and_replay
 
 
 class ReconciliationTests(unittest.TestCase):
@@ -68,7 +68,7 @@ class ReconciliationTests(unittest.TestCase):
         self.driver.act.assert_not_called()
 
     def test_continuation_validation_precedes_evidence_and_input(self):
-        from tacto.flow import Flow
+        from haejo.flow import Flow
         read=Mock()
         with self.assertRaisesRegex(JournalReconciliationError,'invalid_reconciliation'):
             reconcile_and_replay(None,[self.plan],read,Flow('new','owned'))
@@ -261,7 +261,7 @@ class ReconciliationTests(unittest.TestCase):
         script='''
 import os,sys,json
 from urllib.request import Request,urlopen
-from tacto.dispatch_journal import DurableDispatchDriver
+from haejo.dispatch_journal import DurableDispatchDriver
 class Driver:
  def act(self,obs,target,action,**kwargs):
   with urlopen(Request(sys.argv[2],data=json.dumps(action).encode()),timeout=3) as reply:assert reply.status==200

@@ -27,7 +27,7 @@ def parents(lines, elements):
 
 class PythonObservationWindowBudgetTests(unittest.TestCase):
     def test_direct_window_controls_missing_from_children_are_observed_once(self):
-        from tacto import driver
+        from haejo import driver
         obs=driver.Observation.__new__(driver.Observation)
         obs.pid,obs.elements,obs.lines=1,[],[]
         obs.visited,obs.truncated=0,False
@@ -46,8 +46,8 @@ class PythonObservationWindowBudgetTests(unittest.TestCase):
         self.assertFalse(obs.truncated)
 
     def test_resuming_nested_frontier_preserves_parents_and_click_ancestor(self):
-        from tacto import driver
-        from tacto.flow import Selector
+        from haejo import driver
+        from haejo.flow import Selector
         graph = {0:[1, 6], 1:[2, 3, 4, 5], 6:[7, 8]}
         results = []
         for budget in (12, 100):
@@ -83,7 +83,7 @@ class PythonObservationWindowBudgetTests(unittest.TestCase):
         self.assertEqual(results[0], results[1])
 
     def test_large_first_window_reserves_later_roots_and_focus_markers(self):
-        from tacto import driver
+        from haejo import driver
         cases = (([0, 200, 300], 100), ([0], 100), (list(range(200, 213)), 100),
                  ([], 100), ([0, 400, 500], 6))
         for windows, child_count in cases:
@@ -126,7 +126,7 @@ class PythonObservationWindowBudgetTests(unittest.TestCase):
                     self.assertTrue(any(line.startswith(f'{obs.elements.index(300)} Window')
                                         and line.endswith('[focused]') for line in obs.lines))
                     self.assertTrue({201, 202, 203, 301, 302}.issubset(obs.elements))
-                    from tacto.flow import Selector
+                    from haejo.flow import Selector
                     tree = '\n'.join(obs.lines)
                     for node, parent in ((4, 0), (201, 200), (301, 300)):
                         self.assertEqual(obs.elements.index(node),
@@ -137,7 +137,7 @@ class PythonObservationWindowBudgetTests(unittest.TestCase):
 @unittest.skipUnless(shutil.which('swift'), 'Swift required')
 class ObservationWindowBudgetTests(unittest.TestCase):
     def test_later_roots_survive_large_first_window_without_exceeding_budget(self):
-        source = (ROOT / 'helper/TactoHelper.swift').read_text()
+        source = (ROOT / 'helper/HaejoHelper.swift').read_text()
         walker = source[source.index('func walk(_ el: AXUIElement, depth: Int, out:'):]
         walker = walker[:walker.index('\n}\n') + 3]
         observe = source[source.index('func observe(_ target:'):]
@@ -214,7 +214,7 @@ childGraph = [0:[1,6], 1:[2,3], 6:[3,7]]
 rows.append(observation([0]))
 print(String(data:try! JSONSerialization.data(withJSONObject:rows),encoding:.utf8)!)
 '''
-        with tempfile.TemporaryDirectory(prefix='tacto-window-budget-') as directory:
+        with tempfile.TemporaryDirectory(prefix='haejo-window-budget-') as directory:
             path = Path(directory) / 'main.swift'
             path.write_text(script)
             run = subprocess.run(['swift', str(path)], capture_output=True, text=True, timeout=60)
@@ -249,7 +249,7 @@ if __name__ == '__main__':
 
 class FrontWindowBudgetSourceTests(unittest.TestCase):
     def test_front_window_gets_half_the_remaining_budget_and_resumes_first(self):
-        source = (ROOT / 'helper/TactoHelper.swift').read_text()
+        source = (ROOT / 'helper/HaejoHelper.swift').read_text()
         loop = source[source.index('    let front = windows.prefix(windowCount)'):source.index('        // Mark the frontmost window')]
         self.assertIn('max(share, (maxTreeNodes - visited) / 2) : share', loop)
         self.assertIn('let resumeOrder = (0..<windowCount).filter { front[$0] } + (0..<windowCount).filter { !front[$0] }', loop)

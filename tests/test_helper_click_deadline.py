@@ -2,8 +2,8 @@
 import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
-from tacto.helper import InheritedHelperDriver
-from tacto.model_budget import model_deadline
+from haejo.helper import InheritedHelperDriver
+from haejo.model_budget import model_deadline
 
 
 class HelperClickDeadlineTests(unittest.TestCase):

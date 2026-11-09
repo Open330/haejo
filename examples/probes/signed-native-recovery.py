@@ -14,16 +14,16 @@ import time
 import sys
 import socket
 
-TARGET = 'ai.callabo.tacto.recovery-fixture'
+TARGET = 'ai.callabo.haejo.recovery-fixture'
 
 
 def main(driver, output, *, repeated=False, exhaust_budget=False, interleave_textedit=False,
          interleave_disconnect=False, interleave_parent_change=False):
-    from tacto.driver import Driver, _attr
-    from tacto.helper import InheritedHelperDriver
-    from tacto.flow import Flow, Step, Selector, Postcondition, Resolution, replay
-    from tacto.contract import Envelope
-    from tacto.input_audit_process import ProcessInputAudit
+    from haejo.driver import Driver, _attr
+    from haejo.helper import InheritedHelperDriver
+    from haejo.flow import Flow, Step, Selector, Postcondition, Resolution, replay
+    from haejo.contract import Envelope
+    from haejo.input_audit_process import ProcessInputAudit
     from ApplicationServices import AXUIElementCreateApplication
     if type(repeated) is not bool or type(exhaust_budget) is not bool or (exhaust_budget and not repeated):
         raise ValueError('exhaustion requires the repeated recovery fixture')
@@ -46,11 +46,11 @@ def main(driver, output, *, repeated=False, exhaust_budget=False, interleave_tex
     report['interleave_textedit_requested'] = interleave_textedit
     report['expected_interleave_disconnect'] = interleave_disconnect
     report['expected_interleave_parent_change'] = interleave_parent_change
-    paths = list((root/'tacto').glob('*.py')) + list((root/'helper').glob('*.swift')) + [
+    paths = list((root/'haejo').glob('*.py')) + list((root/'helper').glob('*.swift')) + [
         Path(__file__).resolve(), root/'examples/eval.py',
-        root/'tests/fixtures/NativeRecoveryFixture.swift', root/'launcher/tacto.swift',
-        root/'launcher/tacto', root/'helper/tacto-helper',
-        root/'helper/Tacto Helper.app/Contents/MacOS/TactoHelper']
+        root/'tests/fixtures/NativeRecoveryFixture.swift', root/'launcher/haejo.swift',
+        root/'launcher/haejo', root/'helper/haejo-helper',
+        root/'helper/Haejo Helper.app/Contents/MacOS/HaejoHelper']
     if interleave_textedit:
         paths += [root/'examples/probes'/name for name in (
             'native_recovery_interleave.py','signed_textedit_save.py','signed_owned_textedit.py','focus_witness.py')]
@@ -65,8 +65,8 @@ def main(driver, output, *, repeated=False, exhaust_budget=False, interleave_tex
         audit = ProcessInputAudit(interval=.005, startup_timeout=10, stop_timeout=3)
         assert local._resolve(TARGET, launch=False) is None, 'owned fixture already running'
         assert isinstance(driver,InheritedHelperDriver), 'signed inherited helper required'
-        with tempfile.TemporaryDirectory(prefix='tacto-native-recovery-') as work:
-            app = Path(work)/'TACTO Recovery Fixture.app'
+        with tempfile.TemporaryDirectory(prefix='haejo-native-recovery-') as work:
+            app = Path(work)/'HAEJO Recovery Fixture.app'
             binary = app/'Contents/MacOS/NativeRecoveryFixture'
             binary.parent.mkdir(parents=True)
             (app/'Contents/Info.plist').write_bytes(plistlib.dumps({
@@ -97,7 +97,7 @@ def main(driver, output, *, repeated=False, exhaust_budget=False, interleave_tex
                     def sheet_count():
                         assert process.poll() is None and local._resolve(TARGET,launch=False) == process.pid
                         windows = _attr(AXUIElementCreateApplication(process.pid),'AXWindows') or []
-                        main = [w for w in windows if _attr(w,'AXTitle') == 'TACTO Recovery Fixture']
+                        main = [w for w in windows if _attr(w,'AXTitle') == 'HAEJO Recovery Fixture']
                         assert len(main)==1
                         sheets = []
                         pending = list(_attr(main[0],'AXChildren') or [])
@@ -142,7 +142,7 @@ def main(driver, output, *, repeated=False, exhaust_budget=False, interleave_tex
                         from native_recovery_interleave import OwnedTextEditInterleave
                         from signed_textedit_save import run as save_owned_textedit
                         from product_comparison import _locked
-                        from tacto.native_frontmost import frontmost_pid
+                        from haejo.native_frontmost import frontmost_pid
                         def can_cleanup():
                             try:
                                 return (process.poll() is None and _locked() is False

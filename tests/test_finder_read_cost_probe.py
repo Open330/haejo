@@ -90,7 +90,7 @@ class FinderReadCostProbeTests(unittest.TestCase):
             target=Path(directory)/'existing';target.write_text('KEEP')
             link=Path(directory)/'link';link.symlink_to(target)
             for output in (target,link):
-                with patch('tacto.helper.InheritedHelperDriver.available') as available,self.assertRaises(FileExistsError):
+                with patch('haejo.helper.InheritedHelperDriver.available') as available,self.assertRaises(FileExistsError):
                     probe.main(None,output)
                 available.assert_not_called();self.assertEqual(target.read_text(),'KEEP')
 

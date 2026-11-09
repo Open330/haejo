@@ -1,6 +1,6 @@
 # Browser visual reads and clicks
 
-Tacto can capture a browser viewport, ask the Codex or Claude CLI about the image, and execute a single host-authorized coordinate click before observing again. This is an optional browser path. It does not provide native macOS screenshot control, arbitrary app automation, or a general computer-use completion guarantee.
+Haejo can capture a browser viewport, ask the Codex or Claude CLI about the image, and execute a single host-authorized coordinate click before observing again. This is an optional browser path. It does not provide native macOS screenshot control, arbitrary app automation, or a general computer-use completion guarantee.
 
 Install the project's optional Playwright browser dependencies and Chromium before using this path. The image adapter requires an authenticated local `codex` CLI with `exec --image` support. The `claude` provider is also supported through the image stdin adapter described in [claude-adapter.md](claude-adapter.md). Unsupported providers raise an error instead of silently falling back to text.
 
@@ -17,9 +17,9 @@ A local, disposable canvas example is available as `examples/probe_visual_task.p
 ```python
 from urllib.parse import quote
 from examples.probe_visual_task import PAGE
-from tacto.browser import BrowserDriver
-from tacto.visual import plan_visual
-from tacto.visual_actions import run_visual
+from haejo.browser import BrowserDriver
+from haejo.visual import plan_visual
+from haejo.visual_actions import run_visual
 
 driver = BrowserDriver()
 url = "data:text/html," + quote(PAGE)
@@ -106,7 +106,7 @@ owned browser URL. This is ephemeral map navigation, not a saved/transmitted art
 | Codex v3 | first capture changed; second accepted; model1 | click1; zoom15→16; same center | PASS, 11.508s |
 | Claude v3 | first capture changed; second accepted; model1 | click1; zoom15→16; same center | PASS, 8.962s |
 
-Artifacts are `reviews/tacto-finder-windowless-20261018/public-map-visual-*.json`
+Artifacts are `reviews/haejo-finder-windowless-20261018/public-map-visual-*.json`
 with their private `.before.png` captures. The successful capture was visually
 checked: real map tiles and Korean labels were rendered. The directory names the
 engineering cohort; later checks continued on October19. These independent live

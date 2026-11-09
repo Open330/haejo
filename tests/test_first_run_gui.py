@@ -45,7 +45,7 @@ class FirstRunGUIStateTests(unittest.TestCase):
         try! Data("{\"ready\":true,\"opening\":true,\"handoff\":true,\"expiry\":true}\n".utf8)
             .write(to:directory.appendingPathComponent("first-run-state-check.json"))
 '''
-        with tempfile.TemporaryDirectory(prefix='tacto-first-run-gui-') as temporary:
+        with tempfile.TemporaryDirectory(prefix='haejo-first-run-gui-') as temporary:
             folder=Path(temporary)
             # Replace only the external Terminal call in the private test copy.
             # A broken guard fails the counter assertion without starting a CLI.
@@ -65,7 +65,7 @@ func testTerminalOpen(_ urls:[URL], withApplicationAt app:URL,
             (folder/'main.swift').write_text(instrumented.replace(anchor,fixture+'\n'+anchor))
             (folder/'PermissionState.swift').write_bytes((ROOT/'setup/PermissionState.swift').read_bytes())
             (folder/'ActivityCenter.swift').write_bytes((ROOT/'setup/ActivityCenter.swift').read_bytes())
-            binary=folder/'TactoSetup'
+            binary=folder/'HaejoSetup'
             built=subprocess.run(['swiftc','main.swift','PermissionState.swift','ActivityCenter.swift',str(ROOT/'RuntimeStatus.swift'),'-o',str(binary)],cwd=folder,
                                  capture_output=True,text=True,timeout=90)
             self.assertEqual(0,built.returncode,built.stderr)

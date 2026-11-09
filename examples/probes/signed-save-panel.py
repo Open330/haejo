@@ -7,21 +7,21 @@ import subprocess
 import tempfile
 import time
 
-TARGET = 'ai.callabo.tacto.save-settings-fixture'
+TARGET = 'ai.callabo.haejo.save-settings-fixture'
 
 
 def main(driver, output, *, guarded_commit=False):
-    from tacto.driver import Driver
-    from tacto.input_audit_process import ProcessInputAudit
+    from haejo.driver import Driver
+    from haejo.input_audit_process import ProcessInputAudit
     root = Path(__file__).resolve().parents[2]
     audit = ProcessInputAudit(interval=.005, startup_timeout=10, stop_timeout=3)
     report = {'passed': False, 'transport': type(driver).__name__,
               'scope': ('owned NSSavePanel callback; guarded AXPress; no file writer'
                         if guarded_commit else 'owned NSSavePanel; read only; never Save'), 'steps': []}
     process = None
-    sources = ('helper/TactoHelper.swift', 'helper/SavePanelObservation.swift', 'tacto/helper.py',
-               'launcher/tacto.swift', 'examples/probes/signed-save-panel.py',
-               'tests/fixtures/NativeSaveSettingsFixture.swift', 'tacto/input_audit_process.py')
+    sources = ('helper/HaejoHelper.swift', 'helper/SavePanelObservation.swift', 'haejo/helper.py',
+               'launcher/haejo.swift', 'examples/probes/signed-save-panel.py',
+               'tests/fixtures/NativeSaveSettingsFixture.swift', 'haejo/input_audit_process.py')
     def hashes():
         return {name: hashlib.sha256((root / name).read_bytes()).hexdigest() for name in sources}
     report['source_sha256'] = hashes()
@@ -29,8 +29,8 @@ def main(driver, output, *, guarded_commit=False):
     changed = destination.with_name(destination.name + '-changed')
     try:
         assert Driver()._resolve(TARGET, launch=False) is None, 'fixture already running'
-        with tempfile.TemporaryDirectory(prefix='tacto-signed-save-panel-') as work:
-            app = Path(work) / 'TACTO Owned Save Directory.app'
+        with tempfile.TemporaryDirectory(prefix='haejo-signed-save-panel-') as work:
+            app = Path(work) / 'HAEJO Owned Save Directory.app'
             binary = app / 'Contents/MacOS/NativeSaveSettingsFixture'
             binary.parent.mkdir(parents=True)
             (app / 'Contents/Info.plist').write_bytes(plistlib.dumps({

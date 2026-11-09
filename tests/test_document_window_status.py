@@ -7,7 +7,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from tacto.helper import HelperDriver, InheritedHelperDriver
+from haejo.helper import HelperDriver, InheritedHelperDriver
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -52,7 +52,7 @@ class StatusChannelTests(unittest.TestCase):
             self.assertNotIn('PRIVATE',str(result))
 
     def test_status_local_failure_strings_keep_their_closed_reason_mapping(self):
-        source=(ROOT/'helper/TactoHelper.swift').read_text()
+        source=(ROOT/'helper/HaejoHelper.swift').read_text()
         handler=source[source.index('func documentWindowStatus('):source.index('func documentRTFExport(')]
         thrown=set(re.findall(r'DocumentError\.fail\("([^"\n]+)"\)',handler))
         mapping=handler[handler.index('let codes = '):]
@@ -75,7 +75,7 @@ class StatusTraceTests(unittest.TestCase):
     def test_live_wrapper_never_persists_absence_and_replay_refuses(self):
         from unittest.mock import Mock
         from types import SimpleNamespace
-        from tacto.trace import Trace, TracingDriver, TraceDriver
+        from haejo.trace import Trace, TracingDriver, TraceDriver
         reply={'type':'document_window_status','document_token':'own','state':'closed','same_process_verified':True}
         inner=SimpleNamespace(capabilities={'evidence.document_window_status'},
                               document_window_status=Mock(return_value=reply))
@@ -98,7 +98,7 @@ class StatusSwiftTests(unittest.TestCase):
         return result.stdout.strip()
 
     def test_launcher_exact_readonly_status_fields(self):
-        source=(ROOT/'launcher/tacto.swift').read_text()
+        source=(ROOT/'launcher/haejo.swift').read_text()
         schema=source[source.index('let allowedTypes:'):source.index('// MARK: - Socket plumbing')]
         checks=r'''
 let request:[String:Any]=["type":"document_window_status","target":"com.apple.TextEdit","document_token":"own"]
@@ -112,7 +112,7 @@ print("VET_PASS")
         self.assertEqual('VET_PASS',self.execute('import Foundation\nimport CoreFoundation\nfunc modelTimeout(_ raw:Any?)->Double? {1}\n'+schema+checks))
 
     def test_actual_status_handler_absence_drift_error_and_no_body_access(self):
-        source=(ROOT/'helper/TactoHelper.swift').read_text()
+        source=(ROOT/'helper/HaejoHelper.swift').read_text()
         handler=source[source.index('func documentWindowStatus('):source.index('func documentRTFExport(')]
         harness=r'''
 import Foundation

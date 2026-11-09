@@ -50,9 +50,9 @@ def verify_app(app):
     spec=importlib.util.spec_from_file_location('standalone_builder',ROOT/'setup/build_standalone_preview.py')
     module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
     runtime=app/'Contents/Resources/runtime'
-    for target,identifier in ((app,'ai.callabo.tacto.setup.standalone.preview'),
-            (runtime/'helper/Tacto Helper.app','ai.callabo.tacto.helper'),
-            (runtime/'launcher/tacto','ai.callabo.tacto')):
+    for target,identifier in ((app,'ai.callabo.haejo.setup.standalone.preview'),
+            (runtime/'helper/Haejo Helper.app','ai.callabo.haejo.helper'),
+            (runtime/'launcher/haejo','ai.callabo.haejo')):
         run(['codesign','--verify','--deep','--strict','-R='+module.requirement(identifier,signed_reference=app),str(target)])
     if not (runtime/'.venv/bin/python').is_file():raise ValueError('standalone_python_missing')
 
@@ -66,9 +66,9 @@ def build(app,output):
     with os.fdopen(fd,'wb') as sink:
         if platform.system()!='Darwin':raise RuntimeError('macOS_required')
         began=time.monotonic();before=app_manifest(app);verify_app(app)
-        with tempfile.TemporaryDirectory(prefix='tacto-drag-preview-',dir=output.parent) as folder:
+        with tempfile.TemporaryDirectory(prefix='haejo-drag-preview-',dir=output.parent) as folder:
             base=Path(folder);stage=base/'volume';stage.mkdir(mode=0o700)
-            copied=stage/'Tacto.app';shutil.copytree(app,copied,symlinks=True)
+            copied=stage/'Haejo.app';shutil.copytree(app,copied,symlinks=True)
             # The output artifact stays private; the app root has normal drag
             # install permissions. Only this owned copy is changed.
             copied.chmod(0o755)
@@ -76,22 +76,22 @@ def build(app,output):
             verify_app(copied)
             (stage/'Applications').symlink_to('/Applications',target_is_directory=True)
             (stage/'먼저 읽어주세요.txt').write_text(
-                'Tacto 설치 · Install Tacto\n\n'
-                '1. Tacto.app을 Applications 폴더로 옮기세요. / Drag Tacto.app to Applications.\n'
-                '2. Applications에 옮긴 Tacto를 여세요. / Open Tacto from Applications.\n'
+                'Haejo 설치 · Install Haejo\n\n'
+                '1. Haejo.app을 Applications 폴더로 옮기세요. / Drag Haejo.app to Applications.\n'
+                '2. Applications에 옮긴 Haejo를 여세요. / Open Haejo from Applications.\n'
                 '3. 시작 화면 안내에 따라 권한과 명령·스킬 연결을 설정하세요. / Follow the setup screen for permissions and the command/skill links.\n\n'
                 '권한은 macOS 시스템 설정에서 직접 허용합니다. / You grant permissions yourself in System Settings.\n'
                 '버전별 변경 사항과 검증 결과는 GitHub 릴리스 안내를 확인하세요. / See the GitHub release notes for changes and validation.\n',encoding='utf-8')
             image=base/'payload.dmg'
             run(['/usr/bin/hdiutil','create','-srcfolder',str(stage),'-format','UDZO',
-                 '-volname','Tacto','-nospotlight',str(image)])
+                 '-volname','Haejo','-nospotlight',str(image)])
             run(['/usr/bin/hdiutil','verify',str(image)])
             if app_manifest(app)!=before:raise RuntimeError('source_app_changed')
             with image.open('rb') as source:shutil.copyfileobj(source,sink,8*1024*1024)
             sink.flush();os.fsync(sink.fileno())
         digest=hashlib.sha256(output.read_bytes()).hexdigest()
         return {'scope':'local_drag_install_developer_preview_image','status':'passed',
-                'app_entry':'Tacto.app','applications_link':'/Applications','format':'UDZO',
+                'app_entry':'Haejo.app','applications_link':'/Applications','format':'UDZO',
                 'architecture':platform.machine(),'macos_version':platform.mac_ver()[0],
                 'app_signature_verified':True,'image_checksum_verified':True,'source_app_unchanged':True,
                 'image_sha256':digest,'image_bytes':output.stat().st_size,

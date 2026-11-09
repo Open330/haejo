@@ -8,10 +8,10 @@ import unittest
 from urllib.parse import parse_qs
 from unittest.mock import patch
 from test_credential_browser import AVAILABLE,SECRET
-from tacto.credential_grants import CredentialStore
-from tacto.credential_runtime import run_login
-from tacto.flow import Flow,Step,Selector,Postcondition,replay
-from tacto.contract import SafetyContract,Resource
+from haejo.credential_grants import CredentialStore
+from haejo.credential_runtime import run_login
+from haejo.flow import Flow,Step,Selector,Postcondition,replay
+from haejo.contract import SafetyContract,Resource
 
 class TwoScreens(BaseHTTPRequestHandler):
     def log_message(self,*args):pass
@@ -34,14 +34,14 @@ class TwoScreens(BaseHTTPRequestHandler):
 @unittest.skipUnless(AVAILABLE,'optional Playwright required')
 class MultiStageBrowser(unittest.TestCase):
     def test_flow_two_screens_then_work_reuse_and_wrong_account(self):
-        from tacto.browser import BrowserDriver
+        from haejo.browser import BrowserDriver
         d=BrowserDriver();self.addCleanup(d.close)
         server=ThreadingHTTPServer(('127.0.0.1',0),TwoScreens);server.posts=[]
         thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
         def stop():server.shutdown();server.server_close();thread.join()
         self.addCleanup(stop)
         tmp=tempfile.TemporaryDirectory();self.addCleanup(tmp.cleanup)
-        store=CredentialStore(Path(tmp.name)/'Tacto'/'Credentials');store.add_vault('local',{'kind':'keychain'})
+        store=CredentialStore(Path(tmp.name)/'Haejo'/'Credentials');store.add_vault('local',{'kind':'keychain'})
         def field(name):return {'name':name.lower(),'selector':{'role':'textbox','title':name},'secret':{'vault':'local','item':name,'field':'password'}}
         plan={'target':'page','origin':f'http://127.0.0.1:{server.server_port}','stages':[
             {'fields':[field('Username')],'submit':{'role':'button','title':'Next'},'success':{'field':{'role':'textbox','title':'Password'},'attribute':'Title','equals':'Password'}},
@@ -56,7 +56,7 @@ class MultiStageBrowser(unittest.TestCase):
         f=Flow('signed-in-report','page',steps=[Step('authenticate',params={'grant':'owned'}),
             Step('click',selector=Selector(role='button',title='Run report'),postcondition=Postcondition(field=Selector(role='heading',title='Report ready'),attribute='Title',equals='Report ready'),safety=SafetyContract(effects=['write_ephemeral'],reversibility='reversible',resource=Resource(scope='entry',object_type='owned report button',object_identity='report')))])
         original=run_login
-        with patch('tacto.credential_runtime.run_login',side_effect=lambda *a,**kw:original(*a,**kw,vault_factory=factory)):
+        with patch('haejo.credential_runtime.run_login',side_effect=lambda *a,**kw:original(*a,**kw,vault_factory=factory)):
             result=replay(d,f,credential_store=store)
         self.assertTrue(result.ok,result.log)
         self.assertEqual(['/username','/password','/work'],[p for p,_ in server.posts])

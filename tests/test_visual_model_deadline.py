@@ -4,10 +4,10 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
 
-from tacto.model_budget import model_deadline, remaining_model_seconds
-from tacto.provider_result import ProviderResult
-from tacto.visual import VisualCapture, plan_visual
-from tacto.visual_actions import run_visual
+from haejo.model_budget import model_deadline, remaining_model_seconds
+from haejo.provider_result import ProviderResult
+from haejo.visual import VisualCapture, plan_visual
+from haejo.visual_actions import run_visual
 
 
 class VisualModelDeadlineTests(unittest.TestCase):
@@ -27,10 +27,10 @@ class VisualModelDeadlineTests(unittest.TestCase):
                 raise TimeoutError('PRIVATE_PROVIDER_MESSAGE')
             return ProviderResult('request','codex','codex','cli-json','ok',
                 json.dumps({'answer':json.dumps({'action':'stop'})}),None,.1)
-        with patch('tacto.visual_actions.time',clock), patch('tacto.model_budget.time',clock), \
-             patch('tacto.visual_actions.capture_browser',side_effect=read), \
-             patch('tacto.helper.InheritedHelperDriver.available',return_value=False), \
-             patch('tacto.codex_result.codex_result',side_effect=provider) as call:
+        with patch('haejo.visual_actions.time',clock), patch('haejo.model_budget.time',clock), \
+             patch('haejo.visual_actions.capture_browser',side_effect=read), \
+             patch('haejo.helper.InheritedHelperDriver.available',return_value=False), \
+             patch('haejo.codex_result.codex_result',side_effect=provider) as call:
             with model_deadline(outer):
                 result=run_visual(driver,'page','read owned image',
                     lambda c,g,h:plan_visual(c,g,h,provider='codex',timeout=60),

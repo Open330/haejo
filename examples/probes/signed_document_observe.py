@@ -11,9 +11,9 @@ from signed_owned_textedit import SignedOwnedTextEdit,TARGET
 def run(driver,*,can_cleanup,escaped_name=False,run_read=False):
     from focus_witness import FocusWitness
     nonce=secrets.token_hex(8)
-    wanted='TACTO owned selected '+nonce;decoy='TACTO owned unselected '+nonce
+    wanted='HAEJO owned selected '+nonce;decoy='HAEJO owned unselected '+nonce
     # Same basename in different private directories: titles cannot select it.
-    name='TACTO scoped '+nonce+(' [focused], Title: "quoted"' if escaped_name else '')+'.txt'
+    name='HAEJO scoped '+nonce+(' [focused], Title: "quoted"' if escaped_name else '')+'.txt'
     fixtures=[SignedOwnedTextEdit(driver,name),SignedOwnedTextEdit(driver,name)]
     report={'passed':False,'scope':'installed_signed_cli_replay_two_owned_documents' if run_read else 'installed_signed_cli_observation_two_owned_documents',
             'model_requests':0,'paths':[],'cleanup_statuses':[]}
@@ -23,13 +23,13 @@ def run(driver,*,can_cleanup,escaped_name=False,run_read=False):
             for fixture,text in zip(fixtures,[wanted,decoy]):
                 fixture.setup();report['paths'].append(str(fixture.path))
                 if not fixture.write(text):raise RuntimeError('owned_document_write_unverified')
-            executable=Path.home()/'.local/bin/tacto'
+            executable=Path.home()/'.local/bin/haejo'
             env={key:value for key,value in os.environ.items()
-                 if key not in ('TACTO_HELPER_FD','TACTO_HELPER_TOKEN','TACTO_LAUNCHER')}
-            with tempfile.TemporaryDirectory(prefix='tacto-scoped-replay-') as flow_dir:
+                 if key not in ('HAEJO_HELPER_FD','HAEJO_HELPER_TOKEN','HAEJO_LAUNCHER')}
+            with tempfile.TemporaryDirectory(prefix='haejo-scoped-replay-') as flow_dir:
                 if run_read:
-                    from tacto.flow import Flow,Step,Capture,Selector
-                    from tacto.contract import Envelope
+                    from haejo.flow import Flow,Step,Capture,Selector
+                    from haejo.contract import Envelope
                     field=Selector(role='TextArea',identifier='First Text View',ancestor=str(fixtures[0].path))
                     flow=Flow('owned_document_read',TARGET,[Step('read',
                         safety=Envelope.minimal().contract_for({'read'},'read selected owned document'),
@@ -44,7 +44,7 @@ def run(driver,*,can_cleanup,escaped_name=False,run_read=False):
             report['cli_exit']=result.returncode
             report['selected_body_seen']=wanted in result.stdout
             report['other_owned_body_seen']=decoy in result.stdout
-            from tacto.document_label import document_attribute
+            from haejo.document_label import document_attribute
             paths=[document_attribute(line) for line in result.stdout.splitlines()]
             report['document_path_in_tree_matches']=str(fixtures[0].path) in paths
             report['document_path_json_quoted']='Document: "' in result.stdout

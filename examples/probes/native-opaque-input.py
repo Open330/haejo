@@ -10,8 +10,8 @@ import tempfile
 import time
 from contextlib import ExitStack
 
-TARGET = 'ai.callabo.tacto.opaque-input-fixture'
-TITLE = 'TACTO Opaque Input Fixture '
+TARGET = 'ai.callabo.haejo.opaque-input-fixture'
+TITLE = 'HAEJO Opaque Input Fixture '
 
 
 def main(output, *, public_driver=None, visual_flow=False, vision_provider="fixed", require_selection=False, journal_barrier=False, general_visual=False):
@@ -36,25 +36,25 @@ def main(output, *, public_driver=None, visual_flow=False, vision_provider="fixe
 
 
 def _main(stream, *, public_driver, visual_flow, vision_provider, require_selection, journal_barrier, general_visual):
-    from tacto.driver import Driver, _attr
-    from tacto.flow import Selector
-    from tacto.input_audit_process import ProcessInputAudit
-    from tacto.native_window_binding import capture_binding
-    from tacto.native_window_payload import WINDOW_INPUT_CAPABILITIES
-    from tacto.protocol import window_input_reobservation
+    from haejo.driver import Driver, _attr
+    from haejo.flow import Selector
+    from haejo.input_audit_process import ProcessInputAudit
+    from haejo.native_window_binding import capture_binding
+    from haejo.native_window_payload import WINDOW_INPUT_CAPABILITIES
+    from haejo.protocol import window_input_reobservation
     root = Path(__file__).resolve().parents[2]
     sources = ['tests/fixtures/NativeOpaqueInputFixture.swift','examples/probes/native-opaque-input.py',
-        'tacto/driver.py','tacto/helper.py','tacto/native_window_payload.py','tacto/native_key_events.py',
-        'tacto/native_window_binding.py','tacto/native_window_dispatch.py','tacto/native_window_ready.py','tacto/native_frontmost.py',
-        'tacto/native_process_identity.py','tacto/input_audit.py','tacto/input_audit_process.py',
-        'helper/TactoHelper.swift','helper/WindowInput.swift','helper/WindowDispatch.swift',
-        'helper/FrontmostProcess.swift','launcher/tacto.swift','tacto/protocol.py',
-        'tacto/native_visual.py','tacto/native_visual_actions.py','tacto/general_visual.py','tacto/general.py',
-        'tacto/flow.py','tacto/visual_replay.py','tacto/visual.py','tacto/provider_observation.py',
-        'tacto/provider_images.py','tacto/provider_result.py','tacto/model_budget.py',
-        'tacto/claude_result.py','tacto/codex_result.py','tacto/ask_provider.py',
-        'tacto/authoring.py','tacto/provider_io.py','tacto/dispatch_journal.py','launcher/tacto','helper/tacto-helper',
-        'helper/Tacto Helper.app/Contents/MacOS/TactoHelper']
+        'haejo/driver.py','haejo/helper.py','haejo/native_window_payload.py','haejo/native_key_events.py',
+        'haejo/native_window_binding.py','haejo/native_window_dispatch.py','haejo/native_window_ready.py','haejo/native_frontmost.py',
+        'haejo/native_process_identity.py','haejo/input_audit.py','haejo/input_audit_process.py',
+        'helper/HaejoHelper.swift','helper/WindowInput.swift','helper/WindowDispatch.swift',
+        'helper/FrontmostProcess.swift','launcher/haejo.swift','haejo/protocol.py',
+        'haejo/native_visual.py','haejo/native_visual_actions.py','haejo/general_visual.py','haejo/general.py',
+        'haejo/flow.py','haejo/visual_replay.py','haejo/visual.py','haejo/provider_observation.py',
+        'haejo/provider_images.py','haejo/provider_result.py','haejo/model_budget.py',
+        'haejo/claude_result.py','haejo/codex_result.py','haejo/ask_provider.py',
+        'haejo/authoring.py','haejo/provider_io.py','haejo/dispatch_journal.py','launcher/haejo','helper/haejo-helper',
+        'helper/Haejo Helper.app/Contents/MacOS/HaejoHelper']
     hashes = lambda:{name:hashlib.sha256((root/name).read_bytes()).hexdigest() for name in sources}
     native = Driver(); public_driver = public_driver or native
     report = {'passed':False,'transport':type(public_driver).__name__,'scope':'owned opaque first responder only',
@@ -65,13 +65,13 @@ def _main(stream, *, public_driver, visual_flow, vision_provider, require_select
     try:
         assert WINDOW_INPUT_CAPABILITIES <= set(public_driver.capabilities),'opaque input capability absent'
         assert native._resolve(TARGET,launch=False) is None,'owned fixture already running'
-        with tempfile.TemporaryDirectory(prefix='tacto-opaque-input-') as directory, ExitStack() as resources:
+        with tempfile.TemporaryDirectory(prefix='haejo-opaque-input-') as directory, ExitStack() as resources:
             bundle=Path(directory)/'OpaqueInput.app';binaries=bundle/'Contents/MacOS';binaries.mkdir(parents=True)
             binary=binaries/'OpaqueInput'
             subprocess.run(['xcrun','swiftc','-parse-as-library','-warnings-as-errors',str(root/sources[0]),'-o',str(binary)],
                 check=True,capture_output=True,timeout=45)
             (bundle/'Contents/Info.plist').write_bytes(plistlib.dumps({'CFBundleExecutable':'OpaqueInput',
-                'CFBundleIdentifier':TARGET,'CFBundleName':'TACTO Opaque Input Fixture','CFBundlePackageType':'APPL'}))
+                'CFBundleIdentifier':TARGET,'CFBundleName':'HAEJO Opaque Input Fixture','CFBundlePackageType':'APPL'}))
             subprocess.run(['codesign','--force','--sign','-',str(bundle)],check=True,capture_output=True,timeout=15)
             with audit:
                 child=subprocess.Popen([str(binary)],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
@@ -123,10 +123,10 @@ def _main(stream, *, public_driver, visual_flow, vision_provider, require_select
                     assert wrong.get('effect')=='not_started' and wrong.get('posted_or_attempted_events',0)==0,wrong
                     assert state()==before,'a refused operation changed own canvas'
                     if visual_flow:
-                        from tacto.general_visual import NativeVisualScope
-                        from tacto.flow import Flow, Step, replay
-                        from tacto.contract import Envelope
-                        from tacto.visual import plan_native_input
+                        from haejo.general_visual import NativeVisualScope
+                        from haejo.flow import Flow, Step, replay
+                        from haejo.contract import Envelope
+                        from haejo.visual import plan_native_input
                         expected_text='A😀한글'
                         def receiving(capture,history):
                             current=state()
@@ -155,11 +155,11 @@ def _main(stream, *, public_driver, visual_flow, vision_provider, require_select
                             intent_text=goal,safety=Envelope.minimal().contract_for({'write_ephemeral'},goal))
                         flow_driver=public_driver
                         if journal_barrier:
-                            from tacto.dispatch_journal import DurableDispatchDriver
+                            from haejo.dispatch_journal import DurableDispatchDriver
                             journal=Path(directory)/'journal'
                             flow_driver=resources.enter_context(DurableDispatchDriver(public_driver,journal))
                         if general_visual:
-                            from tacto.general import run
+                            from haejo.general import run
                             def no_ax(*args):raise AssertionError('unexpected AX planner fallback')
                             result=run(public_driver,TARGET,goal,no_ax,visual_scope=scope,
                                 envelope=Envelope(quote=goal,allows=frozenset({'read','write_ephemeral'})),

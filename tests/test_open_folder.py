@@ -3,8 +3,8 @@ import json
 import pathlib
 import unittest
 
-from tacto.flow import Flow
-from tacto.protocol import ACTION_PARAMS
+from haejo.flow import Flow
+from haejo.protocol import ACTION_PARAMS
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
@@ -37,7 +37,7 @@ class OpenFolderTests(unittest.TestCase):
             def wait_until(self, target, predicate, **k):
                 r = self.observe(target)
                 return r if predicate(r['tree']) else {'type': 'timeout', 'last_obs': r}
-        from tacto.flow import replay
+        from haejo.flow import replay
         flow = Flow.from_json(json.dumps({"schema": 2, "name": "f", "target": "com.apple.finder",
             "steps": [{"action": "open_folder", "params": {"path": "/tmp/x"},
                        "postcondition": {"field": {"role": "Window", "title": "x"},
@@ -51,7 +51,7 @@ class OpenFolderTests(unittest.TestCase):
         self.assertEqual([True, False], app.asked[:2])
 
     def test_helper_scope(self):
-        swift = (ROOT / 'helper/TactoHelper.swift').read_text()
+        swift = (ROOT / 'helper/HaejoHelper.swift').read_text()
         case = swift[swift.index('    case "open_folder":'):swift.index('    case "select_option":')]
         for needed in ('target.lowercased() == "com.apple.finder"', 'raw.hasPrefix("/")',
                        'isDirectory.boolValue', 'kind.isPackage == false', 'kind.isApplication != true',
@@ -61,7 +61,7 @@ class OpenFolderTests(unittest.TestCase):
         self.assertNotIn('"unverified"', case)   # the flow's postcondition decides
 
     def test_launcher_accepts_only_an_absolute_path(self):
-        launcher = (ROOT / 'launcher/tacto.swift').read_text()
+        launcher = (ROOT / 'launcher/haejo.swift').read_text()
         self.assertIn('"open_folder":      (["name", "path"], []),', launcher)
         self.assertIn('if name == "open_folder" {', launcher)
         self.assertIn('text.hasPrefix("/")', launcher)

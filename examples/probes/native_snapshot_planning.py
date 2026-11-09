@@ -18,7 +18,7 @@ def snapshot(path, index):
         raise ValueError('snapshot_report_too_large')
     report = json.loads(raw)
     if (report.get('evaluation_kind') != 'real_model_owned_appkit'
-            or report.get('target') != 'ai.callabo.tacto.select-fixture'
+            or report.get('target') != 'ai.callabo.haejo.select-fixture'
             or type(index) is not int or index < 0):
         raise ValueError('owned_native_snapshot_required')
     candidates = report['plans'][index]['candidates']
@@ -35,10 +35,10 @@ def run(path, index, provider, output):
     if provider not in ('codex', 'claude'):
         raise ValueError('unsupported_provider')
     import tiktoken
-    import tacto.ask as ask
-    from tacto.provider_observation import capture_provider_calls, summarize_provider_calls
+    import haejo.ask as ask
+    from haejo.provider_observation import capture_provider_calls, summarize_provider_calls
     counter = tiktoken.get_encoding('o200k_base')
-    files = sorted((ROOT/'tacto').glob('*.py')) + [Path(__file__).resolve()]
+    files = sorted((ROOT/'haejo').glob('*.py')) + [Path(__file__).resolve()]
     def sources():
         return {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest() for p in files}
     descriptor = os.open(output, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
@@ -79,7 +79,7 @@ def run(path, index, provider, output):
         result['valid_scroll_plan'] = bool(actions) and all(
             a.get('do') == 'scroll' and a.get('direction') == 'down'
             and type(a.get('pages',1)) is int and 1 <= a.get('pages',1) <= 10
-            and a.get('candidate',{}).get('container') == 'tacto-fixture-choice' for a in actions)
+            and a.get('candidate',{}).get('container') == 'haejo-fixture-choice' for a in actions)
     except BaseException as error:
         result['error_class'] = type(error).__name__
         if not isinstance(error, Exception):

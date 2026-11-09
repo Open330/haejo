@@ -40,7 +40,7 @@ def normalize_python_metadata(runtime, original_prefix):
     changed = 0
     for path in (runtime/'.venv/lib').glob('python*/_sysconfigdata*.py'):
         before = path.read_text()
-        after = before.replace(str(original_prefix), '/opt/tacto-runtime')
+        after = before.replace(str(original_prefix), '/opt/haejo-runtime')
         if after != before:
             path.write_text(after)
             changed += 1
@@ -67,7 +67,7 @@ def compile_setup(executable, folder):
     for name in ('main.swift', 'PermissionState.swift', 'ActivityCenter.swift'):
         shutil.copy2(ROOT/'setup'/name, sources/name)
     shutil.copy2(ROOT/'RuntimeStatus.swift', sources/'RuntimeStatus.swift')
-    run(['swiftc', '-file-prefix-map', str(ROOT)+'=/tacto-source',
+    run(['swiftc', '-file-prefix-map', str(ROOT)+'=/haejo-source',
          'main.swift', 'PermissionState.swift', 'ActivityCenter.swift', 'RuntimeStatus.swift', '-o', str(executable)], cwd=sources)
 
 
@@ -75,15 +75,15 @@ def bundled_import_valid(data, runtime):
     try:
         root=runtime.resolve(strict=True)
         if type(data) is not dict or not all(isinstance(data.get(key),str)
-                and Path(data[key]).resolve(strict=True).is_relative_to(root) for key in ('tacto','prefix','helper')):
+                and Path(data[key]).resolve(strict=True).is_relative_to(root) for key in ('haejo','prefix','helper')):
             return False
-        helper = root/'helper/Tacto Helper.app/Contents/MacOS/TactoHelper'
+        helper = root/'helper/Haejo Helper.app/Contents/MacOS/HaejoHelper'
         return helper.is_file() and Path(data['helper']).resolve(strict=True) == helper.resolve(strict=True)
     except (OSError,RuntimeError,ValueError):return False
 
 
 def requirement(identifier, signed_reference=None):
-    reference = signed_reference or ROOT/'helper/Tacto Helper.app'
+    reference = signed_reference or ROOT/'helper/Haejo Helper.app'
     result = subprocess.run(['codesign','-dv','--verbose=4',str(reference)],
                             capture_output=True,text=True,check=True)
     match = re.search(r'^TeamIdentifier=([A-Z0-9]{10})$', result.stderr, re.M)
@@ -103,10 +103,10 @@ def refresh_distribution_metadata(runtime, work):
     for name in ('pyproject.toml', 'README.md', 'LICENSE'):
         if (ROOT/name).is_file():
             shutil.copy2(ROOT/name, source/name)
-    shutil.copytree(ROOT/'tacto', source/'tacto', ignore=ignored)
+    shutil.copytree(ROOT/'haejo', source/'haejo', ignore=ignored)
     wheels = work/'metadata-wheel'
     run(['uv', 'build', '--wheel', '--offline', '--out-dir', str(wheels), str(source)])
-    wheel, = wheels.glob('tacto_runtime-*.whl')
+    wheel, = wheels.glob('haejo_runtime-*.whl')
     sites = list((runtime/'.venv/lib').glob('python*/site-packages'))
     if len(sites) != 1:
         raise RuntimeError('runtime site-packages is ambiguous')
@@ -119,7 +119,7 @@ def refresh_distribution_metadata(runtime, work):
             continue
         name = Parser().parsestr(metadata_file.read_text()).get('Name', '')
         # Retired distribution removal is migration cleanup, never an alias.
-        if name not in ('tacto-runtime', 'nlc'):
+        if name not in ('haejo-runtime', 'nlc'):
             continue
         entries = metadata/'entry_points.txt'
         parser = configparser.ConfigParser()
@@ -138,7 +138,7 @@ def refresh_distribution_metadata(runtime, work):
     with zipfile.ZipFile(wheel) as archive:
         for member in archive.namelist():
             parts = Path(member).parts
-            if not parts or not parts[0].startswith('tacto_runtime-') or not parts[0].endswith('.dist-info'):
+            if not parts or not parts[0].startswith('haejo_runtime-') or not parts[0].endswith('.dist-info'):
                 continue
             if '..' in parts or member.startswith('/'):
                 raise RuntimeError('invalid wheel metadata path')
@@ -163,11 +163,11 @@ def build(output, identity):
     began=time.monotonic()
     def sources():
         paths=[ROOT/name for name in ('pyproject.toml','README.md','setup/build_standalone_preview.py','setup/main.swift',
-            'setup/PermissionState.swift','setup/ActivityCenter.swift','docs/assets/tacto-app.icns','docs/assets/tacto-logo.svg',
-            'docs/assets/tacto-menu-template.svg','helper/bundle.sh',
-            'launcher/tacto.swift','launcher/HelperModeClient.swift','HelperModeProtocol.swift','RuntimeStatus.swift','SigningPolicy.swift','signing.sh','skill/install.sh','skill/SKILL.md',
-            'helper/Tacto Helper.app/Contents/MacOS/TactoHelper','helper/Tacto Helper.app/Contents/Info.plist')]
-        paths+=sorted((ROOT/'tacto').glob('*.py'))
+            'setup/PermissionState.swift','setup/ActivityCenter.swift','docs/assets/haejo-app.icns','docs/assets/haejo-logo.svg',
+            'docs/assets/haejo-menu-template.svg','helper/bundle.sh',
+            'launcher/haejo.swift','launcher/HelperModeClient.swift','HelperModeProtocol.swift','RuntimeStatus.swift','SigningPolicy.swift','signing.sh','skill/install.sh','skill/SKILL.md',
+            'helper/Haejo Helper.app/Contents/MacOS/HaejoHelper','helper/Haejo Helper.app/Contents/Info.plist')]
+        paths+=sorted((ROOT/'haejo').glob('*.py'))
         return {str(path.relative_to(ROOT)):hashlib.sha256(path.read_bytes()).hexdigest() for path in paths}
     output=Path(output).absolute()
     if output.suffix!='.app' or not output.parent.is_dir():raise ValueError('new .app in existing directory required')
@@ -177,7 +177,7 @@ def build(output, identity):
     before=sources()
     report={'scope':'local_relocatable_developer_preview','architecture':platform.machine(),
             'notarized':False,'gui_launched':False,'installed':False,'macos_version':platform.mac_ver()[0]}
-    with tempfile.TemporaryDirectory(prefix='tacto-standalone-build-',dir=output.parent) as folder:
+    with tempfile.TemporaryDirectory(prefix='haejo-standalone-build-',dir=output.parent) as folder:
         app=Path(folder)/output.name;contents=app/'Contents';resources=contents/'Resources'
         resources.mkdir(parents=True);(contents/'MacOS').mkdir()
         runtime=resources/'runtime';runtime.mkdir()
@@ -189,8 +189,8 @@ def build(output, identity):
         site.mkdir(parents=True,exist_ok=True)
         shutil.copytree(ROOT/'.venv/lib'/('python'+version)/'site-packages',site,
                         dirs_exist_ok=True,symlinks=True,ignore=ignored)
-        if (site/'tacto').exists():shutil.rmtree(site/'tacto')
-        shutil.copytree(ROOT/'tacto',site/'tacto',ignore=ignored)
+        if (site/'haejo').exists():shutil.rmtree(site/'haejo')
+        shutil.copytree(ROOT/'haejo',site/'haejo',ignore=ignored)
         report['distribution_metadata_wheel'] = refresh_distribution_metadata(runtime, Path(folder))
         report['python_metadata_normalized'] = normalize_python_metadata(runtime, base)
         # A dylib's install ID is build metadata too; preserve relocatable loads.
@@ -201,80 +201,80 @@ def build(output, identity):
         # new files inside the signed app on a user's first command.
         run([str(runtime/'.venv/bin/python'),'-I','-B','-m','compileall','-q',
              '--invalidation-mode','checked-hash','-s',str(runtime/'.venv'),
-             '-p','tacto-runtime',str(runtime/'.venv')])
+             '-p','haejo-runtime',str(runtime/'.venv')])
         report['precompiled_python_files']=sum(1 for _ in (runtime/'.venv').rglob('*.pyc'))
         # Only shipped skill/docs; never copy mutable local flows or reviews.
         shutil.copytree(ROOT/'skill',runtime/'skill',symlinks=False,ignore=ignored)
         shutil.copytree(ROOT/'docs',runtime/'docs',symlinks=False,ignore=ignored)
         (runtime/'helper').mkdir()
-        shutil.copytree(ROOT/'helper/Tacto Helper.app',runtime/'helper/Tacto Helper.app',symlinks=True)
-        run(['codesign','--verify','--deep','--strict','-R='+requirement('ai.callabo.tacto.helper'),str(runtime/'helper/Tacto Helper.app')])
+        shutil.copytree(ROOT/'helper/Haejo Helper.app',runtime/'helper/Haejo Helper.app',symlinks=True)
+        run(['codesign','--verify','--deep','--strict','-R='+requirement('ai.callabo.haejo.helper'),str(runtime/'helper/Haejo Helper.app')])
         for path in runtime.rglob('*'):
             if path.is_symlink():
                 try:path.resolve(strict=True).relative_to(runtime.resolve())
                 except (ValueError,OSError):raise RuntimeError('runtime symlink escapes or is broken') from None
         (runtime/'launcher').mkdir()
-        launcher=runtime/'launcher/tacto'
+        launcher=runtime/'launcher/haejo'
         launcher_source=Path(folder)/'launcher-source';launcher_source.mkdir()
-        shutil.copy2(ROOT/'launcher/tacto.swift',launcher_source/'main.swift')
-        run(['swiftc','-O','-file-prefix-map',str(ROOT)+'=/tacto-source',str(launcher_source/'main.swift'),str(ROOT/'SigningPolicy.swift'),str(ROOT/'HelperModeProtocol.swift'),str(ROOT/'RuntimeStatus.swift'),str(ROOT/'launcher/HelperModeClient.swift'),'-o',str(launcher)])
-        sign(launcher,identity,'ai.callabo.tacto',requirement('ai.callabo.tacto'))
-        run(['codesign','--verify','-R='+requirement('ai.callabo.tacto'),str(launcher)])
+        shutil.copy2(ROOT/'launcher/haejo.swift',launcher_source/'main.swift')
+        run(['swiftc','-O','-file-prefix-map',str(ROOT)+'=/haejo-source',str(launcher_source/'main.swift'),str(ROOT/'SigningPolicy.swift'),str(ROOT/'HelperModeProtocol.swift'),str(ROOT/'RuntimeStatus.swift'),str(ROOT/'launcher/HelperModeClient.swift'),'-o',str(launcher)])
+        sign(launcher,identity,'ai.callabo.haejo',requirement('ai.callabo.haejo'))
+        run(['codesign','--verify','-R='+requirement('ai.callabo.haejo'),str(launcher)])
         native=list(native_files(runtime/'.venv'))
         # Native extensions/dylibs before the interpreter, all same identity.
         for path in sorted(native,key=lambda p:(p.parent.name=='bin',str(p))):sign(path,identity)
         report['native_runtime_files_signed']=len(native)
-        executable=contents/'MacOS/TactoSetup'
-        for name in ('tacto-app.icns','tacto-logo.svg','tacto-menu-template.svg'):
+        executable=contents/'MacOS/HaejoSetup'
+        for name in ('haejo-app.icns','haejo-logo.svg','haejo-menu-template.svg'):
             shutil.copy2(ROOT/'docs/assets'/name,resources/name)
         # The embedded permission holder keeps its identity and requirement,
         # but receives the same product icon instead of a generic application.
         import plistlib
-        helper_app=runtime/'helper/Tacto Helper.app'
+        helper_app=runtime/'helper/Haejo Helper.app'
         helper_resources=helper_app/'Contents/Resources'
         helper_resources.mkdir(exist_ok=True)
-        shutil.copy2(ROOT/'docs/assets/tacto-app.icns',helper_resources/'tacto-app.icns')
+        shutil.copy2(ROOT/'docs/assets/haejo-app.icns',helper_resources/'haejo-app.icns')
         helper_plist=helper_app/'Contents/Info.plist'
         helper_info=plistlib.loads(helper_plist.read_bytes())
-        helper_info['CFBundleIconFile']='tacto-app.icns'
-        helper_info['CFBundleName']='Tacto Helper'
-        helper_info['CFBundleDisplayName']='Tacto Helper'
+        helper_info['CFBundleIconFile']='haejo-app.icns'
+        helper_info['CFBundleName']='Haejo Helper'
+        helper_info['CFBundleDisplayName']='Haejo Helper'
         helper_info['CFBundleDevelopmentRegion']='en'
         helper_info['LSHasLocalizedDisplayName']=True
         for language in ('en','ko'):
             localized=helper_resources/(language+'.lproj')
             localized.mkdir(exist_ok=True)
             (localized/'InfoPlist.strings').write_bytes(plistlib.dumps({
-                'CFBundleName':'Tacto Helper','CFBundleDisplayName':'Tacto Helper'}))
+                'CFBundleName':'Haejo Helper','CFBundleDisplayName':'Haejo Helper'}))
         helper_plist.write_bytes(plistlib.dumps(helper_info))
-        sign(helper_app,identity,'ai.callabo.tacto.helper',requirement('ai.callabo.tacto.helper'))
-        run(['codesign','--verify','--deep','--strict','-R='+requirement('ai.callabo.tacto.helper'),str(helper_app)])
+        sign(helper_app,identity,'ai.callabo.haejo.helper',requirement('ai.callabo.haejo.helper'))
+        run(['codesign','--verify','--deep','--strict','-R='+requirement('ai.callabo.haejo.helper'),str(helper_app)])
         compile_setup(executable, Path(folder))
         import plistlib
         (contents/'Info.plist').write_bytes(plistlib.dumps({
-            'CFBundleDisplayName':'Tacto','CFBundleName':'Tacto',
-            'CFBundleIconFile':'tacto-app.icns',
-            'CFBundleExecutable':'TactoSetup','CFBundleIdentifier':'ai.callabo.tacto.setup.standalone.preview',
+            'CFBundleDisplayName':'Haejo','CFBundleName':'Haejo',
+            'CFBundleIconFile':'haejo-app.icns',
+            'CFBundleExecutable':'HaejoSetup','CFBundleIdentifier':'ai.callabo.haejo.setup.standalone.preview',
             'CFBundlePackageType':'APPL','CFBundleShortVersionString':'1.0.0','CFBundleVersion':'1',
             'LSUIElement':True,
             'LSMinimumSystemVersion':platform.mac_ver()[0]}))
         (resources/'runtime.json').write_text(json.dumps({'bundledRoot':'runtime'}))
-        owner_requirement=requirement('ai.callabo.tacto.setup.standalone.preview')
-        sign(executable,identity,'ai.callabo.tacto.setup.standalone.preview',owner_requirement)
-        sign(app,identity,'ai.callabo.tacto.setup.standalone.preview',owner_requirement)
+        owner_requirement=requirement('ai.callabo.haejo.setup.standalone.preview')
+        sign(executable,identity,'ai.callabo.haejo.setup.standalone.preview',owner_requirement)
+        sign(app,identity,'ai.callabo.haejo.setup.standalone.preview',owner_requirement)
         run(['codesign','--verify','--deep','--strict','-R='+owner_requirement,str(app)])
         shutil.copytree(app,output,dirs_exist_ok=True,symlinks=True)
     # Relocation happened after signing. Run no GUI command and write no caches.
     python=output/'Contents/Resources/runtime/.venv/bin/python'
     report['relocated_import']=json.loads(run([str(python),'-I','-B','-c',
-        'import tacto,tacto.helper,Foundation,Quartz,ApplicationServices,json,sys; print(json.dumps({"tacto":tacto.__file__,"prefix":sys.prefix,"helper":tacto.helper.HELPER}))'],cwd='/').stdout)
+        'import haejo,haejo.helper,Foundation,Quartz,ApplicationServices,json,sys; print(json.dumps({"haejo":haejo.__file__,"prefix":sys.prefix,"helper":haejo.helper.HELPER}))'],cwd='/').stdout)
     if not bundled_import_valid(report['relocated_import'],output/'Contents/Resources/runtime'):
         raise RuntimeError('runtime imported outside bundle')
-    run([str(python),'-I','-B','-m','tacto.cli','--help'],cwd='/')
+    run([str(python),'-I','-B','-m','haejo.cli','--help'],cwd='/')
     # Exercise the actual signed launcher, not only a Python -B probe. A
     # missing -B here used to pass packaging then invalidate its own signature.
     for _ in range(2):
-        run([str(output/'Contents/Resources/runtime/launcher/tacto'),'--help'],cwd='/')
+        run([str(output/'Contents/Resources/runtime/launcher/haejo'),'--help'],cwd='/')
         run(['codesign','--verify','--deep','--strict','-R='+owner_requirement,str(output)])
     report['signature_preserved_after_launcher_runs']=True
     run(['codesign','--verify','--deep','--strict','-R='+owner_requirement,str(output)])

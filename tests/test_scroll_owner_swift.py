@@ -11,7 +11,7 @@ ROOT=Path(__file__).resolve().parents[1]
 @unittest.skipUnless(shutil.which('swift'),'Swift macOS SDK required')
 class ScrollOwnerSwiftTests(unittest.TestCase):
     def test_owned_unique_bar_and_closed_failures(self):
-        source=(ROOT/'helper/TactoHelper.swift').read_text()
+        source=(ROOT/'helper/HaejoHelper.swift').read_text()
         part=source[source.index('@Sendable func scrollBar('):]
         function=part[:part.index('\n}\n')+3]
         support=r'''
@@ -49,7 +49,7 @@ for value in ["valid","foreign_bar","foreign_parent","foreign_target","owner_err
 }
 print(String(data:try! JSONSerialization.data(withJSONObject:result),encoding:.utf8)!)
 '''
-        with tempfile.TemporaryDirectory(prefix='tacto-scroll-owner-') as folder:
+        with tempfile.TemporaryDirectory(prefix='haejo-scroll-owner-') as folder:
             path=Path(folder)/'main.swift';path.write_text(support+function+body)
             result=subprocess.run(['swift',str(path)],capture_output=True,text=True,timeout=30)
         self.assertEqual(0,result.returncode,result.stderr)

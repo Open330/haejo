@@ -6,13 +6,13 @@ import subprocess
 import tempfile
 import time
 
-TARGET = 'ai.callabo.tacto.menu-fixture'
+TARGET = 'ai.callabo.haejo.menu-fixture'
 
 
 def main(driver, output):
-    from tacto.driver import Driver, _attr
+    from haejo.driver import Driver, _attr
     from ApplicationServices import AXUIElementCreateApplication
-    from tacto.input_audit_process import ProcessInputAudit
+    from haejo.input_audit_process import ProcessInputAudit
     root = Path(__file__).resolve().parents[2]
     local = Driver()
     audit = ProcessInputAudit(interval=.005, startup_timeout=10, stop_timeout=3)
@@ -22,8 +22,8 @@ def main(driver, output):
     try:
         assert local._resolve(TARGET, launch=False) is None, 'fixture already running'
         assert 'action.prepare_window.background' in driver.capabilities
-        with tempfile.TemporaryDirectory(prefix='tacto-signed-background-window-') as work:
-            app = Path(work) / 'TACTO Menu Fixture.app'
+        with tempfile.TemporaryDirectory(prefix='haejo-signed-background-window-') as work:
+            app = Path(work) / 'HAEJO Menu Fixture.app'
             binary = app / 'Contents/MacOS/NativeMenuFixture'
             binary.parent.mkdir(parents=True)
             (app / 'Contents/Info.plist').write_bytes(plistlib.dumps({
@@ -49,8 +49,8 @@ def main(driver, output):
                         while stack:
                             node = stack.pop()
                             identifier = _attr(node, 'AXIdentifier')
-                            if identifier in ('tacto-fixture-direct-count', 'tacto-fixture-responder-count',
-                                              'tacto-fixture-make-key-count', 'tacto-fixture-state'):
+                            if identifier in ('haejo-fixture-direct-count', 'haejo-fixture-responder-count',
+                                              'haejo-fixture-make-key-count', 'haejo-fixture-state'):
                                 assert identifier not in found
                                 found[identifier] = _attr(node, 'AXValue')
                             stack.extend(_attr(node, 'AXChildren') or [])
@@ -60,7 +60,7 @@ def main(driver, output):
                     initial = host()
                     report['initial'] = initial
                     assert all(initial[k] == '0' for k in initial if k.endswith('-count'))
-                    assert 'isActive=false' in initial['tacto-fixture-state']
+                    assert 'isActive=false' in initial['haejo-fixture-state']
                     observation = driver.observe(TARGET, 'tree_full')
                     assert observation.get('type') == 'observation', observation
                     windows = [int(p[0]) for line in observation['tree'].splitlines()
@@ -70,7 +70,7 @@ def main(driver, output):
                     stale = driver.act('foreign-observation', TARGET, action)
                     assert stale.get('type') == 'error' and stale.get('effect') == 'not_started', stale
                     if isinstance(driver, Driver):
-                        from tacto.model_budget import model_deadline
+                        from haejo.model_budget import model_deadline
                         with model_deadline(time.monotonic()-1):
                             expired = driver.act(observation['obs_id'], TARGET, action)
                     else:
@@ -86,9 +86,9 @@ def main(driver, output):
                     assert prepared.get('reobserve_required') is True and prepared.get('unverified') == 'observe_effect'
                     time.sleep(.3)
                     report['after_preparation'] = host()
-                    assert 'isKeyWindow=true' in report['after_preparation']['tacto-fixture-state']
-                    for title, identifier in [('Direct Command', 'tacto-fixture-direct-count'),
-                                              ('Responder Command', 'tacto-fixture-responder-count')]:
+                    assert 'isKeyWindow=true' in report['after_preparation']['haejo-fixture-state']
+                    for title, identifier in [('Direct Command', 'haejo-fixture-direct-count'),
+                                              ('Responder Command', 'haejo-fixture-responder-count')]:
                         observation = driver.observe(TARGET, 'tree_full')
                         before = host()
                         menu = driver.menu_state(TARGET, ['Probe', title])
@@ -100,7 +100,7 @@ def main(driver, output):
                         assert response.get('type') == 'acted', response
                         assert before[identifier] == '0' and after[identifier] == '1'
                     report['final'] = host()
-                    assert report['final']['tacto-fixture-make-key-count'] == '0'
+                    assert report['final']['haejo-fixture-make-key-count'] == '0'
                     report['passed'] = True
                 finally:
                     if process is not None:

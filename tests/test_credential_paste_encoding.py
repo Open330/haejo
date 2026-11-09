@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 @unittest.skipUnless(sys.platform == 'darwin', 'Swift Unicode event chunking')
 class CredentialPasteEncoding(unittest.TestCase):
     def test_exact_code_units_and_bounded_scalar_chunks(self):
-        source = (ROOT / 'helper/TactoHelper.swift').read_text()
+        source = (ROOT / 'helper/HaejoHelper.swift').read_text()
         encoder = source[source.index('func credentialUnicodeChunks('):source.index('// Explicit credential paste:')]
         values = ['ASCII-47!', '테스트🔐', unicodedata.normalize('NFD', '테스트🔐'),
                   'e\u0301', 'a\u0315\u0300', 'line\nnext', '', '\U0001f512',

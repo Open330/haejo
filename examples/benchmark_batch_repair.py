@@ -7,8 +7,8 @@ import sys
 import uuid
 
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT))
-from tacto.flow import Flow
-from tacto.repair_packet import patch_selector
+from haejo.flow import Flow
+from haejo.repair_packet import patch_selector
 from examples.benchmark_batch import BatchClient, manifest
 from examples.benchmark_grouped_checks import variants
 from examples.repeat_benchmark import Fixture, build, cli_flow, jobs, write
@@ -24,7 +24,7 @@ def sources():
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--source',required=True);parser.add_argument('--output',required=True)
     args=parser.parse_args();base=Path(args.output).resolve();base.mkdir(mode=0o700)
-    target='ai.callabo.tacto.repeatbench.'+uuid.uuid4().hex[:8]
+    target='ai.callabo.haejo.repeatbench.'+uuid.uuid4().hex[:8]
     fixture=Fixture(base/'fixture',build(base,target));client=None;rows=[]
     recipe=variants(Flow.from_json(Path(args.source).read_text()),target)['grouped_checks']
     template=base/'template.json';template.write_text(recipe.to_json(compact=True));template.chmod(0o600)

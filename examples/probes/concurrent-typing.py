@@ -17,9 +17,9 @@ import time
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-WITNESS = 'ai.callabo.tacto.user-typing-witness'
-TARGET = 'ai.callabo.tacto.navigation-fixture'
-EXPECTED = 'tacto typing 12345'
+WITNESS = 'ai.callabo.haejo.user-typing-witness'
+TARGET = 'ai.callabo.haejo.navigation-fixture'
+EXPECTED = 'haejo typing 12345'
 STATE = re.compile(r'downs=(\d+) ups=(\d+) wrongWindow=(\d+) utf16=(\d+) '
                    r'selection=(\d+),(\d+) key=(true|false) focused=(true|false) sha256=([0-9a-f]{64})')
 
@@ -39,7 +39,7 @@ def prepared_fixtures(directory, witness_build_report):
 
     Same-user filesystem checks, not hostile-host authentication.
     """
-    from tacto.web_upload_cli import _snapshot, _json_object
+    from haejo.web_upload_cli import _snapshot, _json_object
     directory = Path(directory)
     witness_build_report = Path(witness_build_report)
     reviews = (ROOT / 'reviews').resolve()
@@ -50,7 +50,7 @@ def prepared_fixtures(directory, witness_build_report):
     witness_raw = _snapshot(witness_build_report, 65536, private=True)
     witness = json.loads(witness_raw, object_pairs_hook=_json_object)
     binary = directory / 'Background Navigation.app/Contents/MacOS/Navigation'
-    witness_app = witness_build_report.parent / 'TACTO Typing Witness.app'
+    witness_app = witness_build_report.parent / 'HAEJO Typing Witness.app'
     for path, recorded in ((binary, manifest['binary']), (witness_app, witness['app'])):
         if str(path) != recorded or path.resolve(strict=True) != path:
             raise ValueError('prepared_fixture_identity_changed')
@@ -79,7 +79,7 @@ def prepare(directory):
                     str(source), '-o', str(binary)], check=True, capture_output=True, timeout=45)
     (bundle / 'Contents/Info.plist').write_bytes(plistlib.dumps({
         'CFBundleIdentifier': TARGET, 'CFBundleExecutable': 'Navigation',
-        'CFBundleName': 'TACTO Background Navigation', 'CFBundlePackageType': 'APPL'}))
+        'CFBundleName': 'HAEJO Background Navigation', 'CFBundlePackageType': 'APPL'}))
     subprocess.run(['codesign', '--force', '--sign', '-', str(bundle)],
                    check=True, capture_output=True, timeout=15)
     subprocess.run(['codesign', '--verify', '--strict', str(bundle)],
@@ -99,15 +99,15 @@ def run(directory, output, witness_build_report, *, driver=None, participant_con
               'backend': 'signed_inherited', 'participant_confirmed': participant_confirmed is True,
               'foreground_input_generated': False, 'model_requests': 0,
               'classification': 'not_run', 'expected_text_sha256': hashlib.sha256(EXPECTED.encode()).hexdigest()}
-    selected = ['examples/probes/concurrent-typing.py', 'tacto/driver.py', 'tacto/input_audit.py',
-                'tacto/native_frontmost.py', 'tacto/native_window_ready.py',
-                'tacto/native_window_binding.py', 'tacto/native_window_dispatch.py', 'tacto/native_key_events.py',
-                'tacto/helper.py', 'tacto/protocol.py', 'helper/TactoHelper.swift', 'launcher/tacto',
-                'helper/tacto-helper', 'helper/Tacto Helper.app/Contents/MacOS/TactoHelper', 'examples/eval.py']
+    selected = ['examples/probes/concurrent-typing.py', 'haejo/driver.py', 'haejo/input_audit.py',
+                'haejo/native_frontmost.py', 'haejo/native_window_ready.py',
+                'haejo/native_window_binding.py', 'haejo/native_window_dispatch.py', 'haejo/native_key_events.py',
+                'haejo/helper.py', 'haejo/protocol.py', 'helper/HaejoHelper.swift', 'launcher/haejo',
+                'helper/haejo-helper', 'helper/Haejo Helper.app/Contents/MacOS/HaejoHelper', 'examples/eval.py']
     child = None
     try:
         report['selected_sources_before'] = {name: digest(ROOT / name) for name in selected}
-        from tacto.helper import InheritedHelperDriver
+        from haejo.helper import InheritedHelperDriver
         if participant_confirmed is not True:
             raise RuntimeError('human_participation_required')
         if not isinstance(driver, InheritedHelperDriver) or not InheritedHelperDriver.available():
@@ -115,9 +115,9 @@ def run(directory, output, witness_build_report, *, driver=None, participant_con
         binary, witness_build, witness_digest = prepared_fixtures(directory, witness_build_report)
         from AppKit import NSRunningApplication
         from ApplicationServices import AXUIElementCreateApplication, AXUIElementSetMessagingTimeout
-        from tacto.driver import Driver, _attr
-        from tacto.flow import Selector
-        from tacto.input_audit import MacInputReader
+        from haejo.driver import Driver, _attr
+        from haejo.flow import Selector
+        from haejo.input_audit import MacInputReader
         apps = NSRunningApplication.runningApplicationsWithBundleIdentifier_(WITNESS)
         assert len(apps) == 1, 'exactly one user typing witness required'
         assert str(Path(apps[0].bundleURL().path()).resolve()) == witness_build['app'], 'prepared witness bundle required'
@@ -179,7 +179,7 @@ def run(directory, output, witness_build_report, *, driver=None, participant_con
             assert value.get('type') == 'observation', 'background observation failed'
             return value
         view = observe()
-        index, _ = Selector(role='Window', title='TACTO Navigation Fixture A').resolve(view['tree'])
+        index, _ = Selector(role='Window', title='HAEJO Navigation Fixture A').resolve(view['tree'])
         sample()
         prepared = driver.act(view['obs_id'], TARGET, {'name': 'prepare_window', 'element_index': index})
         report['preparation'] = prepared
@@ -189,7 +189,7 @@ def run(directory, output, witness_build_report, *, driver=None, participant_con
         assert state['nav-A-first'] == 'position=0'
         assert all('downs=0 ups=0 routeErrors=0 key=false' in state[f'nav-{suffix}-state'] for suffix in ('A', 'B')), 'fresh background counters required'
         assert sample()['downs'] == 0, 'typing started before arming; fresh trial required'
-        print('ARMED: type "tacto typing 12345" slowly in own witness; first key starts background trial', flush=True)
+        print('ARMED: type "haejo typing 12345" slowly in own witness; first key starts background trial', flush=True)
         report['classification'] = 'waiting_for_user_typing'
         deadline = time.monotonic() + 60
         while sample()['downs'] == 0:

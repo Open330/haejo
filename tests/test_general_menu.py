@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
-from tacto.general import run
-from tacto.menu_navigation import MenuNavigation
+from haejo.general import run
+from haejo.menu_navigation import MenuNavigation
 
 class App:
     capabilities={'menu_items','action.menu'}
@@ -41,8 +41,8 @@ class GeneralMenuTests(unittest.TestCase):
         self.assertEqual([a['name'] for a,k in app.calls],['menu','read'])
         self.assertEqual(app.calls[0][0],{'name':'menu','path':['Probe','Increment']})
         self.assertEqual(app.calls[0][1]['expect'],{'no_modal':True})
-        from tacto.promote import candidate_from
-        from tacto.promote import deployable
+        from haejo.promote import candidate_from
+        from haejo.promote import deployable
         candidate=candidate_from(result,goal='increment',target='fixture',quote='increment')
         self.assertIsNotNone(candidate)
         self.assertIsNone(deployable(candidate,'increment','increment')[0])
@@ -94,7 +94,7 @@ class GeneralMenuTests(unittest.TestCase):
             self.assertEqual(app.calls,[])
 
     def test_model_schema_rejects_invented_paths_and_mixed_actions(self):
-        from tacto.ask import _here_question
+        from haejo.ask import _here_question
         app=App();nav=MenuNavigation(app,'fixture',app.capabilities)
         c=nav.candidates()[0]
         q=_here_question('inspect',[c],[])

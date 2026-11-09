@@ -4,7 +4,7 @@ import json,pathlib,subprocess,tempfile,unittest,sys
 class ControlFrameReadiness(unittest.TestCase):
     def test_transient_permanent_and_abort_cases_without_target_input(self):
         root=pathlib.Path(__file__).resolve().parents[1]
-        text=(root/'helper/TactoHelper.swift').read_text()
+        text=(root/'helper/HaejoHelper.swift').read_text()
         code=text[text.index('func readyControlTargetFrames('):text.index('func ensureVisibleControl(')]
         program='import Foundation\nimport CoreGraphics\n'+code+'''
 var clock=0.0;var reads=0
@@ -26,9 +26,9 @@ print(String(data:try! JSONSerialization.data(withJSONObject:["transient":transi
 
     def test_stop_refusal_never_advises_changing_screen_permissions(self):
         root=pathlib.Path(__file__).resolve().parents[1]
-        text=(root/'helper/TactoHelper.swift').read_text()
+        text=(root/'helper/HaejoHelper.swift').read_text()
         code=text[text.index('func indicatorRefusal('):text.index('/// True only when AXWindows was read successfully')]
-        program='import Foundation\nvar lastIndicatorRefusal="aborted_by_user"\nvar controlPanelDiagnostic:[String:Any]=[:]\nlet permissionHolderName="Tacto"\n'+code+\
+        program='import Foundation\nvar lastIndicatorRefusal="aborted_by_user"\nvar controlPanelDiagnostic:[String:Any]=[:]\nlet permissionHolderName="Haejo"\n'+code+\
                 '\nprint(String(data:try! JSONSerialization.data(withJSONObject:indicatorRefusal()),encoding:.utf8)!)'
         with tempfile.TemporaryDirectory() as folder:
             path=pathlib.Path(folder)/'main.swift';path.write_text(program)

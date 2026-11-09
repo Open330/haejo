@@ -1,7 +1,7 @@
 """Model-loop rows named only by their text, and Return as a declared submit."""
 import unittest
 
-from tacto.general import candidates, reacquire, run
+from haejo.general import candidates, reacquire, run
 
 CAPS = {'action.double_click', 'action.press_key', 'press_key.element_bound',
         'press_key.return_bound'}
@@ -155,7 +155,7 @@ class RowLoopTests(unittest.TestCase):
 
 class PlannerCheckTests(unittest.TestCase):
     def check(self, answer, cands):
-        from tacto.ask import what_to_do_here
+        from haejo.ask import what_to_do_here
         return what_to_do_here('goal', cands).check(answer)
 
     def test_submit_must_name_new_text_and_end_the_batch(self):
@@ -176,7 +176,7 @@ class PlannerCheckTests(unittest.TestCase):
 
 class PromotionTests(unittest.TestCase):
     def test_text_named_row_promotes_to_a_click_ancestor_step(self):
-        from tacto.promote import Candidate, to_flow
+        from haejo.promote import Candidate, to_flow
         row = next(c for c in candidates(chat_list(['홍길동']), capabilities=CAPS)
                    if c['role'] == 'Row')
         flow = to_flow(Candidate(goal='g', target='chat', quote='q', screens=[],

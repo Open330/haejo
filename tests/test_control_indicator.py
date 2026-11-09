@@ -2,7 +2,7 @@
 
 Found 2026-09-20 while verifying browsers: the outline was wired at two CLI
 commands and two signed-helper messages, so every other way in — a script
-holding a Driver, `tacto observe`, the whole evaluation suite, this session's own
+holding a Driver, `haejo observe`, the whole evaluation suite, this session's own
 browser and Calculator probes — drove somebody's machine with nothing on screen
 to say so. Asking each caller to remember is how it went missing; the driver
 owns it now.
@@ -19,7 +19,7 @@ from unittest.mock import patch
 @unittest.skipUnless(importlib.util.find_spec('ApplicationServices'), 'PyObjC required')
 class ControlIndicatorTests(unittest.TestCase):
     def setUp(self):
-        from tacto import driver
+        from haejo import driver
         self.m = driver
         self.d = object.__new__(driver.Driver)
         self.d._indicate = True
@@ -45,8 +45,8 @@ class ControlIndicatorTests(unittest.TestCase):
         return Fake
 
     def show(self, pid, **kw):
-        import tacto.overlay
-        with patch.object(tacto.overlay, 'Indicator', self.fake_indicator(**kw)):
+        import haejo.overlay
+        with patch.object(haejo.overlay, 'Indicator', self.fake_indicator(**kw)):
             self.d._showing_control(pid)
 
     def test_touching_an_app_puts_the_outline_on_it(self):
@@ -83,10 +83,10 @@ class ControlIndicatorTests(unittest.TestCase):
         self.assertEqual(2, len(self.started))
 
     def test_failing_to_draw_never_takes_down_the_task(self):
-        import tacto.overlay
+        import haejo.overlay
         def explode(*a, **kw):
             raise RuntimeError('no window server')
-        with patch.object(tacto.overlay, 'Indicator', explode):
+        with patch.object(haejo.overlay, 'Indicator', explode):
             self.d._showing_control(4321)          # must not raise
         self.assertFalse(self.d.indicator()['showing'], 'and it says so')
 
@@ -124,7 +124,7 @@ class IndicatorLifetimeTests(unittest.TestCase):
     """The outline leaves on its own, because one that never does stops being read."""
 
     def test_the_child_is_told_the_heartbeat_and_the_deadline(self):
-        from tacto.overlay import Indicator
+        from haejo.overlay import Indicator
         seen = {}
         class Popen:
             pid = 999999
@@ -142,7 +142,7 @@ class IndicatorLifetimeTests(unittest.TestCase):
         self.assertIn('4321', seen['command'])
 
     def test_without_a_heartbeat_the_child_is_not_given_one(self):
-        from tacto.overlay import Indicator
+        from haejo.overlay import Indicator
         seen = {}
         class Popen:
             pid = 999999
@@ -156,7 +156,7 @@ class IndicatorLifetimeTests(unittest.TestCase):
             with Indicator(4321):
                 pass
         self.assertEqual(['4321'], [c for c in seen['command'] if c == '4321'])
-        self.assertEqual(['-I', '-B', '-m', 'tacto.overlay', '4321'], seen['command'][1:])
+        self.assertEqual(['-I', '-B', '-m', 'haejo.overlay', '4321'], seen['command'][1:])
 
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -177,19 +177,19 @@ class TheIndicatorCoversNothing(unittest.TestCase):
     """
 
     def test_the_helper_reuses_the_apps_persistent_menu(self):
-        text = (ROOT / "helper/TactoHelper.swift").read_text()
+        text = (ROOT / "helper/HaejoHelper.swift").read_text()
         self.assertNotIn("NSStatusBar.system.statusItem(withLength:", text)
         self.assertIn("RuntimePublisher.shared.start(pid:pid)", text)
         self.assertIn("NSStatusBar.system.statusItem(withLength:", (ROOT/"setup/main.swift").read_text())
         self.assertIn("func showControlIndicator(forPID", text)
 
     def test_the_python_indicator_shows_a_menu_bar_item(self):
-        text = (ROOT / "tacto/overlay.py").read_text()
+        text = (ROOT / "haejo/overlay.py").read_text()
         self.assertIn("statusItemWithLength_", text)
 
     def test_control_never_becomes_key_or_follows_other_spaces(self):
-        text=(ROOT/'helper/TactoHelper.swift').read_text()
-        body=text[text.index('final class TactoControlPanel'):text.index('/// Supplementary menu-bar status')]
+        text=(ROOT/'helper/HaejoHelper.swift').read_text()
+        body=text[text.index('final class HaejoControlPanel'):text.index('/// Supplementary menu-bar status')]
         self.assertIn('override var canBecomeKey: Bool { false }',body)
         self.assertIn('override var canBecomeMain: Bool { false }',body)
         self.assertIn('.nonactivatingPanel',body)
@@ -202,7 +202,7 @@ class TheIndicatorCoversNothing(unittest.TestCase):
     def test_placement_keeps_control_outside_target_window(self):
         import json,shutil,subprocess,tempfile
         if not shutil.which('swift'):self.skipTest('macOS Swift required')
-        text=(ROOT/'helper/TactoHelper.swift').read_text()
+        text=(ROOT/'helper/HaejoHelper.swift').read_text()
         code=text[text.index('func availableControlFrame('):text.index('func controlTargetFrames(')]
         harness='import Foundation\nimport CoreGraphics\n'+code+r'''
 let screen=CGRect(x:0,y:0,width:1000,height:800)
@@ -223,7 +223,7 @@ print(String(data:try! JSONSerialization.data(withJSONObject:["inside":screen.co
     def test_compact_control_fits_narrow_gutter_without_covering_target(self):
         import json, shutil, subprocess, tempfile
         if not shutil.which('swift'): self.skipTest('macOS Swift required')
-        text=(ROOT/'helper/TactoHelper.swift').read_text()
+        text=(ROOT/'helper/HaejoHelper.swift').read_text()
         code=text[text.index('func availableControlFrame('):text.index('func controlTargetFrames(')]
         harness='import Foundation\nimport CoreGraphics\n'+code+r'''
 let screen=CGRect(x:0,y:62,width:1512,height:887)
@@ -245,7 +245,7 @@ print(String(data:try! JSONSerialization.data(withJSONObject:["compact":compact.
         be seen still refuses."""
         import json, shutil, subprocess, tempfile
         if not shutil.which('swift'): self.skipTest('macOS Swift required')
-        text=(ROOT/'helper/TactoHelper.swift').read_text()
+        text=(ROOT/'helper/HaejoHelper.swift').read_text()
         code=text[text.index('func controlPanelHasNoRoom('):text.index('var lastIndicatorMode =')]
         harness='import Foundation\n'+code+r'''
 let cases:[[String:Bool]]=[["frame_available":false],["target_frames_available":false],
@@ -272,7 +272,7 @@ print(String(data:try! JSONSerialization.data(withJSONObject:cases.map{controlPa
         panel is on another Space. The second refusal must say so."""
         import shutil, subprocess, tempfile
         if not shutil.which('swift'): self.skipTest('macOS Swift required')
-        text=(ROOT/'helper/TactoHelper.swift').read_text()
+        text=(ROOT/'helper/HaejoHelper.swift').read_text()
         head=text[text.index('func showControlPanel('):text.index('    if controlPanel == nil {',text.index('func showControlPanel('))]
         rule=text[text.index('func controlPanelHasNoRoom('):text.index('var lastIndicatorMode =')]
         harness=r'''import Foundation
@@ -303,12 +303,12 @@ print(first, firstNoRoom, second, controlPanelHasNoRoom(controlPanelDiagnostic),
     def test_the_indicator_still_gates_every_action(self):
         # The point of it is that a caller cannot act invisibly. Losing the
         # outline must not lose that.
-        text = (ROOT / "helper/TactoHelper.swift").read_text()
+        text = (ROOT / "helper/HaejoHelper.swift").read_text()
         self.assertGreaterEqual(text.count("ensureVisibleControl(forPID: p"), 4)
         self.assertIn("indicator_unavailable", text)
 
     def test_ax_control_does_not_start_screen_capture(self):
-        text=(ROOT/'helper/TactoHelper.swift').read_text()
+        text=(ROOT/'helper/HaejoHelper.swift').read_text()
         body=text[text.index('func ensureVisibleControl('):]
         body=body[:body.index('\n}\n')]
         self.assertIn('showControlPanel(forPID:pid,targets:targets)',body)
@@ -323,7 +323,7 @@ print(first, firstNoRoom, second, controlPanelHasNoRoom(controlPanelDiagnostic),
         import json, shutil, subprocess, tempfile
         if not shutil.which("xcrun"):
             self.skipTest("macOS Swift required")
-        text = (ROOT / "helper/TactoHelper.swift").read_text()
+        text = (ROOT / "helper/HaejoHelper.swift").read_text()
         code = text[text.index("/// True only when AXWindows was read successfully and is empty — or, for"):
                     text.index("func appSaysItHasNoWindows(")]
         harness = r'''
@@ -370,7 +370,7 @@ let out: [String: Bool] = [
 ]
 print(String(data: try! JSONSerialization.data(withJSONObject: out, options: [.sortedKeys]), encoding: .utf8)!)
 '''
-        with tempfile.TemporaryDirectory(prefix="tacto-windowless-") as directory:
+        with tempfile.TemporaryDirectory(prefix="haejo-windowless-") as directory:
             source = pathlib.Path(directory) / "main.swift"
             source.write_text(harness)
             result = subprocess.run(["swift", str(source)], capture_output=True, text=True, timeout=120)
@@ -382,7 +382,7 @@ print(String(data: try! JSONSerialization.data(withJSONObject: out, options: [.s
                           "list unreadable": False, "list malformed": False}, json.loads(result.stdout))
 
     def test_only_observation_and_menu_requests_may_use_the_windowless_gate(self):
-        text = (ROOT / "helper/TactoHelper.swift").read_text()
+        text = (ROOT / "helper/HaejoHelper.swift").read_text()
         calls = [line.strip() for line in text.splitlines()
                  if "ensureVisibleControl(forPID: p" in line]
         self.assertEqual(sorted(calls), sorted([
@@ -397,10 +397,10 @@ print(String(data: try! JSONSerialization.data(withJSONObject: out, options: [.s
 
     def test_the_held_stream_sees_one_window_not_the_screen(self):
         # `SCContentFilter(display:)` stood here and captured everything, so an
-        # indicator meaning "TACTO is looking" was looking at every other window
+        # indicator meaning "HAEJO is looking" was looking at every other window
         # the person had open (user report, 2026-09-21). The indicator may not
         # cost more than what it announces.
-        text = (ROOT / "helper/TactoHelper.swift").read_text()
+        text = (ROOT / "helper/HaejoHelper.swift").read_text()
         body = text[text.index("func ensureControlStream(forPID"):]
         body = body[:body.index("\n}\n")]
         self.assertIn("SCContentFilter(desktopIndependentWindow:", body)
@@ -414,7 +414,7 @@ print(String(data: try! JSONSerialization.data(withJSONObject: out, options: [.s
     def test_the_stream_follows_the_window_it_is_about(self):
         # A run that moves to another window must move the indicator with it,
         # or it reports capture of something we stopped touching.
-        text = (ROOT / "helper/TactoHelper.swift").read_text()
+        text = (ROOT / "helper/HaejoHelper.swift").read_text()
         self.assertIn("controlStreamWindow", text)
         body = text[text.index("func ensureControlStream(forPID"):]
         body = body[:body.index("\n}\n")]
@@ -426,7 +426,7 @@ print(String(data: try! JSONSerialization.data(withJSONObject: out, options: [.s
         # Since 2026-10-09 the refusal says WHICH gate refused: the Screen
         # Recording advice is given only when the stream could not start; a
         # menu-bar item that is not on screen says that instead (june-mba).
-        text = (ROOT / "helper/TactoHelper.swift").read_text()
+        text = (ROOT / "helper/HaejoHelper.swift").read_text()
         body = text[text.index("func indicatorRefusal("):]
         body = body[:body.index("\n}\n")]
         self.assertIn("화면 기록 에서", body)
@@ -440,7 +440,7 @@ print(String(data: try! JSONSerialization.data(withJSONObject: out, options: [.s
         # frames are dropped and the stream is small and slow. A sink that
         # started keeping frames would be taking more of someone's screen than
         # the indicator promises.
-        text = (ROOT / "helper/TactoHelper.swift").read_text()
+        text = (ROOT / "helper/HaejoHelper.swift").read_text()
         sink = text[text.index("final class DiscardingSink"):]
         sink = sink[:sink.index("\n}\n")]
         self.assertNotIn("append", sink)
@@ -449,8 +449,8 @@ print(String(data: try! JSONSerialization.data(withJSONObject: out, options: [.s
     def test_it_names_the_app_being_driven(self):
         # "something is happening" is not the same promise as "this app is
         # being driven", and the menu bar has room to say which.
-        swift = (ROOT / "helper/TactoHelper.swift").read_text()
-        python = (ROOT / "tacto/overlay.py").read_text()
+        swift = (ROOT / "helper/HaejoHelper.swift").read_text()
+        python = (ROOT / "haejo/overlay.py").read_text()
         self.assertIn("localizedName", swift)
         self.assertIn("localizedName", python)
 
@@ -458,7 +458,7 @@ print(String(data: try! JSONSerialization.data(withJSONObject: out, options: [.s
 class TheIndicatorCanBeActedOn(unittest.TestCase):
     """An indicator you cannot act on is half of what it promises.
 
-    It said "TACTO is working on Calculator · Esc" and that was the whole of it:
+    It said "HAEJO is working on Calculator · Esc" and that was the whole of it:
     someone who did not know about Esc was told something was happening and
     given nothing to do about it. Codex Computer Use's own status item carries
     a menu (`ComputerUseIPCCodexStatusItemMenuState`); macOS has no system
@@ -468,12 +468,12 @@ class TheIndicatorCanBeActedOn(unittest.TestCase):
     """
 
     def test_the_indicator_has_a_menu(self):
-        text = (ROOT / "helper/TactoHelper.swift").read_text()
+        text = (ROOT / "helper/HaejoHelper.swift").read_text()
         self.assertIn("func controlMenu(for appName: String?) -> NSMenu", text)
         self.assertIn("#selector(stopRuntime)", (ROOT/"setup/main.swift").read_text())
 
     def test_the_menu_names_what_is_being_driven(self):
-        text = (ROOT / "helper/TactoHelper.swift").read_text()
+        text = (ROOT / "helper/HaejoHelper.swift").read_text()
         body = text[text.index("func controlMenu(for appName"):]
         body = body[:body.index("\n}\n")]
         self.assertIn("appName.map", body)
@@ -481,7 +481,7 @@ class TheIndicatorCanBeActedOn(unittest.TestCase):
     def test_stopping_goes_through_the_one_abort_everything_consults(self):
         # Not a second flag. Every action already asks `abortState`, and a
         # menu that set its own would be a second answer to one question.
-        text = (ROOT / "helper/TactoHelper.swift").read_text()
+        text = (ROOT / "helper/HaejoHelper.swift").read_text()
         body = text[text.index("@objc func stopNow(_ sender: Any?)"):]
         body = body[:body.index("\n    }\n")]
         self.assertIn('abortState.stopNow("indicator_stop")', body)
@@ -491,7 +491,7 @@ class TheIndicatorCanBeActedOn(unittest.TestCase):
         # run it was aimed at ended. A click on an indicator that only exists
         # during this run cannot be stale, and manufacturing a timestamp to
         # pass that test would be asking a question whose answer is known.
-        text = (ROOT / "helper/TactoHelper.swift").read_text()
+        text = (ROOT / "helper/HaejoHelper.swift").read_text()
         self.assertIn("func stopNow(_ source: String = \"unspecified\") {", text)
         body = text[text.index("@objc func stopNow(_ sender: Any?)"):]
         body = body[:body.index("\n    }\n")]
@@ -502,7 +502,7 @@ class TheIndicatorCanBeActedOn(unittest.TestCase):
         # before a global declared further down would have been initialised —
         # the trap that silently ate the logger's output earlier today. A
         # type's static is created on first use.
-        text = (ROOT / "helper/TactoHelper.swift").read_text()
+        text = (ROOT / "helper/HaejoHelper.swift").read_text()
         self.assertIn("static let shared = ControlMenuTarget()", text)
         for line in text.splitlines():
             stripped = line.strip()
@@ -518,14 +518,14 @@ class OverlayOwnerTests(unittest.TestCase):
         import subprocess
         import sys
         import textwrap
-        from tacto.overlay import owner_gone
+        from haejo.overlay import owner_gone
         self.assertFalse(owner_gone(os.getppid()))
         self.assertTrue(owner_gone(1))
         # A real orphan: the middle process exits, its child is re-parented.
         code = textwrap.dedent('''
             import os, subprocess, sys, time
             child = subprocess.Popen([sys.executable, "-c",
-                "import os,sys,time\\nfrom tacto.overlay import owner_gone\\nowner=os.getppid()\\n"
+                "import os,sys,time\\nfrom haejo.overlay import owner_gone\\nowner=os.getppid()\\n"
                 "sys.stdout.write('ready\\\\n');sys.stdout.flush()\\n"
                 "deadline=time.time()+5\\nwhile time.time()<deadline and not owner_gone(owner): time.sleep(0.05)\\n"
                 "sys.stdout.write('gone\\\\n' if owner_gone(owner) else 'stuck\\\\n')"],

@@ -18,7 +18,7 @@ class SetupWindowLifecycleTests(unittest.TestCase):
         fixture = r'''
         let original = window.frame
         let savedHelper = helper
-        helper = directory.appendingPathComponent("not-installed/Tacto Helper.app")
+        helper = directory.appendingPathComponent("not-installed/Haejo Helper.app")
         // Readiness, transient errors, long text and repeated checks must not
         // resize/reposition a window the person already chose.
         for index in 0..<12 {
@@ -120,11 +120,11 @@ class SetupWindowLifecycleTests(unittest.TestCase):
         runtimeMenuTitle = NSMenuItem(title:"",action:nil,keyEquivalent:"")
         runtimeStop = NSMenuItem(title:"중단",action:nil,keyEquivalent:"")
         let runID = UUID().uuidString
-        let run = TactoRuntimeStatus.Run(["schema":1,"uid":getuid(),"pid":getpid(),
+        let run = HaejoRuntimeStatus.Run(["schema":1,"uid":getuid(),"pid":getpid(),
             "id":runID,"target":"Fixture","active":true,"stopped":false])!
         runtimeRuns[runID] = (run,Date()); updateRuntimeMenu()
         assert(runtimeMenuTitle!.title.contains("Fixture") && runtimeStop!.isEnabled)
-        let stoppedRun = TactoRuntimeStatus.Run(["schema":1,"uid":getuid(),"pid":getpid(),
+        let stoppedRun = HaejoRuntimeStatus.Run(["schema":1,"uid":getuid(),"pid":getpid(),
             "id":runID,"target":"Fixture","active":true,"stopped":true])!
         runtimeRuns[runID] = (stoppedRun,Date()); updateRuntimeMenu()
         assert(runtimeMenuTitle!.title.contains("중단됨") && !runtimeStop!.isEnabled)
@@ -144,12 +144,12 @@ class SetupWindowLifecycleTests(unittest.TestCase):
         instrumented = instrumented.replace('if !panel.isVisible { panel.orderFrontRegardless() }', 'if !panel.isVisible { testPanelOrders += 1 }')
         instrumented = instrumented.replace('final class Setup:', 'var testOpenCount = 0\nvar testSettingsFrontmost = false\nvar testSettingsReads = 0\nvar testPanelOrders = 0\nfunc testSettingsWindowFrame() -> CGRect? { testSettingsReads += 1; return CGRect(x: 20, y: 20, width: 700, height: 700) }\nfinal class Setup:')
         instrumented = instrumented.replace(anchor, fixture+'\n'+anchor)
-        with tempfile.TemporaryDirectory(prefix='tacto-window-lifecycle-') as folder:
+        with tempfile.TemporaryDirectory(prefix='haejo-window-lifecycle-') as folder:
             folder = Path(folder)
             (folder/'main.swift').write_text(instrumented)
             (folder/'PermissionState.swift').write_bytes((ROOT/'setup/PermissionState.swift').read_bytes())
             (folder/'ActivityCenter.swift').write_bytes((ROOT/'setup/ActivityCenter.swift').read_bytes())
-            binary = folder/'TactoSetup'
+            binary = folder/'HaejoSetup'
             built = subprocess.run(['swiftc', 'main.swift', 'PermissionState.swift', 'ActivityCenter.swift', str(ROOT/'RuntimeStatus.swift'), '-o', str(binary)],
                                    cwd=folder, capture_output=True, text=True, timeout=90)
             self.assertEqual(0, built.returncode, built.stderr)

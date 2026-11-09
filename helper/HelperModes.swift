@@ -54,11 +54,11 @@ final class ModeLease: @unchecked Sendable {
     }
 }
 
-let modeWorker = DispatchQueue(label:"tacto.warm.driving-lease")
+let modeWorker = DispatchQueue(label:"haejo.warm.driving-lease")
 
 func startWarmMode(_ build: String) -> Bool {
-    guard let directory = TactoMode.directory(build),
-          var address = TactoMode.address(directory+"/helper.sock") else { return false }
+    guard let directory = HaejoMode.directory(build),
+          var address = HaejoMode.address(directory+"/helper.sock") else { return false }
     let fd = socket(AF_UNIX,SOCK_STREAM,0)
     guard fd >= 0 else { return false }
     let bound = withUnsafePointer(to:&address) { p in p.withMemoryRebound(to:sockaddr.self,capacity:1) {
@@ -75,16 +75,16 @@ func startWarmMode(_ build: String) -> Bool {
                 var yes: Int32 = 1
                 _ = setsockopt(conn,SOL_SOCKET,SO_NOSIGPIPE,&yes,socklen_t(MemoryLayout<Int32>.size))
                 guard PeerAuth.satisfies(fd:conn,requirement:clientRequirement).0,
-                      let hello = TactoMode.receive(conn), hello["build"] as? String == build,
+                      let hello = HaejoMode.receive(conn), hello["build"] as? String == build,
                       hello["protocol"] as? Int == 1 else { return }
                 let id = UUID()
-                guard ModeLease.shared.take(id) else { _ = TactoMode.send(conn,["status":"busy"]); return }
+                guard ModeLease.shared.take(id) else { _ = HaejoMode.send(conn,["status":"busy"]); return }
                 if let idle = hello["idle_seconds"] as? NSNumber,
                    CFGetTypeID(idle) != CFBooleanGetTypeID(), idle.doubleValue == Double(idle.intValue),
                    (1...600).contains(idle.intValue) { ModeLease.shared.setIdle(idle.intValue,owner:id) }
                 modeWorker.sync {
                     resetPersistentSession(starting:true)
-                    guard TactoMode.send(conn,["status":"ready","protocol":1,"build":build,"pid":getpid()]) else {
+                    guard HaejoMode.send(conn,["status":"ready","protocol":1,"build":build,"pid":getpid()]) else {
                         resetPersistentSession(starting:false); ModeLease.shared.release(id); return
                     }
                     // Notice a disconnected client while an AX request is in flight.

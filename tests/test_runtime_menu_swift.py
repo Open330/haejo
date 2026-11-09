@@ -17,7 +17,7 @@ class RuntimeMenuTests(unittest.TestCase):
         methods=source[start:source.index('    @objc func stopRuntime() {',start)]
         harness='''import AppKit
 final class Controller:NSObject {
-    var runtimeRuns:[String:(TactoRuntimeStatus.Run,Date)] = [:]
+    var runtimeRuns:[String:(HaejoRuntimeStatus.Run,Date)] = [:]
     var runtimeRunItems:[String:NSMenuItem] = [:]
     var runtimeStop:NSMenuItem?
 '''+methods+'''
@@ -28,8 +28,8 @@ let controller=Controller(), menu=NSMenu()
 controller.runtimeStop=menu.addItem(withTitle:"all",action:nil,keyEquivalent:"")
 menu.addItem(.separator())
 let a=UUID().uuidString,b=UUID().uuidString,c=UUID().uuidString
-func run(_ id:String,_ window:Int,_ stopped:Bool=false)->TactoRuntimeStatus.Run {
-    TactoRuntimeStatus.Run(["schema":1,"uid":getuid(),"id":id,"pid":getpid(),"target":"Owned Fixture",
+func run(_ id:String,_ window:Int,_ stopped:Bool=false)->HaejoRuntimeStatus.Run {
+    HaejoRuntimeStatus.Run(["schema":1,"uid":getuid(),"id":id,"pid":getpid(),"target":"Owned Fixture",
         "active":true,"stopped":stopped,"window_id":window,"phase":"running","action":"click"])!
 }
 controller.runtimeRuns=[a:(run(a,1),Date()),b:(run(b,2),Date())]
@@ -43,7 +43,7 @@ let removed=controller.runtimeRunItems[a]==nil && menu.items.count==4
 let disabled=controller.runtimeRunItems[b]!.submenu!.items[0].isEnabled == false
 var received:[String]=[]
 let center=DistributedNotificationCenter.default()
-let observer=center.addObserver(forName:TactoRuntimeStatus.stop,object:nil,queue:.main) { note in
+let observer=center.addObserver(forName:HaejoRuntimeStatus.stop,object:nil,queue:.main) { note in
     if let id=note.userInfo?["id"] as? String, [a,b,c].contains(id) { received.append(id) }
 }
 let selected=controller.runtimeRunItems[c]!.submenu!.items[0]
@@ -58,7 +58,7 @@ let result:[String:Bool]=["stable_rows":stable,"stale_removed":removed,"stopped_
     "selected_stop_only":received == [c],"remaining_rows":menu.items.count==3]
 print(String(data:try! JSONSerialization.data(withJSONObject:result),encoding:.utf8)!)
 '''
-        with tempfile.TemporaryDirectory(prefix='tacto-runtime-menu-') as directory:
+        with tempfile.TemporaryDirectory(prefix='haejo-runtime-menu-') as directory:
             base=Path(directory);swift=base/'main.swift';swift.write_text(harness);binary=base/'menu-test'
             built=subprocess.run(['swiftc','-sdk','/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk',str(swift),
                                   str(ROOT/'RuntimeStatus.swift'),'-o',str(binary)],capture_output=True,text=True,timeout=60)

@@ -13,7 +13,7 @@ import time
 import unittest
 from unittest.mock import patch
 
-from tacto.helper import InheritedHelperDriver, HelperUnavailable
+from haejo.helper import InheritedHelperDriver, HelperUnavailable
 
 
 class TimeoutChannelTests(unittest.TestCase):
@@ -75,18 +75,18 @@ class TimeoutChannelTests(unittest.TestCase):
             send.assert_not_called()
 
     def test_ask_provider_passes_timeout_and_preserves_timeout_exit_code(self):
-        from tacto.ask_provider import main
+        from haejo.ask_provider import main
         for failure in (False,True):
             with patch.object(sys,'argv',['ask_provider','--provider','claude','--timeout','.25']), \
                  patch.object(sys,'stdin',io.StringIO('q')), \
                  contextlib.redirect_stdout(io.StringIO()),contextlib.redirect_stderr(io.StringIO()), \
-                 patch('tacto.authoring._ask_model',side_effect=TimeoutError() if failure else None,return_value='ok') as model:
+                 patch('haejo.authoring._ask_model',side_effect=TimeoutError() if failure else None,return_value='ok') as model:
                 self.assertEqual(124 if failure else 0,main())
                 model.assert_called_once_with('q','claude',timeout=.25,expect_json=False)
 
     @unittest.skipUnless(sys.platform=='darwin' and shutil.which('swiftc'),'macOS Swift required')
     def test_extracted_swift_bounds_stdin_stdout_and_process_wait(self):
-        source=(Path(__file__).resolve().parents[1]/'launcher/tacto.swift').read_text()
+        source=(Path(__file__).resolve().parents[1]/'launcher/haejo.swift').read_text()
         start=source.index('@Sendable func modelTimeout(')
         end=source.index('\nfunc askModel(',start)
         block=source[start:end]

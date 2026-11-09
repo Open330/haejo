@@ -4,7 +4,7 @@ app.setActivationPolicy(.accessory)
 let output=CommandLine.arguments[1]
 let expected="owned-Synthetic-47!"
 let window=NSWindow(contentRect:NSRect(x:120,y:120,width:400,height:220),styleMask:[.titled,.closable],backing:.buffered,defer:false)
-window.title="Tacto owned credential receiving test"
+window.title="Haejo owned credential receiving test"
 window.isReleasedWhenClosed=false
 let password=NSSecureTextField(frame:NSRect(x:25,y:145,width:340,height:28))
 password.setAccessibilityIdentifier("password")

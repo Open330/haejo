@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import tempfile
 import unittest
 
-from tacto.helper import InheritedHelperDriver
+from haejo.helper import InheritedHelperDriver
 
 
 class HelperCaptureArtifacts(unittest.TestCase):
@@ -68,7 +68,7 @@ class HelperCaptureArtifacts(unittest.TestCase):
 class HelperCaptureSourceCleanup(unittest.TestCase):
     def test_verified_copy_removes_helper_owned_screenshot(self):
         work = tempfile.TemporaryDirectory(); self.addCleanup(work.cleanup)
-        owned = Path(work.name) / 'tacto-capture-4242'; owned.mkdir()
+        owned = Path(work.name) / 'haejo-capture-4242'; owned.mkdir()
         source = owned / 'shot.png'; source.write_bytes(b'window pixels')
         answer = {'type': 'capture', 'path': str(source), 'sha256': hashlib.sha256(b'window pixels').hexdigest()}
         driver = SimpleNamespace(_send=lambda message: answer)

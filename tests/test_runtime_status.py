@@ -12,27 +12,27 @@ ROOT = Path(__file__).resolve().parents[1]
 class RuntimeStatusTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.temp = tempfile.TemporaryDirectory(prefix='tacto-runtime-test-')
+        cls.temp = tempfile.TemporaryDirectory(prefix='haejo-runtime-test-')
         cls.folder = Path(cls.temp.name)
         source = cls.folder/'main.swift'
         source.write_text('''import Foundation
 if CommandLine.arguments[1] == "preference" {
-    print(TactoRuntimeStatus.showBanner(in:URL(fileURLWithPath:CommandLine.arguments[2])))
+    print(HaejoRuntimeStatus.showBanner(in:URL(fileURLWithPath:CommandLine.arguments[2])))
 } else if CommandLine.arguments[1] == "helper" {
     let raw = try! JSONSerialization.jsonObject(with:Data(CommandLine.arguments[2].utf8)) as! [String:Any]
-    let settings = TactoRuntimeStatus.helperSettings(raw["object"] as! [String:Any],environment:raw["environment"] as! [String:String])
+    let settings = HaejoRuntimeStatus.helperSettings(raw["object"] as! [String:Any],environment:raw["environment"] as! [String:String])
     print("\\(settings.mode) \\(settings.idleSeconds)")
 } else if CommandLine.arguments[1] == "summary" {
     var info = try! JSONSerialization.jsonObject(with:Data(CommandLine.arguments[2].utf8)) as! [String:Any]
     info["uid"] = getuid()
-    if let run = TactoRuntimeStatus.Run(info) {
+    if let run = HaejoRuntimeStatus.Run(info) {
         print("\(run.windowID.map(String.init) ?? "-")|\(run.phase ?? "-")|\(run.action ?? "-")|\(run.outcome ?? "-")|\(run.summary)")
     } else { print("invalid") }
 } else {
     let raw = try! JSONSerialization.jsonObject(with:Data(CommandLine.arguments[2].utf8)) as! [String:Any]
     var info = raw
     if info["uid"] as? String == "current" { info["uid"] = getuid() }
-    if let run = TactoRuntimeStatus.Run(info) {
+    if let run = HaejoRuntimeStatus.Run(info) {
         print("valid \\(run.active) \\(run.stopped)")
     } else { print("invalid") }
 }
@@ -76,7 +76,7 @@ if CommandLine.arguments[1] == "preference" {
                 index=['window_id','phase','action','outcome'].index(key)
                 self.assertEqual(fields[index],'-')
     def test_helper_publishes_only_accepted_scope_and_helper_owned_outcomes(self):
-        text=(ROOT/'helper/TactoHelper.swift').read_text()
+        text=(ROOT/'helper/HaejoHelper.swift').read_text()
         publisher=text.split('final class RuntimePublisher {',1)[1].split('\n}\n',1)[0]
         for forbidden in ('title','value','"verified"','kAXTitle'):
             self.assertNotIn(forbidden,publisher.split('func publish(',1)[1].split('postNotificationName',1)[0])
@@ -93,19 +93,19 @@ if CommandLine.arguments[1] == "preference" {
         reset=text.split('func resetPersistentSession(',1)[1].split('\n}\n',1)[0]
         self.assertIn('resetActivity()',reset)
     def test_esc_during_a_served_run_also_stops_waiting_parallel_jobs(self):
-        text=(ROOT/'helper/TactoHelper.swift').read_text()
+        text=(ROOT/'helper/HaejoHelper.swift').read_text()
         monitor=text.split('func watchForAbort() {',1)[1].split('\n}\n',1)[0]
         forward=monitor.split('if abortState.isStopped && RuntimePublisher.shared.active {',1)[1]
-        self.assertIn('TactoRuntimeStatus.stopAll',forward)
+        self.assertIn('HaejoRuntimeStatus.stopAll',forward)
         self.assertIn('"schema":1,"uid":getuid()',forward)
         # The press is still judged against this run's epoch first.
-        self.assertLess(monitor.index('abortState.note(at: ev.timestamp)'),monitor.index('TactoRuntimeStatus.stopAll'))
+        self.assertLess(monitor.index('abortState.note(at: ev.timestamp)'),monitor.index('HaejoRuntimeStatus.stopAll'))
 
     def test_setup_menu_keeps_global_stop_and_adds_per_run_stop(self):
         text=(ROOT/'setup/main.swift').read_text()
         stop_all=text.split('@objc func stopRuntime() {',1)[1].split('\n    }\n',1)[0]
         self.assertIn('for id in runtimeRuns.keys',stop_all)
-        self.assertIn('TactoRuntimeStatus.stopAll',stop_all)
+        self.assertIn('HaejoRuntimeStatus.stopAll',stop_all)
         self.assertIn('"uid":getuid()',stop_all)
         one=text.split('@objc func stopRuntimeRun(',1)[1].split('\n    }\n',1)[0]
         self.assertIn('runtimeRuns[id] != nil',one)
@@ -133,18 +133,18 @@ if CommandLine.arguments[1] == "preference" {
         self.assertEqual('per_command 120',probe())
         self.assertEqual('warm 600',probe({'keep_helper_warm':True,'helper_idle_minutes':10}))
         self.assertEqual('warm 60',probe({'keep_helper_warm':True,'helper_idle_minutes':1}))
-        self.assertEqual('per_command 120',probe({'keep_helper_warm':True},{'TACTO_HELPER_MODE':'per_command'}))
-        self.assertEqual('warm 3',probe({}, {'TACTO_HELPER_MODE':'warm','TACTO_HELPER_IDLE_SECONDS':'3'}))
-        self.assertEqual('per_command 120',probe({'keep_helper_warm':True},{'TACTO_HELPER_MODE':'resident'}))
+        self.assertEqual('per_command 120',probe({'keep_helper_warm':True},{'HAEJO_HELPER_MODE':'per_command'}))
+        self.assertEqual('warm 3',probe({}, {'HAEJO_HELPER_MODE':'warm','HAEJO_HELPER_IDLE_SECONDS':'3'}))
+        self.assertEqual('per_command 120',probe({'keep_helper_warm':True},{'HAEJO_HELPER_MODE':'resident'}))
         for value in (True,0,11,2.5,'10'):
             self.assertEqual('warm 120',probe({'keep_helper_warm':True,'helper_idle_minutes':value}))
         for value in (1,'true',None):
             self.assertEqual('per_command 120',probe({'keep_helper_warm':value}))
         for value in ('0','601','NaN','oops'):
-            self.assertEqual('warm 120',probe({}, {'TACTO_HELPER_MODE':'warm','TACTO_HELPER_IDLE_SECONDS':value}))
+            self.assertEqual('warm 120',probe({}, {'HAEJO_HELPER_MODE':'warm','HAEJO_HELPER_IDLE_SECONDS':value}))
 
     def test_opt_out_keeps_abort_and_session_guards_before_panel_placement(self):
-        text=(ROOT/'helper/TactoHelper.swift').read_text()
+        text=(ROOT/'helper/HaejoHelper.swift').read_text()
         gate=text.split('func ensureVisibleControl(',1)[1].split('/// Why the last',1)[0]
         self.assertLess(gate.index('guard sessionVisible()'),gate.index('if !banner'))
         self.assertLess(gate.index('guard !abortState.isStopped'),gate.index('if !banner'))

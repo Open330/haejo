@@ -109,7 +109,7 @@ class RTFSemanticsTests(unittest.TestCase):
                     value=Mock();value.string.return_value='A';value.length.return_value=1
                     value.attributesAtIndex_effectiveRange_.return_value=({'AXFont':{'AXFontName':name,
                         'AXFontSize':True if mode=='bad_font' else 14}},None);values.append(value)
-                with patch('tacto.driver.Driver',return_value=driver),patch('ApplicationServices.AXValueCreate',return_value=object()), \
+                with patch('haejo.driver.Driver',return_value=driver),patch('ApplicationServices.AXValueCreate',return_value=object()), \
                      patch('ApplicationServices.AXUIElementCopyParameterizedAttributeValue',side_effect=[(-25204,None)] if mode=='unreadable' else [(0,v) for v in values]) as read, \
                      patch('ApplicationServices.AXUIElementSetMessagingTimeout',side_effect=[0,-25204] if mode=='reset_failure' else None,return_value=0) as timeout:
                     if mode=='normal':self.assertEqual([('Helvetica',14.0)],read_owned_document_font_signatures(path,42,'A'))

@@ -16,7 +16,7 @@ from unittest.mock import patch
 @unittest.skipUnless(importlib.util.find_spec('ApplicationServices'), 'PyObjC required')
 class VisualFallbackWiringTests(unittest.TestCase):
     def setUp(self):
-        from tacto import driver
+        from haejo import driver
         self.m = driver
         self.d = object.__new__(driver.Driver)
         self.d._latest = {}
@@ -38,7 +38,7 @@ class VisualFallbackWiringTests(unittest.TestCase):
         class Backend:
             def permission(self):
                 return False
-        with patch('tacto.native_visual.ScreenCaptureBackend', Backend):
+        with patch('haejo.native_visual.ScreenCaptureBackend', Backend):
             allowed = self.d.visual_read()
         self.assertFalse(allowed['available'])
         self.assertEqual('screen_capture_permission_missing', allowed['reason'])
@@ -59,7 +59,7 @@ class VisualFallbackWiringTests(unittest.TestCase):
         reached = []
         with patch.object(self.m.Driver, 'visual_read',
                           return_value={'available': False, 'reason': 'nope'}), \
-             patch('tacto.native_visual.capture_native',
+             patch('haejo.native_visual.capture_native',
                    side_effect=lambda *a, **k: reached.append(1)):
             answer = self.d.capture('fixture')
         self.assertEqual('visual_read_unavailable', answer['error'])
@@ -73,7 +73,7 @@ class VisualFallbackWiringTests(unittest.TestCase):
                                                 'commit_witness': False},
                                save=lambda path: path)
         with patch.object(self.m.Driver, 'visual_read', return_value={'available': True}), \
-             patch('tacto.native_visual.capture_native', return_value=shot):
+             patch('haejo.native_visual.capture_native', return_value=shot):
             answer = self.d.capture('fixture', path='/tmp/x.png')
         self.assertEqual('capture', answer['type'])
         self.assertIs(False, answer['authorizes_action'])
@@ -83,7 +83,7 @@ class VisualFallbackWiringTests(unittest.TestCase):
     def test_a_capture_failure_is_not_a_half_done_thing(self):
         self.d._latest['fixture'] = SimpleNamespace(obs_id='o', pid=42)
         with patch.object(self.m.Driver, 'visual_read', return_value={'available': True}), \
-             patch('tacto.native_visual.capture_native',
+             patch('haejo.native_visual.capture_native',
                    side_effect=RuntimeError('capture_timeout')):
             answer = self.d.capture('fixture')
         self.assertEqual('visual_read_failed', answer['error'])

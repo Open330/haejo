@@ -1,18 +1,18 @@
 # One-flow session
 
-`tacto session <bundle-id> --helper [--document /absolute/path] [--guide] [--timings] [--idle-timeout 1..600]`
+`haejo session <bundle-id> --helper [--document /absolute/path] [--guide] [--timings] [--idle-timeout 1..600]`
 observes one app, reads one newline-terminated Flow JSON record from stdin,
 replays it on the same signed connection, and exits. The default input wait is
 90 seconds. The input record is bounded to 1 MiB. In an interactive terminal,
 invalid JSON/schema, target or parameter defaults return a short error and
-`TACTO_SESSION_READY`: send the
+`HAEJO_SESSION_READY`: send the
 corrected JSON on the same session. No input has been dispatched and the guide
 and observation are not repeated. Corrections share the original input deadline.
 Piped invalid JSON, EOF, cancellation, extra records in the input buffer, or a
 changed target end the session.
 A failed flow is never rerun by the session.
 
-When `TACTO_OBSERVATION_MORE` appears, the tree omitted candidates. Before
+When `HAEJO_OBSERVATION_MORE` appears, the tree omitted candidates. Before
 authoring the Flow, send `{"observe_next":true}` alone on this same session to
 read the next page. Each page replaces the previous observation; do not combine
 element indices across pages. Up to eight continuation pages share the original
@@ -22,7 +22,7 @@ If the marker offers name lookup and the exact label is known, send
 pages. Lookup and continuation share the eight-request limit and deadline.
 
 For agent tools, start with `exec_command`, `tty: true`, and
-`yield_time_ms: 1000`. Wait for both the observation and `TACTO_SESSION_READY`.
+`yield_time_ms: 1000`. Wait for both the observation and `HAEJO_SESSION_READY`.
 Send a minified JSON line with `write_stdin` using the exact returned session ID.
 Use `yield_time_ms: 5000` when sending the flow to collect short replay completion
 without an extra status round; if still running, poll the original session.
@@ -72,11 +72,11 @@ observations use the same native token; a lost/changed token ends the flow witho
 repinning or reading the rest of the app. The guide includes the text selector
 and edit/read schema; implementation history is not needed for ordinary edits.
 Text verification is not Save evidence. Saved Flow files do not store this read
-scope: use the `TACTO_FLOW_SCOPE` replay argv with `--document` on each invocation.
+scope: use the `HAEJO_FLOW_SCOPE` replay argv with `--document` on each invocation.
 
 
 After `commit_unverified` for a pinned TextEdit body edit, the session may emit
-`TACTO_DOCUMENT_STATE`: one read on the same native token, no model call or input
+`HAEJO_DOCUMENT_STATE`: one read on the same native token, no model call or input
 retry. `matches_requested_text:true` means the authored text is currently visible;
 `remaining_steps:0` means this failed step was last. For that visible-text task,
 no extra read session is needed. False/null requires inspection, and remaining

@@ -2,10 +2,10 @@
 import hashlib
 import unittest
 
-from tacto.agent import Agent
-from tacto.commit_evidence import ArtifactEvidence, CommitEvidence
-from tacto.contract import ContextBinding, Resource, SafetyContract, issue_approval
-from tacto.flow import Flow, Postcondition, Selector, Step, replay
+from haejo.agent import Agent
+from haejo.commit_evidence import ArtifactEvidence, CommitEvidence
+from haejo.contract import ContextBinding, Resource, SafetyContract, issue_approval
+from haejo.flow import Flow, Postcondition, Selector, Step, replay
 
 
 class MemoryStore:
@@ -102,7 +102,7 @@ class ReplayCommitEvidenceTests(unittest.TestCase):
         self.assertEqual(driver.writes, [{'path': '/tmp/Downloads/proof.rtf', 'content': 'hello'}])
 
     def test_live_trace_wrapper_preserves_host_receipt_hooks(self):
-        from tacto.trace import TracingDriver
+        from haejo.trace import TracingDriver
         driver = TextEditFixture(write=True)
         driver.install_evidence()
         traced = TracingDriver(driver)

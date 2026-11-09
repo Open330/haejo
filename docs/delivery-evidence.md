@@ -1,6 +1,6 @@
 # 요청과 수신함을 결합한 전송 영수증
 
-`tacto.delivery_receipt.DeliveredMessageReceipt`는 호스트가 실제 전송 요청과
+`haejo.delivery_receipt.DeliveredMessageReceipt`는 호스트가 실제 전송 요청과
 수신 서비스의 새 메시지를 연결할 수 있는 경우 사용하는 in-process adapter다.
 `prepare_commit`, `after_commit`, `commit_expected`를 기존 replay에 전달한다.
 승인을 발급하거나 메시지를 보내는 기능은 없다. 카카오톡·Mail 등 native 앱에
@@ -91,7 +91,7 @@ prepare에서 이 신호를 받으면 `inbox_read_unavailable`로 거부한다. 
 adapter가 강제 취소할 수 없고 마감 후 반환된 record는 수용하지 않는다.
 
 ```python
-from tacto.delivery_receipt import InboxTemporarilyUnavailable
+from haejo.delivery_receipt import InboxTemporarilyUnavailable
 
 def read_inbox(request_id):
     response = authenticated_receiving_service.read(request_id)
@@ -117,7 +117,7 @@ error/unknown을 보존하고 후속 처리를 진행한다. 영수증이 없으
 
 `tests/test_delivery_receipt.py`는 새/기존 요청·잘못된 수신인/계정/본문·queued·
 모델 JSON·이전 관측/다른 action·한 번 사용·권한/조회 실패·마감을 검사한다.
-`tests/test_delivery_receipt_integration.py`는 headless Chromium의 실제 Tacto
+`tests/test_delivery_receipt_integration.py`는 headless Chromium의 실제 Haejo
 click→loopback HTTP POST→별도 인증 HTTP 수신함 조회를 실행한다. 시험용
 계정·본문·서버만 사용하며 native GUI와 사용자 메시지에는 접근하지 않는다.
 
@@ -128,7 +128,7 @@ click→loopback HTTP POST→별도 인증 HTTP 수신함 조회를 실행한다
 지속적인503의 미검증 종료, 수신 인증403의 즉시 거부도 검사한다. 복구 사례는
 단일 전송 POST와 새로운 수신 message identity·정확한 본문을 대조하며,
 장애 사례에서도 전송이 중복되지 않았는지 검사한다.
-이 결과는 실제 원격 서비스·native 메신저·첨부·다양한 백본 또는 Tacto/Sky
+이 결과는 실제 원격 서비스·native 메신저·첨부·다양한 백본 또는 Haejo/Sky
 동일 조건 비교의 완료 증거가 아니다. 그 실기와 서비스별 bridge는 남아 있다.
 
 ## 리뷰 후 강화한 본문·실행 수명 계약
@@ -174,9 +174,9 @@ hash·mutable list·모델 dict를 거부한다. 이 한도는 업로드 지원 
 않는다. 메시지 request identity와 수신 측 reader 계약도 계속 충족해야 한다.
 
 실제 headless Chromium에서 소유 한글 파일을 file input에 fixture bootstrap으로
-선택하고 Tacto replay가 Send를 눌렀다. loopback 수신 서비스는 받은 바이트로 hash와
+선택하고 Haejo replay가 Send를 눌렀다. loopback 수신 서비스는 받은 바이트로 hash와
 크기를 계산했으며 event-bound receipt가 완료됐다. 별도 corrupted attachment
-사례는 unverified/POST1이었다. 파일 선택 동작은 Tacto 기능 평가가 아니다.
+사례는 unverified/POST1이었다. 파일 선택 동작은 Haejo 기능 평가가 아니다.
 전체 관련71 tests/22.603s/OK/skip 없음과 원본은
 `reviews/2026-10-11/delivery-attachment-regression-20261011-a.log/.json`에 있다.
 이 중16개는 실제 Chromium/HTTP 통합, 나머지는 mock/unit 검사다. 모델 호출과

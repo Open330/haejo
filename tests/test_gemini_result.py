@@ -8,9 +8,9 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import patch
-from tacto.gemini_result import GeminiProtocolError,gemini_result,parse_gemini_events,wire_prompt,_settings
-from tacto.provider_result import parse_provider_result
-from tacto.authoring import ask_model_result
+from haejo.gemini_result import GeminiProtocolError,gemini_result,parse_gemini_events,wire_prompt,_settings
+from haejo.provider_result import parse_provider_result
+from haejo.authoring import ask_model_result
 
 STAMP='2026-10-11T01:02:03.004Z'
 SESSION='12345678-1234-1234-1234-123456789abc'
@@ -100,22 +100,22 @@ assert config.parent.resolve()==Path.cwd().resolve() and config.stat().st_mode&0
 settings=json.loads(config.read_text())
 assert settings['tools']['core']==[] and settings['tools']['discoveryCommand']==''
 assert not settings['admin']['mcp']['enabled'] and not settings['hooksConfig']['enabled']
-assert 'TACTO_HELPER_FD' not in os.environ and os.environ['NO_BROWSER']=='1'
+assert 'HAEJO_HELPER_FD' not in os.environ and os.environ['NO_BROWSER']=='1'
 sys.path.insert(0,sys.argv[0].rsplit('/',1)[0])
 from fixture import frames,stream
 print(stream(frames(prompt)))
 ''')
             executable.chmod(0o700)
             (Path(folder)/'fixture.py').write_text('from tests.test_gemini_result import frames,stream\n')
-            env=os.environ.copy();env.update(PATH=folder+os.pathsep+env['PATH'],TACTO_HELPER_FD='999',
+            env=os.environ.copy();env.update(PATH=folder+os.pathsep+env['PATH'],HAEJO_HELPER_FD='999',
                 GEMINI_CLI_SYSTEM_SETTINGS_PATH=str(Path(folder)/'absent-system.json'))
             # The child fixture import is explicit; no user CLI/config is invoked.
             env['PYTHONPATH']=str(Path.cwd())
-            from tacto.authoring import _run_provider
+            from haejo.authoring import _run_provider
             diagnostics=[]
             def execute(*args,**kwargs):
                 response=_run_provider(*args,**kwargs);diagnostics.append(response.stderr);return response
-            with patch.dict(os.environ,env,clear=True),patch('tacto.authoring._run_provider',side_effect=execute):
+            with patch.dict(os.environ,env,clear=True),patch('haejo.authoring._run_provider',side_effect=execute):
                 result=gemini_result('owned @text',timeout=5)
             self.assertEqual('ok',result.status,(result.error,diagnostics))
             self.assertEqual(10,result.input_tokens);self.assertIsNone(result.cost)
@@ -124,19 +124,19 @@ print(stream(frames(prompt)))
 
     def test_unsupported_client_and_timeout_remain_failed_provider_attempts(self):
         error='Error authenticating: IneligibleTierError: unsupported_client'
-        with patch('tacto.authoring._run_provider',return_value=subprocess.CompletedProcess([],1,'',error)), \
-             patch('tacto.authoring.shutil.which',return_value='/owned/gemini'):
+        with patch('haejo.authoring._run_provider',return_value=subprocess.CompletedProcess([],1,'',error)), \
+             patch('haejo.authoring.shutil.which',return_value='/owned/gemini'):
             result=ask_model_result('owned','gemini',timeout=5)
         self.assertEqual('error',result.status);self.assertEqual('unsupported_client',result.error.code)
         self.assertEqual('cli-json',result.attempts[-1].transport);self.assertIsNone(result.text)
-        with patch('tacto.authoring._run_provider',side_effect=subprocess.TimeoutExpired('owned',1)):
+        with patch('haejo.authoring._run_provider',side_effect=subprocess.TimeoutExpired('owned',1)):
             result=gemini_result('owned',timeout=1)
         self.assertEqual('timeout',result.status);self.assertIsNone(result.text)
 
     def test_assistant_stdout_cannot_spoof_authentication_failure(self):
         data=frames(wire_prompt('owned'));data[2]['content']='Error authenticating: IneligibleTierError: unsupported_client'
         data[-1]['status']='error'
-        with patch('tacto.authoring._run_provider',return_value=subprocess.CompletedProcess([],1,stream(data),'')):
+        with patch('haejo.authoring._run_provider',return_value=subprocess.CompletedProcess([],1,stream(data),'')):
             result=gemini_result('owned',timeout=5)
         self.assertEqual('GeminiProtocolError',result.error.code)
         self.assertEqual(10,result.input_tokens);self.assertIsNone(result.text)

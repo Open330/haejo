@@ -9,7 +9,7 @@ from unittest.mock import patch
 @unittest.skipUnless(importlib.util.find_spec('ApplicationServices'), 'PyObjC unavailable')
 class SelectPreservationTests(unittest.TestCase):
     def setUp(self):
-        from tacto import driver as m
+        from haejo import driver as m
         self.m = m
         self.driver = object.__new__(m.Driver)
         self.driver._select = None

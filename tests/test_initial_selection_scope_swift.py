@@ -14,7 +14,7 @@ class InitialSelectionScopeSwiftTests(unittest.TestCase):
             part=text[text.index(prefix):]
             return part[:part.index('\n}\n')+3]
         scope=extract((ROOT/'helper/WindowInput.swift').read_text(),'final class NativeWindowReadScope {')
-        factory=extract((ROOT/'helper/TactoHelper.swift').read_text(),'func initialSelectionReadScope(')
+        factory=extract((ROOT/'helper/HaejoHelper.swift').read_text(),'func initialSelectionReadScope(')
         support=r'''
 import Foundation
 import CoreFoundation

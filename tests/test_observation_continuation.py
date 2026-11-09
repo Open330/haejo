@@ -6,8 +6,8 @@ import json
 import unittest
 from unittest.mock import patch
 
-from tacto import driver
-from tacto.flow import Selector
+from haejo import driver
+from haejo.flow import Selector
 
 
 def parents(lines, elements):
@@ -62,7 +62,7 @@ class ContinuationTests(unittest.TestCase):
             patch.object(driver, 'CFEqual', side_effect=lambda a, b: a == b),
             patch.object(driver, 'CFGetTypeID', side_effect=lambda value: 7),
             patch.object(driver, 'AXUIElementGetTypeID', side_effect=lambda: 7),
-            patch('tacto.native_process_identity.process_start_identity', side_effect=lambda pid: fx.launch),
+            patch('haejo.native_process_identity.process_start_identity', side_effect=lambda pid: fx.launch),
         ]
         for item in self.patches:
             item.start()
@@ -213,7 +213,7 @@ class RawHelperDriverScopeTests(unittest.TestCase):
 
     def driver(self):
         import io
-        from tacto.helper import HelperDriver
+        from haejo.helper import HelperDriver
         d = HelperDriver.__new__(HelperDriver)
         class Proc:
             stdin = io.StringIO()

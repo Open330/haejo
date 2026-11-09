@@ -11,9 +11,9 @@ from examples.probe_native_select import run_observe_control
 @unittest.skipUnless(sys.platform=='darwin', 'native driver framework imports require macOS')
 class SelectObserveControlTests(unittest.TestCase):
     def test_observations_require_same_owned_pid_closed_menu_and_unchanged_receiving(self):
-        tree = ('0 Window\n  1 PopUpButton  Value: Alpha, Identifier: tacto-fixture-choice\n'
-                '  2 StaticText  Value: Alpha, Identifier: tacto-fixture-result\n'
-                '  3 StaticText  Value: 0, Identifier: tacto-fixture-count')
+        tree = ('0 Window\n  1 PopUpButton  Value: Alpha, Identifier: haejo-fixture-choice\n'
+                '  2 StaticText  Value: Alpha, Identifier: haejo-fixture-result\n'
+                '  3 StaticText  Value: 0, Identifier: haejo-fixture-count')
         for mode in ('normal','wrong_pid','menu_open','count_changed','input_changed'):
             with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
                 root=Path(directory).resolve();root.chmod(0o700)
@@ -23,9 +23,9 @@ class SelectObserveControlTests(unittest.TestCase):
                     'custom_selects':{'1':{'state':'open' if mode=='menu_open' else 'closed'}}}
                 audit=Mock();audit.__enter__=Mock(return_value=audit);audit.__exit__=Mock(return_value=False)
                 audit.report.return_value={'status':'CHANGED' if mode=='input_changed' else 'UNCHANGED_SAMPLED'}
-                with patch('tacto.driver.Driver') as native, patch('tacto.driver._attr',return_value=False), \
-                     patch('tacto.driver.AXUIElementCreateApplication'), \
-                     patch('tacto.input_audit_process.ProcessInputAudit',return_value=audit), \
+                with patch('haejo.driver.Driver') as native, patch('haejo.driver._attr',return_value=False), \
+                     patch('haejo.driver.AXUIElementCreateApplication'), \
+                     patch('haejo.input_audit_process.ProcessInputAudit',return_value=audit), \
                      patch('examples.probe_native_select.owned_popup_capabilities',return_value={'authorizes_input':False}), \
                      patch('examples.focus_diagnostics.FocusDiagnosticReader') as reader, patch('examples.probe_native_select.time.sleep'):
                     native.return_value._resolve.return_value=99 if mode=='wrong_pid' else 42
@@ -42,7 +42,7 @@ class SelectObserveControlTests(unittest.TestCase):
         nodes={'root':['one'],'one':[],'two':[]}
         def attribute(node,name):
             if name=='AXChildren':return nodes[node]
-            if name=='AXIdentifier':return 'tacto-fixture-choice' if node!='root' else None
+            if name=='AXIdentifier':return 'haejo-fixture-choice' if node!='root' else None
             if name=='AXRole':return 'AXPopUpButton' if node!='root' else 'AXApplication'
             self.fail('unexpected metadata read')
         for mode in ('normal','wrong_owner','duplicate','unreadable'):
@@ -67,9 +67,9 @@ class SelectObserveControlTests(unittest.TestCase):
 
     def test_opening_diagnostic_dispatches_once_and_never_selects_after_audit_failure(self):
         from examples.probe_native_select import run_probe,TARGET
-        tree=('1 PopUpButton  Identifier: tacto-fixture-choice\n'
-              '2 StaticText  Value: Alpha, Identifier: tacto-fixture-result\n'
-              '3 StaticText  Value: 0, Identifier: tacto-fixture-count')
+        tree=('1 PopUpButton  Identifier: haejo-fixture-choice\n'
+              '2 StaticText  Value: Alpha, Identifier: haejo-fixture-result\n'
+              '3 StaticText  Value: 0, Identifier: haejo-fixture-count')
         for mode in ('normal','input_changed','audit_unavailable','wrong_pid','opening_refused','opening_unobserved'):
             with self.subTest(mode=mode),tempfile.TemporaryDirectory() as directory:
                 root=Path(directory).resolve();root.chmod(0o700)
@@ -83,9 +83,9 @@ class SelectObserveControlTests(unittest.TestCase):
                                          else {'type':'acted','opened':True})
                 audit=Mock();audit.__enter__=Mock(return_value=audit);audit.__exit__=Mock(return_value=False)
                 audit.report.return_value={'status':{'input_changed':'CHANGED','audit_unavailable':'UNVERIFIABLE'}.get(mode,'UNCHANGED_SAMPLED')}
-                with patch('tacto.driver.Driver') as native,patch('tacto.driver._attr',return_value=False), \
-                     patch('tacto.driver.AXUIElementCreateApplication'), \
-                     patch('tacto.input_audit_process.ProcessInputAudit',return_value=audit), \
+                with patch('haejo.driver.Driver') as native,patch('haejo.driver._attr',return_value=False), \
+                     patch('haejo.driver.AXUIElementCreateApplication'), \
+                     patch('haejo.input_audit_process.ProcessInputAudit',return_value=audit), \
                      patch('examples.focus_diagnostics.FocusDiagnosticReader'),patch('examples.probe_native_select.time.sleep'):
                     native.return_value._resolve.return_value=99 if mode=='wrong_pid' else 42
                     report=run_probe(driver,focus_diagnostics_dir=root,opening_only=True,expected_pid=42)

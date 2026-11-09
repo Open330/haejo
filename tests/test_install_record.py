@@ -4,16 +4,16 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
-from tacto.install_record import authorize,write_record
+from haejo.install_record import authorize,write_record
 
 class InstallRecordTests(unittest.TestCase):
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
         self.folder=Path(self.temp.name).resolve();self.root=self.folder/'runtime';self.root.mkdir()
-        (self.root/'launcher').mkdir();(self.root/'launcher/tacto').write_bytes(b'owned executable')
-        (self.root/'skill').mkdir();(self.root/'skill/SKILL.md').write_text('name: tacto')
+        (self.root/'launcher').mkdir();(self.root/'launcher/haejo').write_bytes(b'owned executable')
+        (self.root/'skill').mkdir();(self.root/'skill/SKILL.md').write_text('name: haejo')
         self.command=self.folder/'command';self.skill=self.folder/'skill'
-        self.command.symlink_to(self.root/'launcher/tacto');self.skill.symlink_to(self.root/'skill')
+        self.command.symlink_to(self.root/'launcher/haejo');self.skill.symlink_to(self.root/'skill')
         self.record=self.folder/'record.json'
         write_record(self.record,self.root,self.command,[self.skill])
 
@@ -25,7 +25,7 @@ class InstallRecordTests(unittest.TestCase):
         self.assertFalse(self.command.exists());self.assertFalse(self.skill.exists())
         self.assertTrue(authorize(self.record,root,self.command,'command'))
         self.assertTrue(authorize(self.record,root,self.skill,'skill'))
-        unknown=self.folder/'foreign';unknown.symlink_to('/missing/launcher/tacto')
+        unknown=self.folder/'foreign';unknown.symlink_to('/missing/launcher/haejo')
         self.assertFalse(authorize(self.record,root,unknown,'command'))
 
     def test_changed_target_or_runtime_bytes_cannot_reuse_record(self):

@@ -1,9 +1,9 @@
 """A bound authoring message expands to the same executable Flow, not extra authority."""
 import json,unittest,tempfile
 from pathlib import Path
-from tacto.flow import Flow
-from tacto.flow_session import decode_session_flow
-from tacto.command_help import session_guide,session_defaults
+from haejo.flow import Flow
+from haejo.flow_session import decode_session_flow
+from haejo.command_help import session_guide,session_defaults
 from tests.test_document_session import DocumentSessionTests,TARGET,PATH
 
 class BoundStepsTests(unittest.TestCase):

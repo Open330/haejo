@@ -1,7 +1,7 @@
 """A hand-written step that needs approval is bound to the action it names."""
 import json
 import unittest
-from tacto.flow import Flow
+from haejo.flow import Flow
 
 
 def flow_file(step):
@@ -14,7 +14,7 @@ SAFETY = {"effects": ["write_persistent"], "reversibility": "recoverable",
 
 class HandwrittenBindingTests(unittest.TestCase):
     def test_risky_step_without_binding_is_pinned_from_its_selector_at_authorization(self):
-        from tacto.agent import Agent
+        from haejo.agent import Agent
         flow = Flow.from_json(flow_file({"action": "click", "safety": SAFETY,
                                     "selector": {"role": "Button", "title": "Create GitHub App for jiunbae"}}))
         self.assertIsNone(flow.steps[0].binding)  # loading leaves the file as written
@@ -32,7 +32,7 @@ class HandwrittenBindingTests(unittest.TestCase):
         self.assertEqual("Create", flow.steps[0].binding.title)
 
     def test_authorize_no_longer_blocks_a_named_button(self):
-        from tacto.agent import Agent
+        from haejo.agent import Agent
         flow = Flow.from_json(flow_file({"action": "click", "safety": SAFETY,
                                     "selector": {"role": "Button", "title": "Create GitHub App for jiunbae"}}))
         approvals, blocked = Agent.authorize(object.__new__(Agent), flow, ask=lambda what: True)
@@ -45,8 +45,8 @@ if __name__ == "__main__":
 
 class ReplayAcceptsDerivedPinTests(unittest.TestCase):
     def test_the_named_button_is_clicked_once_after_authorization(self):
-        from tacto.agent import Agent
-        from tacto.flow import replay
+        from haejo.agent import Agent
+        from haejo.flow import replay
 
         class Driver:
             capabilities = ("observe", "act")

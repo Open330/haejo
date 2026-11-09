@@ -1,7 +1,7 @@
 """Inline lifecycle removes bookkeeping calls without changing UI outcomes."""
 import json,unittest
 from unittest.mock import patch
-from tacto import cli,task as tasks
+from haejo import cli,task as tasks
 from tests import test_task as fixture
 
 class InlineTaskTests(unittest.TestCase):
@@ -9,9 +9,9 @@ class InlineTaskTests(unittest.TestCase):
     tearDown=fixture.TaskStoreTests.tearDown
     run_cli=fixture.TaskStoreTests.run_cli
     def setup_log(self):
-        self.enterContext(patch('tacto.access_log.log_directory',return_value=self.root.parent/'Logs'))
+        self.enterContext(patch('haejo.access_log.log_directory',return_value=self.root.parent/'Logs'))
     def task_id(self,text):
-        return json.loads(next(x.split(' ',1)[1] for x in text.splitlines() if x.startswith('TACTO_TASK ')))['id']
+        return json.loads(next(x.split(' ',1)[1] for x in text.splitlines() if x.startswith('HAEJO_TASK ')))['id']
     def test_start_and_finish_in_one_ui_invocation(self):
         self.setup_log()
         with patch.object(cli,'_main',return_value=0) as operation:
@@ -25,13 +25,13 @@ class InlineTaskTests(unittest.TestCase):
             code,out=self.run_cli('observe','com.apple.calculator','--goal','한 목표','--task=new')
             task_id=self.task_id(out)
             self.assertEqual('open',tasks.status(task_id)['state'])
-            self.run_cli('observe','com.apple.TextEdit','--finish-task',env={'TACTO_TASK':task_id})
+            self.run_cli('observe','com.apple.TextEdit','--finish-task',env={'HAEJO_TASK':task_id})
         report=tasks.status(task_id);self.assertEqual('done',report['result'])
         self.assertEqual(2,len(report['invocations']))
     def test_ambient_new_marker_is_supported(self):
         self.setup_log()
         with patch.object(cli,'_main',return_value=0):
-            code,out=self.run_cli('observe','com.apple.calculator','--goal=one goal',env={'TACTO_TASK':'new'})
+            code,out=self.run_cli('observe','com.apple.calculator','--goal=one goal',env={'HAEJO_TASK':'new'})
         self.assertEqual(0,code);self.assertEqual('open',tasks.status(self.task_id(out))['state'])
     def test_failure_is_not_declared_done(self):
         self.setup_log()
@@ -116,7 +116,7 @@ class InlineTaskTests(unittest.TestCase):
         import builtins
         self.setup_log();original_print=builtins.print
         def emit(*args,**kwargs):
-            if args and str(args[0]).startswith('TACTO_TASK '):
+            if args and str(args[0]).startswith('HAEJO_TASK '):
                 raise BrokenPipeError('closed output')
             return original_print(*args,**kwargs)
         with patch('builtins.print',side_effect=emit),patch.object(cli,'_main') as operation:
@@ -144,9 +144,9 @@ class TaskProseTests(unittest.TestCase):
                                   '--detail','사용자 요청: 법정필수교육 3과목 수강\n진도율 100% 확인','--why','현재 화면 확인')
             task_id=self.task_id(out)
             self.assertEqual(0,code);operation.assert_called_once_with(['observe','com.apple.Safari'])
-        self.assertEqual((0,f'note recorded on {task_id}\n'),self.run_cli('task','note','팝업이 떠서 닫기로 결정',env={'TACTO_TASK':task_id}))
+        self.assertEqual((0,f'note recorded on {task_id}\n'),self.run_cli('task','note','팝업이 떠서 닫기로 결정',env={'HAEJO_TASK':task_id}))
         with patch.object(cli,'_main',return_value=0):
-            self.run_cli('observe','com.apple.Safari','--why=닫힘 확인',env={'TACTO_TASK':task_id})
+            self.run_cli('observe','com.apple.Safari','--why=닫힘 확인',env={'HAEJO_TASK':task_id})
         self.assertEqual(0,self.run_cli('task','end',task_id,'--result','done','--note','3과목 완료')[0])
         report=tasks.status(task_id)
         self.assertEqual('사용자 요청: 법정필수교육 3과목 수강\n진도율 100% 확인',report['detail'])
@@ -165,7 +165,7 @@ class TaskProseTests(unittest.TestCase):
         with patch.object(cli,'_main',return_value=0) as operation:
             code,out=self.run_cli('observe','app','--why','reason')   # no task to record it in
             self.assertEqual(2,code);self.assertIn('task_required',out);operation.assert_not_called()
-            code,out=self.run_cli('observe','app','--why','two\nlines',env={'TACTO_TASK':meta['id']})
+            code,out=self.run_cli('observe','app','--why','two\nlines',env={'HAEJO_TASK':meta['id']})
             self.assertEqual(2,code);self.assertIn('task_why_invalid',out)
             code,out=self.run_cli('list','--why','x')
             self.assertEqual(2,code);self.assertIn('task_not_applicable',out)
@@ -179,20 +179,20 @@ class TaskProseTests(unittest.TestCase):
         with patch.object(cli,'_main',return_value=0):
             code,out=self.run_cli('observe','app','--task','new','--goal','목표')
         task_id=self.task_id(out)
-        hint=[l for l in out.splitlines() if l.startswith('TACTO_TASK_HINT')]
-        self.assertEqual(1,len(hint));self.assertIn(f'tacto task describe {task_id}',hint[0]);self.assertIn(f'tacto task note {task_id}',hint[0])
+        hint=[l for l in out.splitlines() if l.startswith('HAEJO_TASK_HINT')]
+        self.assertEqual(1,len(hint));self.assertIn(f'haejo task describe {task_id}',hint[0]);self.assertIn(f'haejo task note {task_id}',hint[0])
         self.assertEqual((0,f'description recorded on {task_id}\n'),self.run_cli('task','describe',task_id,'사용자 요청 전문'))
         self.assertEqual('사용자 요청 전문',tasks.status(task_id)['detail'])
         with patch.object(cli,'_main',return_value=0):
-            code,out=self.run_cli('observe','app','--finish-task',env={'TACTO_TASK':task_id})
-        hint=[l for l in out.splitlines() if l.startswith('TACTO_TASK_HINT')]
+            code,out=self.run_cli('observe','app','--finish-task',env={'HAEJO_TASK':task_id})
+        hint=[l for l in out.splitlines() if l.startswith('HAEJO_TASK_HINT')]
         self.assertEqual(1,len(hint),out);self.assertIn('결과 요약',hint[0]);self.assertNotIn('describe',hint[0])
         self.assertEqual(0,self.run_cli('task','note',task_id,'3개 확인 후 종료')[0])
         with patch.object(cli,'_main',return_value=0):
             code,out=self.run_cli('observe','app','--task','new','--goal','g','--detail','d','--finish-task')
         self.assertIn('결과 요약',out);self.assertNotIn('describe',out)   # detail given: only the summary is missing
         meta=tasks.start('g2',detail='d2');tasks.note(meta['id'],'n')
-        self.assertNotIn('TACTO_TASK_HINT',self.run_cli('task','end',meta['id'],'--result','done')[1])
+        self.assertNotIn('HAEJO_TASK_HINT',self.run_cli('task','end',meta['id'],'--result','done')[1])
         with patch.object(cli,'_main',return_value=0):
             code,out=self.run_cli('observe','app','--json','--task','new','--goal','g3')
-        self.assertFalse(any(l.startswith('TACTO_TASK_HINT') for l in out.splitlines()))  # --json keeps stdout clean
+        self.assertFalse(any(l.startswith('HAEJO_TASK_HINT') for l in out.splitlines()))  # --json keeps stdout clean

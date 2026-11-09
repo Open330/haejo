@@ -1,7 +1,7 @@
 """Host cancellation through the launcher's real ask transport.
 
 The harness compiles the launcher's own relayAsk/askModel/boundedModelProcess
-and frame I/O source, runs the real tacto.ask_provider wrapper in an isolated
+and frame I/O source, runs the real haejo.ask_provider wrapper in an isolated
 interpreter, and an owned fake provider CLI with a delayed-write descendant.
 No model, network, helper, signed app or native GUI is involved.
 """
@@ -20,15 +20,15 @@ import unittest
 import uuid
 from unittest.mock import patch
 
-from tacto.helper import InheritedHelperDriver
-from tacto.model_budget import ModelCancelled, model_cancellation
+from haejo.helper import InheritedHelperDriver
+from haejo.model_budget import ModelCancelled, model_cancellation
 from tests.test_opencode_result import frames, stream
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def harness_source():
-    source = (ROOT / 'launcher/tacto.swift').read_text()
+    source = (ROOT / 'launcher/haejo.swift').read_text()
     io = source[source.index('func readJSONLine('):source.index('// MARK: - Environment')]
     ask = source[source.index('enum ModelProcessError:'):source.index('\n// MARK: - Relay')]
     ids = source[source.index('@Sendable func askCancelIDIsValid('):source.index('func vetted(')]
@@ -148,8 +148,8 @@ class LauncherAskCancelTests(unittest.TestCase):
         self.base = Path(self.work.name)
         (self.base / 'bin').mkdir()
         self.ready, self.marker = self.base / 'ready', self.base / 'survived'
-        # A private notification name: the person's Tacto menu never sees it.
-        self.status_name = 'ai.callabo.tacto.test.status.' + uuid.uuid4().hex
+        # A private notification name: the person's Haejo menu never sees it.
+        self.status_name = 'ai.callabo.haejo.test.status.' + uuid.uuid4().hex
 
     def post(self, pid, *, active=True, stopped=True, uid=None):
         subprocess.run([str(self.poster), self.status_name, str(pid), str(int(active)), str(int(stopped)),
@@ -165,7 +165,7 @@ class LauncherAskCancelTests(unittest.TestCase):
         env = dict(os.environ, PATH=f'{self.base / "bin"}:/usr/bin:/bin')
         if helper_pid is not None:
             env.update(HARNESS_HELPER_PID=str(helper_pid), HARNESS_STATUS_NAME=self.status_name)
-        for key in ('TACTO_HELPER_FD', 'TACTO_LAUNCHER', 'TACTO_HELPER_TOKEN'):
+        for key in ('HAEJO_HELPER_FD', 'HAEJO_LAUNCHER', 'HAEJO_HELPER_TOKEN'):
             env.pop(key, None)
         relay = subprocess.Popen([str(self.binary), str(python or self.python), str(ROOT), str(theirs.fileno())],
                                  pass_fds=(theirs.fileno(),), env=env)
@@ -254,8 +254,8 @@ class LauncherAskCancelTests(unittest.TestCase):
         self.assertEqual(18, result.total_input_tokens)
 
     def test_general_run_cancel_reaches_launcher_routed_request(self):
-        from tacto import authoring
-        from tacto.general import run
+        from haejo import authoring
+        from haejo.general import run
         from tests.test_provider_host_cancellation import App
         fake_cli(self.base / 'bin/opencode', self.ready, self.marker)
         driver = self.start()
@@ -374,7 +374,7 @@ RunLoop.current.run(until: Date().addingTimeInterval(0.3))
 
 class CooperativeStopTests(unittest.TestCase):
     def test_first_signal_cancels_then_restores_disposition(self):
-        from tacto.cli import cooperative_stop
+        from haejo.cli import cooperative_stop
         before = signal.getsignal(signal.SIGTERM)
         with cooperative_stop() as stop:
             self.assertFalse(stop.is_set())
@@ -396,19 +396,19 @@ class StopWiringSourceTests(unittest.TestCase):
     """The parts the harness cannot run without real Esc input or a helper."""
 
     def test_esc_publishes_stopped_status_like_the_indicator_stop(self):
-        source = (ROOT / 'helper/TactoHelper.swift').read_text()
+        source = (ROOT / 'helper/HaejoHelper.swift').read_text()
         body = source[source.index('func watchForAbort()'):]
         body = body[:body.index('\n}\n')]
         note = body.index('abortState.note(at: ev.timestamp)')
         guard = body.index('if abortState.isStopped && RuntimePublisher.shared.active {')
         publish = body.index('RuntimePublisher.shared.publish()', guard)
         self.assertLess(note, guard)
-        self.assertLess(publish, body.index('TactoRuntimeStatus.stopAll', guard))
+        self.assertLess(publish, body.index('HaejoRuntimeStatus.stopAll', guard))
         menu = source[source.index('@objc func stopNow(_ sender: Any?)'):]
         self.assertIn('RuntimePublisher.shared.publish()', menu[:menu.index('\n    }\n')])
 
     def test_launcher_binds_authenticated_helper_and_services_main_run_loop(self):
-        source = (ROOT / 'launcher/tacto.swift').read_text()
+        source = (ROOT / 'launcher/haejo.swift').read_text()
         connect = source[source.index('            helperFD = fd\n'):]
         connect = connect[:connect.index('        }\n')]
         self.assertIn('if let token = peerToken(fd) {', connect)
@@ -432,14 +432,14 @@ class WatcherLifecycleTests(unittest.TestCase):
         return driver
 
     def watchers(self):
-        return [t for t in threading.enumerate() if t.name == 'tacto-ask-cancel' and t.is_alive()]
+        return [t for t in threading.enumerate() if t.name == 'haejo-ask-cancel' and t.is_alive()]
 
     def test_send_failure_before_frame_is_written_returns_promptly(self):
         mine, theirs = socket.socketpair()
         theirs.close()                       # the ask frame cannot be written
         driver = self.driver(mine)
         started = time.monotonic()
-        from tacto.helper import HelperUnavailable
+        from haejo.helper import HelperUnavailable
         with model_cancellation(lambda: False), self.assertRaises(HelperUnavailable):
             # The original transport error surfaces, not a masked TimeoutError.
             driver._ask_launcher_response('plan', provider='opencode', timeout_seconds=300)

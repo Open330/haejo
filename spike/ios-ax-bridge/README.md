@@ -4,13 +4,13 @@ This is a branch-only spike, not shipped iPhone execution. The default native
 probe exposes explicit open, capabilities, root/property read, service readiness
 and close. It reads no full AX tree, moves no focus and sends no touch reports.
 `IOSAXProbe` refuses an input-enabled handshake and does not implement IOSSession.
-The normal Tacto CLI still refuses iOS targets.
+The normal Haejo CLI still refuses iOS targets.
 
 An explicit `--owned-fixture` native mode additionally permits a focus walk and
 one gesture on the owned counter described below. It exposes no arbitrary
 coordinate, selector, keyboard, clipboard or app-launch endpoint. The separate
 `qualify_owned_counter.py` host must be used with trusted private configuration
-and a durable journal. Nothing here installs/replaces Tacto or a phone app.
+and a durable journal. Nothing here installs/replaces Haejo or a phone app.
 
 ## Connection and licensing
 
@@ -41,7 +41,7 @@ when Xcode/iOS changes; compilation is not physical qualification.
 
 ```sh
 swift build --package-path spike/ios-ax-bridge
-TACTO_IOS_AX_PROBE="$PWD/spike/ios-ax-bridge/.build/debug/tacto-ios-ax-spike" \
+HAEJO_IOS_AX_PROBE="$PWD/spike/ios-ax-bridge/.build/debug/haejo-ios-ax-spike" \
   python -m unittest tests.test_ios_ax_probe_native
 python -m unittest tests.test_ios_ax_probe tests.test_ios_counter_fixture \
   tests.test_ios_owned_counter tests.test_ios_gesture_native

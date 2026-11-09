@@ -8,8 +8,8 @@ import tempfile
 import unittest
 from unittest.mock import Mock
 
-from tacto.protocol import native_selection_parameters_problem
-from tacto.helper import InheritedHelperDriver
+from haejo.protocol import native_selection_parameters_problem
+from haejo.helper import InheritedHelperDriver
 
 ROOT=Path(__file__).resolve().parents[1]
 INVALID=[{'option_label':'Beta','value':value} for value in (None,1,True,[],{},'other','')]
@@ -37,7 +37,7 @@ class NativeSelectionParametersTests(unittest.TestCase):
 
     @unittest.skipUnless(importlib.util.find_spec('ApplicationServices'), 'PyObjC required')
     def test_both_direct_paths_refuse_before_element_lookup_or_pin_access(self):
-        from tacto.driver import Driver,NotStarted
+        from haejo.driver import Driver,NotStarted
         driver=object.__new__(Driver)
         driver._element=Mock(side_effect=AssertionError('must not resolve AX element'))
         # _select deliberately absent: malformed input cannot inspect a pin.
@@ -60,7 +60,7 @@ class NativeSelectionParametersTests(unittest.TestCase):
                 self.assertEqual('invalid_option_label_encoding',native_selection_parameters_problem(action))
                 self.assertEqual('not_started',driver.act('unused','owned',action)['effect'])
                 if importlib.util.find_spec('ApplicationServices'):
-                    from tacto.driver import Driver,NotStarted
+                    from haejo.driver import Driver,NotStarted
                     direct=object.__new__(Driver)
                     direct._element=Mock(side_effect=AssertionError('must not resolve control'))
                     with self.assertRaises(NotStarted):getattr(direct,'_'+name)(None,action)
@@ -69,7 +69,7 @@ class NativeSelectionParametersTests(unittest.TestCase):
 
     @unittest.skipUnless(shutil.which('xcrun'), 'Swift required')
     def test_actual_swift_guard_matches_python_for_json_types_and_unicode(self):
-        source=(ROOT/'helper/TactoHelper.swift').read_text()
+        source=(ROOT/'helper/HaejoHelper.swift').read_text()
         start=source.index('func nativeSelectionParametersProblem(')
         end=source.index('\n}\n',start)+3
         function=source[start:end]

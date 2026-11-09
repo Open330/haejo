@@ -30,7 +30,7 @@ FORBIDDEN_CALLS = {
 
 class InputRoutingSourceTests(unittest.TestCase):
     def test_python_builds_or_sends_no_input_and_never_activates(self):
-        tree = ast.parse((ROOT / 'tacto/driver.py').read_text())
+        tree = ast.parse((ROOT / 'haejo/driver.py').read_text())
         calls = [n for n in ast.walk(tree) if isinstance(n, ast.Call)]
         offenders = [f'{n.func.attr}:{n.lineno}' for n in calls
                      if isinstance(n.func, ast.Attribute) and n.func.attr in FORBIDDEN_CALLS]
@@ -45,7 +45,7 @@ class InputRoutingSourceTests(unittest.TestCase):
         self.assertEqual([], front_writes, 'native runtime must not write AXFrontmost')
 
     def test_python_window_dispatch_has_one_pid_boundary_and_no_global_input(self):
-        source = (ROOT / 'tacto/native_window_dispatch.py').read_text()
+        source = (ROOT / 'haejo/native_window_dispatch.py').read_text()
         tree = ast.parse(source)
         calls = [n for n in ast.walk(tree) if isinstance(n, ast.Call)]
         attributes = [n.func.attr for n in calls if isinstance(n.func, ast.Attribute)]
@@ -56,7 +56,7 @@ class InputRoutingSourceTests(unittest.TestCase):
 
     def test_signed_input_has_no_global_post_activation_or_pointer_warp(self):
         """Window preparation has one PID post boundary; global input is absent."""
-        source = (ROOT / 'helper/TactoHelper.swift').read_text()
+        source = (ROOT / 'helper/HaejoHelper.swift').read_text()
         # Comments explain why these are absent, so only real code counts.
         code = '\n'.join(line for line in source.splitlines()
                          if not line.lstrip().startswith(('//', '///')))
@@ -85,7 +85,7 @@ class InputRoutingSourceTests(unittest.TestCase):
             # One LaunchServices open, for open_folder, that may not activate
             # (2026-10-08): Finder shows the folder, the person keeps focus.
             opens = code.count('NSWorkspace.shared.open(')
-            if path.name == 'TactoHelper.swift':
+            if path.name == 'HaejoHelper.swift':
                 self.assertEqual(opens, 1, 'only open_folder may open through LaunchServices')
                 case = code[code.index('case "open_folder":'):code.index('case "select_option":')]
                 self.assertIn('NSWorkspace.shared.open(', case)
@@ -102,7 +102,7 @@ class InputRoutingSourceTests(unittest.TestCase):
 @unittest.skipUnless(NATIVE_AVAILABLE, 'PyObjC unavailable; source routing regression still runs')
 class NativeInputDispatchTests(unittest.TestCase):
     def setUp(self):
-        from tacto import driver
+        from haejo import driver
         self.module = driver
         self.driver = object.__new__(driver.Driver)
         self.obs = SimpleNamespace(pid=4321, elements=[object()], obs_id='test')

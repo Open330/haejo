@@ -5,8 +5,8 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from tacto.preferences import load_preferences
-from tacto.access_log import AccessLog
+from haejo.preferences import load_preferences
+from haejo.access_log import AccessLog
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -15,7 +15,7 @@ ROOT=Path(__file__).resolve().parents[1]
 class ActivityCenterTests(unittest.TestCase):
     def test_history_groups_calls_by_task(self):
         with tempfile.TemporaryDirectory() as folder:
-            folder=Path(folder); product=folder/'Tacto'; logs=product/'Logs'; logs.mkdir(parents=True)
+            folder=Path(folder); product=folder/'Haejo'; logs=product/'Logs'; logs.mkdir(parents=True)
             tid='t-'+'a'*24; ended='t-'+'b'*24; missing='t-'+'c'*24
             for task_id, meta in ((tid, dict(state='open',result=None,goal='수강 진행',detail='사용자 요청: 법정교육 3과목 수강')), (ended, dict(state='closed',result='failed',goal='끝난 작업'))):
                 d=product/'Tasks'/task_id; d.mkdir(parents=True)
@@ -31,7 +31,7 @@ class ActivityCenterTests(unittest.TestCase):
                 rows=[start,dict(schema=1,event='access_start',operation='observe',target='com.apple.Safari',elapsed_ms=5),
                       dict(schema=1,event='access_end',operation='observe',target='com.apple.Safari',type='observation',elapsed_ms=9),
                       dict(schema=1,event='command_end',exit_code=exit_code,elapsed_ms=10)]
-                (logs/(f'tacto-20261109T02{minute:02d}00000000Z-'+format(index,'x')*32+'.jsonl')).write_text(''.join(json.dumps(r)+'\n' for r in rows))
+                (logs/(f'haejo-20261109T02{minute:02d}00000000Z-'+format(index,'x')*32+'.jsonl')).write_text(''.join(json.dumps(r)+'\n' for r in rows))
             write(1,10,tid);write(2,12,tid,2);write(3,14,tid);write(4,11);write(5,5,ended);write(6,6,missing);write(7,7,'t-NOTVALID')
             source=(ROOT/'setup/ActivityCenter.swift').read_text().replace('private ', '')
             (folder/'ActivityCenter.swift').write_text(source)
@@ -81,7 +81,7 @@ print("task-groups-pass")
 
     def test_native_reader_filters_settings_and_private_deletion(self):
         with tempfile.TemporaryDirectory() as folder:
-            folder=Path(folder); product=folder/'Tacto'; logs=product/'Logs'; logs.mkdir(parents=True)
+            folder=Path(folder); product=folder/'Haejo'; logs=product/'Logs'; logs.mkdir(parents=True)
             def write(index, command, end=None, target='com.apple.TextEdit', partial=False):
                 rows=[dict(schema=1,event='command_start',command=command,at='2026-10-20T00:00:00.000000+00:00',elapsed_ms=0),
                       dict(schema=1,event='access_start',operation='observe',target=target,elapsed_ms=10)]
@@ -89,10 +89,10 @@ print("task-groups-pass")
                     rows += [dict(schema=1,event='access_end',operation='observe',target=target,type='observation',elapsed_ms=20),
                              dict(schema=1,event='command_end',exit_code=end,elapsed_ms=30)]
                 text=''.join(json.dumps(r)+'\n' for r in rows)+('{"partial":' if partial else '')
-                (logs/('tacto-20261020T000000000000Z-'+str(index)*32+'.jsonl')).write_text(text)
+                (logs/('haejo-20261020T000000000000Z-'+str(index)*32+'.jsonl')).write_text(text)
             write(1,'first-run',0);write(2,'run',1);write(3,'observe',partial=True)
             sentinel=logs/'notes.txt';sentinel.write_text('KEEP')
-            (logs/('tacto-20261020T000000000000Z-'+'4'*32+'.jsonl')).symlink_to(sentinel)
+            (logs/('haejo-20261020T000000000000Z-'+'4'*32+'.jsonl')).symlink_to(sentinel)
             source=(ROOT/'setup/ActivityCenter.swift').read_text().replace('private ', '')
             (folder/'ActivityCenter.swift').write_text(source)
             (folder/'main.swift').write_text(r'''
@@ -120,7 +120,7 @@ assert(retried(0).steps[0].outcome=="다시 확인")
 assert(retried(1).steps[0].outcome=="실패")
 let future=Data("{\"schema\":2,\"event\":\"command_end\",\"exit_code\":0}\n".utf8)
 assert(store.parse(future,url:root,modified:Date()).damaged)
-assert(TactoPreferences(["retention_days":7.0]).retentionDays==30)
+assert(HaejoPreferences(["retention_days":7.0]).retentionDays==30)
 let center=ActivityCenter(store:store,refreshAutomatically:false)
 try! center.snapshot(to:root.appendingPathComponent("snapshot"))
 assert(center.split.subviews[0].frame.width>=240 && center.split.subviews[0].frame.width<=380)
@@ -144,22 +144,22 @@ assert(center.helperIdle.isEnabled)
 center.helperIdle.selectItem(at:9);center.saveSettings()
 assert(try! store.preferences().keepHelperWarm)
 assert(try! store.preferences().helperIdleMinutes==10)
-assert(TactoPreferences(["helper_idle_minutes":1.5]).helperIdleMinutes==2)
-assert(TactoPreferences(["keep_helper_warm":1]).keepHelperWarm==false)
+assert(HaejoPreferences(["helper_idle_minutes":1.5]).helperIdleMinutes==2)
+assert(HaejoPreferences(["keep_helper_warm":1]).keepHelperWarm==false)
 try! center.snapshot(to:root.appendingPathComponent("settings"),settingsPage:true,size:NSSize(width:900,height:600))
 center.logToggle.performClick(nil)
 center.bannerToggle.performClick(nil)
 center.retention.selectItem(at:0);center.saveSettings()
 let settings=try! store.preferences()
 assert(!settings.loggingEnabled && !settings.showControlBanner && settings.retentionDays==7)
-assert(TactoPreferences(["show_control_banner":0]).showControlBanner)
-assert(!TactoPreferences(["show_control_banner":false]).showControlBanner)
+assert(HaejoPreferences(["show_control_banner":0]).showControlBanner)
+assert(!HaejoPreferences(["show_control_banner":false]).showControlBanner)
 let permissions=try! FileManager.default.attributesOfItem(atPath:store.preferencesURL.path)
 assert((permissions[.posixPermissions] as! NSNumber).intValue==0o600)
 try! store.deleteRecords()
 assert(try! store.records().isEmpty)
 assert(FileManager.default.fileExists(atPath:store.logs.appendingPathComponent("notes.txt").path))
-assert(FileManager.default.fileExists(atPath:store.logs.appendingPathComponent("tacto-20261020T000000000000Z-44444444444444444444444444444444.jsonl").path))
+assert(FileManager.default.fileExists(atPath:store.logs.appendingPathComponent("haejo-20261020T000000000000Z-44444444444444444444444444444444.jsonl").path))
 print("activity-and-settings-pass")
 ''')
             binary=folder/'check'

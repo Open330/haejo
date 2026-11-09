@@ -13,7 +13,7 @@ import uuid
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
-from tacto.flow import Flow
+from haejo.flow import Flow
 from examples.repeat_benchmark import Fixture, build, cli_flow, jobs, source_manifest, write
 
 
@@ -46,7 +46,7 @@ def benchmark_manifest():
 
 def timing(row):
     lines=Path(row['trace']).with_name('stderr.txt').read_text().splitlines()
-    records=[json.loads(line[len('TACTO_TIMINGS '):]) for line in lines if line.startswith('TACTO_TIMINGS ')]
+    records=[json.loads(line[len('HAEJO_TIMINGS '):]) for line in lines if line.startswith('HAEJO_TIMINGS ')]
     if len(records)!=1:raise ValueError('one runtime timing record required')
     return records[0]
 
@@ -54,7 +54,7 @@ def timing(row):
 def main():
     p=argparse.ArgumentParser();p.add_argument('--source',required=True);p.add_argument('--output',required=True)
     args=p.parse_args();base=Path(args.output).resolve();base.mkdir(mode=0o700)
-    target='ai.callabo.tacto.repeatbench.'+uuid.uuid4().hex[:8]
+    target='ai.callabo.haejo.repeatbench.'+uuid.uuid4().hex[:8]
     app=build(base,target);fixture=Fixture(base/'fixture',app)
     flows=variants(Flow.from_json(Path(args.source).read_text()),target)
     before=benchmark_manifest();rows=[];negative=[];names=list(flows)

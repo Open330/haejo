@@ -101,7 +101,7 @@
   "cohorts": {
     "before": {
       "arms": {
-        "tacto": {
+        "haejo": {
           "runs": 3,
           "passed": 3,
           "seconds_median": 43.8,
@@ -114,7 +114,7 @@
       },
       "rows": [
         {
-          "arm": "tacto",
+          "arm": "haejo",
           "rep": 0,
           "status": "passed",
           "seconds": 43.8,
@@ -140,7 +140,7 @@
           }
         },
         {
-          "arm": "tacto",
+          "arm": "haejo",
           "rep": 1,
           "status": "passed",
           "seconds": 43.9,
@@ -166,7 +166,7 @@
           }
         },
         {
-          "arm": "tacto",
+          "arm": "haejo",
           "rep": 2,
           "status": "passed",
           "seconds": 40.1,
@@ -196,13 +196,13 @@
         "harness_exit": 2,
         "evidence_stable": true,
         "source_commit": "dc7d25ab3c827daa1ad1520026a50ca2e31a49ed",
-        "profiling_request_same_for_both_Tacto_cohorts": true,
+        "profiling_request_same_for_both_Haejo_cohorts": true,
         "strict_equivalence_not_verified": true
       }
     },
     "after": {
       "arms": {
-        "tacto": {
+        "haejo": {
           "runs": 3,
           "passed": 3,
           "seconds_median": 35.0,
@@ -225,7 +225,7 @@
       },
       "rows": [
         {
-          "arm": "tacto",
+          "arm": "haejo",
           "rep": 0,
           "status": "passed",
           "seconds": 34.2,
@@ -291,7 +291,7 @@
           "calculator_replay_seconds": null
         },
         {
-          "arm": "tacto",
+          "arm": "haejo",
           "rep": 1,
           "status": "passed",
           "seconds": 38.0,
@@ -317,7 +317,7 @@
           }
         },
         {
-          "arm": "tacto",
+          "arm": "haejo",
           "rep": 2,
           "status": "passed",
           "seconds": 35.0,
@@ -366,7 +366,7 @@
         "harness_exit": 2,
         "evidence_stable": true,
         "source_commit": "db900006049185bc41386381818f5e2851a63c8d",
-        "profiling_request_same_for_both_Tacto_cohorts": true,
+        "profiling_request_same_for_both_Haejo_cohorts": true,
         "strict_equivalence_not_verified": true
       }
     }
@@ -379,8 +379,8 @@
   },
   "limitations": [
     "Three runs per arm; sequential before/after; server cache and load not controlled.",
-    "One after Tacto trial activated System Settings; retained and not background-qualified; cause unverified. Excluding it leaves two after trials with median 36.5 seconds.",
-    "Tacto after input is lower than Sky, while time and output are higher.",
+    "One after Haejo trial activated System Settings; retained and not background-qualified; cause unverified. Excluding it leaves two after trials with median 36.5 seconds.",
+    "Haejo after input is lower than Sky, while time and output are higher.",
     "Token counts are reported parent CLI usage; billing and serving-model identity unverified.",
     "Strict product equivalence not established; harness exit 2 retained.",
     "Model-free replay profile and fresh agent authoring results measure different scopes.",
@@ -388,14 +388,14 @@
     "Calculator Flow bytes median rose 655 to 737; Flow received offset median rose 5.87 to 6.75 seconds. More explicit checks have an authoring cost; total speedup is not universal."
   ],
   "background_qualified_summary": {
-    "before_tacto": {
+    "before_haejo": {
       "runs": 3,
       "seconds_median": 43.8,
       "input_mean": 127806,
       "uncached_input_mean": 12008.666666666666,
       "output_mean": 831.3333333333334
     },
-    "after_tacto": {
+    "after_haejo": {
       "runs": 2,
       "seconds_median": 36.5,
       "input_mean": 114924.5,

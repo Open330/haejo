@@ -3,7 +3,7 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from tacto import native_window_binding as binding
+from haejo import native_window_binding as binding
 
 
 class Backend:
@@ -33,8 +33,8 @@ class NativeWindowBindingTests(unittest.TestCase):
     def test_opaque_input_revalidation_rejects_nested_modal_before_event_construction(self):
         import time
         from unittest.mock import Mock
-        from tacto.native_window_ready import require_window_ready
-        from tacto.native_window_dispatch import dispatch_window_input, WindowDispatchFailure
+        from haejo.native_window_ready import require_window_ready
+        from haejo.native_window_dispatch import dispatch_window_input, WindowDispatchFailure
         for change in ('nested_modal', 'late_sheet', 'late_role'):
             with self.subTest(change=change):
                 backend=Backend()

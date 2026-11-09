@@ -19,7 +19,7 @@
     "before": {
       "evidence_stable": true,
       "arms": {
-        "tacto": {
+        "haejo": {
           "runs": 3,
           "passed": 3,
           "seconds_median": 61.0,
@@ -32,7 +32,7 @@
       },
       "trials": [
         {
-          "arm": "tacto",
+          "arm": "haejo",
           "rep": 0,
           "status": "passed",
           "seconds": 61.0,
@@ -68,7 +68,7 @@
           ],
           "native_timings": [
             {
-              "schema": "tacto-runtime-timing-v1",
+              "schema": "haejo-runtime-timing-v1",
               "clock": "monotonic",
               "scope": "calls_through_driver_wrapper; wait_until_includes_internal_polling",
               "calls": {
@@ -93,7 +93,7 @@
               "run_flow_seconds": 6.527892
             },
             {
-              "schema": "tacto-runtime-timing-v1",
+              "schema": "haejo-runtime-timing-v1",
               "clock": "monotonic",
               "scope": "calls_through_driver_wrapper; wait_until_includes_internal_polling",
               "calls": {
@@ -118,7 +118,7 @@
           "foreground_activation_count": 1
         },
         {
-          "arm": "tacto",
+          "arm": "haejo",
           "rep": 1,
           "status": "passed",
           "seconds": 64.0,
@@ -154,7 +154,7 @@
           ],
           "native_timings": [
             {
-              "schema": "tacto-runtime-timing-v1",
+              "schema": "haejo-runtime-timing-v1",
               "clock": "monotonic",
               "scope": "calls_through_driver_wrapper; wait_until_includes_internal_polling",
               "calls": {
@@ -179,7 +179,7 @@
               "run_flow_seconds": 6.008985
             },
             {
-              "schema": "tacto-runtime-timing-v1",
+              "schema": "haejo-runtime-timing-v1",
               "clock": "monotonic",
               "scope": "calls_through_driver_wrapper; wait_until_includes_internal_polling",
               "calls": {
@@ -204,7 +204,7 @@
           "foreground_activation_count": 0
         },
         {
-          "arm": "tacto",
+          "arm": "haejo",
           "rep": 2,
           "status": "passed",
           "seconds": 52.1,
@@ -240,7 +240,7 @@
           ],
           "native_timings": [
             {
-              "schema": "tacto-runtime-timing-v1",
+              "schema": "haejo-runtime-timing-v1",
               "clock": "monotonic",
               "scope": "calls_through_driver_wrapper; wait_until_includes_internal_polling",
               "calls": {
@@ -265,7 +265,7 @@
               "run_flow_seconds": 5.96848
             },
             {
-              "schema": "tacto-runtime-timing-v1",
+              "schema": "haejo-runtime-timing-v1",
               "clock": "monotonic",
               "scope": "calls_through_driver_wrapper; wait_until_includes_internal_polling",
               "calls": {
@@ -294,7 +294,7 @@
     "after": {
       "evidence_stable": true,
       "arms": {
-        "tacto": {
+        "haejo": {
           "runs": 3,
           "passed": 3,
           "seconds_median": 41.3,
@@ -317,7 +317,7 @@
       },
       "trials": [
         {
-          "arm": "tacto",
+          "arm": "haejo",
           "rep": 0,
           "status": "passed",
           "seconds": 36.8,
@@ -357,7 +357,7 @@
           ],
           "native_timings": [
             {
-              "schema": "tacto-runtime-timing-v1",
+              "schema": "haejo-runtime-timing-v1",
               "clock": "monotonic",
               "scope": "calls_through_driver_wrapper; wait_until_includes_internal_polling",
               "calls": {
@@ -382,7 +382,7 @@
               "run_flow_seconds": 1.885396
             },
             {
-              "schema": "tacto-runtime-timing-v1",
+              "schema": "haejo-runtime-timing-v1",
               "clock": "monotonic",
               "scope": "calls_through_driver_wrapper; wait_until_includes_internal_polling",
               "calls": {
@@ -457,7 +457,7 @@
           "foreground_activation_count": 0
         },
         {
-          "arm": "tacto",
+          "arm": "haejo",
           "rep": 1,
           "status": "passed",
           "seconds": 41.3,
@@ -497,7 +497,7 @@
           ],
           "native_timings": [
             {
-              "schema": "tacto-runtime-timing-v1",
+              "schema": "haejo-runtime-timing-v1",
               "clock": "monotonic",
               "scope": "calls_through_driver_wrapper; wait_until_includes_internal_polling",
               "calls": {
@@ -522,7 +522,7 @@
               "run_flow_seconds": 5.917063
             },
             {
-              "schema": "tacto-runtime-timing-v1",
+              "schema": "haejo-runtime-timing-v1",
               "clock": "monotonic",
               "scope": "calls_through_driver_wrapper; wait_until_includes_internal_polling",
               "calls": {
@@ -547,7 +547,7 @@
           "foreground_activation_count": 0
         },
         {
-          "arm": "tacto",
+          "arm": "haejo",
           "rep": 2,
           "status": "passed",
           "seconds": 45.4,
@@ -587,7 +587,7 @@
           ],
           "native_timings": [
             {
-              "schema": "tacto-runtime-timing-v1",
+              "schema": "haejo-runtime-timing-v1",
               "clock": "monotonic",
               "scope": "calls_through_driver_wrapper; wait_until_includes_internal_polling",
               "calls": {
@@ -612,7 +612,7 @@
               "run_flow_seconds": 5.911474
             },
             {
-              "schema": "tacto-runtime-timing-v1",
+              "schema": "haejo-runtime-timing-v1",
               "clock": "monotonic",
               "scope": "calls_through_driver_wrapper; wait_until_includes_internal_polling",
               "calls": {
@@ -680,7 +680,7 @@
   "actual_serving_model_verified": false,
   "billing_verified": false,
   "strict_product_equivalence_verified": false,
-  "repair_counter_scope": "Tacto session_invalid_flow markers; not a Sky JavaScript error counter",
+  "repair_counter_scope": "Haejo session_invalid_flow markers; not a Sky JavaScript error counter",
   "deployment": {
     "version": "v1.0.0-rc.23",
     "hosts": 3,

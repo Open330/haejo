@@ -1,11 +1,11 @@
 import unittest
-from tacto.flow import replay
-from tacto.library import textedit_save
-from tacto.artifact_receipt import ArtifactReceiptError
-from tacto.existing_file_receipt import _refuse
+from haejo.flow import replay
+from haejo.library import textedit_save
+from haejo.artifact_receipt import ArtifactReceiptError
+from haejo.existing_file_receipt import _refuse
 class ReceiptDiagnostics(unittest.TestCase):
     def test_snapshot_preparation_preserves_closed_stage_code_without_private_details(self):
-        from tacto.document_snapshot import SnapshotUnavailable
+        from haejo.document_snapshot import SnapshotUnavailable
         class App:
             capabilities={'action.menu.focused_document'}
             def observe(self,*a,**k):return {'type':'observation','obs_id':'o','tree':'0 Window  Title: note.txt [focused]'}

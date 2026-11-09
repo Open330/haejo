@@ -3,14 +3,14 @@
 현재는 개발자 미리보기 단계입니다. 일반 사용자 공개 전의 지원 범위와 통과
 조건, 최종 DMG 검사 방법은 [출시 기준](release-readiness.md)에 정리합니다.
 
-Python wheel은 Tacto의 Python 코어를 배포합니다. macOS 앱 조작에 필요한
+Python wheel은 Haejo의 Python 코어를 배포합니다. macOS 앱 조작에 필요한
 서명된 런처·도우미, Chromium 실행 파일, 평가 fixture는 포함하지 않습니다.
 `py3-none-any` wheel이라는 표시는 Python 패키지의 형식이며, 모든 운영체제의
 데스크톱을 조작한다는 뜻이 아닙니다.
 
 | 설치 방식 | 사용할 수 있는 범위 | 별도로 필요한 것 |
 | --- | --- | --- |
-| macOS 공증 DMG 미리보기 | Tacto.app의 설치·권한 안내와 번들 런타임 | Apple Silicon Mac, macOS 권한 허용; 새 Mac 검증 대기 |
+| macOS 공증 DMG 미리보기 | Haejo.app의 설치·권한 안내와 번들 런타임 | Apple Silicon Mac, macOS 권한 허용; 새 Mac 검증 대기 |
 | Python wheel | flow IR, 계약·결과 검증, 후보 paging, 모델 adapter, trace 등 Python 코어 | Python 3.11 이상 |
 | wheel + `web` extra | Playwright 기반 별도 Chromium 페이지의 BrowserDriver | Playwright가 설치하는 Chromium과 운영체제 실행 의존성 |
 | macOS source checkout | 서명된 런처를 통한 macOS 접근성 조작 | Xcode Command Line Tools, Apple 발급 코드 서명 인증서, 손쉬운 사용 권한 |
@@ -19,33 +19,33 @@ Python wheel은 Tacto의 Python 코어를 배포합니다. macOS 앱 조작에 �
 
 저장소 루트에서 wheel을 빌드하고 별도 환경에 설치할 수 있습니다.
 
-> **이름 충돌 주의.** 배포 이름은 `tacto-runtime`입니다. PyPI의 `tacto`는 관련 없는 촉각 시뮬레이터이며 같은 최상위 import 이름 `tacto`를 설치합니다. `pip install tacto`를 실행하지 말고, 그 패키지가 없는 별도 가상환경을 쓰세요. 한 환경에 둘 다 있으면 파일이 서로 덮어써질 수 있습니다.
+> **이름 충돌 주의.** 배포 이름은 `haejo-runtime`입니다. PyPI의 `haejo`는 관련 없는 촉각 시뮬레이터이며 같은 최상위 import 이름 `haejo`를 설치합니다. `pip install haejo`를 실행하지 말고, 그 패키지가 없는 별도 가상환경을 쓰세요. 한 환경에 둘 다 있으면 파일이 서로 덮어써질 수 있습니다.
 
 ```sh
 uv build --wheel
-python3 -m venv /tmp/tacto-client
-/tmp/tacto-client/bin/python -m pip install ./dist/tacto_runtime-0.1.0-py3-none-any.whl
-/tmp/tacto-client/bin/tacto --help
+python3 -m venv /tmp/haejo-client
+/tmp/haejo-client/bin/python -m pip install ./dist/haejo_runtime-0.1.0-py3-none-any.whl
+/tmp/haejo-client/bin/haejo --help
 ```
 
 브라우저가 필요한 환경에서는 같은 wheel에 `web` extra를 설치합니다.
 
 ```sh
-/tmp/tacto-client/bin/python -m pip install './dist/tacto_runtime-0.1.0-py3-none-any.whl[web]'
-/tmp/tacto-client/bin/python -m playwright install chromium
+/tmp/haejo-client/bin/python -m pip install './dist/haejo_runtime-0.1.0-py3-none-any.whl[web]'
+/tmp/haejo-client/bin/python -m playwright install chromium
 ```
 
 Linux에는 Chromium이 요구하는 시스템 라이브러리가 추가로 필요할 수 있습니다.
 Python 패키지 설치나 import 성공은 Chromium 실행 검증과 다릅니다. 현재
-일반 `tacto do` 명령은 macOS 앱 조작 경로이므로 브라우저용 CLI로 간주하지
-마십시오. 다른 운영체제에서는 `tacto.browser.BrowserDriver`를 Python API로
+일반 `haejo do` 명령은 macOS 앱 조작 경로이므로 브라우저용 CLI로 간주하지
+마십시오. 다른 운영체제에서는 `haejo.browser.BrowserDriver`를 Python API로
 명시적으로 사용합니다. 이 경로는 사용자의 기존 Chrome/Safari 세션에
 자동 연결하지 않습니다.
 
 wheel에는 기본 flow recipe 파일이 포함되지 않습니다. 명시적으로
 `FlowStore(path=...)`를 지정하면 그 경로를 사용하고, wheel 설치의 기본
-저장 경로는 `$XDG_DATA_HOME/tacto/flows` 또는
-`~/.local/share/tacto/flows`입니다. `XDG_DATA_HOME`은 절대 경로만 사용합니다.
+저장 경로는 `$XDG_DATA_HOME/haejo/flows` 또는
+`~/.local/share/haejo/flows`입니다. `XDG_DATA_HOME`은 절대 경로만 사용합니다.
 소스 checkout에 `pyproject.toml`과 `flows/`가 함께 있으면 기존 `flows/`를
 유지합니다. 설치된 `site-packages`에는 사용자 flow를 만들지 않습니다.
 
@@ -55,11 +55,11 @@ wheel에는 기본 flow recipe 파일이 포함되지 않습니다. 명시적으
 특정 프로젝트 팀에 고정하지 않습니다. 빌드 도구가 선택한 인증서의 실제 팀으로
 런처·도우미를 서명하고, 실행 시 양쪽이 자신의 유효한 서명에서 읽은 팀과 상대의
 팀·프로그램 식별자를 비교합니다. 다른 팀·서명 없는 프로그램·ad-hoc 서명은 거부합니다.
-`TACTO_TEAM_ID` 같은 실행 환경변수로 이 검사를 바꿀 수 없습니다.
+`HAEJO_TEAM_ID` 같은 실행 환경변수로 이 검사를 바꿀 수 없습니다.
 별도로 준비한 Apple Silicon용 DMG는 Developer ID 서명·Apple 공증·Gatekeeper
 검사를 통과했습니다. [Release 페이지](https://github.com/Open330/tacto/releases)의
 첫 배포는 개발자 미리보기입니다. [첫 작업 개선판](https://github.com/Open330/tacto/releases/tag/v0.1.0-preview.7)의 DMG를 다운로드한 사용자는
-`Tacto.app`을 `Applications`로 드래그하고 앱을 열어 권한·명령·스킬 연결 안내를
+`Haejo.app`을 `Applications`로 드래그하고 앱을 열어 권한·명령·스킬 연결 안내를
 따릅니다. 사용자 자신의 개발용 인증서는 필요하지 않습니다. macOS 27.0.1의 Apple Silicon 빌드 Mac에서 실제 설치·권한·연결·같은 팀 업데이트를 확인했습니다. 새 Mac과 다른 macOS 버전은 미검증이며 Windows·Intel Mac 빌드는 없습니다. 현재 비공개 다운로드에는 GitHub 접근 권한이 필요합니다. 자세한 근거는 [출시 기준](release-readiness.md)을 확인하세요.
 Python 코어·별도 Chromium은 위 wheel 설치 범위에서 사용할 수 있습니다.
 
@@ -70,27 +70,27 @@ wheel 설치 과정에서 자동 실행하지 않습니다.
 ```sh
 uv sync
 # 필요한 경우 사용할 Apple 코드 서명 인증서를 명시합니다.
-# export TACTO_SIGN_IDENTITY='사용할 코드 서명 identity'
+# export HAEJO_SIGN_IDENTITY='사용할 코드 서명 identity'
 ./build.sh
 ./skill/install.sh
-~/.local/bin/tacto doctor
-~/.local/bin/tacto do '계산기로 12 곱하기 34' --helper
+~/.local/bin/haejo doctor
+~/.local/bin/haejo do '계산기로 12 곱하기 34' --helper
 ```
 
 런처는 자신의 위치를 기준으로 저장소 루트의 `.venv/bin/python`, `helper/`
-번들을 찾습니다. 이 디렉터리 배치를 유지해야 하며 `launcher/tacto` 파일만
+번들을 찾습니다. 이 디렉터리 배치를 유지해야 하며 `launcher/haejo` 파일만
 다른 경로로 복사하면 설치가 되지 않습니다. 코드 서명 identity가 없으면
 런처 빌드는 실패합니다. 도우미 파일을 wheel에 복사하거나 임의로 재서명해
 설치 문제를 우회하지 않습니다.
 
-wheel의 `tacto` console script는 Python CLI입니다. 서명된 `./launcher/tacto`와
+wheel의 `haejo` console script는 Python CLI입니다. 서명된 `./launcher/haejo`와
 같은 프로그램이 아니며 wheel만 설치해서 `--helper` 채널을 얻을 수는 없습니다.
 네이티브 `doctor`, `apps`, `observe`, `do`, `run`, `replay`에는 macOS 실행
 환경과 해당 경로의 권한이 필요합니다.
 
 ## 평가와 설치 검증
 
-`tacto eval`의 평가 fixture는 소스 checkout에 있으므로 wheel에 포함되지
+`haejo eval`의 평가 fixture는 소스 checkout에 있으므로 wheel에 포함되지
 않습니다. 소스 환경에서 `.venv/bin/python examples/eval.py --offline`으로
 오프라인 평가를 실행합니다. 실제 앱 평가에는 위의 네이티브 설치가 필요합니다.
 
@@ -98,7 +98,7 @@ wheel의 `tacto` console script는 Python CLI입니다. 서명된 `./launcher/ta
 환경에 설치하는 검사는 `uv`가 준비된 환경에서 명시적으로 실행합니다.
 
 ```sh
-TACTO_TEST_WHEEL_INSTALL=1 .venv/bin/python -m unittest discover -s tests -p test_installation.py -v
+HAEJO_TEST_WHEEL_INSTALL=1 .venv/bin/python -m unittest discover -s tests -p test_installation.py -v
 ```
 
 이 검사는 macOS 접근성 모듈을 import하지 못하게 차단한 별도 프로세스에서
@@ -108,39 +108,39 @@ TACTO_TEST_WHEEL_INSTALL=1 .venv/bin/python -m unittest discover -s tests -p tes
 
 ## 에이전트 스킬의 native 호출 경로
 
-`skill/install.sh`는 `~/.local/bin/tacto`를 이 checkout의 signed launcher에,
-Claude/Codex의 Tacto 스킬을 이 checkout의 `skill/`에 연결합니다.
+`skill/install.sh`는 `~/.local/bin/haejo`를 이 checkout의 signed launcher에,
+Claude/Codex의 Haejo 스킬을 이 checkout의 `skill/`에 연결합니다.
 새 사용자 환경에는 기본 Claude/Codex skills 폴더를 만들고, 명시한
 `CLAUDE_CONFIG_DIR`·`CODEX_HOME`의 skills 폴더도 연결합니다.
 `skill/install.sh --check`는 폴더를 만들거나 링크를 바꾸지 않으며,
 연결이 모두 맞으면 exit0, 누락·오래된 연결·충돌이면 exit1입니다.
 backend 선택·코드 서명·권한·helper 실행은 이 링크 검사로 검증하지 않습니다.
 
-이 installer는 `launcher/tacto`가 없을 때 Python console script로 대체하지
+이 installer는 `launcher/haejo`가 없을 때 Python console script로 대체하지
 않습니다. 먼저 `uv sync && ./build.sh`로 native checkout을 준비합니다.
 다른 프로그램이나 스킬의 파일·심볼릭 링크는 보존하고 충돌을 보고합니다.
-기존 Tacto 스킬 복사본을 연결로 바꿀 때는 skills 폴더 밖, 그 상위 폴더의
-비공개 `.tacto-skill-backup.*/<이전 이름>` 아래에 원본과 로컬 추가 파일을 보관합니다.
+기존 Haejo 스킬 복사본을 연결로 바꿀 때는 skills 폴더 밖, 그 상위 폴더의
+비공개 `.haejo-skill-backup.*/<이전 이름>` 아래에 원본과 로컬 추가 파일을 보관합니다.
 이 installer는 두 도구의 기본 스킬을 함께 준비하는 것이 목적이므로
 아직 사용하지 않는 도구의 skills 폴더도 생성합니다. 이전 checkout이 여전히
-있으면 그 Tacto marker로 링크를 갱신합니다. 이전 checkout이 없어져 출처를
+있으면 그 Haejo marker로 링크를 갱신합니다. 이전 checkout이 없어져 출처를
 확인할 수 없는 깨진 링크는 자동 교체하지 않고 경로 확인을 안내합니다.
 일부 연결만 성공해도 충돌이 남으면 exit1이므로 시작 앱은 완료로 표시하지
 않습니다. 옵션은 `--check`와 `--help`이며, 오타나 추가 인자는 설치 전에
 exit2로 거부합니다. PATH를 자동 변경하지 않으므로 필요한 경우
-`~/.local/bin/tacto`의 절대 경로를 사용할 수 있습니다.
+`~/.local/bin/haejo`의 절대 경로를 사용할 수 있습니다.
 
-macOS UI 작업은 `tacto apps --helper`, `tacto observe <bundle-id> --helper`,
-`tacto run <flow.json> --helper`, `tacto replay <name> --helper`,
-`tacto do '<task>' --helper`로 signed helper를 선택합니다. 런처를 실행하더라도
+macOS UI 작업은 `haejo apps --helper`, `haejo observe <bundle-id> --helper`,
+`haejo run <flow.json> --helper`, `haejo replay <name> --helper`,
+`haejo do '<task>' --helper`로 signed helper를 선택합니다. 런처를 실행하더라도
 이 명령들에서 flag를 생략하면 Python direct backend를 선택합니다.
 `apps`와 `observe`도 같은 driver factory를 사용하며 signed 연결 실패 시
 Python으로 대체하지 않습니다. Python 직접 경로는 별도의 개발용 선택입니다.
 
-`tacto doctor --check`는 자체적으로 권한 경계를 확인합니다. `tacto eval`은
+`haejo doctor --check`는 자체적으로 권한 경계를 확인합니다. `haejo eval`은
 시나리오별 backend를 선택하므로 signed 시나리오를 지정하고, `--helper`를
 평가 인자로 추가하지 않습니다. 스킬 예시와 실행 경로가 어긋날 때는 링크,
-backend flag, launcher가 사용하는 `.venv`의 실제 `tacto.cli` import 경로를
+backend flag, launcher가 사용하는 `.venv`의 실제 `haejo.cli` import 경로를
 함께 확인해야 합니다. 소스 checkout의 editable 설치라면 Python 변경은
 즉시 반영되며 Swift launcher/helper 변경에는 별도 재빌드가 필요합니다.
 
@@ -150,7 +150,7 @@ backend flag, launcher가 사용하는 `.venv`의 실제 `tacto.cli` import 경�
 있는 시작 앱을 만들 수 있습니다. 출력 경로는 기존 파일을 덮어쓰지 않습니다.
 
 ```sh
-.venv/bin/python setup/build_preview.py --output '/tmp/Tacto 시작하기.app'
+.venv/bin/python setup/build_preview.py --output '/tmp/Haejo 시작하기.app'
 ```
 
 빌드는 컴파일과 로컬 서명 검증만 수행하며 앱을 실행하거나 권한을 요청하지
@@ -183,8 +183,8 @@ GUI를 띄우지 않고 각 상태의 화면을 PNG로 그려 디자인을 검�
 이 모드는 helper 실행, 설정 열기, 설치를 하지 않습니다.
 
 ```sh
-swiftc setup/main.swift setup/PermissionState.swift -o /tmp/tacto-setup
-/tmp/tacto-setup --snapshot /tmp/shots --granted control --waiting screen   # setup.png, panel.png
+swiftc setup/main.swift setup/PermissionState.swift -o /tmp/haejo-setup
+/tmp/haejo-setup --snapshot /tmp/shots --granted control --waiting screen   # setup.png, panel.png
 ```
 
 `setup/build_preview.py`가 만드는 시작 앱은 **checkout에 연결된 개발용 미리보기**입니다.
@@ -192,37 +192,37 @@ swiftc setup/main.swift setup/PermissionState.swift -o /tmp/tacto-setup
 
 Python과 네이티브 런타임을 포함하는 독립 실행 개발용 앱과 드래그 설치 이미지는
 다음 명령으로 만들 수 있습니다. 빌드된 native checkout과 Apple 발급 서명 인증서가
-필요합니다. `TACTO_SIGN_IDENTITY`에는 `security find-identity -v -p codesigning`에서 확인한
+필요합니다. `HAEJO_SIGN_IDENTITY`에는 `security find-identity -v -p codesigning`에서 확인한
 인증서 식별자를 지정합니다. 출력 경로는 아직 존재하지 않는 경로를 지정하세요.
 
 ```sh
-tacto_preview_dir="$(mktemp -d /private/tmp/tacto-preview.XXXXXX)"
-uv run python setup/build_standalone_preview.py --identity "$TACTO_SIGN_IDENTITY" --output "$tacto_preview_dir/Tacto.app" --report "$tacto_preview_dir/standalone-report.json"
-uv run python setup/build_drag_preview.py --app "$tacto_preview_dir/Tacto.app" --output "$tacto_preview_dir/Tacto-preview.dmg" --report "$tacto_preview_dir/drag-report.json"
+haejo_preview_dir="$(mktemp -d /private/tmp/haejo-preview.XXXXXX)"
+uv run python setup/build_standalone_preview.py --identity "$HAEJO_SIGN_IDENTITY" --output "$haejo_preview_dir/Haejo.app" --report "$haejo_preview_dir/standalone-report.json"
+uv run python setup/build_drag_preview.py --app "$haejo_preview_dir/Haejo.app" --output "$haejo_preview_dir/Haejo-preview.dmg" --report "$haejo_preview_dir/drag-report.json"
 ```
 
 두 빌더는 앱을 실행하거나 설치하거나 권한을 변경하지 않습니다. DMG는 앱과
 Applications 링크를 포함합니다. 실제 독립 앱 빌드·서명·이동 후 import 검사와
 DMG 체크섬 검증을 수행합니다. **로컬 빌더는 공증을 제출하지 않습니다.** 별도로 공증한 배포본의 상태는 위 릴리스 안내를 확인하세요. 새 Mac에서의 Gatekeeper·권한 설정·드래그 설치는 아직 미검증이며, 로컬 빌드 성공만으로 일반 사용자 배포 완료를 뜻하지 않습니다.
-[수정·검증 결과](tacto-native-release-fixes-2026-10-16.md)를 참고하세요.
+[수정·검증 결과](haejo-native-release-fixes-2026-10-16.md)를 참고하세요.
 
 GUI를 열지 않고 권한 상태의 오류·준비 완료 조건, 감지 시간 제한, 도우미 창 배치를 검사할 수 있습니다.
 
 ```sh
-swiftc setup/PermissionState.swift setup/state-check.swift -o /tmp/tacto-setup-state-check
-/tmp/tacto-setup-state-check
+swiftc setup/PermissionState.swift setup/state-check.swift -o /tmp/haejo-setup-state-check
+/tmp/haejo-setup-state-check
 ```
 
-Tacto 설치는 `tacto` 명령을 서명된 런처(`launcher/tacto`)에 연결합니다.
-번들·서명 식별자는 `ai.callabo.tacto.*`입니다. 서명 ID가 다른 기존 앱에서 이전하면
-권한을 다시 허용해야 할 수 있습니다. [이름·배포 식별자](tacto-branding.md)를 확인하세요.
+Haejo 설치는 `haejo` 명령을 서명된 런처(`launcher/haejo`)에 연결합니다.
+번들·서명 식별자는 `ai.callabo.haejo.*`입니다. 서명 ID가 다른 기존 앱에서 이전하면
+권한을 다시 허용해야 할 수 있습니다. [이름·배포 식별자](haejo-branding.md)를 확인하세요.
 
 ### 드래그로 권한용 앱 추가하기
 
 ‘설정 열기’를 누르면 설정 창 옆에 단계별 도우미가 나타납니다. 아이콘을 설정의
 앱 목록에 끌어다 놓고 해당 앱 옆 스위치를 켭니다. 소스 checkout은 두 단계 모두
-**Tacto Helper**, 독립 실행 앱은 앱 조작에 **Tacto Helper**, 화면 기록에
-**Tacto.app**을 추가합니다. 각 단계의 ‘허용할 앱’을 확인하세요.
+**Haejo Helper**, 독립 실행 앱은 앱 조작에 **Haejo Helper**, 화면 기록에
+**Haejo.app**을 추가합니다. 각 단계의 ‘허용할 앱’을 확인하세요.
 앱이 보여주는 실제 설치 이름을 따르세요.
 이미 목록에 있으면 다시 추가할 필요가 없습니다.
 
@@ -231,15 +231,15 @@ Tacto 설치는 `tacto` 명령을 서명된 런처(`launcher/tacto`)에 연결�
 창에서 Shift + Command + G → Command + V → Return으로 이동한 뒤 ‘열기’를
 누릅니다. 권한이 확인되면 완료로 표시되고 ‘에이전트에 연결’이 활성화됩니다.
 
-설치 이미지(DMG) 안에서 앱을 바로 열면 설정을 시작하지 않고, Tacto.app을
+설치 이미지(DMG) 안에서 앱을 바로 열면 설정을 시작하지 않고, Haejo.app을
 Applications로 옮긴 뒤 다시 열라고 안내하고 종료합니다. 이미지를 꺼내면 연결된
 명령이 끊기기 때문입니다. 권한 확인이 실패하면(도우미 실행 실패·시간 초과 등)
 이전의 완료 표시를 지우고 ‘에이전트에 연결’을 다시 잠급니다. 이 창으로 돌아오면
 켜지지 않은 권한을 자동으로 다시 확인합니다.
 
-독립 앱의 화면 기록은 macOS가 바깥 Tacto.app을 권한 소유자로 평가합니다.
+독립 앱의 화면 기록은 macOS가 바깥 Haejo.app을 권한 소유자로 평가합니다.
 helper만 추가했는데 화면 기록이 미완료라면, 화면 기록 단계에서 보여주는
-**Tacto.app**을 위쪽 ‘화면 및 시스템 오디오 기록’ 앱 목록에 추가해야 합니다.
+**Haejo.app**을 위쪽 ‘화면 및 시스템 오디오 기록’ 앱 목록에 추가해야 합니다.
 앱 번들에 화면 기록 권한을 주는 모델이며, 공유 Python이나 터미널 권한은
 요청하지 않습니다. [권한 소유자와 드래그 안내](permission-onboarding.md)를 참고하세요.
 
@@ -257,9 +257,9 @@ CLI를 찾지 못했거나 다른 에이전트를 사용한다면 **첫 요청 �
 상태를 다시 확인할 수 있고, 권한이 필요하거나 확인이 실패하면 안내가 펼쳐집니다.
 
 실제 첫 작업은 기존 문서를 수정하지 않고 새 문서에 다음 두 줄을 입력하고
-Tacto로 다시 읽어 확인합니다. 별도 AppleScript·JXA 조회는 사용하지 않습니다.
+Haejo로 다시 읽어 확인합니다. 별도 AppleScript·JXA 조회는 사용하지 않습니다.
 시작 화면에는 이 예문을 미리 표시하지 않습니다. 에이전트는 안내받은
-`tacto first-run --helper --yes` 명령 하나를 실행합니다. 이 명령은 앱 실행부터
+`haejo first-run --helper --yes` 명령 하나를 실행합니다. 이 명령은 앱 실행부터
 입력과 확인까지 한 연결에서 처리하며, 내부 모델 호출이나 Flow 작성이 없습니다.
 첫 작업의 메뉴가 비활성이거나 창 관찰이 일시적으로 실패하면 TextEdit을 앞으로
 가져와 계속합니다. 시작 파일 선택 창의 ‘새 문서’ 버튼도 대체 경로로 사용하며,
@@ -269,7 +269,7 @@ Tacto로 다시 읽어 확인합니다. 별도 AppleScript·JXA 조회는 사용
 
 ```text
 Hello, World!
-Tacto로 작성했습니다.
+Haejo로 작성했습니다.
 ```
 
 저장 명령은 실행하지 않습니다. TextEdit은 제목 없는 문서도
@@ -278,7 +278,7 @@ Tacto로 작성했습니다.
 새 문서는 창 제목 대신 macOS 창 ID로 구분하므로 기존 문서의 자동 저장·이름 변경이
 새 창으로 잘못 집계되지 않습니다.
 
-다른 앱이 꺼져 있다면 `tacto launch <bundle-id> --helper`로 실행한 뒤 새로
+다른 앱이 꺼져 있다면 `haejo launch <bundle-id> --helper`로 실행한 뒤 새로
 관찰할 수 있습니다. 설치된 앱을 LaunchServices로 열며, 실행 중이면 다시 실행하지
 않습니다. 앱 실행 성공은 창 준비 완료와 구분합니다. 실행 시간 초과 시에는 앱이
 늦게 열릴 수 있으므로 재실행하기 전에 관찰하세요.
@@ -299,9 +299,9 @@ not establish a fresh-Mac or stable-release qualification.
 Maintainers can build a Developer ID distribution from a clean committed tree:
 
 ```sh
-python setup/build_distribution.py --output /private/tmp/Tacto.app \
+python setup/build_distribution.py --output /private/tmp/Haejo.app \
   --identity 'DEVELOPER_ID_IDENTITY' --tag v0.1.0-preview.15 \
-  --report /private/tmp/tacto-build-report.json
+  --report /private/tmp/haejo-build-report.json
 ```
 
 This rebuilds the helper, launcher and GUI, pins their source commit and manifest,

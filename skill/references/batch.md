@@ -1,14 +1,14 @@
 # Repeat one saved Flow
 
-`tacto batch <saved name | /absolute/template.json> --helper --max-jobs 10`
+`haejo batch <saved name | /absolute/template.json> --helper --max-jobs 10`
 keeps one signed connection for a bounded batch; a saved name is the recipe
-`tacto replay <name>` would run. Separate commands each open a new signed
+`haejo replay <name>` would run. Separate commands each open a new signed
 connection: five runs of `calc_12x34` took 5.0 s as five replays and 2.0 s as
 one batch (0.27 s per job after the first). It does not load the authoring guide or send
 full Flow JSON each time. For interactive tools use tty:true; wait for
-`TACTO_BATCH_READY`, then send `{"params":{"amount":"17","result":"85"}}` plus
+`HAEJO_BATCH_READY`, then send `{"params":{"amount":"17","result":"85"}}` plus
 a newline with write_stdin. All values are text; defaults fill omitted params.
-For interactive/dependent work, wait for `TACTO_BATCH_RESULT` with exit:0 before starting the next job. EOF or the
+For interactive/dependent work, wait for `HAEJO_BATCH_RESULT` with exit:0 before starting the next job. EOF or the
 job limit ends the batch. The default limit is10 jobs and idle deadline90s;
 `--idle-timeout` allows1..600s. Records are bounded to64KiB.
 
@@ -29,7 +29,7 @@ When all parameter rows and transitions are already known, use one JSONL file
 or deterministic caller instead of involving the model for every row:
 
 ```sh
-tacto batch /absolute/template.json --helper --max-jobs 10 < /absolute/jobs.jsonl
+haejo batch /absolute/template.json --helper --max-jobs 10 < /absolute/jobs.jsonl
 ```
 
 Buffered requests are processed in order and stop at the first failure. Read
@@ -50,7 +50,7 @@ and use result ordinals to track which jobs completed.
 For automatic intervention use:
 
 ```sh
-tacto batch /absolute/template.json --helper --auto-repair codex < /absolute/jobs.jsonl
+haejo batch /absolute/template.json --helper --auto-repair codex < /absolute/jobs.jsonl
 ```
 
 Read [automatic repair](auto-repair.md) only when enabling this mode. Successful

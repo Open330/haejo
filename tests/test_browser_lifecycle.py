@@ -1,13 +1,13 @@
 """Failed browser startup must not strand the synchronous Playwright runtime."""
 import unittest
 from unittest.mock import Mock, patch
-from tacto.browser import BrowserDriver
+from haejo.browser import BrowserDriver
 
 
 class BrowserLifecycleTests(unittest.TestCase):
     def test_launch_failure_stops_runtime_and_preserves_original_error(self):
         runtime=Mock();runtime.chromium.launch.side_effect=RuntimeError('missing browser')
-        with patch('tacto.browser.sync_playwright') as start:
+        with patch('haejo.browser.sync_playwright') as start:
             start.return_value.start.return_value=runtime
             with self.assertRaisesRegex(RuntimeError,'missing browser'):
                 BrowserDriver()
@@ -17,7 +17,7 @@ class BrowserLifecycleTests(unittest.TestCase):
         runtime=Mock();browser=runtime.chromium.launch.return_value
         browser.new_page.side_effect=RuntimeError('page setup')
         browser.close.side_effect=RuntimeError('close failure')
-        with patch('tacto.browser.sync_playwright') as start:
+        with patch('haejo.browser.sync_playwright') as start:
             start.return_value.start.return_value=runtime
             with self.assertRaisesRegex(RuntimeError,'page setup'):
                 BrowserDriver()

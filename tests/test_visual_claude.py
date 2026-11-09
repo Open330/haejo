@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import patch
 
-from tacto.provider_result import ProviderResult
-from tacto.visual import VisualCapture, VisualError, plan_visual, query_visual
+from haejo.provider_result import ProviderResult
+from haejo.visual import VisualCapture, VisualError, plan_visual, query_visual
 
 
 class ClaudeVisual(unittest.TestCase):
@@ -18,8 +18,8 @@ class ClaudeVisual(unittest.TestCase):
         return ProviderResult(**values)
 
     def test_image_is_sent_to_pinned_provider_and_metadata_is_observed(self):
-        with patch('tacto.claude_result.claude_result', return_value=self.result()) as call, \
-             patch('tacto.visual._run_visual') as codex:
+        with patch('haejo.claude_result.claude_result', return_value=self.result()) as call, \
+             patch('haejo.visual._run_visual') as codex:
             result = query_visual(self.capture, 'What color?', provider='claude', model='requested-model')
         self.assertEqual(b'private image', call.call_args.kwargs['image_bytes'])
         self.assertEqual('image/png', call.call_args.kwargs['image_media_type'])
@@ -37,15 +37,15 @@ class ClaudeVisual(unittest.TestCase):
                          self.result(text='{"answer":"ok","authorize":true}'),
                          self.result(text='[]')):
             with self.subTest(response=response.status), \
-                 patch('tacto.claude_result.claude_result', return_value=response), \
-                 patch('tacto.visual._run_visual') as codex:
+                 patch('haejo.claude_result.claude_result', return_value=response), \
+                 patch('haejo.visual._run_visual') as codex:
                 with self.assertRaises(VisualError):
                     query_visual(self.capture, 'Read', provider='claude')
                 codex.assert_not_called()
 
     def test_native_image_coordinates_are_not_browser_clicks(self):
         self.capture.viewport['coordinate_space'] = 'window_pixels'
-        with patch('tacto.visual.query_visual') as query:
+        with patch('haejo.visual.query_visual') as query:
             with self.assertRaisesRegex(VisualError, 'coordinate_space'):
                 plan_visual(self.capture, 'Click', provider='claude')
             query.assert_not_called()

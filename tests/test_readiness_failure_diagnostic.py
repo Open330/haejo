@@ -6,7 +6,7 @@ import subprocess
 import tempfile
 import unittest
 
-from tacto.preparation_diagnostic import preparation_diagnostic, readiness_failure
+from haejo.preparation_diagnostic import preparation_diagnostic, readiness_failure
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -99,7 +99,7 @@ print(String(data: try! JSONSerialization.data(withJSONObject: rows, options: [.
 class ReadinessFailureDiagnosticTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        with tempfile.TemporaryDirectory(prefix='tacto-readiness-failure-') as directory:
+        with tempfile.TemporaryDirectory(prefix='haejo-readiness-failure-') as directory:
             src = Path(directory)/'main.swift'
             binary = Path(directory)/'probe'
             src.write_text(HARNESS)
@@ -219,7 +219,7 @@ class ReadinessFailureValidatorTests(unittest.TestCase):
         self.assertIsNone(preflight_summary({**reply, 'readiness_ax_error': 0}))
 
     def test_helper_exposes_the_same_metadata_on_both_paths(self):
-        source = (ROOT/'helper/TactoHelper.swift').read_text()
+        source = (ROOT/'helper/HaejoHelper.swift').read_text()
         preflight = source[source.index('func readinessPreflight('):]
         preflight = preflight[:preflight.index('let fields = Set(')]
         self.assertIn('out["readiness_failure"] = failure', preflight)

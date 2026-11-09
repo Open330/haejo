@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class IsolatedSkillInstallTests(unittest.TestCase):
     def setUp(self):
-        work = tempfile.TemporaryDirectory(prefix='tacto-install-test-')
+        work = tempfile.TemporaryDirectory(prefix='haejo-install-test-')
         self.addCleanup(work.cleanup)
         self.root = Path(os.path.realpath(work.name)) / 'checkout with spaces'
         self.home = Path(os.path.realpath(work.name)) / 'fresh user'
@@ -19,27 +19,27 @@ class IsolatedSkillInstallTests(unittest.TestCase):
         (self.root / 'skill').mkdir(parents=True)
         self.script = self.root / 'skill/install.sh'
         shutil.copyfile(ROOT / 'skill/install.sh', self.script)
-        (self.root / 'skill/SKILL.md').write_text('---\nname: tacto\n---\nfixture\n')
+        (self.root / 'skill/SKILL.md').write_text('---\nname: haejo\n---\nfixture\n')
         (self.root / 'launcher').mkdir()
         # Tests link ownership and discovery only, not cryptographic signing.
-        self.entry = self.root / 'launcher/tacto'
+        self.entry = self.root / 'launcher/haejo'
         self.entry.write_text('#!/bin/sh\nexit 0\n')
         self.entry.chmod(0o755)
         self.bin = self.home / '.local/bin'
 
     def run_script(self, *args, **extra_env):
         env = {'HOME': str(self.home), 'PATH': f'{self.bin}:/usr/bin:/bin',
-               'TACTO_BIN_DIR': str(self.bin), **extra_env}
+               'HAEJO_BIN_DIR': str(self.bin), **extra_env}
         return subprocess.run(['/bin/bash', str(self.script), *args],
                               env=env, capture_output=True, text=True, timeout=10)
 
     def test_fresh_user_gets_command_and_both_missing_skill_directories(self):
         installed = self.run_script()
         self.assertEqual(0, installed.returncode, installed.stdout + installed.stderr)
-        self.assertEqual(str(self.entry), os.readlink(self.bin / 'tacto'))
+        self.assertEqual(str(self.entry), os.readlink(self.bin / 'haejo'))
         for directory in ('.codex', '.claude'):
             self.assertEqual(str(self.root / 'skill'),
-                             os.readlink(self.home / directory / 'skills/tacto'))
+                             os.readlink(self.home / directory / 'skills/haejo'))
         checked = self.run_script('--check')
         self.assertEqual(0, checked.returncode, checked.stdout + checked.stderr)
 
@@ -64,7 +64,7 @@ class IsolatedSkillInstallTests(unittest.TestCase):
 
     def test_installed_links_do_not_hide_removed_skill_instructions(self):
         self.assertEqual(0,self.run_script().returncode)
-        links=[self.bin/'tacto',self.home/'.codex/skills/tacto',self.home/'.claude/skills/tacto']
+        links=[self.bin/'haejo',self.home/'.codex/skills/haejo',self.home/'.claude/skills/haejo']
         before=[os.readlink(link) for link in links]
         (self.root/'skill/SKILL.md').unlink()
         for args in ((),('--check',)):
@@ -75,33 +75,33 @@ class IsolatedSkillInstallTests(unittest.TestCase):
     def test_installed_skill_path_finds_the_same_checkout(self):
         self.assertEqual(0, self.run_script().returncode)
         env = {'HOME': str(self.home), 'PATH': f'{self.bin}:/usr/bin:/bin',
-               'TACTO_BIN_DIR': str(self.bin)}
+               'HAEJO_BIN_DIR': str(self.bin)}
         for tool in ('.codex', '.claude'):
-            script = self.home / tool / 'skills/tacto/install.sh'
+            script = self.home / tool / 'skills/haejo/install.sh'
             checked = subprocess.run(['/bin/bash', str(script), '--check'], env=env,
                                      capture_output=True, text=True, timeout=10)
             self.assertEqual(0, checked.returncode, checked.stdout + checked.stderr)
-            self.assertIn('Tacto — ' + str(self.root), checked.stdout)
+            self.assertIn('Haejo — ' + str(self.root), checked.stdout)
 
     def test_no_python_console_fallback_when_launcher_is_missing(self):
         self.entry.unlink()
-        console = self.root / '.venv/bin/tacto'
+        console = self.root / '.venv/bin/haejo'
         console.parent.mkdir(parents=True)
         console.write_text('#!/bin/sh\nexit 0\n')
         console.chmod(0o755)
         installed = self.run_script()
         self.assertEqual(1, installed.returncode)
-        self.assertIn('launcher/tacto', installed.stdout)
+        self.assertIn('launcher/haejo', installed.stdout)
         self.assertEqual([], list(self.home.iterdir()))
 
     def test_unrelated_command_symlink_is_preserved(self):
         self.bin.mkdir(parents=True)
         other = self.home / 'other-command'
         other.write_text('unrelated')
-        (self.bin / 'tacto').symlink_to(other)
+        (self.bin / 'haejo').symlink_to(other)
         installed = self.run_script()
         self.assertEqual(1, installed.returncode)
-        self.assertEqual(str(other), os.readlink(self.bin / 'tacto'))
+        self.assertEqual(str(other), os.readlink(self.bin / 'haejo'))
         self.assertEqual('unrelated', other.read_text())
 
     def test_legacy_launcher_pattern_does_not_authorize_foreign_skill(self):
@@ -109,25 +109,25 @@ class IsolatedSkillInstallTests(unittest.TestCase):
         (old/'skill').mkdir(parents=True)
         (old/'skill/SKILL.md').write_text('---\nname: unrelated\n---\n')
         self.bin.mkdir(parents=True)
-        link=self.bin/'tacto';link.symlink_to(old/'launcher/tacto')
+        link=self.bin/'haejo';link.symlink_to(old/'launcher/haejo')
         installed=self.run_script()
         self.assertEqual(1,installed.returncode)
-        self.assertEqual(str(old/'launcher/tacto'),os.readlink(link))
-        self.assertTrue((self.bin/'tacto').is_symlink())
+        self.assertEqual(str(old/'launcher/haejo'),os.readlink(link))
+        self.assertTrue((self.bin/'haejo').is_symlink())
 
     def test_unrelated_and_broken_skill_links_are_preserved_and_reported(self):
         foreign = self.home / 'foreign-skill'
         foreign.mkdir()
         (foreign / 'SKILL.md').write_text('---\nname: another-skill\n---\n')
         for directory, target in (('.codex', foreign), ('.claude', self.home / 'missing')):
-            destination = self.home / directory / 'skills/tacto'
+            destination = self.home / directory / 'skills/haejo'
             destination.parent.mkdir(parents=True)
             destination.symlink_to(target)
         installed = self.run_script()
         self.assertEqual(1, installed.returncode)
-        self.assertEqual(str(foreign), os.readlink(self.home / '.codex/skills/tacto'))
-        self.assertEqual(str(self.home / 'missing'), os.readlink(self.home / '.claude/skills/tacto'))
-        self.assertIn('not the Tacto skill', installed.stdout)
+        self.assertEqual(str(foreign), os.readlink(self.home / '.codex/skills/haejo'))
+        self.assertEqual(str(self.home / 'missing'), os.readlink(self.home / '.claude/skills/haejo'))
+        self.assertIn('not the Haejo skill', installed.stdout)
         self.assertEqual(1, self.run_script('--check').returncode)
 
     def test_relocated_agent_roots_are_created_without_skipping_defaults(self):
@@ -137,26 +137,26 @@ class IsolatedSkillInstallTests(unittest.TestCase):
         installed = self.run_script(**extra)
         self.assertEqual(0, installed.returncode, installed.stdout + installed.stderr)
         for parent in (codex, claude, self.home / '.codex', self.home / '.claude'):
-            self.assertEqual(str(self.root / 'skill'), os.readlink(parent / 'skills/tacto'))
+            self.assertEqual(str(self.root / 'skill'), os.readlink(parent / 'skills/haejo'))
         self.assertEqual(0, self.run_script('--check', **extra).returncode)
 
-    def test_previous_tacto_checkout_links_are_repaired(self):
+    def test_previous_haejo_checkout_links_are_repaired(self):
         old = self.home / 'old checkout'
         (old / 'skill').mkdir(parents=True)
-        (old / 'skill/SKILL.md').write_text('---\nname: tacto\n---\nold\n')
+        (old / 'skill/SKILL.md').write_text('---\nname: haejo\n---\nold\n')
         self.bin.mkdir(parents=True)
-        destination = self.home / '.codex/skills/tacto'
+        destination = self.home / '.codex/skills/haejo'
         destination.parent.mkdir(parents=True)
         destination.symlink_to(old / 'skill')
-        for previous_entry in ('launcher/tacto', '.venv/bin/tacto'):
+        for previous_entry in ('launcher/haejo', '.venv/bin/haejo'):
             with self.subTest(previous_entry=previous_entry):
-                for command in ('tacto',):
+                for command in ('haejo',):
                     link=self.bin/command
                     if link.is_symlink():link.unlink()
                     link.symlink_to(old/previous_entry)
                 installed = self.run_script()
                 self.assertEqual(0, installed.returncode, installed.stdout + installed.stderr)
-                for command in ('tacto',):
+                for command in ('haejo',):
                     self.assertEqual(str(self.entry), os.readlink(self.bin/command))
                 self.assertEqual(str(self.root / 'skill'), os.readlink(destination))
 
@@ -168,21 +168,21 @@ class IsolatedSkillInstallTests(unittest.TestCase):
         self.assertEqual(0, self.run_script('--help').returncode)
         self.assertEqual([], list(self.home.iterdir()))
 
-    def test_stale_tacto_copy_and_local_additions_are_kept_in_private_backup(self):
+    def test_stale_haejo_copy_and_local_additions_are_kept_in_private_backup(self):
         parent = self.home / '.codex/skills'
-        old = parent / 'tacto'
+        old = parent / 'haejo'
         old.mkdir(parents=True)
-        (old / 'SKILL.md').write_text('---\nname: tacto\n---\nold copy\n')
+        (old / 'SKILL.md').write_text('---\nname: haejo\n---\nold copy\n')
         (old / 'local-recipe.json').write_text('{"owned":"customization"}')
         installed = self.run_script()
         self.assertEqual(0, installed.returncode, installed.stdout + installed.stderr)
-        backups = list(parent.parent.glob('.tacto-skill-backup.*/tacto'))
+        backups = list(parent.parent.glob('.haejo-skill-backup.*/haejo'))
         self.assertEqual(1, len(backups))
         self.assertEqual('{"owned":"customization"}',
                          (backups[0] / 'local-recipe.json').read_text())
         self.assertEqual(0o700, backups[0].parent.stat().st_mode & 0o777)
         self.assertTrue(old.is_symlink())
-        self.assertEqual(str(self.root / 'skill'), os.readlink(parent/'tacto'))
+        self.assertEqual(str(self.root / 'skill'), os.readlink(parent/'haejo'))
         self.assertEqual(0, self.run_script('--check').returncode)
 
 

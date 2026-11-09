@@ -29,10 +29,10 @@ class DistributionBuildTests(unittest.TestCase):
             root=Path(folder)
             def git(*args):return subprocess.run(['git','-C',folder,*args],check=True,capture_output=True)
             git('init');git('config','user.name','Test');git('config','user.email','test@example.invalid')
-            (root/'tacto').mkdir();source=root/'tacto/first_run.py';source.write_text('version = 1\n')
+            (root/'haejo').mkdir();source=root/'haejo/first_run.py';source.write_text('version = 1\n')
             git('add','.');git('commit','-m','fixture')
             before=committed_sources(root)
-            self.assertIn('tacto/first_run.py',before['files'])
+            self.assertIn('haejo/first_run.py',before['files'])
             source.write_text('version = 2\n')
             with self.assertRaises(RuntimeError):committed_sources(root)
             git('checkout','--','.');(root/'untracked').write_text('new')
@@ -43,7 +43,7 @@ class DistributionBuildTests(unittest.TestCase):
     def test_every_packaged_macho_needs_a_timestamp_not_only_the_venv(self):
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder)
-            for name in ('Contents/MacOS/TactoSetup','Contents/Resources/runtime/.venv/bin/python3',
+            for name in ('Contents/MacOS/HaejoSetup','Contents/Resources/runtime/.venv/bin/python3',
                          'Contents/Resources/runtime/extra/tool'):
                 path=root/name;path.parent.mkdir(parents=True,exist_ok=True)
                 path.write_bytes(next(iter(preview.MAGICS))+b'\0'*16)
@@ -62,8 +62,8 @@ class DistributionBuildTests(unittest.TestCase):
 
 class DistributionInventoryTests(unittest.TestCase):
     def inventory(self):
-        return {'schema':1,'distributions':{'tacto-runtime':'0.1.0','playwright':'1.63.0'},
-                'native_paths':['Contents/MacOS/TactoSetup','Contents/Resources/runtime/native.so']}
+        return {'schema':1,'distributions':{'haejo-runtime':'0.1.0','playwright':'1.63.0'},
+                'native_paths':['Contents/MacOS/HaejoSetup','Contents/Resources/runtime/native.so']}
 
     def package(self,venv,name='playwright',version='1.63.0',directory=None):
         site=Path(venv)/'lib/python3.11/site-packages'
@@ -116,7 +116,7 @@ class DistributionInventoryTests(unittest.TestCase):
     def test_package_deletion_still_fails_before_final_timestamp_signing(self):
         packaged=self.inventory();del packaged['distributions']['playwright']
         with mock.patch.object(distribution,'committed_sources',return_value={}), \
-             mock.patch.object(distribution,'require_release_environment',return_value={'tacto-runtime':'0.1.0'}), \
+             mock.patch.object(distribution,'require_release_environment',return_value={'haejo-runtime':'0.1.0'}), \
              mock.patch.object(distribution,'read_baseline',return_value=self.inventory()), \
              mock.patch.object(distribution.preview,'build',return_value={}) as builder, \
              mock.patch.object(distribution,'app_inventory',return_value=packaged), \
@@ -174,11 +174,11 @@ class DistributionInventoryTests(unittest.TestCase):
     def test_old_app_without_embedded_inventory_is_supported(self):
         with tempfile.TemporaryDirectory() as folder:
             app=Path(folder)/'previous.app';venv=app/'Contents/Resources/runtime/.venv'
-            self.package(venv);binary=app/'Contents/MacOS/TactoSetup';binary.parent.mkdir(parents=True)
+            self.package(venv);binary=app/'Contents/MacOS/HaejoSetup';binary.parent.mkdir(parents=True)
             binary.write_bytes(next(iter(preview.MAGICS))+b'\0'*16)
             found=distribution.read_baseline(app)
             self.assertEqual({'playwright':'1.63.0'},found['distributions'])
-            self.assertEqual(['Contents/MacOS/TactoSetup'],found['native_paths'])
+            self.assertEqual(['Contents/MacOS/HaejoSetup'],found['native_paths'])
 
     def test_invalid_or_empty_inventory_never_proves_compatibility(self):
         for native in ([],['../outside'],['/absolute'],['a/../b'],['x','x'],[{'x':1}]):
@@ -210,7 +210,7 @@ class DistributionInventoryTests(unittest.TestCase):
     def test_base_python_packages_preserved_outside_venv_do_not_look_removed(self):
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder);output=root/'result.app'
-            (root/'tacto').mkdir();(root/'tacto/__init__.py').write_text('x = 1\n')
+            (root/'haejo').mkdir();(root/'haejo/__init__.py').write_text('x = 1\n')
             for name in ('README.md','README.ko.md'):(root/name).write_text('guide')
             before={'schema':1,'workspace_commit':'a'*40,'files':{},'digest':'b'*64}
             def fake_build(app,identity):
@@ -218,11 +218,11 @@ class DistributionInventoryTests(unittest.TestCase):
                 self.package(runtime/'.venv')
                 self.package(runtime/'.venv','pip','26.2.1')
                 self.package(runtime/'.venv','setuptools','84.0.0')
-                site=runtime/'.venv/lib/python3.11/site-packages/tacto';site.mkdir()
+                site=runtime/'.venv/lib/python3.11/site-packages/haejo';site.mkdir()
                 (site/'__init__.py').write_text('x = 1\n')
-                for name in ('Contents/MacOS/TactoSetup','Contents/Resources/runtime/.venv/bin/python3',
-                             'Contents/Resources/runtime/launcher/tacto',
-                             'Contents/Resources/runtime/helper/Tacto Helper.app/Contents/MacOS/TactoHelper'):
+                for name in ('Contents/MacOS/HaejoSetup','Contents/Resources/runtime/.venv/bin/python3',
+                             'Contents/Resources/runtime/launcher/haejo',
+                             'Contents/Resources/runtime/helper/Haejo Helper.app/Contents/MacOS/HaejoHelper'):
                     path=app/name;path.parent.mkdir(parents=True,exist_ok=True)
                     path.write_bytes(next(iter(preview.MAGICS))+b'\0'*16)
                 (app/'Contents/Info.plist').write_bytes(distribution.plistlib.dumps({}))
@@ -235,9 +235,9 @@ class DistributionInventoryTests(unittest.TestCase):
                 return subprocess.CompletedProcess(args,0,'','Timestamp=fixture\n')
             timestamps=distribution.require_timestamps
             prior={'schema':1,'distributions':{'playwright':'1.63.0','pip':'26.2.1','setuptools':'84.0.0'},
-                   'native_paths':['Contents/MacOS/TactoSetup','Contents/Resources/runtime/.venv/bin/python3',
-                                   'Contents/Resources/runtime/launcher/tacto',
-                                   'Contents/Resources/runtime/helper/Tacto Helper.app/Contents/MacOS/TactoHelper']}
+                   'native_paths':['Contents/MacOS/HaejoSetup','Contents/Resources/runtime/.venv/bin/python3',
+                                   'Contents/Resources/runtime/launcher/haejo',
+                                   'Contents/Resources/runtime/helper/Haejo Helper.app/Contents/MacOS/HaejoHelper']}
             with mock.patch.object(distribution,'read_baseline',return_value=prior), \
                  mock.patch.object(distribution,'ROOT',root), \
                  mock.patch.object(distribution,'committed_sources',return_value=before), \
@@ -251,7 +251,7 @@ class DistributionInventoryTests(unittest.TestCase):
             info=distribution.plistlib.loads((output/'Contents/Info.plist').read_bytes())
             self.assertEqual('1.0.0',info['CFBundleShortVersionString'])
             self.assertEqual('4',info['CFBundleVersion'])
-            self.assertEqual('rc.4',info['TactoBuildVariant'])
+            self.assertEqual('rc.4',info['HaejoBuildVariant'])
             self.assertEqual('v1.0.0-rc.4',sealed['release_tag'])
             self.assertEqual(report['distribution_inventory'],sealed['distribution_inventory'])
             self.assertEqual(prior['distributions'],sealed['distribution_inventory']['distributions'])
@@ -292,7 +292,7 @@ class DistributionInventoryTests(unittest.TestCase):
             self.assertEqual({'release_tag':'v0.1.0-preview.18','source_commit':'a'*40,
                               'publication_verified':False},report['baseline_identity'])
         self.assertEqual({'release_tag':None,'source_commit':None,'publication_verified':False},
-                         distribution.baseline_identity({'TactoReleaseTag':'private path','TactoSourceCommit':'invalid'}))
+                         distribution.baseline_identity({'HaejoReleaseTag':'private path','HaejoSourceCommit':'invalid'}))
 
     def test_base_prefix_package_missing_from_final_app_still_fails(self):
         previous=self.inventory();previous['distributions'].update(pip='26.2.1',setuptools='84.0.0')

@@ -17,7 +17,7 @@ async fn main() {
         return;
     }
     if args != ["--list"] {
-        eprintln!("usage: tacto-ios-transport-probe --capabilities | --list");
+        eprintln!("usage: haejo-ios-transport-probe --capabilities | --list");
         std::process::exit(2);
     }
     let discovery = async {

@@ -10,7 +10,7 @@ import time
 
 from examples.probes.attachment_payloads import owned_body
 from examples.probes.signed_popup_flow_replay import ROOT,reserve_report
-from tacto.document_attachments import compare_attachment_payloads,AttachmentEvidenceError,_name
+from haejo.document_attachments import compare_attachment_payloads,AttachmentEvidenceError,_name
 
 
 def write_owned_package(directory,wrapper):
@@ -69,8 +69,8 @@ def package_manifest(directory):
 def main(driver,output):
     with reserve_report(output) as stream:
         names=['examples/probes/signed_document_attachments.py','examples/probes/attachment_payloads.py',
-               'tacto/document_attachments.py','tacto/native_document.py','tacto/helper.py','helper/TactoHelper.swift',
-               'helper/Tacto Helper.app/Contents/MacOS/TactoHelper','launcher/tacto','examples/eval.py']
+               'haejo/document_attachments.py','haejo/native_document.py','haejo/helper.py','helper/HaejoHelper.swift',
+               'helper/Haejo Helper.app/Contents/MacOS/HaejoHelper','launcher/haejo','examples/eval.py']
         hashes=lambda:{p:hashlib.sha256((ROOT/p).read_bytes()).hexdigest() for p in names}
         report={'passed':False,'scope':'owned background TextEdit RTFD and signed RTF range export',
                 'source_before':hashes(),'signed_input_requests':0,'owned_document_open_requests':0,
@@ -78,11 +78,11 @@ def main(driver,output):
                 'whole_goal_complete':False,'owned_window_retained':False}
         audit=None;source=None;before=None
         try:
-            from tacto.helper import InheritedHelperDriver
+            from haejo.helper import InheritedHelperDriver
             if not isinstance(driver,InheritedHelperDriver) or not InheritedHelperDriver.available():raise ValueError('signed_channel_required')
             if 'evidence.document_rtf_export' not in driver.capabilities:raise ValueError('signed_export_required')
-            from tacto.native_frontmost import frontmost_pid
-            from tacto.input_audit_process import ProcessInputAudit
+            from haejo.native_frontmost import frontmost_pid
+            from haejo.input_audit_process import ProcessInputAudit
             from AppKit import NSDocumentTypeDocumentAttribute,NSRTFDTextDocumentType,NSAttributedString
             from Foundation import NSData
             target='com.apple.TextEdit';matches=[row for row in driver.list_targets().get('apps',[]) if row.get('id')==target]

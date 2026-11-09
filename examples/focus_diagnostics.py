@@ -5,7 +5,7 @@ from pathlib import Path
 import stat
 import time
 
-from tacto.input_audit import MacInputReader, NO_FOCUS
+from haejo.input_audit import MacInputReader, NO_FOCUS
 
 # Unknown/custom role strings are omitted, not copied into diagnostic artifacts.
 ROLES = frozenset(('AXApplication AXWindow AXSheet AXMenu AXMenuItem AXMenuBar '

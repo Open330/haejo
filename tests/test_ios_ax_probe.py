@@ -7,7 +7,7 @@ import sys
 import unittest
 from unittest.mock import patch
 
-from tacto.ios_ax_probe import IOSAXProbe, IOSAXProbeError
+from haejo.ios_ax_probe import IOSAXProbe, IOSAXProbeError
 
 DEVICE = '00000000-0000000000000000'
 BASE = '''

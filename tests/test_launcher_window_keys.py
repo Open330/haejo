@@ -13,7 +13,7 @@ ROOT=Path(__file__).resolve().parents[1]
 @unittest.skipUnless(sys.platform=='darwin' and shutil.which('swift'), 'macOS Swift required')
 class LauncherWindowKeyTests(unittest.TestCase):
     def test_observed_value_pin_is_typed_bounded_and_requires_an_element(self):
-        source=(ROOT/'launcher/tacto.swift').read_text()
+        source=(ROOT/'launcher/haejo.swift').read_text()
         schema=source[source.index('let allowedTypes:'):source.index('// MARK: - Socket plumbing')]
         checks=r'''
 let base:[String:Any] = ["type":"act","target":"com.apple.Safari","obs_id":"owned",
@@ -34,7 +34,7 @@ print(String(data:try! JSONSerialization.data(withJSONObject:requests.map{vetted
         self.assertEqual([True,False,False,False,False,False],json.loads(result.stdout))
 
     def test_gemini_text_route_is_allowed_without_adding_image_or_unknown_providers(self):
-        source=(ROOT/'launcher/tacto.swift').read_text()
+        source=(ROOT/'launcher/haejo.swift').read_text()
         schema=source[source.index('let allowedTypes:'):source.index('// MARK: - Socket plumbing')]
         checks=r'''
 let base:[String:Any]=["type":"ask","prompt":"owned planning","provider":"gemini","json":true]
@@ -50,7 +50,7 @@ print(String(data:try! JSONSerialization.data(withJSONObject:[base,unknown,image
         self.assertEqual(json.loads(result.stdout),[True,False,False])
 
     def test_readiness_cost_exact_schema_and_cross_type_field_rejection(self):
-        source=(ROOT/'launcher/tacto.swift').read_text()
+        source=(ROOT/'launcher/haejo.swift').read_text()
         schema=source[source.index('let allowedTypes:'):source.index('// MARK: - Socket plumbing')]
         checks=r'''
 let base:[String:Any]=["type":"readiness_read_cost","target":"com.apple.finder","obs_id":"owned","element_indices":[0]]
@@ -73,11 +73,11 @@ print(String(data:try! JSONSerialization.data(withJSONObject:requests.map {vette
         self.assertEqual(json.loads(result.stdout),[True,True]+[False]*15)
 
     def test_preflight_cannot_carry_input_authority_or_extend_action_deadline(self):
-        source=(ROOT/'launcher/tacto.swift').read_text()
+        source=(ROOT/'launcher/haejo.swift').read_text()
         schema=source[source.index('let allowedTypes:'):source.index('// MARK: - Socket plumbing')]
         checks=r'''
 let base:[String:Any]=["type":"readiness_preflight","target":"com.apple.finder","obs_id":"owned","element_index":0]
-var fixture=base;fixture["target"]="ai.callabo.tacto.modality-fixture"
+var fixture=base;fixture["target"]="ai.callabo.haejo.modality-fixture"
 var single=base;single["read_strategy"]="single"
 var batch=base;batch["read_strategy"]="batch"
 var probe=single;probe["titlebar_probe"]=true
@@ -104,7 +104,7 @@ print(String(data:try! JSONSerialization.data(withJSONObject:requests.map {vette
         self.assertEqual(json.loads(run.stdout),[True]*6+[False]*18)
 
     def test_save_panel_dispatch_token_only_on_exact_indexed_click(self):
-        source=(ROOT/'launcher/tacto.swift').read_text()
+        source=(ROOT/'launcher/haejo.swift').read_text()
         schema=source[source.index('let allowedTypes:'):source.index('// MARK: - Socket plumbing')]
         harness=r'''
 let root:[String:Any] = ["type":"act","obs_id":"owned","target":"fixture",
@@ -121,7 +121,7 @@ for action:[String:Any] in [
 var r=root;r["type"]="observe";requests.append(r)
 print(String(data:try! JSONSerialization.data(withJSONObject:requests.map { vetted($0) == nil }),encoding:.utf8)!)
 '''
-        with tempfile.TemporaryDirectory(prefix='tacto-save-guard-validator-') as directory:
+        with tempfile.TemporaryDirectory(prefix='haejo-save-guard-validator-') as directory:
             script=Path(directory)/'main.swift'
             script.write_text('import Foundation\nimport CoreFoundation\nfunc modelTimeout(_ raw: Any?) -> Double? { 1 }\n'+schema+harness)
             result=subprocess.run(['swift',str(script)],capture_output=True,text=True,timeout=30)
@@ -129,7 +129,7 @@ print(String(data:try! JSONSerialization.data(withJSONObject:requests.map { vett
         self.assertEqual(json.loads(result.stdout),[True]+[False]*12)
 
     def test_authorized_window_point_exact_shape_and_deadline(self):
-        source=(ROOT/'launcher/tacto.swift').read_text()
+        source=(ROOT/'launcher/haejo.swift').read_text()
         schema=source[source.index('let allowedTypes:'):source.index('// MARK: - Socket plumbing')]
         harness=r'''
 let root:[String:Any] = ["type":"act","obs_id":"owned","target":"fixture",
@@ -149,7 +149,7 @@ for action:[String:Any] in [
 ] {var r=root;r["action"]=action;requests.append(r)}
 print(String(data:try! JSONSerialization.data(withJSONObject:requests.map { vetted($0) == nil }),encoding:.utf8)!)
 '''
-        with tempfile.TemporaryDirectory(prefix='tacto-point-validator-') as directory:
+        with tempfile.TemporaryDirectory(prefix='haejo-point-validator-') as directory:
             script=Path(directory)/'main.swift'
             script.write_text('import Foundation\nimport CoreFoundation\nfunc modelTimeout(_ raw: Any?) -> Double? { 1 }\n'+schema+harness)
             result=subprocess.run(['swift',str(script)],capture_output=True,text=True,timeout=30)
@@ -157,7 +157,7 @@ print(String(data:try! JSONSerialization.data(withJSONObject:requests.map { vett
         self.assertEqual(json.loads(result.stdout),[True]+[False]*13)
 
     def test_document_selectors_and_scoped_observe_are_explicit(self):
-        source=(ROOT/'launcher/tacto.swift').read_text()
+        source=(ROOT/'launcher/haejo.swift').read_text()
         schema=source[source.index('let allowedTypes:'):source.index('// MARK: - Socket plumbing')]
         harness=r'''
 let requests:[[String:Any]] = [
@@ -173,7 +173,7 @@ let requests:[[String:Any]] = [
 ]
 print(String(data:try! JSONSerialization.data(withJSONObject:requests.map { vetted($0) == nil }),encoding:.utf8)!)
 '''
-        with tempfile.TemporaryDirectory(prefix='tacto-document-validator-') as directory:
+        with tempfile.TemporaryDirectory(prefix='haejo-document-validator-') as directory:
             script=Path(directory)/'main.swift'
             script.write_text('import Foundation\nimport CoreFoundation\nfunc modelTimeout(_ raw: Any?) -> Double? { 1 }\n'+schema+harness)
             result=subprocess.run(['swift',str(script)],capture_output=True,text=True,timeout=30)
@@ -181,7 +181,7 @@ print(String(data:try! JSONSerialization.data(withJSONObject:requests.map { vett
         self.assertEqual(json.loads(result.stdout),[True,True]+[False]*7)
 
     def test_observed_index_navigation_only_exact_fields_and_deadline(self):
-        source=(ROOT/'launcher/tacto.swift').read_text()
+        source=(ROOT/'launcher/haejo.swift').read_text()
         schema=source[source.index('let allowedTypes:'):source.index('// MARK: - Socket plumbing')]
         harness=r'''
 let root: [String: Any] = ["type":"act","obs_id":"owned","target":"fixture",
@@ -206,7 +206,7 @@ for deadline: Any in [true, 0, -1, Double.infinity, Double.nan] {
 }
 print(String(data:try! JSONSerialization.data(withJSONObject:cases.map { vetted($0) == nil }),encoding:.utf8)!)
 '''
-        with tempfile.TemporaryDirectory(prefix='tacto-key-validator-') as directory:
+        with tempfile.TemporaryDirectory(prefix='haejo-key-validator-') as directory:
             script=Path(directory)/'main.swift'
             script.write_text('import Foundation\nimport CoreFoundation\nfunc modelTimeout(_ raw: Any?) -> Double? { 1 }\n'+schema+harness)
             result=subprocess.run(['swift',str(script)],capture_output=True,text=True,timeout=30)
@@ -217,7 +217,7 @@ print(String(data:try! JSONSerialization.data(withJSONObject:cases.map { vetted(
         self.assertEqual(json.loads(result.stdout),[True]*7+[False]*5+[True]+[False]*6)
 
     def test_native_window_identity_opt_in_only_on_observe_boolean(self):
-        source=(ROOT/'launcher/tacto.swift').read_text()
+        source=(ROOT/'launcher/haejo.swift').read_text()
         schema=source[source.index('let allowedTypes:'):source.index('// MARK: - Socket plumbing')]
         checks = r'''
 let requests:[[String:Any]] = [
@@ -236,7 +236,7 @@ print(String(data:try! JSONSerialization.data(withJSONObject:requests.map {vette
         self.assertEqual(json.loads(result.stdout),[True,True,False,False,False])
 
     def test_parallel_window_scope_and_foreground_frames_are_exact(self):
-        source=(ROOT/'launcher/tacto.swift').read_text()
+        source=(ROOT/'launcher/haejo.swift').read_text()
         schema=source[source.index('let allowedTypes:'):source.index('// MARK: - Socket plumbing')]
         checks=r'''
 var requests:[[String:Any]]=[]

@@ -57,7 +57,7 @@ class FinderBackgroundTests(unittest.TestCase):
             path=Path(directory)/'report.json';driver=Mock()
             with patch.object(probe,'background_precondition',return_value=BLOCKED), \
                  patch.object(probe.tempfile,'mkdtemp') as create, \
-                 patch('tacto.input_audit_process.ProcessInputAudit') as audit:
+                 patch('haejo.input_audit_process.ProcessInputAudit') as audit:
                 report=probe.main(driver,path)
             self.assertEqual(report['precondition_status'],'not_run')
             self.assertIsNone(report['task_result_ok']);self.assertFalse(report['passed'])
@@ -75,9 +75,9 @@ class FinderBackgroundTests(unittest.TestCase):
             folder=Path(directory)/'owned';folder.mkdir();path=Path(directory)/'report.json'
             with patch.object(probe,'background_precondition',return_value=READY), \
                  patch.object(probe.tempfile,'mkdtemp',return_value=str(folder)), \
-                 patch('tacto.agent.Agent') as agent, \
-                 patch('tacto.input_audit_process.ProcessInputAudit',return_value=audit), \
-                 patch('tacto.flow.replay',return_value=SimpleNamespace(ok=True,events=[],preparation_diagnostics=[])):
+                 patch('haejo.agent.Agent') as agent, \
+                 patch('haejo.input_audit_process.ProcessInputAudit',return_value=audit), \
+                 patch('haejo.flow.replay',return_value=SimpleNamespace(ok=True,events=[],preparation_diagnostics=[])):
                 agent.return_value.authorize.return_value=({},[])
                 report=probe.main(Mock(),path)
             self.assertTrue(report['task_result_ok'])

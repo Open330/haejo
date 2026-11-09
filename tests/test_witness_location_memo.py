@@ -3,14 +3,14 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from tacto.outcome import DONE
+from haejo.outcome import DONE
 
 
 class WitnessMemoTests(unittest.TestCase):
     def test_send_checks_before_and_after_approval_locate_each_fact_once(self):
-        from tacto.contract import Envelope
-        from tacto.general import run
-        from tacto.outcome import Check, OutcomeSpec
+        from haejo.contract import Envelope
+        from haejo.general import run
+        from haejo.outcome import Check, OutcomeSpec
         tree = ('0 Window\n  1 Button Title: Send\n'
                 '  2 StaticText Identifier: recipient, Value: bob\n'
                 '  3 StaticText Identifier: body, Value: hi')
@@ -41,7 +41,7 @@ class WitnessMemoTests(unittest.TestCase):
         self.assertEqual('click', d.calls[0]['name'])
 
     def test_a_located_field_that_is_gone_is_asked_for_again(self):
-        from tacto.general import _witness
+        from haejo.general import _witness
         asked = []
         tree_a = '0 Window Title: A\n  1 TextField Identifier: to, Value: kim'
         tree_b = '0 Window Title: A\n  1 TextField Identifier: other, Value: lee'
@@ -49,7 +49,7 @@ class WitnessMemoTests(unittest.TestCase):
             def __init__(self, tree): self.tree = tree
             def probe(self, obs_id, target, idx):
                 return {'type': 'probe', 'line': self.tree.splitlines()[idx]}
-        from tacto.general import candidates
+        from haejo.general import candidates
         def where(field, readable):
             asked.append(field)
             return {'pick': 0, 'candidate': readable[0]}

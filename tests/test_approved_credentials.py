@@ -1,10 +1,10 @@
 """Approved ordinary field input must not require a second Vault setup."""
 import json,tempfile,unittest
 from pathlib import Path
-from tacto.flow import Flow,Step,Selector,replay
-from tacto.contract import SafetyContract,Resource
-from tacto.helper import HelperDriver
-from tacto.trace import TracingDriver
+from haejo.flow import Flow,Step,Selector,replay
+from haejo.contract import SafetyContract,Resource
+from haejo.helper import HelperDriver
+from haejo.trace import TracingDriver
 SECRET='owned-Synthetic-47!'
 class Driver:
     capabilities={'action.approved_credential_input'}
@@ -34,7 +34,7 @@ class ApprovedCredentials(unittest.TestCase):
         self.assertTrue(result.ok,result.log);self.assertTrue(driver.calls[0][1]['sensitive_input'])
         self.assertNotIn(SECRET,traced.trace.to_json())
     def test_journal_contains_neither_password_nor_password_hash(self):
-        from tacto.dispatch_journal import DurableDispatchDriver,operation_fingerprint
+        from haejo.dispatch_journal import DurableDispatchDriver,operation_fingerprint
         driver=Driver()
         with tempfile.TemporaryDirectory() as d:
             with DurableDispatchDriver(driver,Path(d)) as durable:
@@ -44,8 +44,8 @@ class ApprovedCredentials(unittest.TestCase):
             self.assertNotIn(SECRET,stored)
             self.assertNotIn(operation_fingerprint('owned.app',{'name':'set_value','element_index':1,'value':SECRET}),stored)
     def test_general_mode_approved_input_needs_no_commit_receipt(self):
-        from tacto.general import run
-        from tacto.contract import Envelope
+        from haejo.general import run
+        from haejo.contract import Envelope
         driver=Driver()
         def plan(goal,candidates,history):
             if history:return {'done':True}
@@ -55,7 +55,7 @@ class ApprovedCredentials(unittest.TestCase):
         self.assertTrue(result.ok,result.why);self.assertEqual(1,len(driver.calls));self.assertTrue(driver.calls[0][1]['sensitive_input'])
         self.assertNotIn(SECRET,str(result.visits)+str(result.events))
     def test_paste_requires_capability_before_any_input_and_never_retries_uncertain(self):
-        from tacto.flow import _may_rerun
+        from haejo.flow import _may_rerun
         f=flow();f.steps[0].params['input_method']='paste';driver=Driver()
         result=replay(driver,f,confirm=lambda _:True)
         self.assertFalse(result.ok);self.assertFalse(driver.calls);self.assertFalse(_may_rerun(f.steps[0]))

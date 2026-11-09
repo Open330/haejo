@@ -4,15 +4,15 @@ import json
 import unittest
 from contextlib import redirect_stdout
 from unittest.mock import patch
-from tacto import cli
+from haejo import cli
 
 
 class OpenURLWindowTests(unittest.TestCase):
     def run_cli(self, argv, activate, opened):
         out = io.StringIO()
-        with patch('tacto.cli._make_driver', return_value=object()), \
-             patch('tacto.app_launch.activate_app', side_effect=activate), \
-             patch('tacto.open_url.open_url', side_effect=opened), redirect_stdout(out):
+        with patch('haejo.cli._make_driver', return_value=object()), \
+             patch('haejo.app_launch.activate_app', side_effect=activate), \
+             patch('haejo.open_url.open_url', side_effect=opened), redirect_stdout(out):
             code = cli.main(argv)
         return code, json.loads(out.getvalue().strip().splitlines()[-1])
 

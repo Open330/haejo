@@ -13,7 +13,7 @@ import subprocess
 import tempfile
 import time
 
-TARGET = 'ai.callabo.tacto.readiness-scale-fixture'
+TARGET = 'ai.callabo.haejo.readiness-scale-fixture'
 COUNTS = (0, 512, 6000)
 
 
@@ -48,11 +48,11 @@ def receiving_state(data, nonce, count):
 
 
 def _source_manifest(root):
-    paths=list((root/'tacto').glob('*.py'))+list((root/'helper').glob('*.swift'))+[
+    paths=list((root/'haejo').glob('*.py'))+list((root/'helper').glob('*.swift'))+[
         Path(__file__).resolve(),root/'tests/fixtures/NativeReadinessScaleFixture.swift',
-        root/'examples/eval.py',root/'launcher/tacto',root/'launcher/tacto.swift',
-        root/'helper/tacto-helper',root/'helper/Tacto Helper.app/Contents/MacOS/TactoHelper',
-        root/'helper/Tacto Helper.app/Contents/Info.plist',root/'helper/build.sh',
+        root/'examples/eval.py',root/'launcher/haejo',root/'launcher/haejo.swift',
+        root/'helper/haejo-helper',root/'helper/Haejo Helper.app/Contents/MacOS/HaejoHelper',
+        root/'helper/Haejo Helper.app/Contents/Info.plist',root/'helper/build.sh',
         root/'helper/bundle.sh',root/'signing.sh']
     return {str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(paths)}
 
@@ -104,14 +104,14 @@ def main(driver, output, *, audit_strategy='application_frontmost'):
 
 
 def _run(driver, report, *, audit_strategy='application_frontmost'):
-    from tacto.helper import InheritedHelperDriver
+    from haejo.helper import InheritedHelperDriver
     if not isinstance(driver,InheritedHelperDriver) or not InheritedHelperDriver.available():
         raise RuntimeError('signed_helper_required')
-    from tacto.driver import Driver
-    from tacto.flow import Selector
-    from tacto.input_audit_process import ProcessInputAudit
-    from tacto.preparation_diagnostic import preparation_diagnostic
-    from tacto.native_process_identity import process_start_identity
+    from haejo.driver import Driver
+    from haejo.flow import Selector
+    from haejo.input_audit_process import ProcessInputAudit
+    from haejo.preparation_diagnostic import preparation_diagnostic
+    from haejo.native_process_identity import process_start_identity
     from ApplicationServices import (AXUIElementCreateApplication, AXUIElementCopyAttributeValue,
                                      AXUIElementSetMessagingTimeout)
     root=Path(__file__).resolve().parents[2]
@@ -121,12 +121,12 @@ def _run(driver, report, *, audit_strategy='application_frontmost'):
     if host._resolve(TARGET,launch=False) is not None:
         raise RuntimeError('owned_fixture_already_running')
     try:
-        with tempfile.TemporaryDirectory(prefix='tacto-readiness-scale-') as directory:
+        with tempfile.TemporaryDirectory(prefix='haejo-readiness-scale-') as directory:
             work=Path(directory);bundle=work/'Scale.app';binary=bundle/'Contents/MacOS/Scale'
             binary.parent.mkdir(parents=True)
             info=bundle/'Contents/Info.plist'
             info.write_bytes(plistlib.dumps({'CFBundleIdentifier':TARGET,'CFBundleExecutable':'Scale',
-                'CFBundleName':'TACTO Readiness Scale','CFBundlePackageType':'APPL','LSUIElement':True}))
+                'CFBundleName':'HAEJO Readiness Scale','CFBundlePackageType':'APPL','LSUIElement':True}))
             subprocess.run(['xcrun','swiftc','-O','-warnings-as-errors','-parse-as-library',
                 str(root/'tests/fixtures/NativeReadinessScaleFixture.swift'),'-o',str(binary)],
                 capture_output=True,check=True,timeout=60)
@@ -197,7 +197,7 @@ def _run(driver, report, *, audit_strategy='application_frontmost'):
                             if actual!=count:raise RuntimeError('owned_leaf_count_mismatch')
                             observation=driver.observe(TARGET,'tree_full')
                             if observation.get('type')!='observation':raise RuntimeError('signed_observation_failed')
-                            window,_=Selector(role='Window',title='TACTO Readiness Scale A').resolve(observation['tree'])
+                            window,_=Selector(role='Window',title='HAEJO Readiness Scale A').resolve(observation['tree'])
                             case['before_preparation']=state()
                             started=time.monotonic()
                             reply=driver.act(observation['obs_id'],TARGET,{'name':'prepare_window','element_index':window})

@@ -14,15 +14,15 @@ TARGET='com.apple.TextEdit'
 
 
 def main(driver,output):
-    from tacto.helper import InheritedHelperDriver
+    from haejo.helper import InheritedHelperDriver
     if not isinstance(driver,InheritedHelperDriver) or not InheritedHelperDriver.available():
         raise RuntimeError('signed_helper_required')
     root=Path(__file__).resolve().parents[2]
-    inputs=sorted((root/'tacto').glob('*.py'))+sorted((root/'helper').glob('*.swift'))+[
+    inputs=sorted((root/'haejo').glob('*.py'))+sorted((root/'helper').glob('*.swift'))+[
         Path(__file__).resolve(),root/'examples/eval.py',root/'examples/probes/signed_textedit_save.py',
         root/'examples/probes/signed_owned_textedit.py',root/'examples/probes/focus_witness.py',
-        root/'examples/probes/signed_finder_preparation.py',root/'launcher/tacto',
-        root/'helper/Tacto Helper.app/Contents/MacOS/TactoHelper']
+        root/'examples/probes/signed_finder_preparation.py',root/'launcher/haejo',
+        root/'helper/Haejo Helper.app/Contents/MacOS/HaejoHelper']
     def manifest():
         return {str(path.relative_to(root)):hashlib.sha256(path.read_bytes()).hexdigest() for path in inputs}
     descriptor=os.open(output,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
@@ -35,7 +35,7 @@ def main(driver,output):
         checked=background_precondition(target=TARGET)
         report['background_precondition']=checked
         if checked['ready']:
-            from tacto.session import preflight
+            from haejo.session import preflight
             def can_cleanup():
                 return (not expired.is_set() and preflight().get('verdict')=='ready'
                         and background_precondition(target=TARGET)['ready'])
@@ -44,7 +44,7 @@ def main(driver,output):
                 try:driver._sock.shutdown(socket.SHUT_RDWR)
                 except (OSError,AttributeError):pass
             timer=threading.Timer(90,expire);timer.daemon=True;timer.start()
-            from tacto.input_audit_process import ProcessInputAudit
+            from haejo.input_audit_process import ProcessInputAudit
             audit=ProcessInputAudit(interval=.005,startup_timeout=10,stop_timeout=3)
             probes=str(root/'examples/probes');sys.path.insert(0,probes)
             try:

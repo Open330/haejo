@@ -4,14 +4,14 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
 
-from tacto.flow import Flow, Step, replay
-from tacto.helper import HelperDriver, InheritedHelperDriver
+from haejo.flow import Flow, Step, replay
+from haejo.helper import HelperDriver, InheritedHelperDriver
 from tests.test_ready_hints import Clock, Pad, SAFETY, press, run
 
 
 class ExpectReadinessTests(unittest.TestCase):
     def test_calculator_guide_names_the_observed_operator_symbols(self):
-        from tacto.command_help import session_guide
+        from haejo.command_help import session_guide
         guide = session_guide('com.apple.calculator')
         self.assertIn('EACH digit/operator', guide)
         self.assertIn('spaces and +, − (U+2212), ×, ÷', guide)
@@ -71,12 +71,12 @@ class ReadSettleTests(unittest.TestCase):
             driver = object.__new__(cls)
             driver._last_action_at = 99.5
             driver._send = Mock(return_value={'type': 'acted'})
-            with patch('tacto.helper.time.monotonic', return_value=100.0):
+            with patch('haejo.helper.time.monotonic', return_value=100.0):
                 self.assertEqual('acted', driver.act('o', 'pad', {'name': 'read'})['type'])
             self.assertEqual(99.5, driver._last_action_at)
             driver._send.return_value = {'type': 'observation', 'tree': 'fresh'}
-            with patch('tacto.helper.time.monotonic', return_value=100.0), \
-                 patch('tacto.helper.time.sleep') as sleep:
+            with patch('haejo.helper.time.monotonic', return_value=100.0), \
+                 patch('haejo.helper.time.sleep') as sleep:
                 driver.observe('pad')
             sleep.assert_called_once_with(0.5)
 
@@ -85,8 +85,8 @@ class ReadSettleTests(unittest.TestCase):
         driver._last_action_at = 0
         driver._send = Mock(side_effect=[{'type': 'acted'}, {'type': 'observation', 'tree': 'first'},
                                         {'type': 'acted'}, {'type': 'observation', 'tree': 'second'}])
-        with patch('tacto.helper.time.monotonic', return_value=100.0), \
-             patch('tacto.helper.time.sleep') as sleep:
+        with patch('haejo.helper.time.monotonic', return_value=100.0), \
+             patch('haejo.helper.time.sleep') as sleep:
             seen = []
             for _ in range(2):
                 driver.act('o', 'pad', {'name': 'read'})
@@ -96,7 +96,7 @@ class ReadSettleTests(unittest.TestCase):
 
     def test_in_process_read_does_not_renew_pending_write_time(self):
         try:
-            from tacto.driver import Driver
+            from haejo.driver import Driver
         except ImportError:
             self.skipTest('macOS driver unavailable')
         driver = object.__new__(Driver)
@@ -104,6 +104,6 @@ class ReadSettleTests(unittest.TestCase):
         driver._showing_control = Mock()
         driver._perform = Mock(return_value=None)
         driver._last_action_at = 99.5
-        with patch('tacto.driver.time.monotonic', return_value=100.0):
+        with patch('haejo.driver.time.monotonic', return_value=100.0):
             self.assertEqual('acted', driver.act('o', 'pad', {'name': 'read'})['type'])
         self.assertEqual(99.5, driver._last_action_at)

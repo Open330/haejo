@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class ListSelectionSourceTests(unittest.TestCase):
     def setUp(self):
-        self.source = (ROOT / 'helper/TactoHelper.swift').read_text()
+        self.source = (ROOT / 'helper/HaejoHelper.swift').read_text()
 
     def test_click_selects_through_the_list_and_only_a_read_back_counts(self):
         route = self.source[self.source.index('func selectListItem('):self.source.index('/// Everything this app currently has selected')]

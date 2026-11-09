@@ -5,10 +5,10 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
-from tacto.flow import Flow,Step,Selector,Postcondition,replay
-from tacto.contract import Envelope,ContextBinding,issue_approval
-from tacto.commit_evidence import SavedFileStateEvidence,evidence_error
-from tacto.existing_file_receipt import ExistingTextFileReceipt,SAVE_PATH
+from haejo.flow import Flow,Step,Selector,Postcondition,replay
+from haejo.contract import Envelope,ContextBinding,issue_approval
+from haejo.commit_evidence import SavedFileStateEvidence,evidence_error
+from haejo.existing_file_receipt import ExistingTextFileReceipt,SAVE_PATH
 from tests.test_existing_file_receipt import Doc
 
 
@@ -60,10 +60,10 @@ class SavedStateTests(unittest.TestCase):
         self.assertEqual(result.log[-1]['detail'],'saved_state_does_not_confirm_dispatch')
 
     def test_cli_does_not_say_an_unsaved_file_when_state_is_verified(self):
-        from tacto.cli import _run_flow
+        from haejo.cli import _run_flow
         driver,receipt,flow=self.fixture(True)
-        with patch('tacto.cli._make_driver',return_value=driver), \
-                patch('tacto.agent.Agent.commit_adapter_for',return_value=receipt), \
+        with patch('haejo.cli._make_driver',return_value=driver), \
+                patch('haejo.agent.Agent.commit_adapter_for',return_value=receipt), \
                 contextlib.redirect_stdout(io.StringIO()) as output:
             code=_run_flow(flow,['--yes','--no-indicator'])
         self.assertEqual(code,1)
@@ -86,7 +86,7 @@ class SavedStateTests(unittest.TestCase):
 
     def test_general_save_requires_operation_completion_even_with_acknowledged_state(self):
         from tests import test_general_menu_commit as fixture
-        from tacto.outcome import DONE
+        from haejo.outcome import DONE
         spec_for=fixture.spec_for
         def state_spec(kind,envelope,expected,sources):
             return spec_for(kind,envelope,{**expected,'artifact_evidence_scope':'saved_state'},
@@ -105,7 +105,7 @@ class SavedStateTests(unittest.TestCase):
 
     def test_general_uncertain_acted_save_is_unknown_with_state_receipt(self):
         from tests import test_general_menu_commit as fixture
-        from tacto.outcome import DONE
+        from haejo.outcome import DONE
         spec_for=fixture.spec_for
         def state_spec(kind,envelope,expected,sources):
             return spec_for(kind,envelope,{**expected,'artifact_evidence_scope':'saved_state'},
@@ -126,10 +126,10 @@ class SavedStateTests(unittest.TestCase):
         self.assertEqual(len(result.commit_evidence),1)
 
     def test_missing_receipt_does_not_infer_a_missing_file_or_recommend_another_save(self):
-        from tacto.cli import _run_flow
+        from haejo.cli import _run_flow
         driver,_,flow=self.fixture(False)
-        with patch('tacto.cli._make_driver',return_value=driver), \
-                patch('tacto.agent.Agent.commit_adapter_for',return_value=None), \
+        with patch('haejo.cli._make_driver',return_value=driver), \
+                patch('haejo.agent.Agent.commit_adapter_for',return_value=None), \
                 contextlib.redirect_stdout(io.StringIO()) as output:
             code=_run_flow(flow,['--yes','--no-indicator'])
         self.assertEqual(code,1)
@@ -137,11 +137,11 @@ class SavedStateTests(unittest.TestCase):
         self.assertIn('호스트 영수증이 없습니다',output.getvalue())
         self.assertIn('다시 실행하지 말고',output.getvalue())
         self.assertNotIn('저장된 파일이 없어',output.getvalue())
-        self.assertNotIn('tacto replay textedit_save',output.getvalue())
+        self.assertNotIn('haejo replay textedit_save',output.getvalue())
         self.assertNotIn('저장하지 않은 문서라면 정상',output.getvalue())
 
     def test_persistent_text_edit_reports_uncertain_change_instead_of_save_failure(self):
-        from tacto.cli import _run_flow
+        from haejo.cli import _run_flow
         driver,_,_=self.fixture(False)
         driver.observe=lambda *a,**k:{'type':'observation','obs_id':'edit',
             'tree':'0 TextArea  Value: before, Identifier: First Text View'}
@@ -150,8 +150,8 @@ class SavedStateTests(unittest.TestCase):
             safety=Envelope.minimal().contract_for({'write_persistent'},'document'),
             binding=ContextBinding(bundle_id='com.apple.TextEdit',operation='set_value'))
         flow=Flow('persistent_edit','com.apple.TextEdit',[step],schema=2)
-        with patch('tacto.cli._make_driver',return_value=driver), \
-                patch('tacto.agent.Agent.commit_adapter_for',return_value=None), \
+        with patch('haejo.cli._make_driver',return_value=driver), \
+                patch('haejo.agent.Agent.commit_adapter_for',return_value=None), \
                 contextlib.redirect_stdout(io.StringIO()) as output:
             code=_run_flow(flow,['--yes','--no-indicator'])
         self.assertEqual(code,1)

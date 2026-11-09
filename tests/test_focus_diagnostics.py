@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 from examples.focus_diagnostics import FocusDiagnosticReader
-from tacto.input_audit import InputSnapshot, MacInputReader
+from haejo.input_audit import InputSnapshot, MacInputReader
 
 
 class FocusDiagnosticTests(unittest.TestCase):

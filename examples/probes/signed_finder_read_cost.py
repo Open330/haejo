@@ -78,13 +78,13 @@ def preflight_summary(reply):
     # Reuse the existing closed progress validator without publishing its
     # validation envelope as if this were a window-input preparation result.
     if 'readiness_progress' in reply:
-        from tacto.preparation_diagnostic import preparation_diagnostic
+        from haejo.preparation_diagnostic import preparation_diagnostic
         checked=preparation_diagnostic({'phase':'context','reason':'unclassified_refusal',
             'elapsed_ms':0,'readiness_progress':reply['readiness_progress']})
         if checked is None:return None
         result['readiness_progress']=checked['readiness_progress']
     if 'readiness_failure' in reply:
-        from tacto.preparation_diagnostic import readiness_failure
+        from haejo.preparation_diagnostic import readiness_failure
         failure=readiness_failure(reply['readiness_failure'])
         if failure is None:return None
         result['readiness_failure']=failure
@@ -157,17 +157,17 @@ def main(driver, output, *, include_preflight=False, read_strategy='batch', coll
     interrupted=None
     with os.fdopen(descriptor,'w') as stream:
         try:
-            from tacto.helper import InheritedHelperDriver
+            from haejo.helper import InheritedHelperDriver
             if not isinstance(driver,InheritedHelperDriver) or not InheritedHelperDriver.available():
                 raise RuntimeError('signed_helper_required')
             if 'diagnostic.readiness_read_cost' not in driver.capabilities:
                 raise RuntimeError('readiness_cost_capability_unavailable')
-            from tacto.input_audit_process import ProcessInputAudit
+            from haejo.input_audit_process import ProcessInputAudit
             root=Path(__file__).resolve().parents[2]
-            paths=list((root/'tacto').glob('*.py'))+list((root/'helper').glob('*.swift'))+[
-                Path(__file__).resolve(),root/'examples/eval.py',root/'launcher/tacto',
-                root/'launcher/tacto.swift',root/'helper/tacto-helper',
-                root/'helper/Tacto Helper.app/Contents/MacOS/TactoHelper',root/'helper/build.sh',
+            paths=list((root/'haejo').glob('*.py'))+list((root/'helper').glob('*.swift'))+[
+                Path(__file__).resolve(),root/'examples/eval.py',root/'launcher/haejo',
+                root/'launcher/haejo.swift',root/'helper/haejo-helper',
+                root/'helper/Haejo Helper.app/Contents/MacOS/HaejoHelper',root/'helper/build.sh',
                 root/'helper/bundle.sh',root/'signing.sh']
             def manifest():return {str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(paths)}
             report['source_subset_before']=manifest()
@@ -219,7 +219,7 @@ def main(driver, output, *, include_preflight=False, read_strategy='batch', coll
                         cpu_before=None
                         if collect_cpu:
                             from AppKit import NSWorkspace
-                            from tacto.process_cpu import sample_process_cpu,cpu_delta_ns,verify_cpu_clock
+                            from haejo.process_cpu import sample_process_cpu,cpu_delta_ns,verify_cpu_clock
                             from dataclasses import asdict
                             report['cpu_clock_validation']=verify_cpu_clock()
                             apps=[a for a in NSWorkspace.sharedWorkspace().runningApplications()

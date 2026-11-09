@@ -1,24 +1,24 @@
 # Goal-scoped tasks
 
-`tacto task` groups every Tacto invocation that an agent makes for one user
+`haejo task` groups every Haejo invocation that an agent makes for one user
 goal. The agent starts a task first, binds every following call to it, and ends
 it with a declared result. Agent usage: [skill reference](../skill/references/task.md).
 
 ## Model
 
 - A task is file-backed metadata under the product directory
-  (`~/Library/Application Support/Tacto/Tasks/<task-id>/` on macOS): `task.json`
+  (`~/Library/Application Support/Haejo/Tasks/<task-id>/` on macOS): `task.json`
   (id, goal, state, result, timestamps) and `events.jsonl` (one start/end record
   per bound invocation, plus one `invocation_flow` record per flow it ran). Directories are 0700, files 0600, owner-checked and
   never followed through symlinks. Task IDs are `t-` + 24 hex digits and are
   validated before any path is built.
 - No daemon, lease or authorization. Helper connections, approvals, foreground
   scope and KeepAwake remain per invocation; an open task holds nothing.
-- Binding: `--task <id>` (wins) or `TACTO_TASK`. Resolved in `cli.main` before
+- Binding: `--task <id>` (wins) or `HAEJO_TASK`. Resolved in `cli.main` before
   the access receipt, driver, helper or KeepAwake. An invalid, unknown or ended
-  task exits 2 with `effect: not_started` and no screen access. `tacto task …`
+  task exits 2 with `effect: not_started` and no screen access. `haejo task …`
   itself is exempt so a closed inherited task can still be inspected or ended.
-  Non-screen commands ignore an ambient `TACTO_TASK` and refuse an explicit
+  Non-screen commands ignore an ambient `HAEJO_TASK` and refuse an explicit
   `--task` (`task_not_applicable`). Nested dispatch keeps the outer invocation.
 - Admission: `invocation_start` is appended under a short exclusive lock on the
   task after re-checking that it is open, so `task end` and a new call cannot
@@ -30,14 +30,14 @@ it with a declared result. Agent usage: [skill reference](../skill/references/ta
   time, and the flows each invocation ran. Free text written by the agent stays
   in the task directory only: the goal sentence and optional `detail`
   (`task.json`), a one-line `why` on an `invocation_start` record (`--why`), and
-  `note` records (`tacto task note`, `task end --note`). Access receipts stay
+  `note` records (`haejo task note`, `task end --note`). Access receipts stay
   content-free. Limits: goal 1000, detail 4000 (multi-line), why 500 (one line),
   note 1000 characters; control characters other than tab/newline are refused.
   `task describe` sets the description of an open task; notes are append-only
   and also accepted after the task ends (a closing summary). When a task starts
-  without a description, or ends without notes, a `TACTO_TASK_HINT` line after
+  without a description, or ends without notes, a `HAEJO_TASK_HINT` line after
   the marker names the command that adds what is missing.
-- The Tacto app's **실행 기록** tab groups access receipts by their
+- The Haejo app's **실행 기록** tab groups access receipts by their
   `command_start.task_id`: one row per task (goal, 진행 중/완료/실패/중단, call
   count, apps), whose detail shows the request description, then the latest 30
   calls newest first with their `--why` reason and steps, interleaved by time with
@@ -52,7 +52,7 @@ it with a declared result. Agent usage: [skill reference](../skill/references/ta
   `do`, `run`, `replay`, `session` and `batch` are covered without per-command
   code (`parallel` children are separate invocations; the legacy in-process
   `run_parallel` notes on the caller thread). Source is `builtin` (a library
-  builder), `library` (a saved flow file), `file` (`tacto run <path>`, noted
+  builder), `library` (a saved flow file), `file` (`haejo run <path>`, noted
   after argument checks, so a refused run notes nothing) or `inline`. The name
   is copied only for `builtin`/`library` recipes (ASCII label, `base:recovery`
   for a recovery of one); `file` and `inline` flows — whose names a model or a

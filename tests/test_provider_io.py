@@ -8,10 +8,10 @@ import time
 import unittest
 from unittest.mock import patch
 
-from tacto.authoring import _run_provider
-from tacto.codex_result import _run_codex
-from tacto.claude_result import _run_claude
-from tacto.provider_io import ProviderOutputLimitExceeded, bounded_communicate
+from haejo.authoring import _run_provider
+from haejo.codex_result import _run_codex
+from haejo.claude_result import _run_claude
+from haejo.provider_io import ProviderOutputLimitExceeded, bounded_communicate
 
 
 @unittest.skipUnless(os.name=='posix','POSIX planning CLI capture')
@@ -27,7 +27,7 @@ class ProviderIOTests(unittest.TestCase):
         for channel in ('stdout','stderr'):
             for size in (1024,1025):
                 source=f'import os;os.write({1 if channel=="stdout" else 2},b"x"*{size})'
-                with patch('tacto.provider_io.MAX_PROVIDER_OUTPUT_BYTES',1024):
+                with patch('haejo.provider_io.MAX_PROVIDER_OUTPUT_BYTES',1024):
                     if size==1024:
                         result=_run_provider([sys.executable,'-c',source],3)
                         self.assertEqual('x'*size,getattr(result,channel))
@@ -46,7 +46,7 @@ class ProviderIOTests(unittest.TestCase):
                 children=[];launch=subprocess.Popen
                 def capture(*args,**kwargs):
                     proc=launch(*args,**kwargs);children.append(proc);return proc
-                with patch('tacto.provider_io.MAX_PROVIDER_OUTPUT_BYTES',1024), \
+                with patch('haejo.provider_io.MAX_PROVIDER_OUTPUT_BYTES',1024), \
                      patch('subprocess.Popen',side_effect=capture),self.assertRaises(ProviderOutputLimitExceeded):
                     if name=='authoring':_run_provider(argv,3)
                     elif name=='codex':_run_codex(argv,'owned',3)
@@ -99,7 +99,7 @@ class ProviderIOTests(unittest.TestCase):
                 self.assertFalse(marker.exists(),'owned worker survived successful primary completion')
 
     def test_non_reaping_exit_observer_keeps_owned_pid_until_explicit_wait(self):
-        from tacto.provider_io import provider_process_exited_unreaped
+        from haejo.provider_io import provider_process_exited_unreaped
         with subprocess.Popen([sys.executable,'-c','raise SystemExit(7)']) as process:
             deadline=time.monotonic()+3
             while not provider_process_exited_unreaped(process):
@@ -110,13 +110,13 @@ class ProviderIOTests(unittest.TestCase):
 
     def test_invalid_session_and_unproven_permission_error_cannot_supply_an_answer(self):
         from unittest.mock import Mock
-        from tacto.provider_io import communicate_owned_provider
+        from haejo.provider_io import communicate_owned_provider
         process=Mock(pid=42,returncode=None)
         with patch('os.getpgid',return_value=99),patch('os.killpg') as group,self.assertRaises(RuntimeError):
             communicate_owned_provider(process,timeout=1)
         group.assert_not_called();process.kill.assert_called_once();process.wait.assert_called_once()
         with patch('os.killpg',side_effect=PermissionError('owned injection')), \
-             patch('tacto.provider_io._darwin_group_has_no_other_processes',return_value=False), \
+             patch('haejo.provider_io._darwin_group_has_no_other_processes',return_value=False), \
              self.assertRaises(PermissionError):
             _run_provider([sys.executable,'-c','print("owned answer")'],3)
 
@@ -127,14 +127,14 @@ class ProviderIOTests(unittest.TestCase):
     def test_lost_child_ownership_never_signals_numeric_group(self):
         import errno
         from unittest.mock import Mock
-        from tacto.provider_io import communicate_owned_provider
+        from haejo.provider_io import communicate_owned_provider
         for capture_error in (ChildProcessError(errno.ECHILD, 'owned fixture reaped'),
                               subprocess.TimeoutExpired('owned fixture', .1), KeyboardInterrupt()):
             with self.subTest(error=type(capture_error).__name__):
                 process=Mock(pid=12345,returncode=None)
                 with patch('os.getpgid',return_value=12345),patch('os.getsid',return_value=12345), \
-                     patch('tacto.provider_io.bounded_communicate',side_effect=capture_error), \
-                     patch('tacto.provider_io.provider_process_exited_unreaped',
+                     patch('haejo.provider_io.bounded_communicate',side_effect=capture_error), \
+                     patch('haejo.provider_io.provider_process_exited_unreaped',
                            side_effect=ChildProcessError(errno.ECHILD, 'owned fixture reaped')), \
                      patch('os.killpg') as group,self.assertRaises(ChildProcessError):
                     communicate_owned_provider(process,timeout=.1)
@@ -145,9 +145,9 @@ class ProviderIOTests(unittest.TestCase):
         source = """
 import signal
 from unittest.mock import patch
-from tacto.authoring import _run_provider
-from tacto.codex_result import _run_codex
-from tacto.claude_result import _run_claude
+from haejo.authoring import _run_provider
+from haejo.codex_result import _run_codex
+from haejo.claude_result import _run_claude
 signal.signal(signal.SIGCHLD, signal.SIG_IGN)
 for invoke in (lambda: _run_provider(['unused'],1),
                lambda: _run_codex(['unused'],'owned',1),
@@ -167,7 +167,7 @@ print('refused before spawn: 3')
     def test_native_no_child_wait_is_refused_in_isolated_host(self):
         source = """
 import ctypes,signal
-from tacto.provider_io import require_provider_child_ownership
+from haejo.provider_io import require_provider_child_ownership
 class SigAction(ctypes.Structure):
     _fields_=[('handler',ctypes.c_void_p),('mask',ctypes.c_uint),('flags',ctypes.c_int)]
 lib=ctypes.CDLL('/usr/lib/libSystem.B.dylib',use_errno=True)
@@ -185,7 +185,7 @@ else: raise AssertionError('SA_NOCLDWAIT accepted')
         self.assertEqual('native auto-reap refused\n',result.stdout)
 
     def test_externally_reaped_real_child_cannot_authorize_group_signal(self):
-        from tacto.provider_io import communicate_owned_provider
+        from haejo.provider_io import communicate_owned_provider
         # Reap only this fresh fixture. Popen's cached returncode remains None.
         with subprocess.Popen([sys.executable,'-c','pass'],stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE,text=True,start_new_session=True) as process:
@@ -194,7 +194,7 @@ else: raise AssertionError('SA_NOCLDWAIT accepted')
             self.assertIsNone(process.returncode)
             with patch('os.getpgid',return_value=process.pid), \
                  patch('os.getsid',return_value=process.pid), \
-                 patch('tacto.provider_io.bounded_communicate',return_value=('owned answer','')), \
+                 patch('haejo.provider_io.bounded_communicate',return_value=('owned answer','')), \
                  patch('os.killpg') as group,self.assertRaises(ChildProcessError):
                 communicate_owned_provider(process,timeout=1)
             group.assert_not_called()

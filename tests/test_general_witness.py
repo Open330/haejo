@@ -1,6 +1,6 @@
 """Exact live values, unknown values and refused probes stay distinct."""
 import unittest
-from tacto.general import _witness
+from haejo.general import _witness
 
 
 class GeneralWitnessTests(unittest.TestCase):

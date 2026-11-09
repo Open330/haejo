@@ -6,10 +6,10 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from tacto import cli
-from tacto.flow import Flow, replay
-from tacto.library import builders
-from tacto.command_help import calculator_example
+from haejo import cli
+from haejo.flow import Flow, replay
+from haejo.library import builders
+from haejo.command_help import calculator_example
 from tests.test_flow_safety_defaults import Calculator
 import json
 

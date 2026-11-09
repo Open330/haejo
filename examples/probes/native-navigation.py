@@ -8,7 +8,7 @@ import time
 import hashlib
 import os
 
-TARGET = 'ai.callabo.tacto.navigation-fixture'
+TARGET = 'ai.callabo.haejo.navigation-fixture'
 
 
 def main(driver, output, *, model_provider=None, require_selection=False):
@@ -52,22 +52,22 @@ def main(driver, output, *, model_provider=None, require_selection=False):
 
 
 def source_hashes(root):
-    paths=list((root/'tacto').glob('*.py'))+list((root/'helper').glob('*.swift'))+[
+    paths=list((root/'haejo').glob('*.py'))+list((root/'helper').glob('*.swift'))+[
         root/'examples/probes/native-navigation.py',root/'examples/eval.py',
-        root/'tests/fixtures/NativeNavigationFixture.swift',root/'launcher/tacto.swift',
-        root/'launcher/tacto',root/'helper/tacto-helper',
-        root/'helper/Tacto Helper.app/Contents/MacOS/TactoHelper',
-        root/'helper/Tacto Helper.app/Contents/Info.plist',root/'helper/build.sh',
+        root/'tests/fixtures/NativeNavigationFixture.swift',root/'launcher/haejo.swift',
+        root/'launcher/haejo',root/'helper/haejo-helper',
+        root/'helper/Haejo Helper.app/Contents/MacOS/HaejoHelper',
+        root/'helper/Haejo Helper.app/Contents/Info.plist',root/'helper/build.sh',
         root/'helper/bundle.sh',root/'signing.sh']
     return {str(path.relative_to(root)):hashlib.sha256(path.read_bytes()).hexdigest()
             for path in sorted(paths)}
 
 
 def _run_navigation(driver, report, *, model_provider=None, require_selection=False):
-    from tacto.driver import Driver, _attr
-    from tacto.flow import Selector
-    from tacto.model_budget import model_deadline
-    from tacto.input_audit_process import ProcessInputAudit
+    from haejo.driver import Driver, _attr
+    from haejo.flow import Selector
+    from haejo.model_budget import model_deadline
+    from haejo.input_audit_process import ProcessInputAudit
     from ApplicationServices import AXUIElementCreateApplication
     root = Path(__file__).resolve().parents[2]
     if type(require_selection) is not bool:
@@ -84,12 +84,12 @@ def _run_navigation(driver, report, *, model_provider=None, require_selection=Fa
     child = None
     try:
         assert host_driver._resolve(TARGET, launch=False) is None, 'owned fixture already running'
-        with tempfile.TemporaryDirectory(prefix='tacto-native-navigation-') as directory:
+        with tempfile.TemporaryDirectory(prefix='haejo-native-navigation-') as directory:
             bundle = Path(directory) / 'Navigation.app'
             binaries = bundle / 'Contents/MacOS'; binaries.mkdir(parents=True)
             binary = binaries / 'Navigation'
             (bundle / 'Contents/Info.plist').write_bytes(plistlib.dumps({
-                'CFBundleIdentifier': TARGET, 'CFBundleName': 'TACTO Navigation Fixture',
+                'CFBundleIdentifier': TARGET, 'CFBundleName': 'HAEJO Navigation Fixture',
                 'CFBundleExecutable': 'Navigation', 'CFBundlePackageType': 'APPL'}))
             subprocess.run(['swiftc', '-parse-as-library', '-O', '-framework', 'AppKit',
                 str(root / 'tests/fixtures/NativeNavigationFixture.swift'), '-o', str(binary)],
@@ -146,7 +146,7 @@ def _run_navigation(driver, report, *, model_provider=None, require_selection=Fa
                     refused(observation, 'nav-A-first', 'Right', stale=True)
                     refused(observation, 'nav-A-first', 'Right', expired=True)
                     assert state() == initial
-                    window, _ = Selector(role='Window', title='TACTO Navigation Fixture A').resolve(observation['tree'])
+                    window, _ = Selector(role='Window', title='HAEJO Navigation Fixture A').resolve(observation['tree'])
                     prepared = driver.act(observation['obs_id'], TARGET, {'name': 'prepare_window', 'element_index': window})
                     report['preparation'] = prepared
                     assert prepared.get('type') == 'acted', prepared
@@ -177,7 +177,7 @@ def _run_navigation(driver, report, *, model_provider=None, require_selection=Fa
                             refused(observe(), 'nav-A-first', 'Tab')
                     report['final'] = state()
                     assert 'downs=6 ups=6 routeErrors=0' in report['final']['nav-A-state']
-                    from tacto.general import run
+                    from haejo.general import run
                     plans = []
                     class OwnedNavigationDriver:
                         """Closed model probe: one Right on A-first, plus reads."""
@@ -201,7 +201,7 @@ def _run_navigation(driver, report, *, model_provider=None, require_selection=Fa
                     general_driver = OwnedNavigationDriver() if model_provider else driver
                     def planner(goal, candidates, history):
                         if model_provider:
-                            from tacto.ask import ask_here_paged
+                            from haejo.ask import ask_here_paged
                             for candidate in candidates:
                                 candidate['can'] = [value for value in candidate['can'] if value in ('press_key','read')]
                             answer = ask_here_paged(goal, candidates, history, provider=model_provider, max_pages=2)
@@ -225,8 +225,8 @@ def _run_navigation(driver, report, *, model_provider=None, require_selection=Fa
                     report['final'] = state()
                     assert 'downs=7 ups=7 routeErrors=0' in report['final']['nav-A-state']
                     assert 'downs=0 ups=0 routeErrors=0' in report['final']['nav-B-state']
-                    from tacto.flow import Flow, Step, Postcondition, replay, pin_params
-                    from tacto.contract import Envelope, ContextBinding
+                    from haejo.flow import Flow, Step, Postcondition, replay, pin_params
+                    from haejo.contract import Envelope, ContextBinding
                     field = Selector(role='TextArea', identifier='nav-A-first')
                     # Explicit owned-fixture reset, then replay the observed
                     # Right/read candidate. This is no retry or model step.
@@ -236,7 +236,7 @@ def _run_navigation(driver, report, *, model_provider=None, require_selection=Fa
                     assert reset.get('type') == 'acted' and reset.get('posted_events') == 2, reset
                     time.sleep(.12)
                     assert state()['nav-A-first'] == 'position=0'
-                    from tacto.promote import candidate_from, deployable
+                    from haejo.promote import candidate_from, deployable
                     candidate = candidate_from(general, TARGET, 'navigate once and read')
                     assert candidate is not None
                     promoted, reasons = deployable(candidate, 'owned-promoted-navigation', candidate.goal,

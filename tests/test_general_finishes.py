@@ -1,7 +1,7 @@
 """A batch the planner says finishes the goal ends the run on its own evidence."""
 import unittest
 
-from tacto.general import candidates, run
+from haejo.general import candidates, run
 
 
 class Counter:
@@ -88,7 +88,7 @@ class FinishesTests(unittest.TestCase):
 
 class PlannerCheckTests(unittest.TestCase):
     def check(self, answer):
-        from tacto.ask import what_to_do_here
+        from haejo.ask import what_to_do_here
         cands = candidates(Counter().tree())
         return what_to_do_here('goal', cands).check(answer), cands
 

@@ -3,7 +3,7 @@ import Foundation
 import Darwin
 import CryptoKit
 
-enum TactoMode {
+enum HaejoMode {
     static let limit = 8 * 1024 * 1024
     static let workerCount = 4
     static func workerKey(_ build: String, slot: Int) -> String {
@@ -37,7 +37,7 @@ enum TactoMode {
         var parentInfo = stat()
         guard lstat(parent,&parentInfo) == 0, parentInfo.st_uid == getuid(),
               parentInfo.st_mode & S_IFMT == S_IFDIR, parentInfo.st_mode & 0o777 == 0o700 else { return nil }
-        let path = parent + (parent.hasSuffix("/") ? "" : "/") + "tacto-warm-\(key.prefix(20))"
+        let path = parent + (parent.hasSuffix("/") ? "" : "/") + "haejo-warm-\(key.prefix(20))"
         guard address(path+"/helper.sock") != nil else { return nil }
         if mkdir(path, 0o700) != 0 && errno != EEXIST { return nil }
         var info = stat()
@@ -97,20 +97,20 @@ enum TactoMode {
 
 // Cross-process ownership also covers per-command helpers and different builds.
 // Never unlink lock files: existing waiters must keep the same inode.
-final class TactoScopeLease {
+final class HaejoScopeLease {
     private var descriptors: [String:(fd:Int32,shared:Bool)] = [:]
     /// The client process this lease works for, written next to an exclusive
     /// hold so a refused waiter can say who has the app and for how long.
     var holderPID: Int32 = 0
     private static func path(_ scope: String) -> String? {
-        let namespace = TactoMode.workerKey("tacto-resource-leases-v1", slot:0)
-        guard let directory = TactoMode.directory(namespace) else { return nil }
+        let namespace = HaejoMode.workerKey("tacto-resource-leases-v1", slot:0)
+        guard let directory = HaejoMode.directory(namespace) else { return nil }
         let key = SHA256.hash(data:Data(scope.utf8)).map { String(format:"%02x",$0) }.joined()
         return directory+"/"+key+".lock"
     }
     func take(_ scope: String, shared: Bool = false) -> Bool {
         if let held = descriptors[scope] { return !held.shared || shared }
-        guard let file = TactoScopeLease.path(scope) else { return false }
+        guard let file = HaejoScopeLease.path(scope) else { return false }
         let fd = open(file,O_CREAT|O_RDWR|O_NOFOLLOW|O_CLOEXEC,0o600)
         guard fd >= 0 else { return false }
         var info = stat()

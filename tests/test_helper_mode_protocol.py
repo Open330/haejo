@@ -17,17 +17,17 @@ class OptionalHelperProtocolTests(unittest.TestCase):
 import Foundation
 import Darwin
 let mode = CommandLine.arguments[1], scope = CommandLine.arguments[2]
-let lease = TactoScopeLease()
+let lease = HaejoScopeLease()
 if mode.hasPrefix("hold") {
     precondition(lease.take(scope,shared:mode == "hold-shared")); precondition(lease.take(scope,shared:mode == "hold-shared"))
     print("ready"); fflush(stdout)
     var byte: UInt8 = 0; _ = read(0,&byte,1)
     withExtendedLifetime(lease) {}
 } else {
-    let keys = (0..<TactoMode.workerCount).map { TactoMode.workerKey("build",slot:$0) }
+    let keys = (0..<HaejoMode.workerCount).map { HaejoMode.workerKey("build",slot:$0) }
     precondition(Set(keys).count == 4)
-    precondition(keys == (0..<4).map { TactoMode.workerKey("build",slot:$0) })
-    precondition(keys[0] != TactoMode.workerKey("other-build",slot:0))
+    precondition(keys == (0..<4).map { HaejoMode.workerKey("build",slot:$0) })
+    precondition(keys[0] != HaejoMode.workerKey("other-build",slot:0))
     print(lease.take(scope) ? "acquired" : "busy")
     withExtendedLifetime(lease) {}
 }
@@ -120,33 +120,33 @@ print("lease-and-callback-ok")
 import Foundation
 import Darwin
 let key = UUID().uuidString.replacingOccurrences(of:"-",with:"").lowercased()
-guard let created = TactoMode.directory(key) else { fatalError("directory missing") }
+guard let created = HaejoMode.directory(key) else { fatalError("directory missing") }
 let path = created
 defer { unlink(path); rmdir(path) }
 precondition(!path.hasPrefix("/tmp/"))
-precondition(TactoMode.address(path+"/helper.sock") != nil)
+precondition(HaejoMode.address(path+"/helper.sock") != nil)
 var info = stat(); precondition(lstat(created,&info) == 0 && info.st_mode & 0o777 == 0o700)
-chmod(created,0o755); precondition(TactoMode.directory(key) == nil)
+chmod(created,0o755); precondition(HaejoMode.directory(key) == nil)
 chmod(created,0o700); rmdir(created)
-precondition(symlink("/tmp",path) == 0); precondition(TactoMode.directory(key) == nil); unlink(path)
+precondition(symlink("/tmp",path) == 0); precondition(HaejoMode.directory(key) == nil); unlink(path)
 var pair: [Int32] = [0,0]; precondition(socketpair(AF_UNIX,SOCK_STREAM,0,&pair) == 0)
 defer { close(pair[0]); close(pair[1]) }
 var attempts = 0
-let acquired: Int? = TactoMode.waitForLease(seconds:1,attempt:{ attempts += 1; return attempts },
+let acquired: Int? = HaejoMode.waitForLease(seconds:1,attempt:{ attempts += 1; return attempts },
     busy:{$0 < 3},cancelled:{false})
 precondition(acquired == 3 && attempts == 3)
 attempts = 0
-let exhausted: Int? = TactoMode.waitForLease(seconds:0,attempt:{ attempts += 1; return 0 },
+let exhausted: Int? = HaejoMode.waitForLease(seconds:0,attempt:{ attempts += 1; return 0 },
     busy:{$0 == 0},cancelled:{false})
 precondition(exhausted == 0 && attempts == 1)
-let cancelled: Int? = TactoMode.waitForLease(seconds:10,attempt:{0},busy:{$0 == 0},cancelled:{true})
+let cancelled: Int? = HaejoMode.waitForLease(seconds:10,attempt:{0},busy:{$0 == 0},cancelled:{true})
 precondition(cancelled == nil)
-precondition(TactoMode.send(pair[0],["step":1]))
-precondition(TactoMode.send(pair[0],["step":2]))
-precondition(TactoMode.receive(pair[1])?["step"] as? Int == 1)
-precondition(TactoMode.receive(pair[1])?["step"] as? Int == 2)
+precondition(HaejoMode.send(pair[0],["step":1]))
+precondition(HaejoMode.send(pair[0],["step":2]))
+precondition(HaejoMode.receive(pair[1])?["step"] as? Int == 1)
+precondition(HaejoMode.receive(pair[1])?["step"] as? Int == 2)
 let bad = Data("bad\n".utf8); bad.withUnsafeBytes { _ = write(pair[0],$0.baseAddress!,bad.count) }
-precondition(TactoMode.receive(pair[1]) == nil)
+precondition(HaejoMode.receive(pair[1]) == nil)
 print("{\"frames_preserved\":true,\"unsafe_directory_refused\":true,\"malformed_refused\":true}")
 '''
         with tempfile.TemporaryDirectory() as directory:

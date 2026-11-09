@@ -2,8 +2,8 @@
 import copy
 import json
 import unittest
-from tacto.command_help import calculator_example
-from tacto.flow import Flow
+from haejo.command_help import calculator_example
+from haejo.flow import Flow
 
 
 class CompactFlowFieldsTests(unittest.TestCase):

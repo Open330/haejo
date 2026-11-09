@@ -2,13 +2,13 @@
 import importlib.util
 import unittest
 from urllib.parse import quote
-from tacto.candidate_paging import page_candidates,StaleCursor
-from tacto.general import candidates
+from haejo.candidate_paging import page_candidates,StaleCursor
+from haejo.general import candidates
 
 @unittest.skipUnless(importlib.util.find_spec('playwright'),'optional Playwright required')
 class CandidatePagingBrowserTests(unittest.TestCase):
     def setUp(self):
-        from tacto.browser import BrowserDriver
+        from haejo.browser import BrowserDriver
         self.driver=BrowserDriver(headless=True);self.addCleanup(self.driver.close)
         buttons=''.join(f'<button data-pick="{i}" onclick="receipt.textContent=\'{i}\';count.textContent=Number(count.textContent)+1">항목 {i:03d}</button>' for i in range(80))
         self.driver.goto('data:text/html;charset=utf-8,'+quote(buttons+'<output id="receipt">none</output><output id="count">0</output>'))

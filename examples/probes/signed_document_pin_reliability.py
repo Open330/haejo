@@ -13,7 +13,7 @@ sys.path.insert(0,str(Path(__file__).resolve().parent))
 from comparison_fixture_worker import FixtureWorker
 from focus_witness import FocusWitness
 from product_comparison import _locked,source_manifest
-from tacto.pin_diagnostic import diagnostic_lines
+from haejo.pin_diagnostic import diagnostic_lines
 
 
 def run(launcher,cycles):

@@ -47,7 +47,7 @@ def serve(comparison, incoming, outgoing, task='textedit_edit_owned'):
             if 'session.release_targets' not in driver.capabilities:
                 raise RuntimeError('fixture_worker_target_release_unavailable')
             if op == 'check':
-                from tacto.process_responsibility import observe_responsibility
+                from haejo.process_responsibility import observe_responsibility
                 value = {'capabilities': sorted(driver.capabilities),
                          'task': task, 'pid': os.getpid(), 'responsibility': observe_responsibility(os.getpid())}
             elif op == 'prepare':
@@ -101,7 +101,7 @@ class FixtureWorker:
             raise ValueError('unsupported_worker_task')
         self.timeout, self.sequence, self.buffer, self.poisoned = timeout, 0, b'', False
         env = os.environ.copy()
-        for key in ('TACTO_HELPER_FD', 'TACTO_LAUNCHER', 'TACTO_HELPER_TOKEN'):
+        for key in ('HAEJO_HELPER_FD', 'HAEJO_LAUNCHER', 'HAEJO_HELPER_TOKEN'):
             env.pop(key, None)
         self.process = subprocess.Popen(
             [launcher, 'eval', '--product-comparison', '--fixture-worker', '--fixture-worker-task', task],

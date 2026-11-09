@@ -1,8 +1,8 @@
 """A settings change the person asked for is approvable, not a handoff."""
 import json
 import unittest
-from tacto.contract import Resource, SafetyContract, policy
-from tacto.flow import Flow
+from haejo.contract import Resource, SafetyContract, policy
+from haejo.flow import Flow
 
 
 class SystemConfigPolicyTests(unittest.TestCase):
@@ -17,9 +17,9 @@ class SystemConfigPolicyTests(unittest.TestCase):
         self.assertEqual('confirm', policy(contract).risk)
 
     def test_granting_screen_recording_is_approved_with_the_persons_yes(self):
-        from tacto.agent import Agent
+        from haejo.agent import Agent
         flow = Flow.from_json(json.dumps({"schema": 2, "name": "grant", "target": "com.apple.systempreferences",
-            "steps": [{"action": "click", "selector": {"role": "CheckBox", "title": "Tacto"},
+            "steps": [{"action": "click", "selector": {"role": "CheckBox", "title": "Haejo"},
                        "safety": {"effects": ["system_config"], "reversibility": "reversible",
                                   "resource": {"object_type": "privacy permission", "scope": "item"}}}]}))
         approvals, blocked = Agent.authorize(object.__new__(Agent), flow, ask=lambda what: True)

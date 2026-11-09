@@ -355,12 +355,12 @@ def main(argv=None):
     from focus_witness import FocusWitness
 
     nonce = secrets.token_hex(8)
-    work = Path(tempfile.mkdtemp(prefix='tacto-bg-keyeq-')).resolve()
+    work = Path(tempfile.mkdtemp(prefix='haejo-bg-keyeq-')).resolve()
     tool = work / 'tool'
     (work / 'tool.swift').write_text(TOOL)
     subprocess.run(['xcrun', 'swiftc', str(work / 'tool.swift'), '-o', str(tool)],
                    check=True, capture_output=True, timeout=240)
-    document = work / f'tacto-bg-keyeq-{nonce}.rtf'
+    document = work / f'haejo-bg-keyeq-{nonce}.rtf'
     document.write_bytes(b'{\\rtf1\\ansi owned background key equivalent fixture ' + nonce.encode() + b'}')
     report = {'scope': 'owned_TextEdit_document_background_key_equivalent', 'passed': False,
               'nonce': nonce, 'model_requests': 0, 'saves_committed': 0, 'runs': [],
@@ -387,7 +387,7 @@ def main(argv=None):
                 break
             time.sleep(0.2)
         report['frontmost_after_open'] = _frontmost()
-        front = subprocess.Popen([str(tool), 'foreground', f'tacto-bg-keyeq-front-{nonce}'],
+        front = subprocess.Popen([str(tool), 'foreground', f'haejo-bg-keyeq-front-{nonce}'],
                                  stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
         front.stdout.readline()
         time.sleep(0.5)
@@ -417,7 +417,7 @@ def main(argv=None):
                 row['windows'] = menu_witness.summary()['windows']
                 report['menubar'].append(row)
                 front.terminate(); front.wait(timeout=5)
-                front = subprocess.Popen([str(tool), 'foreground', f'tacto-bg-keyeq-front-{nonce}'],
+                front = subprocess.Popen([str(tool), 'foreground', f'haejo-bg-keyeq-front-{nonce}'],
                                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
                 front.stdout.readline(); time.sleep(0.5)
         if options.prepare:
@@ -433,7 +433,7 @@ def main(argv=None):
                 row['windows'] = prepare_witness.summary()['windows']
                 report['prepare'].append(row)
                 front.terminate(); front.wait(timeout=5)
-                front = subprocess.Popen([str(tool), 'foreground', f'tacto-bg-keyeq-front-{nonce}'],
+                front = subprocess.Popen([str(tool), 'foreground', f'haejo-bg-keyeq-front-{nonce}'],
                                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
                 front.stdout.readline(); time.sleep(0.5)
         if options.prepare:

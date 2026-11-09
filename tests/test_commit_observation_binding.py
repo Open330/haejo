@@ -1,7 +1,7 @@
 """Receipt identity includes the observation used to resolve an action index."""
 import unittest
-from tacto.artifact_receipt import FreshFileReceipt, ArtifactReceiptError
-from tacto.commit_evidence import make_event, CommitEvidence, ArtifactEvidence, evidence_error
+from haejo.artifact_receipt import FreshFileReceipt, ArtifactReceiptError
+from haejo.commit_evidence import make_event, CommitEvidence, ArtifactEvidence, evidence_error
 
 
 class CommitObservationBindingTests(unittest.TestCase):

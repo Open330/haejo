@@ -1,6 +1,6 @@
 """Record one permission revocation/regrant cycle for the release gate.
 
-The person turns Tacto Helper off or on in System Settings; this does the rest:
+The person turns Haejo Helper off or on in System Settings; this does the rest:
 it checks `doctor`, attempts a fixed task on an owned Finder folder, reads the
 result back, and writes a private JSON record. It never changes permissions.
 
@@ -20,12 +20,12 @@ from pathlib import Path
 import subprocess
 import tempfile
 
-TACTO = Path.home() / '.local/bin/tacto'
-ROOT = Path.home() / 'TactoQualification/permission-cycles'
+HAEJO = Path.home() / '.local/bin/haejo'
+ROOT = Path.home() / 'HaejoQualification/permission-cycles'
 
 
 def run(*args, timeout=120, full=False):
-    result = subprocess.run([str(TACTO), *args], capture_output=True, text=True, timeout=timeout,
+    result = subprocess.run([str(HAEJO), *args], capture_output=True, text=True, timeout=timeout,
                             stdin=subprocess.DEVNULL)
     return {'argv': list(args), 'exit': result.returncode,
             'stdout': result.stdout if full else result.stdout[-4000:], 'stderr': result.stderr[-2000:]}
@@ -69,8 +69,8 @@ def main():
     for name in names:
         (folder / name).write_text('permission cycle fixture\n')
     record = {'cycle': args.cycle, 'phase': args.phase, 'started': datetime.datetime.now().isoformat(timespec='seconds'),
-              'folder': str(folder), 'launcher': str(TACTO.resolve()),
-              'launcher_sha256': hashlib.sha256(TACTO.resolve().read_bytes()).hexdigest()}
+              'folder': str(folder), 'launcher': str(HAEJO.resolve()),
+              'launcher_sha256': hashlib.sha256(HAEJO.resolve().read_bytes()).hexdigest()}
     record['doctor'] = run('doctor', '--check')
     with tempfile.NamedTemporaryFile('w', suffix='.json', delete=False) as stream:
         json.dump(flow(folder, 'target.txt'), stream)

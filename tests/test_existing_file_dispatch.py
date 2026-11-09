@@ -3,10 +3,10 @@ from pathlib import Path
 import unittest
 import tempfile
 
-from tacto.artifact_receipt import ArtifactReceiptError
-from tacto.commit_evidence import CommitEvidence
+from haejo.artifact_receipt import ArtifactReceiptError
+from haejo.commit_evidence import CommitEvidence
 from tests.test_existing_file_receipt import Doc, save_event
-from tacto.existing_file_receipt import ExistingTextFileReceipt
+from haejo.existing_file_receipt import ExistingTextFileReceipt
 
 
 class ExistingDispatchTests(unittest.TestCase):

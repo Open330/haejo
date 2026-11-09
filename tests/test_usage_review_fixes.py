@@ -8,24 +8,24 @@ from unittest.mock import patch
 
 class AccessLogRetentionTests(unittest.TestCase):
     def test_a_polling_burst_does_not_evict_the_retention_window(self):
-        from tacto import access_log
+        from haejo import access_log
         # 77 observes in 24 s on 2026-11-04 evicted the whole history at 200.
         self.assertGreaterEqual(access_log.MAX_FILES, 2000)
         self.assertLessEqual(access_log.MAX_FILES * 4096, access_log.MAX_TOTAL * 2)
 
     def test_an_exit_two_without_a_reason_is_named(self):
-        from tacto.access_log import AccessLog
+        from haejo.access_log import AccessLog
         with tempfile.TemporaryDirectory() as folder:
-            log = AccessLog('launch', root=Path(folder)/'Tacto/Logs')
+            log = AccessLog('launch', root=Path(folder)/'Haejo/Logs')
             log.finish(2); log.close()
             events = [json.loads(l) for l in log.path.read_text().splitlines()]
         self.assertEqual(['command_start', 'task_result', 'command_end'], [e['event'] for e in events])
         self.assertEqual('unreported_refusal', events[1]['error'])
 
     def test_a_recorded_failure_is_not_overwritten(self):
-        from tacto.access_log import AccessLog
+        from haejo.access_log import AccessLog
         with tempfile.TemporaryDirectory() as folder:
-            log = AccessLog('run', root=Path(folder)/'Tacto/Logs')
+            log = AccessLog('run', root=Path(folder)/'Haejo/Logs')
             log.task_result({'status': 'failed', 'stage': 'load', 'error': 'invalid_flow'})
             log.finish(2); log.close()
             errors = [json.loads(l).get('error') for l in log.path.read_text().splitlines()]
@@ -34,7 +34,7 @@ class AccessLogRetentionTests(unittest.TestCase):
 
 class NavigationWordTests(unittest.TestCase):
     def effects(self, line):
-        from tacto.safety import effects_of
+        from haejo.safety import effects_of
         return effects_of({'name': 'click'}, line)[0]
 
     def test_go_to_folder_is_navigation(self):
@@ -50,8 +50,8 @@ class NavigationWordTests(unittest.TestCase):
 
 class RefusalExplanationTests(unittest.TestCase):
     def test_no_terminal_names_the_flag(self):
-        from tacto.cli import _confirmer
-        from tacto.safety import unanswered_confirmation
+        from haejo.cli import _confirmer
+        from haejo.safety import unanswered_confirmation
         with patch('sys.stdin.isatty', return_value=False):
             ask = _confirmer([])
         self.assertFalse(ask('x'))
@@ -62,7 +62,7 @@ class RefusalExplanationTests(unittest.TestCase):
 
 class NotFoundHintTests(unittest.TestCase):
     def driver(self, reply):
-        from tacto import helper
+        from haejo import helper
         d = object.__new__(helper.HelperDriver)
         d._last_action_at = 0
         d._send = lambda msg: dict(reply)
@@ -70,21 +70,21 @@ class NotFoundHintTests(unittest.TestCase):
 
     def test_a_stopped_app_names_launch(self):
         helper, d = self.driver({'type': 'error', 'error': 'target_not_found', 'target': 'com.apple.Home'})
-        with patch('tacto.session.lock_state', return_value={'locked': False}):
+        with patch('haejo.session.lock_state', return_value={'locked': False}):
             out = helper.HelperDriver.observe(d, 'com.apple.Home')
-        self.assertIn('tacto launch com.apple.Home --helper', out['hint'])
+        self.assertIn('haejo launch com.apple.Home --helper', out['hint'])
 
     def test_a_locked_screen_is_said_instead(self):
         helper, d = self.driver({'type': 'error', 'error': 'target_not_found', 'target': 'com.apple.Home'})
-        with patch('tacto.session.lock_state', return_value={'locked': True}):
+        with patch('haejo.session.lock_state', return_value={'locked': True}):
             out = helper.HelperDriver.observe(d, 'com.apple.Home')
         self.assertEqual('screen_locked', out['reason'])
-        self.assertNotIn('tacto launch', out['hint'])
+        self.assertNotIn('haejo launch', out['hint'])
 
 
 class SystemSurfaceTests(unittest.TestCase):
     def test_dock_is_not_called_a_menu_bar_app(self):
-        from tacto import driver
+        from haejo import driver
         app = type('App', (), {'isHidden': lambda self: False, 'activationPolicy': lambda self: 1,
                                'bundleIdentifier': lambda self: 'com.apple.dock'})()
         fake = type('NSRunningApplication', (), {
@@ -97,7 +97,7 @@ class SystemSurfaceTests(unittest.TestCase):
         self.assertNotIn('사람', detail)
 
     def test_no_window_hints_hand_nothing_to_a_person(self):
-        source = Path(__file__).resolve().parents[1].joinpath('tacto/driver.py').read_text()
+        source = Path(__file__).resolve().parents[1].joinpath('haejo/driver.py').read_text()
         start = source.index('def _why_no_window')
         body = source[start:source.index('\ndef ', start + 1)]
         self.assertNotIn('사람이', body)
@@ -106,8 +106,8 @@ class SystemSurfaceTests(unittest.TestCase):
 
 class AuthoringHintTests(unittest.TestCase):
     def feedback(self, step):
-        from tacto.flow import Flow
-        from tacto.flow_errors import feedback
+        from haejo.flow import Flow
+        from haejo.flow_errors import feedback
         flow = {"schema": 2, "name": "x", "target": "com.example.app", "steps": [step]}
         try:
             Flow.from_json(json.dumps(flow))
@@ -142,13 +142,13 @@ class EmptyEqualsTests(unittest.TestCase):
             '    2 TextArea  Identifier: First Text View, Secondary Actions: ShowMenu')
 
     def test_an_absent_value_is_empty(self):
-        from tacto.flow import Postcondition, Selector
+        from haejo.flow import Postcondition, Selector
         check = Postcondition(field=Selector(identifier="First Text View"), equals="")
         self.assertTrue(check.check(self.TREE))
         self.assertFalse(check.check(self.TREE.replace("Identifier: First", "Value: hi, Identifier: First")))
 
     def test_a_child_value_is_not_empty(self):
-        from tacto.flow import Postcondition, Selector
+        from haejo.flow import Postcondition, Selector
         tree = self.TREE + "\n      3 StaticText  Value: hi"
         self.assertFalse(Postcondition(field=Selector(identifier="First Text View"), equals="").check(tree))
 
@@ -175,21 +175,21 @@ class CaptureElementIndexTests(unittest.TestCase):
         return d, calls
 
     def test_the_window_line_number_is_sent_as_an_element(self):
-        from tacto.native_visual_actions import capture_window
+        from haejo.native_visual_actions import capture_window
         d, calls = self.driver({"capture.element_index"})
         image = capture_window(d, "o", "com.example.app", window_index=118)
         self.assertEqual([{"element_index": 118}], calls)
         self.assertEqual(118, image.window_index)
 
     def test_an_older_helper_keeps_the_previous_request(self):
-        from tacto.native_visual_actions import capture_window
+        from haejo.native_visual_actions import capture_window
         d, calls = self.driver(set())
         with self.assertRaises(Exception):
             capture_window(d, "o", "com.example.app", window_index=118)
         self.assertEqual([{"window_index": 118}], calls)
 
     def test_the_helper_announces_and_accepts_it(self):
-        source = Path(__file__).resolve().parents[1].joinpath("helper/TactoHelper.swift").read_text()
+        source = Path(__file__).resolve().parents[1].joinpath("helper/HaejoHelper.swift").read_text()
         self.assertIn('"capture.element_index"', source)
         self.assertIn('"element_index", "timeout_seconds"]', source)
 
@@ -203,13 +203,13 @@ class UnregisteredRunningAppTests(unittest.TestCase):
         return b
 
     def test_launch_reports_the_running_copy(self):
-        from tacto.app_launch import launch_app
+        from haejo.app_launch import launch_app
         b = self.backend()
         result = launch_app('dev.jiun.itda', backend=b, clock=lambda: b.time)
         self.assertEqual(('already_running', 7, 0), (result.get('status'), result.get('pid'), b.starts))
 
     def test_activate_does_not_say_not_installed(self):
-        from tacto import app_launch
+        from haejo import app_launch
         b = self.backend()
         with patch.object(app_launch, 'present_app', return_value={'type': 'app_activation', 'pid': 7}) as present:
             result = app_launch._activate_app('dev.jiun.itda', backend=b, clock=lambda: 0)
@@ -217,14 +217,14 @@ class UnregisteredRunningAppTests(unittest.TestCase):
         self.assertEqual(7, present.call_args.args[1])
 
     def test_two_unregistered_copies_stay_ambiguous(self):
-        from tacto import app_launch
+        from haejo import app_launch
         b = self.backend()
         b.apps = b.apps * 2
         self.assertEqual('application_identity_ambiguous',
                          app_launch._activate_app('dev.jiun.itda', backend=b, clock=lambda: 0)['error'])
 
     def test_launch_timeout_names_the_running_process(self):
-        from tacto.app_launch import launch_app
+        from haejo.app_launch import launch_app
         from tests.test_app_launch import Backend
         b = Backend()
         b.finish = False
@@ -238,7 +238,7 @@ class UnregisteredRunningAppTests(unittest.TestCase):
 
 class QuitStepTests(unittest.TestCase):
     def run_quit(self, steps):
-        from tacto.flow import Flow, replay
+        from haejo.flow import Flow, replay
         flow = Flow.from_json(json.dumps({"schema": 2, "name": "quit", "target": "com.example.app", "steps": steps}))
 
         class App:
@@ -277,7 +277,7 @@ class QuitStepTests(unittest.TestCase):
 class ObserveUntilTests(unittest.TestCase):
     def run_cli(self, args, trees):
         import contextlib, io
-        from tacto import cli
+        from haejo import cli
 
         class D:
             def wait_until(self, target, predicate, timeout_ms, poll_ms):
@@ -320,7 +320,7 @@ class NearAndPlaceholderTests(unittest.TestCase):
   7 TextField  Placeholder: 검색하거나 입력"""
 
     def test_near_picks_the_repeat_next_to_its_label(self):
-        from tacto.flow import Selector, TargetAmbiguous, TargetMissing
+        from haejo.flow import Selector, TargetAmbiguous, TargetMissing
         self.assertEqual(6, Selector(role="Button", desc="더보기", near="june-MBA").resolve(self.TREE)[0])
         self.assertEqual(3, Selector(role="Button", desc="더보기", near="jiun-MBP").resolve(self.TREE)[0])
         with self.assertRaises(TargetAmbiguous):
@@ -329,7 +329,7 @@ class NearAndPlaceholderTests(unittest.TestCase):
             Selector(role="Button", desc="더보기", near="nobody").resolve(self.TREE)
 
     def test_placeholder_names_a_field(self):
-        from tacto.flow import Selector, _selector_from
+        from haejo.flow import Selector, _selector_from
         self.assertEqual(7, Selector(placeholder="검색하거나 입력").resolve(self.TREE)[0])
         self.assertEqual("검색하거나 입력", _selector_from({"placeholder": "검색하거나 입력"}).placeholder)
         with self.assertRaises(ValueError):
@@ -341,15 +341,15 @@ class HelperSourceTests(unittest.TestCase):
     ROOT = Path(__file__).resolve().parents[1]
 
     def test_status_item_is_announced_and_windowless(self):
-        source = (self.ROOT / "helper/TactoHelper.swift").read_text()
+        source = (self.ROOT / "helper/HaejoHelper.swift").read_text()
         self.assertIn('"action.status_item"', source)
         self.assertIn('case "status_item":', source)
         self.assertIn('"close_menu", "status_item"].contains', source)
-        from tacto.protocol import ACTION_PARAMS
+        from haejo.protocol import ACTION_PARAMS
         self.assertEqual(frozenset({"title"}), ACTION_PARAMS["status_item"])
 
     def test_aborts_name_their_source_and_disconnects_are_not_stops(self):
-        source = (self.ROOT / "helper/TactoHelper.swift").read_text()
+        source = (self.ROOT / "helper/HaejoHelper.swift").read_text()
         self.assertIn('abortState.stopNow("indicator_stop")', source)
         self.assertIn('named["abort_source"] = abortState.source', source)
         self.assertEqual(3, source.count("withAbortSource("))  # definition + two writers
@@ -364,7 +364,7 @@ class HelperSourceTests(unittest.TestCase):
         self.assertIn("LOCAL_PEERPID", (self.ROOT / "helper/ParallelWindows.swift").read_text())
 
     def test_show_menu_error_checks_for_an_opened_menu(self):
-        source = (self.ROOT / "helper/TactoHelper.swift").read_text()
+        source = (self.ROOT / "helper/HaejoHelper.swift").read_text()
         body = source[source.index('    case "secondary_action":'):]
         body = body[:body.index("    default:")]
         self.assertIn("menusBefore", body)
@@ -373,7 +373,7 @@ class HelperSourceTests(unittest.TestCase):
 
 class SessionLeaseTests(unittest.TestCase):
     def test_an_idle_session_releases_the_app(self):
-        source = Path(__file__).resolve().parents[1].joinpath("tacto/flow_session.py").read_text()
+        source = Path(__file__).resolve().parents[1].joinpath("haejo/flow_session.py").read_text()
         body = source[source.index("def show_observation"):source.index("def additional_observation")]
         self.assertIn("release_targets", body)
         self.assertIn("window_id is None and document is None", body)
@@ -389,7 +389,7 @@ class LiveCheckFollowUpTests(unittest.TestCase):
 
     def run_until(self, raw):
         import contextlib, io
-        from tacto import cli
+        from haejo import cli
         driver = unittest.mock.MagicMock()
         out = io.StringIO()
         with patch.object(cli, "_make_driver", return_value=driver), contextlib.redirect_stdout(out):
@@ -407,7 +407,7 @@ class LiveCheckFollowUpTests(unittest.TestCase):
         self.assertNotIn("not,", self.run_until('{"not":1}')[1].split("use only")[0])
 
     def test_a_read_only_wait_gives_the_app_back_between_polls(self):
-        from tacto.helper import HelperDriver
+        from haejo.helper import HelperDriver
         driver = HelperDriver.__new__(HelperDriver)
         driver.capabilities = {"session.release_targets"}
         replies = iter([{"type": "error", "error": "target_busy", "effect": "not_started"},
@@ -420,14 +420,14 @@ class LiveCheckFollowUpTests(unittest.TestCase):
         self.assertEqual(2, driver.release_targets.call_count)
 
     def test_without_yield_a_busy_app_still_stops_the_wait(self):
-        from tacto.helper import HelperDriver
+        from haejo.helper import HelperDriver
         driver = HelperDriver.__new__(HelperDriver)
         driver.capabilities = set()
         driver.observe = lambda target, **kwargs: {"type": "error", "error": "target_busy"}
         self.assertEqual("target_busy", driver.wait_until("x", bool, timeout_ms=5000, poll_ms=1)["error"])
 
     def replay(self, steps, after):
-        from tacto.flow import Flow, replay
+        from haejo.flow import Flow, replay
         flow = Flow.from_json(json.dumps({"schema": 2, "name": "t", "target": "com.example.app", "steps": steps}))
 
         class App:
@@ -474,8 +474,8 @@ class LiveCheckFollowUpTests(unittest.TestCase):
         self.assertEqual("menus_closed", result.log[0]["verified"])
 
     def test_secondary_action_takes_the_name_the_tree_prints(self):
-        from tacto.flow import Flow
-        from tacto.flow_errors import FlowFieldError
+        from haejo.flow import Flow
+        from haejo.flow_errors import FlowFieldError
         def parse(name):
             return Flow.from_json(json.dumps({"schema": 2, "name": "t", "target": "com.example.app", "steps": [
                 {"action": "secondary_action", "selector": {"role": "Button", "title": "A"},
@@ -486,8 +486,8 @@ class LiveCheckFollowUpTests(unittest.TestCase):
             parse("AXRaise")
 
     def test_a_blocked_step_says_why(self):
-        from tacto.agent import Agent
-        from tacto.flow import Flow
+        from haejo.agent import Agent
+        from haejo.flow import Flow
         flow = Flow.from_json(json.dumps({"schema": 2, "name": "t", "target": "com.example.app", "steps": [
             {"action": "menu", "params": {"path": ["A", "B"]}, "unverified_ok": True,
              "safety": {**self.SAFETY, "resource": {"object_type": "app", "scope": "app"}}}]}))
@@ -496,13 +496,13 @@ class LiveCheckFollowUpTests(unittest.TestCase):
         self.assertEqual(1, len(blocked)); self.assertIn("unknown resource scope", blocked[0])
 
     def test_the_launcher_lets_the_new_requests_through(self):
-        source = (self.ROOT / "launcher/tacto.swift").read_text()
+        source = (self.ROOT / "launcher/haejo.swift").read_text()
         self.assertIn('"status_item":      (["name"], ["title"])', source)
         self.assertIn('"window_index", "element_index", "timeout_seconds"', source)
         self.assertIn('capture element_index 오류', source)
 
     def test_an_open_status_menu_is_observed_and_closable(self):
-        source = (self.ROOT / "helper/TactoHelper.swift").read_text()
+        source = (self.ROOT / "helper/HaejoHelper.swift").read_text()
         self.assertIn("func openStatusMenus(_ p: pid_t)", source)
         self.assertIn('reply["status_menu_open"] = true', source)
         self.assertIn("openContextMenus(pid: p) + openStatusMenus(p)", source)

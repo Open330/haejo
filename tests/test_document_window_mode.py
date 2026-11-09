@@ -13,7 +13,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from tacto.native_document import (DocumentModeUnavailable, DocumentSnapshotError,
+from haejo.native_document import (DocumentModeUnavailable, DocumentSnapshotError,
                                    TextEditDocumentReader, document_mode_from_format_menu)
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -74,7 +74,7 @@ def reader():
 class WindowSelectorReaderTests(unittest.TestCase):
     def setUp(self):
         self.reader, self.adapter = reader()
-        patcher = patch('tacto.native_document._document_path', side_effect=lambda r: None if r[0] else r[1][7:])
+        patcher = patch('haejo.native_document._document_path', side_effect=lambda r: None if r[0] else r[1][7:])
         patcher.start()
         self.addCleanup(patcher.stop)
 
@@ -106,7 +106,7 @@ class WindowSelectorReaderTests(unittest.TestCase):
 class DocumentModeTests(unittest.TestCase):
     def setUp(self):
         self.reader, self.adapter = reader()
-        patcher = patch('tacto.native_document._document_path', side_effect=lambda r: None if r[0] else r[1][7:])
+        patcher = patch('haejo.native_document._document_path', side_effect=lambda r: None if r[0] else r[1][7:])
         patcher.start()
         self.addCleanup(patcher.stop)
         self.token = self.reader.read(window='w2')['document_token']
@@ -178,7 +178,7 @@ class DocumentModeTests(unittest.TestCase):
 
 class DriverSelectorTests(unittest.TestCase):
     def driver(self):
-        from tacto import driver
+        from haejo import driver
         d = driver.Driver.__new__(driver.Driver)
         class Obs:
             obs_id, pid, elements, process_launch_identity = 'obs1', 42, ['app', 'win'], 7.0
@@ -194,8 +194,8 @@ class DriverSelectorTests(unittest.TestCase):
 
     def call(self, d, **kwargs):
         roles = {'app': 'AXApplication', 'win': 'AXWindow'}
-        with patch('tacto.driver._attr', side_effect=lambda el, name: roles.get(el)), \
-                patch('tacto.native_process_identity.process_start_identity', side_effect=lambda pid: 7.0):
+        with patch('haejo.driver._attr', side_effect=lambda el, name: roles.get(el)), \
+                patch('haejo.native_process_identity.process_start_identity', side_effect=lambda pid: 7.0):
             return d.document_text('com.apple.TextEdit', **kwargs)
 
     def test_current_observation_window_is_passed_to_the_reader(self):
@@ -219,7 +219,7 @@ class DriverSelectorTests(unittest.TestCase):
 
 class HelperClientTests(unittest.TestCase):
     def client(self, reply, caps=('evidence.document_mode', 'evidence.document_text.window_selector')):
-        from tacto.helper import HelperDriver
+        from haejo.helper import HelperDriver
         h = HelperDriver.__new__(HelperDriver)
         h.capabilities = set(caps)
         class Proc:
@@ -288,7 +288,7 @@ class SwiftSourceTests(unittest.TestCase):
         return json.loads(result.stdout)
 
     def test_helper_pure_mode_rule_matches_python(self):
-        source = (ROOT / 'helper/TactoHelper.swift').read_text()
+        source = (ROOT / 'helper/HaejoHelper.swift').read_text()
         rule = source[source.index('let documentModeRichTitles'):source.index('func documentMode(_ msg')]
         cases = [[['Make Plain Text', True]], [['Make Rich Text', True]], [['일반 텍스트 만들기', True]],
                  [['리치 텍스트 만들기', True]], [['Make Plain Text', False]], [],
@@ -311,7 +311,7 @@ print(String(data: try! JSONSerialization.data(withJSONObject: cases.map { c -> 
                 self.assertEqual(exc.reason, reason)
 
     def test_document_mode_is_read_only_and_advertised(self):
-        source = (ROOT / 'helper/TactoHelper.swift').read_text()
+        source = (ROOT / 'helper/HaejoHelper.swift').read_text()
         body = source[source.index('func documentMode(_ msg'):]; body = body[:body.index('\n}\n')]
         for forbidden in ('AXUIElementPerformAction', 'AXUIElementSetAttributeValue', 'activate', 'CGEvent', 'kAXPressAction'):
             self.assertNotIn(forbidden, body)
@@ -322,7 +322,7 @@ print(String(data: try! JSONSerialization.data(withJSONObject: cases.map { c -> 
         self.assertIn('"evidence.document_text.window_selector", "evidence.document_mode"', source)
 
     def test_launcher_validator(self):
-        source = (ROOT / 'launcher/tacto.swift').read_text()
+        source = (ROOT / 'launcher/haejo.swift').read_text()
         schema = source[source.index('let allowedTypes:'):source.index('// MARK: - Socket plumbing')]
         checks = r'''
 let rows: [[String: Any]] = [

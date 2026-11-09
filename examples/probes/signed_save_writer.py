@@ -10,7 +10,7 @@ import subprocess
 import tempfile
 import time
 
-TARGET='ai.callabo.tacto.save-writer-fixture'
+TARGET='ai.callabo.haejo.save-writer-fixture'
 PANEL_REASONS={'column browser absent or ambiguous','column container absent or ambiguous',
     'folder column chain unavailable','terminal selection present','selected folder absent or ambiguous',
     'selected folder URL absent or ambiguous','directory absent','save panel hierarchy changed',
@@ -63,10 +63,10 @@ def run(driver,*,sibling_count=0,journal_reply_loss=False,journal_worker_restart
     if type(sibling_count) is not int or not 0<=sibling_count<=12000:
         raise ValueError('invalid owned sibling count')
     from examples.probes.focus_witness import FocusWitness
-    from tacto.driver import Driver
-    from tacto.producer_file_receipt import ProducerFileReceipt,ProducerObservation
-    from tacto.native_process_identity import process_start_identity
-    from tacto.commit_evidence import make_event,evidence_error
+    from haejo.driver import Driver
+    from haejo.producer_file_receipt import ProducerFileReceipt,ProducerObservation
+    from haejo.native_process_identity import process_start_identity
+    from haejo.commit_evidence import make_event,evidence_error
     required={'evidence.save_panel','action.click.save_panel_guard'}
     if not required <= set(driver.capabilities):
         raise RuntimeError('save_writer_capability_unavailable')
@@ -77,7 +77,7 @@ def run(driver,*,sibling_count=0,journal_reply_loss=False,journal_worker_restart
         raise RuntimeError('owned_producer_already_running')
     if preferences_exist():raise RuntimeError('owned_preferences_preexisting')
     root=Path(__file__).resolve().parents[2]
-    nonce=secrets.token_hex(16);filename='fresh-'+nonce+'.rtf';body='{\\rtf1\\ansi TACTO owned save '+nonce+'}'
+    nonce=secrets.token_hex(16);filename='fresh-'+nonce+'.rtf';body='{\\rtf1\\ansi HAEJO owned save '+nonce+'}'
     report={'scope':'owned_native_save_producer_under_exclusive_directory_assumption',
             'passed':False,'model_requests':0,'general_app_producer_attribution_verified':False,
             'explicit_textedit_save_verified':False,'owned_sibling_count':sibling_count}
@@ -87,14 +87,14 @@ def run(driver,*,sibling_count=0,journal_reply_loss=False,journal_worker_restart
     preference_file=Path.home()/'Library/Preferences'/f'{TARGET}.plist'
     report['owned_preferences_empty_before']=True
     report['owned_preference_file_present_before']=preference_file.exists()
-    with tempfile.TemporaryDirectory(prefix='tacto-save-writer-',dir=Path.home()/'Library/Caches') as work:
+    with tempfile.TemporaryDirectory(prefix='haejo-save-writer-',dir=Path.home()/'Library/Caches') as work:
         work=Path(work).resolve();destination=work/'output';destination.mkdir(mode=0o700)
         # Stress a selected ancestor's row membership without touching user files.
         for index in range(sibling_count):(work/f'sibling-{index:05d}').mkdir(mode=0o700)
-        binary=work/'TACTO Save Writer.app/Contents/MacOS/NativeSaveWriterFixture'
+        binary=work/'HAEJO Save Writer.app/Contents/MacOS/NativeSaveWriterFixture'
         binary.parent.mkdir(parents=True)
         (binary.parent.parent/'Info.plist').write_bytes(plistlib.dumps({'CFBundleIdentifier':TARGET,
-            'CFBundleExecutable':binary.name,'CFBundlePackageType':'APPL','CFBundleName':'TACTO Owned Save Writer','LSUIElement':True}))
+            'CFBundleExecutable':binary.name,'CFBundlePackageType':'APPL','CFBundleName':'HAEJO Owned Save Writer','LSUIElement':True}))
         subprocess.run(['xcrun','swiftc','-warnings-as-errors','-parse-as-library',
                         str(root/'tests/fixtures/NativeSaveWriterFixture.swift'),'-o',str(binary)],
                        check=True,capture_output=True,timeout=60)
@@ -179,18 +179,18 @@ def run(driver,*,sibling_count=0,journal_reply_loss=False,journal_worker_restart
                     'intent_text':'Save one evaluator-owned fresh fixture artifact'}
                 if journal_worker_restart:
                     from examples.probes.signed_native_journal_worker import write_json,private_json
-                    from tacto.commit_evidence import CommitEvidence,ProducerArtifactEvidence
-                    from tacto.producer_file_receipt import ProducerObservation
+                    from haejo.commit_evidence import CommitEvidence,ProducerArtifactEvidence
+                    from haejo.producer_file_receipt import ProducerObservation
                     import signal
                     config=work/'worker-config.json';callback_info=os.fstat(callback_fd)
                     write_json(config,{'work':str(work),'nonce':nonce,'pid':child.pid,'start':start_identity,
                         'callback_dev':callback_info.st_dev,'callback_ino':callback_info.st_ino})
                     exits=[]
                     for phase in ('dispatch','reconcile' if journal_worker_reconcile else 'restart'):
-                        env=os.environ.copy();env.pop('TACTO_HELPER_FD',None)
+                        env=os.environ.copy();env.pop('HAEJO_HELPER_FD',None)
                         fd=os.open(work/f'worker-{phase}.log',os.O_CREAT|os.O_EXCL|os.O_WRONLY,0o600)
                         with os.fdopen(fd,'w') as worker_log:
-                            worker=subprocess.Popen([str(root/'launcher/tacto'),'eval','signed_native_journal_worker',
+                            worker=subprocess.Popen([str(root/'launcher/haejo'),'eval','signed_native_journal_worker',
                                 '--owned-worker-config',str(config),'--owned-worker-phase',phase],
                                 env=env,stdout=worker_log,stderr=subprocess.STDOUT,close_fds=True,start_new_session=True)
                             try:exits.append(worker.wait(timeout=45 if phase=='reconcile' else 15))
@@ -222,7 +222,7 @@ def run(driver,*,sibling_count=0,journal_reply_loss=False,journal_worker_restart
                         worker_pids=[original['pid'],restart['pid']],restart_receiving_state=restart,
                         journal_lines=len((work/'dispatch-journal/00000.jsonl').read_text().splitlines()))
                 elif journal_reply_loss:
-                    from tacto.dispatch_journal import DurableDispatchDriver
+                    from haejo.dispatch_journal import DurableDispatchDriver
                     calls=[]
                     class LoseReply:
                         def act(self,*args,**kwargs):
@@ -313,14 +313,14 @@ def run(driver,*,sibling_count=0,journal_reply_loss=False,journal_worker_restart
 
 
 def main(driver,output,*,sibling_count=0,journal_reply_loss=False,journal_worker_restart=False,journal_worker_reconcile=False):
-    from tacto.input_audit_process import ProcessInputAudit
+    from haejo.input_audit_process import ProcessInputAudit
     root=Path(__file__).resolve().parents[2]
     descriptor=os.open(output,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
     report={'passed':False,'all_dependencies_frozen':False,'model_requests':0}
-    paths=list((root/'tacto').glob('*.py'))+list((root/'helper').glob('*.swift'))+[
+    paths=list((root/'haejo').glob('*.py'))+list((root/'helper').glob('*.swift'))+[
         Path(__file__).resolve(),root/'examples/eval.py',root/'tests/fixtures/NativeSaveWriterFixture.swift',
         root/'examples/probes/signed_native_journal_worker.py',
-        root/'launcher/tacto',root/'helper/tacto-helper',root/'helper/Tacto Helper.app/Contents/MacOS/TactoHelper']
+        root/'launcher/haejo',root/'helper/haejo-helper',root/'helper/Haejo Helper.app/Contents/MacOS/HaejoHelper']
     if journal_worker_reconcile:
         paths += [root/'examples/probes/signed_native_continuation.py',root/'tests/fixtures/NativeContinuationFixture.swift']
     def manifest():return {str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(paths)}

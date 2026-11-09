@@ -47,8 +47,8 @@ class AgentFailureTests(unittest.TestCase):
         child=Mock();child.returncode=1;child.__enter__=Mock(return_value=child);child.__exit__=Mock(return_value=False)
         with tempfile.TemporaryDirectory() as tmp, \
              patch('examples.benchmark_agent.subprocess.Popen',return_value=child), \
-             patch('tacto.provider_io.require_provider_child_ownership'), \
-             patch('tacto.provider_io.communicate_owned_provider',return_value=(self.encode(self.stream()),'')), \
+             patch('haejo.provider_io.require_provider_child_ownership'), \
+             patch('haejo.provider_io.communicate_owned_provider',return_value=(self.encode(self.stream()),'')), \
              patch('examples.agent_timeline.AgentTimeline') as timeline:
             result=run_agent('claude','owned probe',Path(tmp)/'agent',profile=True)
             timeline.assert_not_called()

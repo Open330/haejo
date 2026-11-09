@@ -4,11 +4,11 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from tacto.artifact_receipt import ArtifactReceiptError
-from tacto.commit_evidence import make_event
-from tacto.contract import ContextBinding, Resource, SafetyContract, issue_approval
-from tacto.flow import Flow, Selector, Step, replay
-from tacto.textedit_receipt import make_textedit_receipt, TextEditReceiptUnavailable
+from haejo.artifact_receipt import ArtifactReceiptError
+from haejo.commit_evidence import make_event
+from haejo.contract import ContextBinding, Resource, SafetyContract, issue_approval
+from haejo.flow import Flow, Selector, Step, replay
+from haejo.textedit_receipt import make_textedit_receipt, TextEditReceiptUnavailable
 
 
 class SnapshotDriver:
@@ -64,7 +64,7 @@ class TextEditReceiptTests(unittest.TestCase):
                                 {'write_persistent'}, 'com.apple.TextEdit', obs_id='o')
 
     def adapter(self, **kwargs):
-        with patch('tacto.textedit_receipt.Path.home', return_value=self.home):
+        with patch('haejo.textedit_receipt.Path.home', return_value=self.home):
             return make_textedit_receipt(self.driver, target=kwargs.pop('target', 'com.apple.TextEdit'),
                                          directory=kwargs.pop('directory', str(self.directory)),
                                          filename=kwargs.pop('filename', self.path.name),
@@ -197,7 +197,7 @@ class TextEditReceiptTests(unittest.TestCase):
         self.assertEqual(self.driver.dispatches, 1)
         self.assertEqual(result.events[0]['state'], 'confirmed')
         self.assertEqual(len(result.commit_evidence), 1)
-        from tacto.commit_evidence import DocumentSaveEvidence
+        from haejo.commit_evidence import DocumentSaveEvidence
         proof = next(iter(result.commit_evidence.values()))
         self.assertIs(type(proof.evidence), DocumentSaveEvidence)
         self.assertIsNone(proof.evidence.source_path)

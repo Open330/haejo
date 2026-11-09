@@ -6,8 +6,8 @@ nobody watching. The case that shaped it: an early version dropped the verb as
 """
 import unittest
 
-from tacto.agent import Agent
-from tacto.flow import Flow, content_match
+from haejo.agent import Agent
+from haejo.flow import Flow, content_match
 
 SQRT = "계산기에서 {{n}}의 제곱근 구해줘"
 DIVIDE = "계산기에서 {{a}}을 {{b}}로 나눠줘"

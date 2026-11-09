@@ -1,6 +1,6 @@
 # Drag inside an observed macOS window
 
-For window size changes, use `tacto resize <bundle-id> --helper
+For window size changes, use `haejo resize <bundle-id> --helper
 --window "Now Playing Overlay" --width 600 --height 360` (dimensions in points).
 This first uses AXSize without activation or mouse input. If AXSize is unavailable
 before any write, it sends one bottom-right resize stroke to the same window,
@@ -14,11 +14,11 @@ The resize grip must implement bottom-right resizing; a posted stroke alone is
 not a successful size change. This does not establish why an app restores a
 different position after relaunch.
 
-Use `tacto drag <bundle-id> --helper --from X Y --to X Y` for a requested
+Use `haejo drag <bundle-id> --helper --from X Y --to X Y` for a requested
 single drag. Coordinates are **points relative to the observed window's top-left**,
 including its titlebar; they are not screen coordinates or Retina pixels.
 Choose coordinates from a current capture/geometry, not guessed screen positions.
-`tacto capture <bundle-id> --helper --window 'Exact title' --output /tmp/window.png`
+`haejo capture <bundle-id> --helper --window 'Exact title' --output /tmp/window.png`
 saves a private PNG and returns `pixel_to_point` scale factors. Inspect that image
 and multiply image pixel coordinates by those factors before dragging. Use a new
 output path for each capture; existing files are not overwritten.
@@ -41,7 +41,7 @@ framing; no extra approval is needed for an already-authorized temporary edit.
 
 Requires the signed helper capabilities `action.drag` and `drag.window_bound`.
 Owned on-screen normal and floating app windows (macOS layers 0 and 3) are
-supported by window binding. Layer 3 alone is not a reason to abandon Tacto.
+supported by window binding. Layer 3 alone is not a reason to abandon Haejo.
 An older helper may reject it with `CG window ownership or visibility mismatch`;
 update that helper and re-observe before another undispatched gesture.
 The target is the uniquely observed app window; a floating/nonactivating panel

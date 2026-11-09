@@ -1,6 +1,6 @@
 # Parallel window execution
 
-The development checkout provides `tacto parallel` for one to four independent
+The development checkout provides `haejo parallel` for one to four independent
 macOS window jobs. Each job runs through its own signed launcher and helper
 connection. It reuses window ownership, fresh AX observations, contract checks,
 and postcondition verification. The coordinator never shares an inherited
@@ -9,8 +9,8 @@ helper descriptor or calls the legacy in-process `Driver`.
 Discover live windows first:
 
 ```sh
-tacto windows com.example.Editor --helper
-tacto parallel /absolute/path/jobs.json --helper --json
+haejo windows com.example.Editor --helper
+haejo parallel /absolute/path/jobs.json --helper --json
 ```
 
 The manifest contains a Flow inline for each job. `window_id` is live invocation
@@ -79,7 +79,7 @@ successful steps; the coordinator does not roll back or retry. Exit codes are
 `--timeout 1..600` bounds each worker, including helper acquisition; default 60
 seconds. Timed-out workers and Ctrl-C terminate their launcher/Python process
 groups so they cannot dispatch delayed input.
-Workers use warm helper mode and a fresh configuration; coordinator `TACTO_*`
+Workers use warm helper mode and a fresh configuration; coordinator `HAEJO_*`
 environment overrides (including helper wait/idle limits) are not forwarded.
 The menu's all-run stop also notifies the coordinator, which cancels its workers
 still waiting for a helper slot or window lease. An individual run stop remains
@@ -93,7 +93,7 @@ receipt to a new private file. It confirms replay checks, not saved-file state
 or causation beyond those checks. The coordinator uses temporary receipts and
 removes them after collecting results. A receipt is never an input permission.
 
-The Tacto menu lists each live helper run separately, with its window ID and
+The Haejo menu lists each live helper run separately, with its window ID and
 helper-reported activity, and offers individual and existing all-run stop
 controls. A helper's dispatch acknowledgement is shown as unverified, not as a
 passed postcondition. Esc stops runs whose helper connection already exists;
@@ -104,14 +104,14 @@ remain limited to the selected helper.
 This stage adds concurrent AX operations and execution visibility. It does not
 add independent OS cursors or simultaneous pointer/keyboard/drag operations.
 No cursor overlay is drawn. Those routes retain their existing serialization.
-The older `tacto.parallel.run_parallel` API remains an in-process compatibility
+The older `haejo.parallel.run_parallel` API remains an in-process compatibility
 path; use `run_parallel_jobs(manifest)` for these signed window jobs.
 
 Validation uses `tests/test_parallel_run.py`, `tests/test_flow_session.py`,
 `tests/test_runtime_status.py`, and the opt-in receiving test:
 
 ```sh
-TACTO_RUN_NATIVE_PARALLEL_TESTS=1 .venv/bin/python -m unittest tests.test_parallel_run_native
+HAEJO_RUN_NATIVE_PARALLEL_TESTS=1 .venv/bin/python -m unittest tests.test_parallel_run_native
 ```
 
 The native test uses four windows belonging to a temporary owned AppKit app.
@@ -123,7 +123,7 @@ arbitrary-app compatibility or a throughput/token benchmark.
 
 ## Tasks
 
-A `parallel` run bound to a [task](tasks.md) (`--task` or `TACTO_TASK`) passes
+A `parallel` run bound to a [task](tasks.md) (`--task` or `HAEJO_TASK`) passes
 its already-validated task ID and its own invocation ID to every job's session,
 so each job is recorded in the same task as a child invocation. An unbound
-parent never forwards a raw inherited `TACTO_TASK`.
+parent never forwards a raw inherited `HAEJO_TASK`.

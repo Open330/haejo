@@ -4,10 +4,10 @@ import os
 import subprocess
 import unittest
 
-BINARY = os.environ.get('TACTO_IOS_AX_PROBE')
+BINARY = os.environ.get('HAEJO_IOS_AX_PROBE')
 
 
-@unittest.skipUnless(BINARY, 'set TACTO_IOS_AX_PROBE to the built development binary')
+@unittest.skipUnless(BINARY, 'set HAEJO_IOS_AX_PROBE to the built development binary')
 class IOSAXProbeNativeTests(unittest.TestCase):
     def run_probe(self, data):
         result = subprocess.run([BINARY], input=data, capture_output=True, timeout=3)

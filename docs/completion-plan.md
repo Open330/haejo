@@ -24,7 +24,7 @@ main에는 feature를 병합했고, rc.29 배포는 검증한 `def0e9c`를 별�
 문서 결과 안내와 이벤트 구간 집계를 설치본에서도 확인했다. 공개 GitHub release와
 Vault 세션은 변경하지 않았다. 기존 G0~G10의 전체 완료와 이번 배포 완료는 구분한다.
 
-새 문맥 Tacto/Sky3쌍은 작업·정리6/6 완료다. 시간 중앙값은 Tacto
+새 문맥 Haejo/Sky3쌍은 작업·정리6/6 완료다. 시간 중앙값은 Haejo
 36.1초, Sky 30.1초다. serving model·청구·TCC/도구
 권한 동등성은 미입증이며 이전 rc.25와의 인과 비교로 보지 않는다.
 [측정 조건과 결과](benchmark-records.md). 아래 절은 이전 시점의 기록이다.
@@ -57,7 +57,7 @@ rc.25 앱·DMG는 Apple 공증·staple·Gatekeeper와 산출물/보안 검사를
 약7초 그대로였다. 최종 native6확인과 전체3,275검사를 통과했다(제외27).
 중간 timeout시험1건 실패와 이후 재검사 기록을 보존했다.
 
-새 에이전트 비교의 유효 행은 before Tacto3회/after Tacto2회/Sky3회다. 시간 중앙값
+새 에이전트 비교의 유효 행은 before Haejo3회/after Haejo2회/Sky3회다. 시간 중앙값
 43.8→36.5초, Sky30초로 여전히 격차가 있다. after 첫 시행의 System Settings
 활성화1건은 배경 불합격·원인 미확인으로 보존한다. 전체3회 after의35초는 참고값이다.
 출력 개선·일반적인 인과 효과·청구 절감·완전한 제품 동등성은 주장하지 않는다.
@@ -99,7 +99,7 @@ Calculator 첫 Flow가 잘못된 ancestor 형식으로 매번 거절되는 반�
 과제는 이 batch에서 수행하지 않았으며 설치/audit와 구분한다.
 
 새 대화·작업 공간·같은 요청 모델의 Calculator→TextEdit 비교3쌍은 양쪽3/3이다.
-시간 중앙값은 Tacto57.0초, Sky33.0초, 입력 합계461,607/432,887,
+시간 중앙값은 Haejo57.0초, Sky33.0초, 입력 합계461,607/432,887,
 비캐시 입력51,111/48,631, 출력3,269/1,899다. 첫 작성은 여전히 더 느리고
 출력 부담도 크므로 작성 경로의 안내 중복과 왕복을 줄이는 작업이 남아 있다.
 실제 serving 모델·청구·서버 cache·TCC 책임 경계는 미입증이며 strict 비교로
@@ -175,7 +175,7 @@ System Settings 전경 전환이 관측돼 배경 시행은 불합격으로 보�
 기다리는 불필요한 지연은 발견해 별도 최적화·실제 Finder 검증을 진행 중이다.
 증빙: `reviews/goal-resume-20261105-saveas/background-fixed/report.json`.
 
-실제 Preview에서 난수 점수 PNG를 열어 서명된 Tacto로 해당 창만 캡처했다.
+실제 Preview에서 난수 점수 PNG를 열어 서명된 Haejo로 해당 창만 캡처했다.
 점수가 scoped AX tree에 없는 것을 먼저 확인한 뒤 이미지 질문을 했다.
 Codex·Claude 각각3/3 정답, 창/임시 파일 정리를 통과했다. 새 rc.22 후보의
 capture 경로를 사용했으나 후보는 아직 공증·설치하지 않았다. 이 시험은
@@ -279,7 +279,7 @@ session의 추가3페이지에서 찾았다. 안내1회·Flow 제출1회·수신
 exit0·소유 시험 앱 종료를 확인했다. 이 증거는 Save나 물리 사용자 타이핑
 보존을 뜻하지 않는다. 실패한 첫 rc.21 후보도 그대로 보존했다.
 
-배포 원본은 `reviews/tacto-rc21-candidate2-20261105/completion-report.json`,
+배포 원본은 `reviews/haejo-rc21-candidate2-20261105/completion-report.json`,
 `fleet-installation-report.json`, `fleet-final-audit.json`, `installed-native.log`,
 `installed-observation-session.json`이다. 아래 rc.20/이전 후보 절은 시점별 기록이다.
 G0~G10 전체 목표는 계속 진행 중이다. 다음은 실제 TextEdit Save As의 스냅샷·
@@ -324,7 +324,7 @@ rc.21 첫 후보의 전체3,171검사에서는 표시 진입점 목록 검사2�
 새 continuation 진입점을 추가하면서 기존 검사 갱신을 놓쳤다. 조건을 삭제하지
 않고 읽기 전용 진입점을 명시했고 관련84검사가 통과했다. peer도 수정이 원래
 검사 의미를 보존함을 확인했다. 이 후보의 공증·설치는 시작하지 않았으며
-`reviews/tacto-rc21-20261105/failed-candidate-checkpoint.json`에 보존했다.
+`reviews/haejo-rc21-20261105/failed-candidate-checkpoint.json`에 보존했다.
 수정된 별도 후보는 위 전체 회귀·공증·설치 검증을 통과했다.
 
 원본·각 실패/성공·모델별 집계:
@@ -346,11 +346,11 @@ rc.21 첫 후보의 전체3,171검사에서는 표시 진입점 목록 검사2�
 종료한 시험도 소유 합성 provider 그룹 회수·지연 쓰기 없음으로 통과했다
 (종료까지0.236초). 실제 원격 생성/과금 취소와 물리 Esc는 이 시험 범위가 아니다.
 
-증빙은 `reviews/tacto-rc20-candidate2-20261105/completion-report.json`,
+증빙은 `reviews/haejo-rc20-candidate2-20261105/completion-report.json`,
 `fleet-final-audit.json`, `fleet-installation-report.json`, `installed-native.log`,
 `installed-session-repair.log`,
 `test-installed-document-readback.py.log`, `test-installed-client-cancel.py.log`다.
-후속 실제 앱3쌍도 Tacto/Sky 모두3/3 성공했다. 관측 평균57.1/37.3초로
+후속 실제 앱3쌍도 Haejo/Sky 모두3/3 성공했다. 관측 평균57.1/37.3초로
 차이가 남으며 엄격 비교 제외 사유도 유지한다. [비교 기록](benchmark-records.md)에
 토큰·전체 실행·한계를 보존했다. 이 배포 검증은 G0~G10 전체 목표 완료를
 뜻하지 않는다. 아래 과거 절의
@@ -365,7 +365,7 @@ rc.21 첫 후보의 전체3,171검사에서는 표시 진입점 목록 검사2�
 고친 뒤 읽기 완료, 안내1회·READY2회·모델0·쓰기0을 확인했다.
 
 고정 문서의 set_value가 commit_unverified이면 같은 native token으로 본문을
-한 번 읽어 `TACTO_DOCUMENT_STATE`를 내보낸다. 텍스트/토큰/경로는 marker에
+한 번 읽어 `HAEJO_DOCUMENT_STATE`를 내보낸다. 텍스트/토큰/경로는 marker에
 넣지 않으며 요청 본문 일치·남은 단계만 알려준다. Save·writer 귀속·실패 Flow
 성공·템플릿 저장을 주장하지 않는다. 실제 소유 TextEdit 입력1회, 독립 본문
 판정, 닫힘/임시 파일 제거를 확인했다. probe의 closed/completed 상태명 비교
@@ -395,7 +395,7 @@ provider 그룹 부재·지연 쓰기 없음으로 통과했다(root0.202초). �
 원격 생성/청구 중단, 실제 Esc 키 이벤트, 설치본 E2E는 이 증거로 주장하지 않는다.
 
 현재 설치본은 rc.19다. 이 후보를 rc.20으로 고정해 전체 회귀·공증·설치 검증한 뒤,
-부하가 겹치지 않는 Tacto/Sky 반복 비교를 진행한다. G2 관측 truncation과 일반
+부하가 겹치지 않는 Haejo/Sky 반복 비교를 진행한다. G2 관측 truncation과 일반
 플래너 연결, 실제 Finder/Save 및 시각/장기 복구, G0 동시 사용자 입력 등 전체
 미완료 항목은 유지한다. 상세 증거:
 `reviews/goal-resume-20261105-session-repair/efficiency-evidence.json` 및
@@ -409,13 +409,13 @@ provider 그룹 부재·지연 쓰기 없음으로 통과했다(root0.202초). �
 통과했다. localhost·june-mba·jiun-mini의 동일 번들·서명·스킬 연결·기존 권한을
 확인했다. 설치본 native7검사와 대화형 연결 수리도 통과했다. Vault 세션은
 변경하지 않았다. GitHub 공개 릴리스는 변경하지 않았다.
-`reviews/tacto-rc19-20261105/completion-report.json`은 배포 범위의 증빙이며
+`reviews/haejo-rc19-20261105/completion-report.json`은 배포 범위의 증빙이며
 G0~G10 전체 목표 완료를 뜻하지 않는다. 아래 선택 패널 수정은 이제 이
 설치본에 포함된다.
 
 실앱 독립3쌍은 양쪽3/3 성공했지만 peer 회귀/컴파일 부하가 겹쳐 시간은
 참고값이다. 원본 실패와 모든 한계는 [비교 기록](benchmark-records.md)에
-보존했다. Tacto의 안내3회·session3회·schema 수리1회·입력 뒤 추가 관찰은
+보존했다. Haejo의 안내3회·session3회·schema 수리1회·입력 뒤 추가 관찰은
 반복 비용으로 남는다. 읽기 전용 세션의 실제 준비0.54~0.69초를 확인했으며,
 전체 지연을 런타임 시작 비용으로 단정하지 않는다.
 
@@ -462,7 +462,7 @@ Swift 실행 테스트를 포함한 관련 62개, 실제 signed helper floating 
 
 ## 2026-11-05 floating 창·중복 검증 개선
 
-사용자 보고: floating 오버레이(layer 3)에서 Tacto가 입력 전에 거절했고,
+사용자 보고: floating 오버레이(layer 3)에서 Haejo가 입력 전에 거절했고,
 별도 HID 입력으로 크기 조절을 마무리하려 했다. 이전 `layer == 0` 제한을
 normal/floating으로 확장했다(cd702ef). 실제 소유 layer 3 창의 CG 조회와
 잘못된 소유자 거절 검사는 통과했지만, 이는 크기 조절 성공 증거가 아니다.
@@ -483,7 +483,7 @@ down/drag/up 수신, 전경·전역 커서 보존을 검증한다. 관련 비밀
 
 보고 앱은 사용자가 Lyrics / `Now Playing Overlay`로 식별했다. 실제 소유
 nonactivating utility panel에서 signed helper drag의 수신·전경/커서 보존을
-확인했다. 별도 `tacto resize` / `resize_window`는 AXSize를 한 번 설정하고
+확인했다. 별도 `haejo resize` / `resize_window`는 AXSize를 한 번 설정하고
 AX·CG 크기 반영을 확인한다. AXSize가 쓰기 전에 지원 불가로 확인되면,
 같은 창의 우하단 grip에 한 번의 window-bound resize stroke를 보낸다. 이때
 예상되는 geometry 변화는 허용하고 이벤트의 창 상대좌표만 현재 frame으로
@@ -503,7 +503,7 @@ AX 크기만 먼저 바뀌고 CG 반영이 늦어 검증 실패한 기록을 보
 
 후속 rc.17 설치본(c28b1d9)에서 실제 Lyrics의 너비 301→311→301px 변경·복원을
 확인했다. 높이 274px와 위치, 전경 앱·커서는 유지됐다. 앞의 화면 경계 실패를
-지우지 않고 `reviews/tacto-rc17-20261105/actual-lyrics-installed-receipt.json`에
+지우지 않고 `reviews/haejo-rc17-20261105/actual-lyrics-installed-receipt.json`에
 별도 수신 증거를 남겼다. 앱/DMG 공증, 세 Mac exact-bundle 설치·기존 권한·
 스킬 연결을 확인했다. 전체 3,066검사 실패/오류0·조건부 제외26이며,
 실제 floating 3경우는 설치본에서 3회씩 총9/9 통과했다. 최초 native 묶음의
@@ -515,7 +515,7 @@ AX 크기만 먼저 바뀌고 CG 반영이 늦어 검증 실패한 기록을 보
 창 테두리 드래그 resize 성공으로 계산하지 않는다. 아래 전체 목표와 비교
 평가의 미완료 범위도 그대로 유지한다.
 
-> 제품·측정 라벨·식별자는 현재 Tacto 이름으로 정규화했습니다. 당시 측정 수치와 성공·실패는 유지하며, 새 서명 배포를 검증했다는 뜻은 아닙니다.
+> 제품·측정 라벨·식별자는 현재 Haejo 이름으로 정규화했습니다. 당시 측정 수치와 성공·실패는 유지하며, 새 서명 배포를 검증했다는 뜻은 아닙니다.
 
 ## 2026-10-24 현재 상태 감사
 
@@ -535,7 +535,7 @@ AXCloseButton/Minimize/Zoom 속성에는 실제 control이 있었다. direct/sig
 새 동일 요청 조건 비교가 다음 단계다.
 
 2026-11-05 새 실앱 비교는 `reviews/2026-11-05/product-comparison-20261105-141607.jsonl`에
-실패를 보존한다. 고정 요청 gpt-6.1-sol/medium·cold-start에서 Tacto는
+실패를 보존한다. 고정 요청 gpt-6.1-sol/medium·cold-start에서 Haejo는
 24.7초 뒤 Calculator target_busy/not_started로 실패했고, Sky는 준비 실패로
 미실행이었다. 평가 worker가 앱 lease를 유지한 채 독립 에이전트를 기다리는
 충돌을 확인했다. 후보 `release_targets`는 연결과 문서 pin을 유지하면서 앱·창
@@ -550,7 +550,7 @@ AXCloseButton/Minimize/Zoom 속성에는 실제 control이 있었다. direct/sig
 구분하는 실제 증거를 더 확보한다. 두 후보 변경은 설치 rc.17에 소급 포함하지 않는다.
 
 아래 2026-10-10 감사와 후속 기록은 당시 사실로 보존한다. 현재 제품명은
-Tacto다. rc.6 배포 완료는 전체 computer-use 목표의 완료와 구분한다.
+Haejo다. rc.6 배포 완료는 전체 computer-use 목표의 완료와 구분한다.
 
 | 범위 | 현재 증거 | 아직 필요한 완료 증거 / 우선순위 |
 |---|---|---|
@@ -560,10 +560,10 @@ Tacto다. rc.6 배포 완료는 전체 computer-use 목표의 완료와 구분�
 | 접근성 밖 시각 정보 | 소유 opaque/canvas receiving·실제 이미지 모델 이력 | 다양한 실제 앱의 시각 과제와 독립 결과 검증·백본 반복. 캡처/입력 전송만으로 완료하지 않음. P1 |
 | 장기 작업·복구 | rc.6 exact-DMG fault12/12와 native/browser 장기 fixture 이력 | 실제 앱 장기 연결 중단 후 재개, 완료 prefix·불확실 저장/전송 중복 없는 실제 연속 실행. P1 |
 | 저장·전송 인과 증거 | exact saved-state·producer·독립 inbox receipt 구현 및 아래 범위별 검증 | 일반 앱의 Save 인과 증거와 실제 수신자·본문·새 message identity의 전송 확인. 상태 일치를 생산자 인과 증거로 승격하지 않음. P0 |
-| 대표 실제 작업·동일 조건 비교 | rc.6 native60 및 새 Tacto/Sky 3개 fixture 과제 실제 시행, 조건/환경 원본 보존 | 다중 실제 앱·다중 백본·반복 수 확대. serving model/숨은 context/동시 foreground-caret 동등성 미검증은 비교 제외로 유지. P1 |
+| 대표 실제 작업·동일 조건 비교 | rc.6 native60 및 새 Haejo/Sky 3개 fixture 과제 실제 시행, 조건/환경 원본 보존 | 다중 실제 앱·다중 백본·반복 수 확대. serving model/숨은 context/동시 foreground-caret 동등성 미검증은 비교 제외로 유지. P1 |
 | 설치·최종 보고 | rc.6 공증·산출물12·세 Mac exact-bundle 설치·실제 rollback·게시첨부5개 대조 완료 | 새 사용자 DMG 설치·권한3회·제한베타는 사람 확인. 전체 목표 최종보고는 위 범위를 모두 감사한 뒤 작성. P1 |
 
-rc.6 원본은 `reviews/tacto-rc6-20261023/RC6-REPORT.md`(별도 rc.6 worktree)에,
+rc.6 원본은 `reviews/haejo-rc6-20261023/RC6-REPORT.md`(별도 rc.6 worktree)에,
 공개 범위는 [rc.6 VALIDATION](https://github.com/Open330/tacto/releases/tag/v1.0.0-rc.6)에
 있다. 실제 앱 첫 묶음59/60, 부하 저하 후 별도 새60/60을 합쳐 최초 실패를
 지우지 않는다. 아래 오래된 '설치 미완료'·'다음 CLI scope 구현' 등은 당시 기록이며
@@ -588,17 +588,17 @@ rc.6 원본은 `reviews/tacto-rc6-20261023/RC6-REPORT.md`(별도 rc.6 worktree)�
 | G6 장기 복구 | 시간/화면 예산·모달·detached·commit 불확실성 회귀 구현 | native 앱의 긴 작업과 끊긴 연결/중단 뒤 상태 재검증. 비멱등 저장·전송의 자동 중복 금지 유지 | P1 |
 | G7 저장·전송 | event-bound receipt·정확한 파일 readback·document token·save-panel guard 구현; ExistingTextFileReceipt는 관측된 상태 증거 | 정확한 신규 본문 저장 및 안정된 disk readback, source-format/첨부/목적지 검증, 실제 수신자/본문/신규 message identity의 전송 증거. 이미 있던 정답 파일·앱 autosave를 Save 인과 증거로 계산하지 않음 | P0 |
 | G8 대표 평가 | native/Web 과제와 원시 결과/manifest/oracle 기록 존재 | 위 미완료 과제와 다른 앱·백본·반복을 같은 source cohort에서 확장. 실패·SKIP·환경 미지원 보존 | P1 |
-| G9 동일 조건 비교 | 2026-10-08 및 10-09 Tacto/Sky 비교 원시 cohort 존재 | 성공·실패 모두 동일 초기 상태·manifest·task oracle·시간 제한을 재감사. 요청 백본과 실제 serving model을 구분 | P1 |
+| G9 동일 조건 비교 | 2026-10-08 및 10-09 Haejo/Sky 비교 원시 cohort 존재 | 성공·실패 모두 동일 초기 상태·manifest·task oracle·시간 제한을 재감사. 요청 백본과 실제 serving model을 구분 | P1 |
 | G10 설치·보고 | signed launcher/helper·checkout-backed setup preview·계약 문서 | 새 Mac의 실제 drag/install/permission/skill 연결·업데이트·재시작; standalone 배포 및 notarization. 최종 보고서는 실제 검증 범위별로 작성 | P1 |
 
 ### 현재 비교 증거
 
 - `../reviews/2026-10-08/product-comparison-20261008-211647.jsonl`: 28행,
-  Tacto 14/14·Sky 14/14 oracle 통과, process exit 모두0, source_changed 모두false.
+  Haejo 14/14·Sky 14/14 oracle 통과, process exit 모두0, source_changed 모두false.
   이는 해당14과제 cohort의 결과다. 명시 manifest 멤버십은 모든 의존성의 폐쇄를
   증명하지 않으며, 전체 기능 완료나 동시 사용자 입력 보존을 증명하지 않는다.
 - `../reviews/2026-10-09/product-comparison-20261009-184154.jsonl`: 16행,
-  Tacto3/8·Sky8/8. Tacto 실패는 textedit_save_owned1건, finder_new_folder2건,
+  Haejo3/8·Sky8/8. Haejo 실패는 textedit_save_owned1건, finder_new_folder2건,
   appearance_mode2건. 모든 프로세스 exit0이지만 독립 oracle 실패는 실패다.
   후속 appearance 재실행은 별도 source cohort로 다루며 이 실패를 지우지 않는다.
 - 실제 전체 로그 `../reviews/2026-10-10-unit-tests-62.log`, `../reviews/2026-10-10-unit-tests-63.log`: 각각1219 tests, skipped2, 실행1217개.
@@ -683,7 +683,7 @@ comparison_eligible 분리, 잠금 뒤 cleanup 금지, filter/reps 검증 및 �
 총52개 회귀 통과. 새 report는0600으로 생성한다.
 
 `reviews/2026-10-10/product-comparison-20261010-155619.jsonl`에서 외형 읽기를
-Tacto와 Sky 각각 실제1회 실행해 양쪽 PASS(Light)를 확인했다. Tacto42.3초,
+Haejo와 Sky 각각 실제1회 실행해 양쪽 PASS(Light)를 확인했다. Haejo42.3초,
 Sky53.9초, 동일 manifest이며 activation0건이다. 이 기록은 실제 모델·GUI
 실행이다. 정확한 저장·Finder 생성·Dark/Auto·동시 사용자 입력은 검증하지 않았다.
 시행1회로 속도/비용 우위나 범용 성공률을 주장하지 않는다.
@@ -692,12 +692,12 @@ Sky53.9초, 동일 manifest이며 activation0건이다. 이 기록은 실제 모
 ### G7 정확한 저장 상태 실제 시행
 
 `reviews/2026-10-10/product-comparison-20261010-160030.jsonl`에서 새 소유
-문서를 사용해 Tacto1/1·Sky1/1의 exact UTF-8 파일/본문 일치와 자체 문서
-정리를 확인했다. Tacto41.2초, Sky49.5초, 동일 frozen manifest다. 처음의
+문서를 사용해 Haejo1/1·Sky1/1의 exact UTF-8 파일/본문 일치와 자체 문서
+정리를 확인했다. Haejo41.2초, Sky49.5초, 동일 frozen manifest다. 처음의
 배경 Save disabled 관측이나 이전 저장 실패를 삭제하지 않는다. 이번 성공은
 정확한 최종 상태이며 명시 Save 인과 증명/반복 안정성 완료가 아니다.
 
-Tacto activation0, Sky2건의 원인은 미확정이다. 초기 전경 상태를 보존하는
+Haejo activation0, Sky2건의 원인은 미확정이다. 초기 전경 상태를 보존하는
 후속 runner 변경은52개 회귀로 검증했으나 위 시행에는 포함되지 않는다.
 다음은 초기 상태/receiving witness를 고정한 반복 저장과 Finder 생성,
 기존 파일과 새 파일·문서 교체·실패 후 복구, 저장·전송 인과 증거다.
@@ -705,7 +705,7 @@ Tacto activation0, Sky2건의 원인은 미확정이다. 초기 전경 상태를
 ### G3 현재 실패와 다음 구현
 
 `reviews/2026-10-10/product-comparison-20261010-160542.jsonl`에서 Finder 새
-폴더는 Sky1/1, Tacto0/1이었다. Tacto는165.7초/실제 input603060 후 빈 directory로
+폴더는 Sky1/1, Haejo0/1이었다. Haejo는165.7초/실제 input603060 후 빈 directory로
 끝났다. 모델은 메뉴 disabled·창 준비 timeout을 보고했지만 native phase별
 실패 trace는 보존되지 않아 원인을 확정하지 않는다. 자기 시험 폴더는 정리했다.
 
@@ -733,7 +733,7 @@ Finder 원인 확인과 구현 개선·실제 반복은 여전히 남아 있다.
 
 ### 진단 transport와 Finder 단독 시행
 
-`reviews/2026-10-10/product-comparison-20261010-162643.jsonl`: Tacto1/1,
+`reviews/2026-10-10/product-comparison-20261010-162643.jsonl`: Haejo1/1,
 256초 뒤 `untitled folder` 한 개를 독립 oracle로 확인했다. source_changed=false,
 cleanup folder_removed다. input1421307/cache1333120/output3800이며 raw usage다.
 초기 Finder, activation9건의 원인은 미확정이다. 같은 백본의 시행1회이며
@@ -838,7 +838,7 @@ request_id와 authoritative 수신함의 새 message_id·account·recipient·정
 첨부·동일 UID의 다른 writer·서비스별 atomic precondition은 아직 별도 과제다.
 [서비스 계약과 실기 범위](delivery-evidence.md)에 상세 조건을 기록했다.
 
-실제 headless Chromium의 Tacto click→owned loopback HTTP POST→인증된
+실제 headless Chromium의 Haejo click→owned loopback HTTP POST→인증된
 독립 HTTP inbox read를 검증했다. 서비스는 수신 본문을 보관하고 조회 시
 그 본문을 hash한다. 정확한 새 수신, no-op Sent, 수신 본문 손상, 응답 유실,
 기존 요청 재사용 거부, 승인 거절, 실제 form 수신인 변경, dispatch 전 거절의
@@ -853,7 +853,7 @@ request_id와 authoritative 수신함의 새 message_id·account·recipient·정
 새 adapter unit14 + receiving integration8 + 기존 저장/receipt/replay/evidence
 검사를 합친115개가13.096초에 통과했다. 초기 approval fixture 오류4건과
 그 수정 후 발견한 실제 response-loss 오류1건의 로그도 보존한다. 전체
-실제 native 전송·첨부·다양한 백본·Tacto/Sky 동일 조건 비교는 아직 남아 있다.
+실제 native 전송·첨부·다양한 백본·Haejo/Sky 동일 조건 비교는 아직 남아 있다.
 
 고정된 exact ce4074a archive + root receipt8개 overlay의 전체 검사는
 1301 tests/skipped2/230.193초, 문서 링크 검사1건만 실패했다. 새 문서의
@@ -921,7 +921,7 @@ Codex 계획 adapter는 reasoning/agent_message 이외의 turn item을 거부한
 HEAD checkpoint만 기록해 전체 dependency freeze 또는 source 불변성을
 증명하지 않는다. 후속 probe는 제한된 여섯 소스의 전후 hash도 기록하지만
 전체 의존성 폐쇄를 증명하지 않는다. 사용자의 실제 브라우저·macOS 창,
-시각 좌표 행동, 저장·전송 receiving 증거, Tacto/Sky 동일 조건 비교를 수행한
+시각 좌표 행동, 저장·전송 receiving 증거, Haejo/Sky 동일 조건 비교를 수행한
 결과가 아니다. 전체 G5 완료 기준은 유지한다.
 
 ## G2/G1 후속: 실제 token 예산·재요청 한도·웹 옵션 선택
@@ -976,9 +976,9 @@ skill/install.sh는 signed launcher 경로가 없으면 Python console script를
 없는 skills 폴더를 생성하고 최신 checkout의 skill 링크를 만든다.
 확인 모드는 변경 없이 누락/충돌을 exit1로 보고하며, 잘못된 옵션은
 설치를 시작하기 전에 exit2로 거부한다. 이름만 같은 다른 명령/스킬의
-파일·정상/깨진 symlink는 보존한다. 기존 Tacto 스킬 복사본과 그 안의 로컬
+파일·정상/깨진 symlink는 보존한다. 기존 Haejo 스킬 복사본과 그 안의 로컬
 추가 파일은 삭제 대신 private backup에 보관한 후 연결한다.
-기존 Tacto checkout의 launcher/console 링크는 Tacto marker를 확인해 갱신한다.
+기존 Haejo checkout의 launcher/console 링크는 Haejo marker를 확인해 갱신한다.
 
 실제 bash installer를 임시 checkout·새 사용자 경로(공백 포함)에 실행한
 9개 케이스와 기존 설치5개 케이스는14/14 통과했다. 이 fixture의 launcher는
@@ -1039,7 +1039,7 @@ identity와 수신 본문을 확인한다. 장애 사례에는 실제 수신 메
 검사를 실행하면 failures5/errors1, exit1이었다. baseline polling 로직은
 변경하지 않았다. 로그는 `../reviews/2026-10-10/delivery-read-outage-baseline.log`다.
 이 검증은 자체 계정·본문·로컬 서버만 사용했으며 실제 원격 메신저, 첨부,
-native 앱과 여러 모델 백본 또는 Tacto/Sky 동일 조건 비교의 완료 증거가 아니다.
+native 앱과 여러 모델 백본 또는 Haejo/Sky 동일 조건 비교의 완료 증거가 아니다.
 이 범위 밖 항목은 G0~G10 원래 완료 기준으로 계속 진행한다.
 
 Muxa read-only 리뷰(req_18dd231e9140bb18_46)는 P1/P2 없음으로 판단했다.
@@ -1079,7 +1079,7 @@ model/configuration은 증명하지 못하므로 same_conditions_verified=false�
 유지하고 비교 성공률·성능 수치를 계산하지 않는다.
 
 실제 기존 네 cohort를 감사해 appearance/save의 초기 전경 누락, Finder의
-초기 전경 차이, Tacto-only 후속을 확인했다. 결과와 각 입력 SHA256은
+초기 전경 차이, Haejo-only 후속을 확인했다. 결과와 각 입력 SHA256은
 `../reviews/2026-10-10/product-pair-prerequisites-audit.json`에 보존한다.
 새 pair 감사7개와 비교 provenance/소유 oracle/세션 검사를 합친 초기47개는
 0.236초에 통과했다. 교정한 로그인·malformed 지표와 기존 eval 환경 검사를
@@ -1092,7 +1092,7 @@ req_18dd239ebba8bc40_4c다.
 ## G9 후속: signed 비교 host 진입과 책임 신원 제약
 
 comparison의 `_driver`를 InheritedHelperDriver로 바꾸고 signed launcher의
-`tacto eval --product-comparison` runpy 진입을 추가했다. helper 채널이 없으면
+`haejo eval --product-comparison` runpy 진입을 추가했다. helper 채널이 없으면
 setup 전에 not_run이며 Python direct fallback이 없다. backend 확인은 앱
 metadata/capability만 읽는다. 실제 installed signed command는 exit0으로
 대상8개와 observe/act/background prepare/document text 등 capability를
@@ -1105,7 +1105,7 @@ Calculator menu/clear 준비가 거부되거나 불확실하면 준비를 중단
 signed window binding을 구현할 때까지 fixture 생성 전 미실행이다.
 
 Muxa read-only 리뷰(req_18dd2431bbd4bbe0_51)의 P1을 반영했다. 공통
-_provider_env는 Tacto helper 채널을 제거하지 않으므로 비교 전용 _agent_env에서
+_provider_env는 Haejo helper 채널을 제거하지 않으므로 비교 전용 _agent_env에서
 FD/launcher/token 표지를 명시적으로 제거한다. 부모 환경은 바꾸지 않는다.
 환경 제거만으로 TCC responsible identity가 분리되지는 않으며, signed host가
 spawn한 model/Sky의 실제 책임 신원은 미관측이다. 현재 경로의 task outcome은
@@ -1127,7 +1127,7 @@ launchctl procinfo는 현재 환경에서 root가 필요해 거부됐다. 승격
 unavailable/null이다. 기본 Python 코어에 GUI 의존성을 추가하지 않으며
 비Darwin에서는 native library를 로드하지 않는다.
 
-`tacto eval --product-comparison --check-responsibility`는 signed controller와
+`haejo eval --product-comparison --check-responsibility`는 signed controller와
 그 controller가 만든 idle Python 자식을 관측했다. 실행 exit0, controller
 88162와 child88173은 각각 자기 PID를 책임 PID로 반환했고 경로는 동일한
 Python 실행 파일이었다. 자식은 stdin byte로 종료하고 wait로 회수했다.
@@ -1143,7 +1143,7 @@ agent↔signed host 분리도 구현하지 않았으므로 기존 비교 제외 
 대표 앱·백본·같은 초기 상태 비교 완료 기준은 계속 유지한다.
 
 Muxa read-only 리뷰(req_18dd24b163cf97f0_55)는 P1 없음으로 판단했다.
-앞선 'model이 Tacto launcher 책임 신원을 상속한다' 설명은 가설이었고,
+앞선 'model이 Haejo launcher 책임 신원을 상속한다' 설명은 가설이었고,
 현재 owned Python probe는 self-responsible 관측이므로 그 가설의 직접 증거가
 아니라고 정정한다. 그렇다고 실제 Codex/Sky가 Python 귀속이라고 추론하지도
 않는다. 아직 그 프로세스를 관측하지 않았다.
@@ -1155,7 +1155,7 @@ cleanup timeout은 소유 자식을 kill/wait한 뒤 닫힌 status와 exit2로 �
 
 ## G4/G9 후속: 실제 Codex 주 프로세스 관측과 provider 환경 정리
 
-공통 provider 환경에서 private Tacto 채널 표지를 항상 제거하도록 수정했다.
+공통 provider 환경에서 private Haejo 채널 표지를 항상 제거하도록 수정했다.
 부모 환경·profile·credential은 보존한다. Codex structured adapter에는
 호스트 소유 list로만 전달되는 선택적 OwnedProcessSampler를 추가했다.
 주 PID를 최대64회 관측하고 요청 종료 시 bounded join하며 실패·timeout에도
@@ -1192,7 +1192,7 @@ signed launcher는 PATH를 고정하므로 default codex 경로가 실제 미발
 코드 서명이나 실제 모델 신원 증거는 아니다.
 
 ```sh
-tacto eval --product-comparison --agent-executable /absolute/path/to/codex --check-agent-responsibility
+haejo eval --product-comparison --agent-executable /absolute/path/to/codex --check-agent-responsibility
 ```
 
 이 명령은 실제 모델 tokens를 쓰는 tool-free 산술 probe다. native 앱 입력이나
@@ -1231,11 +1231,11 @@ agent_transport_failed/failed로 남긴다. transport 실패를 미실행으로 
 실행했다. 원시 owner-only 기록은
 `../reviews/2026-10-10/product-comparison-20261010-195603.jsonl`이다.
 두 arm 모두 독립 defaults 기반 oracle의 Light와 일치하고 process exit0,
-source manifest 전후·두 arm 사이 일치, activations[]였다. Tacto46.3초,
-Sky40.8초다. CLI telemetry 입력/캐시/출력은 Tacto214245/194048/611,
+source manifest 전후·두 arm 사이 일치, activations[]였다. Haejo46.3초,
+Sky40.8초다. CLI telemetry 입력/캐시/출력은 Haejo214245/194048/611,
 Sky159423/150016/620이다. 실제 serving model/비용은 관측하지 않았다.
 `calls`는 인식한 tool item event 수이며 고유 invocation 수가 아니다.
-Tacto shell:tacto12 및 Sky node_repl:js14를 실행 횟수로 해석하지 않는다.
+Haejo shell:haejo12 및 Sky node_repl:js14를 실행 횟수로 해석하지 않는다.
 
 두 arm의 소유 Codex 주 프로세스는64회 observed/self-responsible였으며
 observer stopped/error 없음이다. sample_limit_reached=true라 전체 실행
@@ -1252,7 +1252,7 @@ foreground/pointer/typing 보존과 불가능하면 중단을 명시했다. prom
 이전 자유 활성화 cohort와 같은 정책으로 묶지 않는다.
 
 Muxa read-only 리뷰 req_18dd25dd65817ed8_60의 P2 두 건을 반영했다.
-Tacto 전용 signed --helper 안내를 Tacto ARM_CLAUSE로 옮겨 공통 제약은 계층
+Haejo 전용 signed --helper 안내를 Haejo ARM_CLAUSE로 옮겨 공통 제약은 계층
 중립으로 유지하고 새 runtime_policy=background-v2를 추가했다. auditor는
 policy version·제약 원문·positive integer timeout의 기록과 두 arm 일치를
 확인한다. 동일 버전의 다른 문구나 같은 문구의 다른 timeout도 제외한다.
@@ -1311,7 +1311,7 @@ backend는 새 evidence.document_window_status와8개 앱을 보고했고 doctor
 현재 comparison의 TextEdit 미실행 gate를 해제하지 않았다.
 전체 G0~G10의 대표 앱/백본·인과적 저장/전송·동일 조건 비교/설치 완료 기준은 유지한다.
 
-최종 관련 테스트51개 중50 PASS/선택적 TACTO_CONTRACT_LIVE 실기1 SKIP,
+최종 관련 테스트51개 중50 PASS/선택적 HAEJO_CONTRACT_LIVE 실기1 SKIP,
 4.969초였다. 문서 변경 뒤 docs6도0.039초에 통과했다. 없는 test_trace 모듈을
 잘못 지정한 첫 검증 명령은 import 오류였고, 실제 test_document_text_trace로
 수정한 위 실행이 최종 결과다. 실기 SKIP을 성공으로 계산하지 않는다.
@@ -1344,7 +1344,7 @@ Muxa 리뷰 req_18dd273aaa2acea0_68의 렌더링 범위·direct 검증 P2를 반
 후속 req_18dd27662a8b82f8_69는 P1/P2 없음이었다. 두 transport의 label 처리,
 changed/missing/disabled/nil close-control 거절을 회귀로 검증했다.
 
-`tacto eval --product-comparison --check-owned-document-lifecycle` 실기는
+`haejo eval --product-comparison --check-owned-document-lifecycle` 실기는
 소유 빈 문서 open/완전한 empty text→window-bound close→같은 process의 AX/CG
 closed 관측→artifact 제거에 성공했다. 기록은
 `../reviews/2026-10-10/signed-owned-document-lifecycle-closed.json`이다.
@@ -1364,7 +1364,7 @@ regular-file/nlink·예상 entry를 검사하며 recursive delete를 사용하�
 최종 rmdir 신원 확인은 같은 사용자의 rename과 atomic하지 않다. 소유 artifact
 변경/미확정은 보존하며 실패한 fixture를 다음 setup으로 덮어쓰지 않는다.
 
-실제 Tacto model arm은66.1초에 본문 oracle PASS/exit0/source stable였다.
+실제 Haejo model arm은66.1초에 본문 oracle PASS/exit0/source stable였다.
 원시는 `../reviews/2026-10-10/product-comparison-20261010-202730.jsonl`이며
 initial-empty=true, agent 실행 중 activation0, top CLI 입력306674/캐시267648/
 출력1350 tokens다. 이 usage는 nested provider 전체 비용이 아니다.
@@ -1426,23 +1426,23 @@ receipt와 legacy Save/chain task 통합, Sky/다른 backbone 및 대표 앱 반
 ## G8/G9 모델 편집 pair의 cleanup 재검증
 
 installed signed doctor의 기존 권한·8개 앱·세션 준비를 확인하고
-textedit_edit_owned를 Tacto/Sky 한 번씩, 양쪽120초 timeout,
+textedit_edit_owned를 Haejo/Sky 한 번씩, 양쪽120초 timeout,
 background-v2/signed-owned-document-exact-text-v2로 실행했다. 각각 독립적인
 private empty fixture를 열고 정확한 경로만 ask에 전달했다. 원시는
 `../reviews/2026-10-10/product-comparison-20261010-210206.jsonl`이다.
 
 두 arm 모두 초기 empty/complete body, 정확한 기대 본문, process exit0,
 cleanup completed/closed_observed/artifact_removed=true를 확인했다.
-Tacto64.8초·Sky35.2초의 seconds는 agent invocation 구간이며 setup/oracle/cleanup
-시간을 포함하지 않는다. Tacto는 global_window_still_present 한 번, Sky는
+Haejo64.8초·Sky35.2초의 seconds는 agent invocation 구간이며 setup/oracle/cleanup
+시간을 포함하지 않는다. Haejo는 global_window_still_present 한 번, Sky는
 세 번 뒤 closed로 읽혔다. 이 횟수는 창 해제 타이밍의 진단이며 계층 성능
 지표로 사용하지 않는다. close를 반복하지 않고 readonly poll만 했다.
 각 model witness의 초기 전경 Settings/activations[]이고 두 arm source manifest는
 서로 같고 전후 stable이다. 이 witness는 agent 실행만 관측하므로 setup/cleanup
 전체 activation 또는 pointer/typing 보존을 주장하지 않는다.
 
-CLI telemetry 입력/cache/출력은 Tacto311178/282368/1370,
-Sky140453/129280/559다. calls(shell:tacto14/node_repl:js12)는 tool item event
+CLI telemetry 입력/cache/출력은 Haejo311178/282368/1370,
+Sky140453/129280/559다. calls(shell:haejo14/node_repl:js12)는 tool item event
 수이며 고유 invocation 수나 실행 layer의 완전한 attestation이 아니다.
 이 usage는 nested provider 전체 비용이 아니며 actual serving model/cost는
 확인하지 못했다. 전체 초기 UI·좌표/선택 상태, Sky 후손 책임과 실제 TCC 판정,
@@ -1465,7 +1465,7 @@ signed 실행과 정확한 receiving 증거를 연결하는 것이다.
 
 ## G7 후속: owned native Save producer와 fresh-file 영수증
 
-`tacto eval --product-comparison --check-owned-save-receipt`는 모델 호출 없이
+`haejo eval --product-comparison --check-owned-save-receipt`는 모델 호출 없이
 전용 NSSavePanel fixture에서 signed backend로 실행한다. PID를 owned child와
 대조하고 새 nonce 파일의 directory/filename/RTF/original_changes_setting을
 확인한 뒤 guarded Save를 한 번 실행한다. FreshFileReceipt와 앱의 OK callback,
@@ -1478,7 +1478,7 @@ owner-only `../reviews/2026-10-10/owned-native-save-writer-cleanup-success.json`
 source stable, 모델 요청0, guarded dispatch acted, typed evidence 오류 없음,
 정확한 callback/bytes, owned child 회수 및 fixture 설정 파일 부재를 기록한다.
 전체 fixture 구간에서 초기 frontmost는 System Settings, activation은 없었다.
-pointer/typing 보존이나 동일 조건 Tacto/Sky 비교 완료로 승격하지 않는다.
+pointer/typing 보존이나 동일 조건 Haejo/Sky 비교 완료로 승격하지 않는다.
 
 실패 보고서는 별도로 보존했다. 처음에는 format 없는 패널이 RTF-only guard에
 거부됐고, 새 leaf를 포함한 realpath는 /tmp 별칭을 해석하지 못했다. 부모
@@ -1520,7 +1520,7 @@ typed receipt가 발급됐다. 신규 실제 임시 파일 회귀의6 subcase가
 {} 응답2곳은 acted로 수정해 원래의 문서/재사용 검사를 계속 수행한다.
 Muxa read-only req_18dd2b3252304238_7c는 P1/P2 없음이었다.
 
-`tacto eval --product-comparison --check-owned-textedit-save`는 fresh owned .txt의
+`haejo eval --product-comparison --check-owned-textedit-save`는 fresh owned .txt의
 정확한 본문을 signed helper로 편집하고, 메뉴를 읽어 Save가 이미 enabled면
 불필요한 창 준비를 생략한다. disabled면 pinned document window 준비1회 뒤
 메뉴 enabled를 재확인한다. File Save에는 exact focused_document 경로를
@@ -1559,12 +1559,12 @@ legacy custom cleanup gate를 전역으로 제거하지 않았다. chain wrapper
 fixture evidence를 기록하도록 setup identity 대신 cleanup identity를 사용한다.
 
 owner-only `../reviews/2026-10-10/product-comparison-20261010-214334.jsonl`에서
-실제 Sky/Tacto Save가 각각49.6/45.1초에 PASS였다. 두 arm 모두 exact disk와
+실제 Sky/Haejo Save가 각각49.6/45.1초에 PASS였다. 두 arm 모두 exact disk와
 본문, 초기 빈 문서, signed close/부재/삭제 및 cleanup completed를 기록했다.
 agent 구간 초기 frontmost=System Settings, activation=[]였다. source prefix
 b930dd980e0e가 두 arm 전후 stable이다. CLI input/cache/output은
-Sky188422/178944/723, Tacto132725/105472/933다. tool item event 수는
-Sky node_repl:js16, Tacto shell:tacto12/shell:other2이며 고유 호출 수가 아니다.
+Sky188422/178944/723, Haejo132725/105472/933다. tool item event 수는
+Sky node_repl:js16, Haejo shell:haejo12/shell:other2이며 고유 호출 수가 아니다.
 실제 serving model/cost, nested provider 총 비용, typing/caret/pointer 보존,
 Sky descendant/TCC graph, 완전한 초기 UI는 미검증이다. 비교 제외와 command
 exit2를 유지한다. 저장된 상태를 autosave 없는 명시 Save 인과 증거로 승격하지
@@ -1578,10 +1578,10 @@ signed observe의 target_not_found 및 NSRunningApplication count0로 Calculator
 자동 종료하거나 포커스를 복원하지 않으며 left_running boolean을 남긴다.
 
 `../reviews/2026-10-10/product-comparison-20261010-214831.jsonl`의 실제 chain은
-Tacto44.2초/Sky40.8초 모두 FAIL이었다. Tacto는 CLI에서 정확한 TextEdit 문서
+Haejo44.2초/Sky40.8초 모두 FAIL이었다. Haejo는 CLI에서 정확한 TextEdit 문서
 경로로 관측을 제한할 수 없다고 중단했고, Sky는 background 입력과 입력 보존
 지원 여부를 확인하지 못해 중단했다. 두 문서 본문은 빈 상태였고 signed cleanup
-completed/artifact removed, activation 없음, source stable이었다. Tacto setup은
+completed/artifact removed, activation 없음, source stable이었다. Haejo setup은
 Calculator background launch 및 초기0/basic을 독립 검증했다. 이 실패를 새
 준비 성공이나 다른 과제의 Save 성공으로 지우지 않는다. command exit1이었다.
 
@@ -1642,7 +1642,7 @@ node_repl/js로 @oai/sky를 import하고 target=mac을 확인했다. 앱 관찰�
 ### 새 독립 실제 모델 비교 완료 범위
 
 2026-10-24 rc.6 설치본을 사용한 bonus on/off/버튼 이름 변경의 3쌍에서
-Tacto3/3·Sky3/3의 정확한 결과·단일 commit을 확인했다. 총시간77.00/135.40초,
+Haejo3/3·Sky3/3의 정확한 결과·단일 commit을 확인했다. 총시간77.00/135.40초,
 CLI 새 입력 합계23,247/44,386이며 세부 조건과 한계는
 [비교 기록](benchmark-records.md)의 새 절에 있다. 실제 serving model·숨은
 context·완전한 입력 상태 동등성 미검증으로 comparison_eligible=false를 유지한다.
@@ -1656,7 +1656,7 @@ worker의 메타데이터 연결은 통과했고 실제 두 앱 과제를 별도
 
 ### 실제 앱 병목에 근거한 document-scoped session
 
-실제 두 앱 과제는 양쪽 성공했으나 Tacto106.3초/Sky26.1초였고, Tacto는 여러
+실제 두 앱 과제는 양쪽 성공했으나 Haejo106.3초/Sky26.1초였고, Haejo는 여러
 안내·긴 내부 문서·JSON 수정 경로를 거쳤다. 전경 변경·책임 경계 미검증으로
 엄격 비교 제외는 유지한다. 이 발견에서 session --document 경로를 구현했다.
 기존 DocumentScopedDriver를 첫 관찰 전 한 번만 연결하고, 모든 관찰/재생이
@@ -1686,7 +1686,7 @@ Flow 자체에 scope가 보존되는 것은 아니므로 scoped replay argv를 �
 
 이 세 native 과제에서 작업 결과와 별개로 전경·포커스 변화가 관측됐으므로
 실패를 지우거나 입력 보존을 통과로 바꾸지 않았다. 장기 복구의 변화는 원래
-전경 프로세스 종료/설정앱 전경 전환과 함께 나타났으나, 원인을 Tacto 또는
+전경 프로세스 종료/설정앱 전경 전환과 함께 나타났으나, 원인을 Haejo 또는
 사용자에게 귀속할 증거는 없다. sample gap·미관측 구간도 원본에 유지한다.
 조용한 환경에서의 입력 보존 검증은 남아 있다.
 
@@ -1711,7 +1711,7 @@ requirements-source-index는 현재 관련 구현·검사 파일 및 원본 해�
 이지만 input audit CHANGED로 전체FAIL을 유지한다. 일반앱/명시TextEdit Save의
 생산자 증명이 아니며 rc.7 exact-DMG 결과도 아니다.
 
-비교 도구에 `--tacto-provider claude`를 추가했다. 기존 기본값은 Codex이며
+비교 도구에 `--haejo-provider claude`를 추가했다. 기존 기본값은 Codex이며
 Sky는 항상 Codex다. Claude에는 Codex 전용 모델·effort 플래그를 보내지 않는다.
 백본·모델 요청은 arm별 기록하고 Claude모드는 requested_backbones_matched=false,
 requested_conditions_matched=false,comparison_eligible=false다. 중단 보고서에도

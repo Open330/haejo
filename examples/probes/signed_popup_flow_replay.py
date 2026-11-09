@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 import stat
 
-TARGET='ai.callabo.tacto.select-fixture'
+TARGET='ai.callabo.haejo.select-fixture'
 ROOT=Path(__file__).resolve().parents[2]
 
 
@@ -18,10 +18,10 @@ def reserve_report(output):
 
 
 def owned_flow():
-    from tacto.flow import Flow,Step,Selector,Postcondition
-    from tacto.contract import SafetyContract,Resource
-    choice=Selector(role='PopUpButton',identifier='tacto-fixture-choice')
-    result=Selector(identifier='tacto-fixture-result')
+    from haejo.flow import Flow,Step,Selector,Postcondition
+    from haejo.contract import SafetyContract,Resource
+    choice=Selector(role='PopUpButton',identifier='haejo-fixture-choice')
+    result=Selector(identifier='haejo-fixture-result')
     def safety():
         return SafetyContract(effects=['write_ephemeral'],resource=Resource(scope='entry'),reversibility='reversible')
     steps=[]
@@ -48,9 +48,9 @@ def checked_transition_response(response,receiving,ordinal,audit_status):
 
 def main(driver,output,expected_pid,*,journal_directory=None):
     with reserve_report(output) as stream:
-        sources=['examples/probes/signed_popup_flow_replay.py','examples/eval.py','tacto/flow.py',
-                 'tacto/protocol.py','tacto/helper.py','helper/TactoHelper.swift','launcher/tacto.swift',
-                 'helper/Tacto Helper.app/Contents/MacOS/TactoHelper','launcher/tacto','tests/fixtures/NativeSelectFixture.swift']
+        sources=['examples/probes/signed_popup_flow_replay.py','examples/eval.py','haejo/flow.py',
+                 'haejo/protocol.py','haejo/helper.py','helper/HaejoHelper.swift','launcher/haejo.swift',
+                 'helper/Haejo Helper.app/Contents/MacOS/HaejoHelper','launcher/haejo','tests/fixtures/NativeSelectFixture.swift']
         hashes=lambda:{name:hashlib.sha256((ROOT/name).read_bytes()).hexdigest() for name in sources}
         report={'passed':False,'scope':'one new owned background popup serialized Flow IR replay',
                 'actual_human_typing_verified':False,'proves_no_intermediate_change':False,
@@ -59,15 +59,15 @@ def main(driver,output,expected_pid,*,journal_directory=None):
             if type(expected_pid) is not int or expected_pid<=0:raise ValueError('owned_pid_required')
             if 'action.open_select.explicit_ax' not in getattr(driver,'capabilities',()):
                 raise ValueError('explicit_opening_capability_required')
-            from tacto.helper import InheritedHelperDriver
+            from haejo.helper import InheritedHelperDriver
             if not isinstance(driver,InheritedHelperDriver) or not InheritedHelperDriver.available():
                 raise ValueError('signed_channel_required')
             report['transport']='inherited-helper'
-            from tacto.driver import Driver,_attr,AXUIElementCreateApplication
-            from tacto.flow import Selector,replay
-            from tacto.input_audit_process import ProcessInputAudit
+            from haejo.driver import Driver,_attr,AXUIElementCreateApplication
+            from haejo.flow import Selector,replay
+            from haejo.input_audit_process import ProcessInputAudit
             from examples.focus_diagnostics import FocusDiagnosticReader
-            from tacto.provider_observation import capture_provider_calls
+            from haejo.provider_observation import capture_provider_calls
             metadata=Driver()
             def background():
                 if metadata._resolve(TARGET,launch=False)!=expected_pid:
@@ -81,8 +81,8 @@ def main(driver,output,expected_pid,*,journal_directory=None):
                     lines=[s for s in obs['tree'].splitlines() if s.strip().split(maxsplit=1)[0]==str(index)]
                     if len(lines)!=1:raise ValueError('owned_receiving_ambiguous')
                     return Selector._attr(lines[0],'Value')
-                choice,_=Selector(role='PopUpButton',identifier='tacto-fixture-choice').resolve(obs['tree'])
-                return {'value':value('tacto-fixture-result'),'count':value('tacto-fixture-count'),
+                choice,_=Selector(role='PopUpButton',identifier='haejo-fixture-choice').resolve(obs['tree'])
+                return {'value':value('haejo-fixture-result'),'count':value('haejo-fixture-count'),
                         'menu_state':obs.get('custom_selects',{}).get(str(choice),{}).get('state')}
             background();report['initial']=receiving(driver.observe(TARGET,'tree_full'))
             if report['initial']!={'value':'Alpha','count':'0','menu_state':'closed'}:
@@ -110,7 +110,7 @@ def main(driver,output,expected_pid,*,journal_directory=None):
             with ExitStack() as stack, capture_provider_calls() as calls:
                 replay_driver=AuditedDriver()
                 if journal_directory is not None:
-                    from tacto.dispatch_journal import DurableDispatchDriver
+                    from haejo.dispatch_journal import DurableDispatchDriver
                     replay_driver=stack.enter_context(DurableDispatchDriver(replay_driver,journal_directory))
                     report['durable_journal_used']=True
                 result=replay(replay_driver,flow,budget=0)

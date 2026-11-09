@@ -78,7 +78,7 @@
   "agent_config_identical_across_cohorts": true,
   "before_source": "a861027",
   "after_source": "8adc961",
-  "native_source": "rc29 def0e9c, same signed binaries in both Tacto conditions",
+  "native_source": "rc29 def0e9c, same signed binaries in both Haejo conditions",
   "trial_count": 9,
   "task": "Calculator 23 × 19 → exact 437 in evaluator-owned TextEdit document; no Save requested",
   "rows": [
@@ -102,7 +102,7 @@
       },
       "completed_tool_items": {
         "shell:other": 1,
-        "shell:tacto": 4
+        "shell:haejo": 4
       },
       "completed_tool_total": 5,
       "standalone_task_management_commands": 2,
@@ -137,7 +137,7 @@
       },
       "completed_tool_items": {
         "shell:other": 1,
-        "shell:tacto": 2
+        "shell:haejo": 2
       },
       "completed_tool_total": 3,
       "standalone_task_management_commands": 0,
@@ -207,7 +207,7 @@
       },
       "completed_tool_items": {
         "shell:other": 1,
-        "shell:tacto": 4
+        "shell:haejo": 4
       },
       "completed_tool_total": 5,
       "standalone_task_management_commands": 2,
@@ -242,7 +242,7 @@
       },
       "completed_tool_items": {
         "shell:other": 1,
-        "shell:tacto": 2
+        "shell:haejo": 2
       },
       "completed_tool_total": 3,
       "standalone_task_management_commands": 0,
@@ -312,7 +312,7 @@
       },
       "completed_tool_items": {
         "shell:other": 1,
-        "shell:tacto": 4
+        "shell:haejo": 4
       },
       "completed_tool_total": 5,
       "standalone_task_management_commands": 2,
@@ -347,7 +347,7 @@
       },
       "completed_tool_items": {
         "shell:other": 1,
-        "shell:tacto": 2
+        "shell:haejo": 2
       },
       "completed_tool_total": 3,
       "standalone_task_management_commands": 0,

@@ -11,7 +11,7 @@ Read this packet only; choose the intended observed selector. Patch the saved
 Flow without reading it into model context or executing any UI action:
 
 ```sh
-tacto repair /absolute/template.json --packet /absolute/packet.json \
+haejo repair /absolute/template.json --packet /absolute/packet.json \
   --selector '{"role":"Button","identifier":"observed-new-id"}' --out /absolute/new-template.json
 ```
 

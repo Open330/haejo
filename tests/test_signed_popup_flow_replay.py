@@ -42,23 +42,23 @@ class SignedPopupFlowReplayTests(unittest.TestCase):
         self.assertEqual(['Beta','Alpha'],[s.params['option_label'] for s in flow.steps[1::2]])
         for step in flow.steps:
             self.assertIsNotNone(step.safety)
-            self.assertEqual('tacto-fixture-choice',step.selector.identifier)
+            self.assertEqual('haejo-fixture-choice',step.selector.identifier)
         for step in flow.steps[::2]:self.assertEqual({'opening_action':'AXPress'},step.params)
         for step in flow.steps[1::2]:
-            self.assertEqual('tacto-fixture-result',step.postcondition.field.identifier)
+            self.assertEqual('haejo-fixture-result',step.postcondition.field.identifier)
             self.assertEqual('Value',step.postcondition.attribute)
 
     def test_wrong_first_or_second_transition_stops_real_replay_before_next_input(self):
         from examples.probes.signed_popup_flow_replay import checked_transition_response
         from tests.test_native_select_loop import Popup
-        from tacto.flow import replay
+        from haejo.flow import replay
         class Guarded(Popup):
             capabilities=Popup.capabilities|{'action.open_select.explicit_ax'}
             @property
             def tree(self):
                 return ('0 Window Title: Native\n'
-                        f'  1 PopUpButton Identifier: tacto-fixture-choice, Value: {self.value}\n'
-                        f'  2 StaticText Identifier: tacto-fixture-result, Value: {self.value}')
+                        f'  1 PopUpButton Identifier: haejo-fixture-choice, Value: {self.value}\n'
+                        f'  2 StaticText Identifier: haejo-fixture-result, Value: {self.value}')
             def act(self,obs_id,target,action,**kwargs):
                 response=super().act(obs_id,target,action,**kwargs)
                 ordinal=len(self.calls)-1
@@ -68,7 +68,7 @@ class SignedPopupFlowReplayTests(unittest.TestCase):
                 return checked_transition_response(response,receiving,ordinal,'UNCHANGED_SAMPLED')
         for wrong in (0,1):
             driver=Guarded();driver.wrong_ordinal=wrong
-            from tacto.dispatch_journal import DurableDispatchDriver
+            from haejo.dispatch_journal import DurableDispatchDriver
             with tempfile.TemporaryDirectory() as folder:
                 with DurableDispatchDriver(driver,Path(folder).resolve()/'journal') as journalled:
                     result=replay(journalled,owned_flow(),budget=0)

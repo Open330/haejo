@@ -7,12 +7,12 @@ from copy import deepcopy
 import unittest
 from unittest.mock import Mock, patch
 
-from tacto.auto_repair import AutoRepair, parse_options, RepairRefused
-from tacto.cli import _run_flow
-from tacto.flow import Flow, Capture, Selector
-from tacto.flow_batch import BatchDriver
-from tacto.command_help import calculator_example
-from tacto.provider_result import ProviderResult
+from haejo.auto_repair import AutoRepair, parse_options, RepairRefused
+from haejo.cli import _run_flow
+from haejo.flow import Flow, Capture, Selector
+from haejo.flow_batch import BatchDriver
+from haejo.command_help import calculator_example
+from haejo.provider_result import ProviderResult
 from tests.test_flow_batch import SignedCalculator, BatchTests
 
 
@@ -33,7 +33,7 @@ class AutoRepairTests(unittest.TestCase):
         automatic=AutoRepair(chooser=chooser or Mock(return_value=response()),maximum=maximum)
         messages=[];driver=BatchDriver(app)
         with contextlib.redirect_stdout(io.StringIO()),contextlib.redirect_stderr(io.StringIO()), \
-             patch('tacto.cli._indicator_for',return_value=contextlib.nullcontext()):
+             patch('haejo.cli._indicator_for',return_value=contextlib.nullcontext()):
             code,learned=automatic.run(flow,{},['--helper'],driver=driver,run_flow=_run_flow,emit=messages.append)
         return code,learned,automatic,app,messages
 
@@ -47,7 +47,7 @@ class AutoRepairTests(unittest.TestCase):
         self.assertEqual(1,automatic.calls)
         packet=automatic.chooser.call_args.args[0]
         self.assertNotIn('tree',packet);self.assertNotIn('steps',packet)
-        self.assertTrue(any(m.startswith('TACTO_AUTO_REPAIR_RESUME ') for m in messages))
+        self.assertTrue(any(m.startswith('HAEJO_AUTO_REPAIR_RESUME ') for m in messages))
 
     def test_no_agent_on_success_or_unknown_effect_or_first_step_failure(self):
         good=recipe();good.steps[1].selector.identifier='Two'
@@ -108,8 +108,8 @@ class AutoRepairTests(unittest.TestCase):
         self.assertEqual([2,3],[a['element_index'] for a in app.calls])
 
     def test_provider_uses_existing_signed_launcher_route(self):
-        from tacto.auto_repair import choose_candidate
-        with patch('tacto.authoring.reach_model_result',return_value=response()) as route:
+        from haejo.auto_repair import choose_candidate
+        with patch('haejo.authoring.reach_model_result',return_value=response()) as route:
             self.assertEqual('ok',choose_candidate({'candidates':[]},20).status)
         self.assertEqual('codex',route.call_args.kwargs['provider'])
         self.assertEqual(20,route.call_args.kwargs['timeout_seconds'])
@@ -155,21 +155,21 @@ class AutoRepairTests(unittest.TestCase):
     def test_failed_auto_repair_writes_only_terminal_packet(self):
         with tempfile.TemporaryDirectory() as tmp:
             dest=Path(tmp)/'packet.json';app=SignedCalculator();automatic=AutoRepair(chooser=Mock(return_value=response('{"candidate":null}')))
-            with contextlib.redirect_stdout(io.StringIO()),patch('tacto.cli._indicator_for',return_value=contextlib.nullcontext()):
+            with contextlib.redirect_stdout(io.StringIO()),patch('haejo.cli._indicator_for',return_value=contextlib.nullcontext()):
                 code,_=automatic.run(recipe(),{},['--helper','--repair-packet',str(dest)],driver=BatchDriver(app),run_flow=_run_flow,emit=lambda m:None)
             self.assertEqual(1,code);self.assertEqual('not_started',json.loads(dest.read_text())['effect'])
             self.assertEqual(0o600,dest.stat().st_mode&0o777)
             self.assertEqual([2],[a['element_index'] for a in app.calls])
 
     def test_cli_run_preserves_original_loop_scope_before_parameter_binding(self):
-        from tacto.cli import main
+        from haejo.cli import main
         flow=recipe();flow.params={'items':'ab'};flow.steps[0].action='read'
         flow.steps[0].selector=Selector(identifier='StandardInputView');flow.steps[0].postcondition.equals='0'
         flow.steps[0].for_each='{{items}}';app=SignedCalculator();app.close=Mock()
         with tempfile.TemporaryDirectory() as tmp:
             path=Path(tmp)/'flow.json';path.write_text(flow.to_json())
-            with contextlib.redirect_stdout(io.StringIO()),patch('tacto.cli._make_driver',return_value=app), \
-                 patch('tacto.auto_repair.choose_candidate') as chooser,patch('tacto.cli._indicator_for',return_value=contextlib.nullcontext()):
+            with contextlib.redirect_stdout(io.StringIO()),patch('haejo.cli._make_driver',return_value=app), \
+                 patch('haejo.auto_repair.choose_candidate') as chooser,patch('haejo.cli._indicator_for',return_value=contextlib.nullcontext()):
                 self.assertEqual(1,main(['run',str(path),'--helper','--auto-repair','codex','-p','items=abc']))
                 chooser.assert_not_called()
             app.close.assert_called_once()
@@ -201,7 +201,7 @@ class AutoRepairTests(unittest.TestCase):
     def test_consequential_contract_does_not_transfer_to_a_new_selector(self):
         flow=recipe();flow.steps[1].safety.effects=['write_persistent']
         # Host-model result injection isolates the repair contract-transfer boundary.
-        from tacto.flow import ReplayResult
+        from haejo.flow import ReplayResult
         from dataclasses import asdict
         failed=ReplayResult();failed.ok=False
         failed.repair_context={'step_index':1,'action':'click','selector':asdict(flow.steps[1].selector),
@@ -219,7 +219,7 @@ class AutoRepairTests(unittest.TestCase):
         app=SignedCalculator()
         with tempfile.TemporaryDirectory() as tmp:
             packet=Path(tmp)/'packet.json'
-            with contextlib.redirect_stdout(io.StringIO()),patch('tacto.cli._indicator_for',return_value=contextlib.nullcontext()):
+            with contextlib.redirect_stdout(io.StringIO()),patch('haejo.cli._indicator_for',return_value=contextlib.nullcontext()):
                 code,_=automatic.run(flow,{},['--helper','--repair-packet',str(packet)],driver=BatchDriver(app),run_flow=_run_flow,emit=lambda m:None)
             saved=json.loads(packet.read_text())
             self.assertEqual(2,saved['step_index']);self.assertEqual('OldThree',saved['selector']['identifier'])
@@ -231,7 +231,7 @@ class AutoRepairTests(unittest.TestCase):
         automatic=AutoRepair(chooser=Mock(return_value=response()))
         with tempfile.TemporaryDirectory() as tmp:
             packet=Path(tmp)/'packet.json'
-            with contextlib.redirect_stdout(io.StringIO()),patch('tacto.cli._indicator_for',return_value=contextlib.nullcontext()):
+            with contextlib.redirect_stdout(io.StringIO()),patch('haejo.cli._indicator_for',return_value=contextlib.nullcontext()):
                 code,_=automatic.run(flow,{},['--helper','--repair-packet',str(packet)],driver=BatchDriver(SignedCalculator()),run_flow=_run_flow,emit=lambda m:None)
             self.assertEqual(1,code);self.assertFalse(packet.exists());self.assertEqual(0,automatic.calls)
 
@@ -256,7 +256,7 @@ class AutoRepairTests(unittest.TestCase):
 
     def test_global_budget_caps_model_calls(self):
         automatic=AutoRepair(maximum=1,chooser=Mock(return_value=response()))
-        with contextlib.redirect_stdout(io.StringIO()),patch('tacto.cli._indicator_for',return_value=contextlib.nullcontext()):
+        with contextlib.redirect_stdout(io.StringIO()),patch('haejo.cli._indicator_for',return_value=contextlib.nullcontext()):
             for _ in range(2):
                 driver=BatchDriver(SignedCalculator())
                 code,_=automatic.run(recipe(),{},['--helper'],driver=driver,run_flow=_run_flow,emit=lambda m:None)
@@ -264,9 +264,9 @@ class AutoRepairTests(unittest.TestCase):
 
     def test_explicit_run_command_uses_same_automatic_path(self):
         app=SignedCalculator();app.close=Mock()
-        with contextlib.redirect_stdout(io.StringIO()),patch('tacto.cli._make_driver',return_value=app), \
-             patch('tacto.auto_repair.choose_candidate',return_value=response()), \
-             patch('tacto.cli._indicator_for',return_value=contextlib.nullcontext()):
+        with contextlib.redirect_stdout(io.StringIO()),patch('haejo.cli._make_driver',return_value=app), \
+             patch('haejo.auto_repair.choose_candidate',return_value=response()), \
+             patch('haejo.cli._indicator_for',return_value=contextlib.nullcontext()):
             self.assertEqual(0,_run_flow(recipe(),['--helper','--auto-repair','codex']))
         app.close.assert_called_once();self.assertEqual('12',app.value)
 
@@ -285,13 +285,13 @@ class AutoBatchTests(unittest.TestCase):
         doc['steps'].insert(0,calculator_example()['steps'][1])
         # Expand the reset step using original defaults before inserting it.
         doc['steps'][0]=json.loads(Flow.from_json(json.dumps(calculator_example())).to_json())['steps'][1]
-        with tempfile.TemporaryDirectory() as tmp,patch('tacto.auto_repair.choose_candidate',return_value=response()) as chooser:
+        with tempfile.TemporaryDirectory() as tmp,patch('haejo.auto_repair.choose_candidate',return_value=response()) as chooser:
             packet=Path(tmp)/'packet.json'
             code,app,make,msg=helper.execute('{"params":{}}\n'*3,doc=doc,
                 args=['--auto-repair','codex','--max-jobs','3','--repair-packet',str(packet)])
             self.assertFalse(packet.exists())
         self.assertEqual(0,code);self.assertEqual(1,chooser.call_count)
-        results=[json.loads(m.removeprefix('TACTO_BATCH_RESULT ')) for m in msg if m.startswith('TACTO_BATCH_RESULT ')]
+        results=[json.loads(m.removeprefix('HAEJO_BATCH_RESULT ')) for m in msg if m.startswith('HAEJO_BATCH_RESULT ')]
         self.assertEqual([1,0,0],[r['model_requests'] for r in results])
         self.assertEqual(3,len(results));self.assertEqual('12',app.value)
 

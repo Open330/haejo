@@ -14,7 +14,7 @@ class PopupBindingContextTests(unittest.TestCase):
         source = (ROOT / 'helper/WindowInput.swift').read_text()
         scope = source[source.index('final class NativeWindowReadScope {'):]
         scope = scope[:scope.index('\n}\n') + 3]
-        source = (ROOT / 'helper/TactoHelper.swift').read_text()
+        source = (ROOT / 'helper/HaejoHelper.swift').read_text()
         start = source.index('        func capture() throws -> NativeWindowBinding {')
         capture = source[start:source.index('        let binding=try capture()', start)]
         support = r'''

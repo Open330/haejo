@@ -40,7 +40,7 @@ Read only if the observed task needs it:
 For uncovered schema fields, look up only the relevant section of
 [API](../docs/api.md). A successful action is not proof of the user's outcome.
 
-The model compiler `tacto compile` corrects an invalid recipe at most once by
+The model compiler `haejo compile` corrects an invalid recipe at most once by
 default, without running it. Use `--repair-rounds 0` to prevent that extra call.
 `--verify` separately enables UI verification. A caller-supplied model deadline
 covers correction calls too; this is not a guarantee of remote cancellation.

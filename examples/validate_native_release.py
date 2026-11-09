@@ -1,7 +1,7 @@
 """Sixty actual Finder/Safari/TextEdit workflows through one signed candidate.
 
 Fixture bootstrap opens only an explicitly owned text file and public Wikipedia.
-UI actions run via Tacto. No model, personal files, auth or permission changes.
+UI actions run via Haejo. No model, personal files, auth or permission changes.
 Raw observations/traces stay in the caller's private output directory.
 """
 import argparse
@@ -14,7 +14,7 @@ import subprocess
 import time
 import uuid
 
-from tacto.flow import Selector, pin_params, _element_block
+from haejo.flow import Selector, pin_params, _element_block
 if __package__ in (None, ''):
     from release_identity import identity
 else:
@@ -43,8 +43,8 @@ def main():
     args = parser.parse_args()
     base = args.output.resolve(); base.mkdir(mode=0o700)
     launcher = args.launcher.resolve(strict=True)
-    doc = base/'Tacto-release-owned.txt'; doc.write_text('release seed\n'); doc.chmod(0o600)
-    folder_names = ['Tacto-'+uuid.uuid4().hex[:8]+'-'+suffix for suffix in ('A','B')]
+    doc = base/'Haejo-release-owned.txt'; doc.write_text('release seed\n'); doc.chmod(0o600)
+    folder_names = ['Haejo-'+uuid.uuid4().hex[:8]+'-'+suffix for suffix in ('A','B')]
     for name in folder_names:
         folder=base/name;folder.mkdir()
         for i in range(3): (folder/f'owned-{i}.txt').write_text(f'owned file {i}')
@@ -109,7 +109,7 @@ def main():
             listing=_element_block(tree,list_index)
             row('finder_single_file_selection',i,seconds,'[selected]' in block.splitlines()[0]
                 and sum(' Row' in line and '[selected]' in line for line in listing.splitlines())==1)
-            for mode,text in [('single',f'Tacto release {i}'),('multiline',f'출시 검증 {i}\n한글과 emoji 😀\n끝')]:
+            for mode,text in [('single',f'Haejo release {i}'),('multiline',f'출시 검증 {i}\n한글과 emoji 😀\n끝')]:
                 field={'role':'TextArea','identifier':'First Text View','ancestor':str(doc)}
                 params={'value':text}
                 safety={'effects':['write_persistent'],'reversibility':'recoverable',

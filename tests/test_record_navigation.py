@@ -1,10 +1,10 @@
 """Ticket subjects describe records; navigation is bound to their live URL."""
 import json
 import unittest
-from tacto import safety
-from tacto.document_label import link_attributes
-from tacto.flow import Flow, replay, Selector
-from tacto.general import run
+from haejo import safety
+from haejo.document_label import link_attributes
+from haejo.flow import Flow, replay, Selector
+from haejo.general import run
 from tests.test_runtime_contract import App
 
 URL = 'https://help.github.com/ticket/personal/0/123'

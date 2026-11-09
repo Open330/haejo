@@ -51,7 +51,7 @@ class ProducerEvaluationTests(unittest.TestCase):
         module=load('examples/eval.py','producer_eval_failure')
         report={'passed':False,'input_audit':{'private':'PRIVATE_INPUT_SENTINEL'}}
         with patch('runpy.run_path',return_value={'main':Mock(return_value=report)}), \
-                patch('tacto.helper.InheritedHelperDriver') as driver, \
+                patch('haejo.helper.InheritedHelperDriver') as driver, \
                 contextlib.redirect_stdout(io.StringIO()) as output,self.assertRaises(AssertionError) as error:
             driver.available.return_value=True
             module.scenario_signed_producer_file()
@@ -62,7 +62,7 @@ class ProducerEvaluationTests(unittest.TestCase):
         module=load('examples/eval.py','producer_reconcile_scope')
         report={'passed':True,'worker_reconciliation_requested':True,'native_causal_continuation_verified':True}
         main=Mock(return_value=report)
-        with patch('runpy.run_path',return_value={'main':main}),patch('tacto.helper.InheritedHelperDriver') as driver, \
+        with patch('runpy.run_path',return_value={'main':main}),patch('haejo.helper.InheritedHelperDriver') as driver, \
                 contextlib.redirect_stdout(io.StringIO()):
             driver.available.return_value=True
             module.scenario_signed_producer_worker_reconcile()
@@ -87,7 +87,7 @@ class ProducerEvaluationTests(unittest.TestCase):
         audit.report.return_value={'status':'UNCHANGED_SAMPLED'}
         with tempfile.TemporaryDirectory() as directory:
             output=Path(directory)/'interrupted.json'
-            with patch('tacto.input_audit_process.ProcessInputAudit',return_value=audit), \
+            with patch('haejo.input_audit_process.ProcessInputAudit',return_value=audit), \
                     patch.object(module,'run',side_effect=KeyboardInterrupt),self.assertRaises(KeyboardInterrupt):
                 module.main(object(),output)
             report=json.loads(output.read_text())

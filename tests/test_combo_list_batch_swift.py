@@ -10,7 +10,7 @@ ROOT=Path(__file__).resolve().parents[1]
 @unittest.skipUnless(shutil.which('swift'),'Swift required')
 class ComboListBatchSwiftTests(unittest.TestCase):
     def test_complete_131_rows_fresh_reads_strict_batch_errors_and_scalar_fallback(self):
-        source=(ROOT/'helper/TactoHelper.swift').read_text()
+        source=(ROOT/'helper/HaejoHelper.swift').read_text()
         window=(ROOT/'helper/WindowInput.swift').read_text()
         def extract(text,name):
             part=text[text.index('func '+name+'('):]

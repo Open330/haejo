@@ -7,12 +7,12 @@ import subprocess
 
 
 def python_source_hashes(runtime, *, bundled_only=False):
-    """Hash the canonical Tacto implementation."""
+    """Hash the canonical Haejo implementation."""
     runtime = Path(runtime)
-    packages = list((runtime/'.venv/lib').glob('python*/site-packages/tacto'))
+    packages = list((runtime/'.venv/lib').glob('python*/site-packages/haejo'))
     if len(packages) > 1:
-        raise ValueError('multiple bundled tacto packages')
-    primary = packages[0] if packages else (None if bundled_only else runtime/'tacto')
+        raise ValueError('multiple bundled haejo packages')
+    primary = packages[0] if packages else (None if bundled_only else runtime/'haejo')
     if primary is None or not (primary/'__init__.py').is_file():
         raise ValueError('runtime Python package unavailable')
     return {str(path.relative_to(primary)): hashlib.sha256(path.read_bytes()).hexdigest()
@@ -25,7 +25,7 @@ def identity(launcher):
     def code_hash(path):
         text=subprocess.run(['codesign','-dv','--verbose=4',str(path)],capture_output=True,text=True,check=True).stderr
         return next(line.split('=',1)[1] for line in text.splitlines() if line.startswith('CDHash='))
-    helper=runtime/'helper/Tacto Helper.app'
+    helper=runtime/'helper/Haejo Helper.app'
     result['cdhash']={name:code_hash(path) for name,path in {
         'launcher':Path(launcher).resolve(strict=True), 'helper':helper,
         'python':runtime/'.venv/bin/python'}.items()}

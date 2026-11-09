@@ -34,14 +34,14 @@ def reserve_artifacts(output):
     return paths,files
 
 def main(driver, output):
-    from tacto.input_audit_process import ProcessInputAudit
-    from tacto.native_frontmost import frontmost_pid
+    from haejo.input_audit_process import ProcessInputAudit
+    from haejo.native_frontmost import frontmost_pid
     root=Path(__file__).resolve().parents[2]
     target='com.apple.TextEdit'
     paths,files=reserve_artifacts(output)
-    sources=['helper/TactoHelper.swift','tacto/helper.py','tacto/trace.py','launcher/tacto.swift',
-             'examples/probes/signed-document-rtf.py','examples/probes/rtf_semantics.py','tacto/input_audit_process.py','tacto/native_frontmost.py',
-             'tacto/driver.py','tacto/native_document.py','tacto/native_document_ax.py','tacto/model_budget.py']
+    sources=['helper/HaejoHelper.swift','haejo/helper.py','haejo/trace.py','launcher/haejo.swift',
+             'examples/probes/signed-document-rtf.py','examples/probes/rtf_semantics.py','haejo/input_audit_process.py','haejo/native_frontmost.py',
+             'haejo/driver.py','haejo/native_document.py','haejo/native_document_ax.py','haejo/model_budget.py']
     def hashes():return {name:hashlib.sha256((root/name).read_bytes()).hexdigest() for name in sources}
     report={'passed':False,'scope':'new owned TextEdit RTF; signed range export; no save or edit',
             'source_sha256':hashes(),'owned_window_retained':False}

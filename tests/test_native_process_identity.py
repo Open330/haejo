@@ -6,7 +6,7 @@ import subprocess
 import unittest
 from unittest.mock import patch
 
-from tacto import native_process_identity as identity
+from haejo import native_process_identity as identity
 
 
 class ProcessIdentityTests(unittest.TestCase):
@@ -44,7 +44,7 @@ class ProcessIdentityTests(unittest.TestCase):
 
     @unittest.skipUnless(sys.platform=='darwin','libproc requires macOS')
     def test_actual_owned_child_zombie_is_distinguished_before_reaping(self):
-        from tacto.helper_identity import HelperProcessIdentity, helper_instance_status
+        from haejo.helper_identity import HelperProcessIdentity, helper_instance_status
         child=subprocess.Popen([sys.executable,'-c',
             'import os,sys; print("ready",flush=True); sys.stdin.readline(); os._exit(0)'],
             stdin=subprocess.PIPE,stdout=subprocess.PIPE,text=True)

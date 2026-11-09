@@ -1,8 +1,8 @@
 """Submitting a message field cannot hide behind an ephemeral contract."""
 import unittest
 
-from tacto.contract import ContextBinding, Envelope
-from tacto.flow import Flow, Postcondition, Selector, Step, pin_params, replay
+from haejo.contract import ContextBinding, Envelope
+from haejo.flow import Flow, Postcondition, Selector, Step, pin_params, replay
 
 
 class ReturnTransmitBoundaryTests(unittest.TestCase):

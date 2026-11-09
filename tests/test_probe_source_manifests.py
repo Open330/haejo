@@ -21,8 +21,8 @@ class ProbeSourceManifestTests(unittest.TestCase):
         for name in PROBES:
             with self.subTest(probe=name), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
-                runtime = root/'tacto/runtime.py'
-                package_init = root/'tacto/__init__.py'
+                runtime = root/'haejo/runtime.py'
+                package_init = root/'haejo/__init__.py'
                 for path in (runtime, package_init):
                     path.parent.mkdir(parents=True, exist_ok=True)
                     path.write_bytes(b'initial')
@@ -44,9 +44,9 @@ class ProbeSourceManifestTests(unittest.TestCase):
                             hashlib.sha256(path.read_bytes()).hexdigest()
                             for path in paths if path.is_file()}
                 before = snapshot()
-                self.assertIn('tacto/runtime.py', before)
-                self.assertIn('tacto/__init__.py', before)
+                self.assertIn('haejo/runtime.py', before)
+                self.assertIn('haejo/__init__.py', before)
                 runtime.write_bytes(b'changed-runtime')
                 after = snapshot()
-                self.assertNotEqual(before['tacto/runtime.py'], after['tacto/runtime.py'])
-                self.assertEqual(before['tacto/__init__.py'], after['tacto/__init__.py'])
+                self.assertNotEqual(before['haejo/runtime.py'], after['haejo/runtime.py'])
+                self.assertEqual(before['haejo/__init__.py'], after['haejo/__init__.py'])

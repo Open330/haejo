@@ -7,7 +7,7 @@ import shlex
 import tempfile
 import unittest
 from unittest.mock import patch
-from tacto.install_connection import connect
+from haejo.install_connection import connect
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -17,9 +17,9 @@ class InstallConnectionTests(unittest.TestCase):
         temp=tempfile.TemporaryDirectory();self.addCleanup(temp.cleanup)
         self.folder=Path(temp.name).resolve();self.root=self.folder/'runtime';self.root.mkdir()
         (self.root/'skill').mkdir();(self.root/'launcher').mkdir()
-        (self.root/'skill/SKILL.md').write_text('name: tacto\n')
+        (self.root/'skill/SKILL.md').write_text('name: haejo\n')
         shutil.copyfile(ROOT/'skill/install.sh',self.root/'skill/install.sh')
-        (self.root/'launcher/tacto').write_text('#!/bin/sh\nexit 0\n');(self.root/'launcher/tacto').chmod(0o700)
+        (self.root/'launcher/haejo').write_text('#!/bin/sh\nexit 0\n');(self.root/'launcher/haejo').chmod(0o700)
         (self.root/'.venv/bin').mkdir(parents=True)
         python=self.root/'.venv/bin/python'
         python.write_text('#!/bin/sh\nexec '+shlex.quote(str(ROOT/'.venv/bin/python'))+' "$@"\n')
@@ -33,35 +33,35 @@ class InstallConnectionTests(unittest.TestCase):
         for name in ('first','second','third'):
             result=self.connect();self.assertEqual('connected',result['status'],result)
             self.assertTrue(result['checked']);self.assertTrue(result['record_written'])
-            self.assertEqual(str(self.root/'launcher/tacto'),os.readlink(self.bin/'tacto'))
-            self.assertEqual(str(self.root/'skill'),os.readlink(self.skills/'tacto'))
+            self.assertEqual(str(self.root/'launcher/haejo'),os.readlink(self.bin/'haejo'))
+            self.assertEqual(str(self.root/'skill'),os.readlink(self.skills/'haejo'))
             moved=self.folder/name;self.root.rename(moved);self.root=moved
         self.assertEqual(3,len(list(self.state.glob('*.json'))))
         for record in self.state.glob('*.json'):self.assertEqual(0o600,record.stat().st_mode&0o777)
 
     def test_moved_runtime_repairs_recorded_skill_when_command_link_was_removed(self):
         self.assertEqual('connected',self.connect()['status'])
-        (self.bin/'tacto').unlink()
+        (self.bin/'haejo').unlink()
         moved=self.folder/'moved runtime';self.root.rename(moved);self.root=moved
         result=self.connect()
         self.assertEqual('connected',result['status'],result)
         self.assertTrue(result['checked'])
-        self.assertEqual(str(self.root/'launcher/tacto'),os.readlink(self.bin/'tacto'))
-        self.assertEqual(str(self.root/'skill'),os.readlink(self.skills/'tacto'))
+        self.assertEqual(str(self.root/'launcher/haejo'),os.readlink(self.bin/'haejo'))
+        self.assertEqual(str(self.root/'skill'),os.readlink(self.skills/'haejo'))
 
     def test_surviving_recorded_skill_does_not_authorize_foreign_command(self):
         self.assertEqual('connected',self.connect()['status'])
         moved=self.folder/'moved';self.root.rename(moved);self.root=moved
-        (self.bin/'tacto').unlink();(self.bin/'tacto').symlink_to('/foreign/missing')
+        (self.bin/'haejo').unlink();(self.bin/'haejo').symlink_to('/foreign/missing')
         result=self.connect()
         self.assertEqual('installation_failed',result['error'])
-        self.assertEqual('/foreign/missing',os.readlink(self.bin/'tacto'))
-        self.assertNotEqual(str(self.root/'skill'),os.readlink(self.skills/'tacto'))
+        self.assertEqual('/foreign/missing',os.readlink(self.bin/'haejo'))
+        self.assertNotEqual(str(self.root/'skill'),os.readlink(self.skills/'haejo'))
 
     def test_foreign_command_and_state_are_not_adopted(self):
-        self.bin.mkdir();(self.bin/'tacto').symlink_to('/foreign/missing')
+        self.bin.mkdir();(self.bin/'haejo').symlink_to('/foreign/missing')
         self.assertEqual('installation_failed',self.connect()['error'])
-        self.assertEqual('/foreign/missing',os.readlink(self.bin/'tacto'))
+        self.assertEqual('/foreign/missing',os.readlink(self.bin/'haejo'))
         foreign=self.folder/'foreign';foreign.mkdir()
         link=self.folder/'linked-state';link.symlink_to(foreign)
         result=connect(self.root,link,bin_dir=self.bin,skill_dirs=[self.skills])
@@ -78,11 +78,11 @@ class InstallConnectionTests(unittest.TestCase):
 
     def test_repeated_connection_reuses_verified_record_without_rewriting_links(self):
         self.assertTrue(self.connect()['record_written'])
-        links = [self.bin/'tacto', self.skills/'tacto']
+        links = [self.bin/'haejo', self.skills/'haejo']
         before = [(p.lstat().st_ino, p.lstat().st_mtime_ns) for p in links]
         records = {p: p.read_bytes() for p in self.state.glob('*.json')}
-        from tacto.install_connection import run_install
-        with patch('tacto.install_connection.run_install', wraps=run_install) as run:
+        from haejo.install_connection import run_install
+        with patch('haejo.install_connection.run_install', wraps=run_install) as run:
             result = self.connect()
         self.assertEqual('connected', result['status'], result)
         self.assertTrue(result['checked']); self.assertTrue(result['record_reused'])
@@ -97,14 +97,14 @@ class InstallConnectionTests(unittest.TestCase):
         other = self.folder/'other skills'
         result = connect(self.root,self.state,bin_dir=self.bin,skill_dirs=[other])
         self.assertTrue(result['record_written']);self.assertNotIn('record_reused',result)
-        (self.root/'skill/SKILL.md').write_text('name: tacto\nupdated: true\n')
+        (self.root/'skill/SKILL.md').write_text('name: haejo\nupdated: true\n')
         result = connect(self.root,self.state,bin_dir=self.bin,skill_dirs=[other])
         self.assertTrue(result['record_written']);self.assertNotIn('record_reused',result)
         self.assertEqual(3,len(list(self.state.glob('*.json'))))
 
     def test_failed_read_only_check_does_not_report_reused_success(self):
         self.connect()
-        with patch('tacto.install_connection.run_install',return_value=1):
+        with patch('haejo.install_connection.run_install',return_value=1):
             result = self.connect()
         self.assertEqual('failed',result['status'])
         self.assertNotIn('record_reused',result)
@@ -112,7 +112,7 @@ class InstallConnectionTests(unittest.TestCase):
     def test_default_setup_destinations_reuse_only_after_actual_installer_check(self):
         home=self.folder/'isolated home'
         (home/'Library/Application Support/asx/profiles/example/skills').mkdir(parents=True)
-        env={'HOME':str(home),'TACTO_BIN_DIR':'',
+        env={'HOME':str(home),'HAEJO_BIN_DIR':'',
              'CODEX_HOME':str(home/'active codex'),'CLAUDE_CONFIG_DIR':str(home/'active claude')}
         with patch.dict(os.environ,env):
             first=connect(self.root,self.state)
@@ -122,7 +122,7 @@ class InstallConnectionTests(unittest.TestCase):
         self.assertEqual('connected',second['status'],second)
         self.assertTrue(second['record_reused']);self.assertTrue(second['checked'])
         self.assertEqual(1,len(list(self.state.glob('*.json'))))
-        self.assertEqual(str(self.root/'launcher/tacto'),os.readlink(home/'.local/bin/tacto'))
+        self.assertEqual(str(self.root/'launcher/haejo'),os.readlink(home/'.local/bin/haejo'))
 
     def test_full_catalog_can_reuse_but_cannot_add_changed_installation(self):
         self.connect()
@@ -133,7 +133,7 @@ class InstallConnectionTests(unittest.TestCase):
                 stream.write(record)
         result=self.connect()
         self.assertTrue(result['record_reused']);self.assertFalse(result['record_written'])
-        (self.root/'skill/SKILL.md').write_text('name: tacto\nchanged: true\n')
+        (self.root/'skill/SKILL.md').write_text('name: haejo\nchanged: true\n')
         result=self.connect()
         self.assertEqual('record_catalog_full',result['error'])
         self.assertEqual(1000,len(list(self.state.glob('*.json'))))

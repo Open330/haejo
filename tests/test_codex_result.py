@@ -8,7 +8,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from tacto.codex_result import codex_result, parse_codex_events, CodexProtocolError, _run_codex
+from haejo.codex_result import codex_result, parse_codex_events, CodexProtocolError, _run_codex
 
 
 def events():
@@ -94,7 +94,7 @@ class CodexResultTests(unittest.TestCase):
             return subprocess.CompletedProcess(argv, 0,
                 stream(source[:2] + [tool] + source[2:]), '')
 
-        with patch('tacto.codex_result._run_codex', side_effect=launch):
+        with patch('haejo.codex_result._run_codex', side_effect=launch):
             result = codex_result('q')
         self.assertEqual('error', result.status)
         self.assertEqual('CodexProtocolError', result.error.code)
@@ -107,7 +107,7 @@ class CodexResultTests(unittest.TestCase):
 
     def test_failure_and_timeout_keep_only_valid_complete_turn_metadata(self):
         for source in (stream(events()),stream(events()).encode()):
-            with self.subTest(source_type=type(source).__name__),patch('tacto.codex_result._run_codex',side_effect=subprocess.TimeoutExpired('PRIVATE',1,output=source)):
+            with self.subTest(source_type=type(source).__name__),patch('haejo.codex_result._run_codex',side_effect=subprocess.TimeoutExpired('PRIVATE',1,output=source)):
                 result=codex_result('q')
             self.assertEqual('timeout',result.status)
             self.assertIsNone(result.text)
@@ -115,11 +115,11 @@ class CodexResultTests(unittest.TestCase):
             self.assertFalse(result.cancellation_supported)
             self.assertNotIn('PRIVATE',json.dumps(result.to_dict()))
         for source in (stream(events()[:-1]),stream(events()+[events()[-1]]),'not JSON',b'\xff'):
-            with self.subTest(source=repr(source)[:80]),patch('tacto.codex_result._run_codex',side_effect=subprocess.TimeoutExpired('PRIVATE',1,output=source)):
+            with self.subTest(source=repr(source)[:80]),patch('haejo.codex_result._run_codex',side_effect=subprocess.TimeoutExpired('PRIVATE',1,output=source)):
                 result=codex_result('q')
             self.assertEqual('timeout',result.status);self.assertIsNone(result.text)
             self.assertIsNone(result.input_tokens)
-        with patch('tacto.codex_result._run_codex',return_value=subprocess.CompletedProcess([],1,stream(events()),'PRIVATE STDERR')):
+        with patch('haejo.codex_result._run_codex',return_value=subprocess.CompletedProcess([],1,stream(events()),'PRIVATE STDERR')):
             result=codex_result('q')
         self.assertEqual('error',result.status);self.assertIsNone(result.text)
         self.assertEqual(10,result.output_tokens)
@@ -129,12 +129,12 @@ class CodexResultTests(unittest.TestCase):
         def launch(argv,prompt,timeout, *, cwd=None):
             Path(argv[argv.index('--output-last-message')+1]).write_text('PRIVATE inconsistent answer')
             return subprocess.CompletedProcess(argv,0,stream(events()),'')
-        with patch('tacto.codex_result._run_codex',side_effect=launch):result=codex_result('q')
+        with patch('haejo.codex_result._run_codex',side_effect=launch):result=codex_result('q')
         self.assertEqual('error',result.status);self.assertIsNone(result.text)
         self.assertEqual(100,result.input_tokens)
         self.assertNotIn('PRIVATE',json.dumps(result.to_dict()))
         source=events();source[-1]['usage']['input_tokens']=True
-        with patch('tacto.codex_result._run_codex',return_value=subprocess.CompletedProcess([],1,stream(source),'')):
+        with patch('haejo.codex_result._run_codex',return_value=subprocess.CompletedProcess([],1,stream(source),'')):
             result=codex_result('q')
         self.assertIsNone(result.input_tokens);self.assertIsNone(result.output_tokens)
 
@@ -142,7 +142,7 @@ class CodexResultTests(unittest.TestCase):
         script='import sys,time;sys.stdin.read();print('+repr(stream(events()))+',flush=True);time.sleep(5)'
         def launch(argv,prompt,timeout, *, cwd=None):
             return _run_codex([sys.executable,'-c',script],prompt,.3,cwd=cwd)
-        with patch('tacto.codex_result._run_codex',side_effect=launch):result=codex_result('q')
+        with patch('haejo.codex_result._run_codex',side_effect=launch):result=codex_result('q')
         self.assertEqual('timeout',result.status)
         self.assertEqual(100,result.input_tokens)
         self.assertEqual(10,result.output_tokens)
@@ -150,10 +150,10 @@ class CodexResultTests(unittest.TestCase):
         self.assertFalse(result.cancellation_supported)
 
     def test_failed_tool_telemetry_reaches_common_summary_without_tool_content(self):
-        from tacto.provider_observation import capture_provider_calls,record_provider_result,summarize_provider_calls
+        from haejo.provider_observation import capture_provider_calls,record_provider_result,summarize_provider_calls
         source=events()
         source.insert(2,{'type':'item.completed','item':{'type':'command_execution','status':'failed','command':'PRIVATE TOOL COMMAND'}})
-        with patch('tacto.codex_result._run_codex',return_value=subprocess.CompletedProcess([],1,stream(source),'')),capture_provider_calls() as records:
+        with patch('haejo.codex_result._run_codex',return_value=subprocess.CompletedProcess([],1,stream(source),'')),capture_provider_calls() as records:
             result=record_provider_result(codex_result('q'))
         self.assertEqual('error',result.status);self.assertIsNone(result.text)
         self.assertEqual(100,result.input_tokens)
@@ -176,7 +176,7 @@ class CodexResultTests(unittest.TestCase):
             self.assertEqual(0o600, stat.S_IMODE(path.stat().st_mode))
             path.write_text('{"done":true}')
             return subprocess.CompletedProcess(argv, 0, stream(events()), '')
-        with patch('tacto.codex_result._run_codex', side_effect=launch):
+        with patch('haejo.codex_result._run_codex', side_effect=launch):
             result = codex_result('sensitive prompt', model='requested-model')
         self.assertEqual('ok', result.status)
         self.assertEqual(10, result.output_tokens)
@@ -187,10 +187,10 @@ class CodexResultTests(unittest.TestCase):
         self.assertFalse(paths[0].exists())
 
     def test_nonzero_exit_and_timeout_are_not_success(self):
-        with patch('tacto.codex_result._run_codex', return_value=subprocess.CompletedProcess([], 1, stream(events()), '')):
+        with patch('haejo.codex_result._run_codex', return_value=subprocess.CompletedProcess([], 1, stream(events()), '')):
             result = codex_result('q')
         self.assertEqual('error', result.status)
-        with patch('tacto.codex_result._run_codex', side_effect=subprocess.TimeoutExpired('PRIVATE', 1)):
+        with patch('haejo.codex_result._run_codex', side_effect=subprocess.TimeoutExpired('PRIVATE', 1)):
             result = codex_result('q')
         self.assertEqual('timeout', result.status)
         self.assertIsNone(result.input_tokens)
@@ -205,7 +205,7 @@ class CodexResultTests(unittest.TestCase):
         for code, stdout, stderr, reason in ((1, '', 'usage limit reached SECRET', 'usage_limit'),
                                             (0, 'Please run /login', '', 'not_logged_in')):
             response = subprocess.CompletedProcess([], code, stdout, stderr)
-            with patch('tacto.codex_result._run_codex', return_value=response):
+            with patch('haejo.codex_result._run_codex', return_value=response):
                 result = codex_result('private prompt')
             self.assertEqual(result.status, 'error')
             self.assertEqual(result.error.code, reason)
@@ -213,7 +213,7 @@ class CodexResultTests(unittest.TestCase):
 
     def test_invalid_deadline_rejected_before_launch(self):
         for value in (0, -1, float('nan'), float('inf'), True):
-            with self.subTest(value=value), patch('tacto.codex_result._run_codex') as launch:
+            with self.subTest(value=value), patch('haejo.codex_result._run_codex') as launch:
                 result = codex_result('q', timeout=value)
                 self.assertEqual('error', result.status)
                 launch.assert_not_called()

@@ -1,6 +1,6 @@
 import unittest
 
-from tacto.candidate_paging import (
+from haejo.candidate_paging import (
     StaleCursor, page_candidates, utf8_token_upper_bound,
 )
 

@@ -1,6 +1,6 @@
-# Tacto 출시 기준
+# Haejo 출시 기준
 
-> 제품·측정 라벨·식별자는 현재 Tacto 이름으로 정규화했습니다. 당시 측정 수치와 성공·실패는 유지하며, 새 서명 배포를 검증했다는 뜻은 아닙니다.
+> 제품·측정 라벨·식별자는 현재 Haejo 이름으로 정규화했습니다. 당시 측정 수치와 성공·실패는 유지하며, 새 서명 배포를 검증했다는 뜻은 아닙니다.
 
 현재 **1.0.0-rc.13 사전 출시를 제공**합니다. 기존 공증된
 rc.12는 이전 배포 기준으로 보존하며, 후보의 결과는 동일한 DMG에 묶어 별도 기록합니다.
@@ -20,7 +20,7 @@ rc.12는 이전 배포 기준으로 보존하며, 후보의 결과는 동일한 
 - 같은 앱의 독립 창 AX 병렬 실행, 같은 창 충돌의 전송 전 대기·재개, 취소한 활성화 요청의 미실행과 포인터 우회 없는 처리를 검증했습니다. 앱 전체 작업과 입력 자원은 직렬화합니다.
 - 회귀 3,046건, 제외20건, 미해결 실패·오류0. 초기 문서 링크 누락1건을 수정하고 문서 검사6건을 재검증했습니다. 원본 검사와 재검증 기록을 분리해 보존했습니다.
 - 앱·DMG 신규 공증·티켓·Gatekeeper, 산출물12개 검사·최종 DMG 보안 검사, 세 Mac의 동일 번들 설치·기존 데이터와 활성 권한 보존을 확인했습니다. 기존 Vault 로그인·Flow·첫 작업·앱 설정도 설치본으로 검증했습니다.
-- [창 병렬 실행의 로컬 측정](tacto-parallel-windows-benchmark-2026-10-29.md)은 앞선 동시성 소스 `c3c88c0`의 결과입니다. 에이전트 토큰은 측정하지 않았습니다. 새 사용자 설치·권한 변경 주기·제한 베타·정식 안정판 승인은 별도입니다.
+- [창 병렬 실행의 로컬 측정](haejo-parallel-windows-benchmark-2026-10-29.md)은 앞선 동시성 소스 `c3c88c0`의 결과입니다. 에이전트 토큰은 측정하지 않았습니다. 새 사용자 설치·권한 변경 주기·제한 베타·정식 안정판 승인은 별도입니다.
 - [rc.13 검증 결과](https://github.com/Open330/tacto/releases/tag/v1.0.0-rc.13).
 
 ## rc.12 배포 확인 (2026-10-29)
@@ -142,8 +142,8 @@ exit 1과 `blocked`를
 
 ```sh
 # 출력의 부모 폴더는 본인 소유의 절대·실제 경로, 권한 700이어야 합니다.
-python3 setup/check_release.py --app /path/to/Tacto.app \
-  --image /path/to/Tacto-preview.dmg --output /private/path/release-check.json
+python3 setup/check_release.py --app /path/to/Haejo.app \
+  --image /path/to/Haejo-preview.dmg --output /private/path/release-check.json
 ```
 
 검토 근거는 로컬 JSON에 기록하고 `--evidence /private/path/evidence.json`으로
@@ -185,13 +185,13 @@ python3 setup/check_release.py --app /path/to/Tacto.app \
 공개 저장소에 올리지 않고, 후보 태그·DMG 해시와 익명 결과만 공유합니다.
 
 1. **새 Mac 설치와 첫 작업:** 별도 Mac에는 앱과 두 스킬 연결을 설치했습니다.
-   해당 Mac에서 Tacto를 열어 앱 조작·화면 기록 권한을 직접 허용하고,
+   해당 Mac에서 Haejo를 열어 앱 조작·화면 기록 권한을 직접 허용하고,
    Claude Code와 Codex를 각각 새 대화로 시작해 Finder의 소유 테스트 파일
    선택을 요청합니다. 각 대화의 모델·버전, 성공 여부와 걸린 시간을 기록합니다.
    SSH 설치는 DMG를 직접 끌어 넣는 사용자 설치 검증을 대신하지 않으므로,
    개발 환경 없는 Mac의 DMG 복사부터 시작하는 경로도 한 번 확인합니다.
 2. **권한 해제·재부여 3회:** 저장하지 않은 개인 작업이 없는 상태에서
-   시스템 설정의 Tacto Helper 권한을 직접 끕니다. 에이전트가 소유 테스트
+   시스템 설정의 Haejo Helper 권한을 직접 끕니다. 에이전트가 소유 테스트
    파일 읽기를 시도했을 때 입력 없이 권한 부족으로 멈추는지 확인합니다.
    권한을 다시 켜고 새 관찰부터 같은 파일 읽기를 완료합니다. 각 회차에
    껐던 권한, 거부 사유, 변경 입력 수 0, 재개 결과를 기록합니다.
@@ -200,7 +200,7 @@ python3 setup/check_release.py --app /path/to/Tacto.app \
    권한을 끈 직후와 다시 켠 직후에 각각
    `python3 examples/permission_cycle.py --cycle N --phase off|on`을 실행하면
    `doctor`, 소유 폴더의 같은 작업 시도, 결과 재관찰과 비공개 기록
-   (`~/TactoQualification/permission-cycles/`)을 한 번에 처리합니다.
+   (`~/HaejoQualification/permission-cycles/`)을 한 번에 처리합니다.
    권한은 바꾸지 않습니다. `off`는 입력 전 거부, `on`은 대상만 선택됨을 확인합니다.
 3. **5명·3일 베타:** 참여자에게 [베타 참여 안내](beta-participant-guide.md)를 전달합니다. 각 참여자는 최소 세 가지 실제 작업을 수행합니다.
    익명 참여자 ID, 날짜, 후보 태그, OS·앱·에이전트 버전, 작업과 기대 결과,
@@ -267,7 +267,7 @@ DMG SHA-256은 `397311851332238df16072462cf95efa06fbbe2a736dc61320944dce3cfbaea5
 복구는 테스트 호스트가 정한 절차이며 범용 모델 자동 수리의 증거는 아닙니다.
 시스템 권한은 변경하지 않았으므로 권한 해제·재부여 실증 3회는 남습니다.
 
-이전 설치와 수정 후보 사이에서 실제 명령 연결(이 기록에서는 현재 `tacto` 이름으로 정규화), Claude·Codex 스킬 연결을
+이전 설치와 수정 후보 사이에서 실제 명령 연결(이 기록에서는 현재 `haejo` 이름으로 정규화), Claude·Codex 스킬 연결을
 갱신하고 복귀했습니다. 실제 사용자 저장 위치에 전용 flow 하나를 독점 생성해
 각 버전의 해석·원본 파일 해시를 확인하고, 내용이 같을 때만 그 테스트 파일을
 제거했습니다. 기존 flow·설정은 해시가 유지됐고 두 권한도 재요청하지 않았습니다.
@@ -318,7 +318,7 @@ launcher/helper/Python CDHash로 실행 대상을 구분합니다. **다른 후�
 각 10회 재실행했습니다. **20/20**에서 저장 receipt와 디스크의 정확한 본문이
 일치했습니다. 사람 개입 없이 완료한 40회와 사람 개입 뒤 재시도한 20회를
 구분하며, 처음 실패한 20회를 지우지 않습니다. 전경 복귀는 사용자가 수행했고
-Tacto가 임의로 앱을 활성화하거나 비활성 메뉴를 강제로 실행하지 않았습니다.
+Haejo가 임의로 앱을 활성화하거나 비활성 메뉴를 강제로 실행하지 않았습니다.
 
 Vault에 보관된 기존 Developer ID Application 인증서와 공증 키를 재사용했습니다.
 개인키·인증서 암호는 소비 프로세스의 표준 입력과 Security API로 전달했으며,
@@ -341,7 +341,7 @@ Apple 심사 결과: **앱·DMG 모두 Accepted**, 두 ticket의 staple·validat
 `0.1.0` build `2`, Apple Silicon·macOS 27.0.1에서 확인했습니다. 저장소와 다운로드는
 GitHub 접근 권한이 필요하며 정식 안정 버전이나 일반 공개 승인으로 취급하지 않습니다.
 
-- Tacto 이름·아이콘, 읽기 쉬운 연결 버튼과 접근성 이름, 업데이트 권한 안내를 반영했습니다.
+- Haejo 이름·아이콘, 읽기 쉬운 연결 버튼과 접근성 이름, 업데이트 권한 안내를 반영했습니다.
 - 권한 도우미는 설정 본창이 보인 뒤 표시하고, 본창을 고정해 암호·Touch ID 창을 따라가지 않습니다.
 - 빌드 Mac에서 실제 설치·두 권한·Claude/Codex 연결과 같은 팀의 업데이트 뒤 권한 보존을 확인했습니다.
 - 전체 자동 검사 1,550개: 실패 0건, 선택적 의존성·명시적 실행 조건에 따른 87개 skip.
@@ -418,7 +418,7 @@ with a Developer ID signed and notarized app/DMG, checksums and notarization not
 The repository remains private, so downloads require repository access.
 
 - Removed former helper-name fallback paths and stale onboarding references.
-  Helper authority is read only from current `TACTO_` variables. Existing bundle
+  Helper authority is read only from current `HAEJO_` variables. Existing bundle
   identifiers and signing requirements remain unchanged.
 - Declared `tiktoken` in the checkout-only dev group and synchronized `uv.lock`.
   The frozen environment ran 2,607 tests in 432.143 seconds: zero failures/errors,
@@ -484,7 +484,7 @@ the final image-specific results.
   this harness is explicitly prescribed, not proof of general model repair.
   Three actual OS-permission revocation/regrant cycles remain for the user.
 - Both command/agent-link upgrade and rollback passed with an exclusively owned
-  compatibility flow. Physical `/Applications/Tacto.app` replacement with Preview
+  compatibility flow. Physical `/Applications/Haejo.app` replacement with Preview
   5 and restoration to Preview 6 also passed. Existing flow/config hashes and
   enabled permissions were preserved; no permission reset or regrant was used.
 - **10 alternating performance pairs**, with independent commit-count checks and
@@ -643,7 +643,7 @@ remains outside this route's supported scope.
 ## 2026-10-20 Preview 9 namespace migration
 
 Preview 9 is built from `d6bc0fea36800658ce3de5183ab9dee3f1b18e46` and uses
-`ai.callabo.tacto.*` signing identities. The app and DMG passed secure-timestamped
+`ai.callabo.haejo.*` signing identities. The app and DMG passed secure-timestamped
 Developer ID signing, Apple notarization, stapled tickets, and Gatekeeper.
 All twelve automated artifact checks passed. Stable qualification evidence
 remains incomplete; this is a developer prerelease.
@@ -713,7 +713,7 @@ after text verification, then checks the same window, content and focus again.
 Presentation failure cannot repeat input and is reported separately from
 `text_verified`. Normal Flow replay and application launch keep their background
 behavior. Supported computer-use CLI invocations now automatically create local,
-private access receipts; the app footer/menu and `tacto logs` expose them.
+private access receipts; the app footer/menu and `haejo logs` expose them.
 Their scope and retention are documented in [access logging](access-logging.md).
 They do not contain screen/input/prompt contents or outer-agent reasoning, and
 cannot reconstruct previously unlogged executions.
@@ -749,7 +749,7 @@ Targeted tests passed 67/67. Native AppKit fixture tests exercised filters,
 malformed/incomplete records, atomic preference persistence shared with Python,
 disabled logging and scoped receipt deletion. Seven bundled light/dark,
 compact and empty-state renders passed visual inspection. On one designated
-Mac, signed Tacto navigation verified history-to-settings and back, searched
+Mac, signed Haejo navigation verified history-to-settings and back, searched
 TextEdit and displayed the existing first-task timeline. Live screenshots were
 reviewed; real preferences and receipts were left intact. The welcome task was
 not repeated. This is scoped GUI validation, not a full-suite or broad reliability
@@ -776,7 +776,7 @@ the same detail width and insets as populated records.
 The 67 targeted tests passed, with native checks for list-width preservation on
 resize, detail minimum width, retained navigation labels/icons and empty-state
 alignment. Seven bundled light/dark, compact and empty-state renders were
-reviewed. A signed Tacto test on one designated Mac navigated history/settings,
+reviewed. A signed Haejo test on one designated Mac navigated history/settings,
 searched TextEdit and displayed the existing first-task timeline; the native
 observation independently reported the 300pt divider position. Real preferences
 and records were not changed or deleted, and the first task was not repeated.

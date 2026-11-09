@@ -4,11 +4,11 @@ import json
 import tempfile
 from pathlib import Path
 import unittest
-from tacto.flow import (Capture, Flow, Selector, Step, Postcondition, _RuntimeReference,
+from haejo.flow import (Capture, Flow, Selector, Step, Postcondition, _RuntimeReference,
                         _RuntimeText, literal_text, replay)
-from tacto.promote import Candidate, to_flow, _basis_read, _menu_check, with_decisions
-from tacto.contract import Envelope
-from tacto.repair_packet import patch_selector
+from haejo.promote import Candidate, to_flow, _basis_read, _menu_check, with_decisions
+from haejo.contract import Envelope
+from haejo.repair_packet import patch_selector
 from tests.test_runtime_contract import App, contract
 try:
     from tests._artifacts import requires_playwright
@@ -27,7 +27,7 @@ class LiteralStorageTests(unittest.TestCase):
 
     def test_random_mixed_spans_roundtrip_like_one_runtime_render(self):
         import random
-        from tacto.flow import _render_step
+        from haejo.flow import _render_step
         rng=random.Random(20261018)
         atoms=['{','}','{{','}}','x',' ','{{unknown}}','한글']
         for iteration in range(100):
@@ -46,7 +46,7 @@ class LiteralStorageTests(unittest.TestCase):
                 self.assertEqual(expected,actual,(iteration,parts))
 
     def test_menu_payload_and_consent_binding_digest_survive_literal_storage(self):
-        from tacto.flow import pin_params
+        from haejo.flow import pin_params
         c=Candidate(goal='menu',target='app',verified=True,envelope=Envelope.minimal(),actions=[
             {'do':'menu','menu_path':['Tools','{{command}}'],'label':'{{command}}','line':'MenuItem',
              'effect':{'role':'Button','attr':'Title','match':'{{status}}','attribute':'Value','equals':'{{done}}'}}])
@@ -86,14 +86,14 @@ class LiteralStorageTests(unittest.TestCase):
 
     def test_literal_and_authored_reference_spans_remain_distinct(self):
         text=_RuntimeText('prefix {{secret}} / {{live}}',('prefix {{secret}} / ',_RuntimeReference('live')))
-        flow=Flow(name='mix',target='app',params={'_tacto_data_1':'user-owned'},steps=[
+        flow=Flow(name='mix',target='app',params={'_haejo_data_1':'user-owned'},steps=[
             Step('read',Selector(title='Source'),captures=[Capture('live',Selector(title='Source'))],safety=contract()),
             Step('set_value',Selector(title='Target'),params={'value':text},safety=contract(('write_ephemeral',)))])
         stored=json.loads(flow.to_json())
         self.assertEqual(4,stored['schema'])
-        self.assertEqual('user-owned',stored['params']['_tacto_data_1'])
-        self.assertEqual('prefix {{secret}} / ',stored['literal_params']['_tacto_data_2'])
-        from tacto.flow import _render_step
+        self.assertEqual('user-owned',stored['params']['_haejo_data_1'])
+        self.assertEqual('prefix {{secret}} / ',stored['literal_params']['_haejo_data_2'])
+        from haejo.flow import _render_step
         self.assert_roundtrip(flow,lambda bound:self.assertEqual('prefix {{secret}} / actual',
             _render_step(bound.steps[1],{'live':'actual'}).params['value']))
 
@@ -117,7 +117,7 @@ class LiteralStorageTests(unittest.TestCase):
             self.assertEqual('payload {{secret}}',step.params['value'])
             self.assertEqual('{{secret}}',step.binding.title)
             self.assertEqual('{{scope}}',step.binding.ancestor)
-            from tacto.flow import pin_params
+            from haejo.flow import pin_params
             self.assertEqual(pin_params(step.params),step.binding.params_digest)
         self.assert_roundtrip(flow,verify)
 
@@ -166,7 +166,7 @@ class LiteralStorageTests(unittest.TestCase):
         decisions=[{'step':0,'question':'Question {{secret}}?', 'choices':['{{secret}}','Other'],
                     'basis':{'role':'TextField','attr':'Title','match':'{{basis}}','container':'','label':'{{basis}}'}}]
         decided=with_decisions(flow,decisions)
-        from tacto.flow import _render_step
+        from haejo.flow import _render_step
         def verify(bound):
             self.assertEqual('{{basis}}',bound.steps[0].selector.title)
             self.assertEqual('Question {{secret}}?',bound.steps[1].params['question'])
@@ -177,7 +177,7 @@ class LiteralStorageTests(unittest.TestCase):
         self.assert_roundtrip(decided,verify)
 
     def test_parameterization_preserves_generated_data_parameters_and_prevents_collision(self):
-        from tacto.reparam import parameterize
+        from haejo.reparam import parameterize
         flow=Flow('parameterize','app',steps=[Step('set_value',Selector(title=literal_text('{{field}}')),
                     params={'value':'25'},safety=contract(('write_ephemeral',)))])
         parameterized=parameterize(flow,{'25':'amount'})
@@ -187,13 +187,13 @@ class LiteralStorageTests(unittest.TestCase):
         by_label=parameterize(flow,{'{{field}}':'field_name'})
         self.assertEqual('New field',by_label.bind(field_name='New field').steps[0].selector.title)
         with self.assertRaisesRegex(ValueError,'already used'):
-            parameterize(flow,{'25':'_tacto_data_1'})
+            parameterize(flow,{'25':'_haejo_data_1'})
 
     @requires_playwright
 
     def test_headless_browser_reads_a_promoted_literal_label_after_store_roundtrip(self):
-        from tacto.browser import BrowserDriver
-        from tacto.store import FlowStore
+        from haejo.browser import BrowserDriver
+        from haejo.store import FlowStore
         driver=BrowserDriver()
         try:
             driver._page.set_content('<label>{{source}}<input value="verified-result" readonly></label>')

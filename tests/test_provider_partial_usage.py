@@ -8,9 +8,9 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from tacto.authoring import ask_model_result
-from tacto.provider_result import ProviderResult, ProviderAttempt, ProviderError
-from tacto.provider_observation import capture_provider_calls, summarize_provider_calls
+from haejo.authoring import ask_model_result
+from haejo.provider_result import ProviderResult, ProviderAttempt, ProviderError
+from haejo.provider_observation import capture_provider_calls, summarize_provider_calls
 from tests.test_opencode_result import frames, stream
 
 
@@ -75,8 +75,8 @@ class ProviderPartialUsageTests(unittest.TestCase):
             executable.write_text('#!'+sys.executable+'\nimport sys\nsys.stdin.read()\nprint('+repr(stream(events))+')\n')
             executable.chmod(0o700)
             env={**os.environ,'PATH':directory+os.pathsep+os.environ.get('PATH','')}
-            with patch('tacto.authoring.shutil.which',return_value=str(executable)), \
-                    patch('tacto.authoring._provider_env',return_value=env),capture_provider_calls() as records:
+            with patch('haejo.authoring.shutil.which',return_value=str(executable)), \
+                    patch('haejo.authoring._provider_env',return_value=env),capture_provider_calls() as records:
                 result=ask_model_result('PRIVATE_PROMPT','opencode',timeout=5,expect_json=True)
         self.assertEqual('error',result.status)
         self.assertEqual(2,len(result.attempts))

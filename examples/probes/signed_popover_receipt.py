@@ -10,7 +10,7 @@ import subprocess
 import tempfile
 import time
 
-TARGET='ai.callabo.tacto.popover-receipt-fixture'
+TARGET='ai.callabo.haejo.popover-receipt-fixture'
 MODES=('clear','transient','semitransient')
 
 
@@ -52,7 +52,7 @@ def received_once(before,after,index):
 
 
 def routing_refusal_verified(response,before,after):
-    from tacto.preparation_diagnostic import preparation_diagnostic
+    from haejo.preparation_diagnostic import preparation_diagnostic
     if type(response) is not dict or before is None or after is None:return False
     diagnostic=preparation_diagnostic(response.get('preparation_diagnostic'))
     return (response.get('type')=='error' and response.get('effect')=='not_started'
@@ -80,29 +80,29 @@ def _run(driver,report,*,prepared=False,routing_refusal=False):
     if prepared and routing_refusal:raise ValueError("incompatible_probe_modes")
     if routing_refusal:
         report['scope']='owned A app-focused, request B; diagnostic validation only; no task success'
-    from tacto.helper import InheritedHelperDriver
+    from haejo.helper import InheritedHelperDriver
     if not isinstance(driver,InheritedHelperDriver) or not InheritedHelperDriver.available():raise RuntimeError('signed_helper_required')
     if 'action.click_point' not in driver.capabilities:raise RuntimeError('signed_point_capability_required')
-    from tacto.driver import Driver
-    from tacto.flow import Selector
-    from tacto.native_process_identity import process_start_identity
-    from tacto.input_audit_process import ProcessInputAudit
+    from haejo.driver import Driver
+    from haejo.flow import Selector
+    from haejo.native_process_identity import process_start_identity
+    from haejo.input_audit_process import ProcessInputAudit
     from ApplicationServices import (AXUIElementCreateApplication,AXUIElementCopyAttributeValue,
         AXUIElementSetMessagingTimeout,AXUIElementGetPid,AXUIElementGetTypeID)
     from CoreFoundation import CFGetTypeID,CFStringGetTypeID
     root=Path(__file__).resolve().parents[2]
-    paths=list((root/'tacto').glob('*.py'))+list((root/'helper').glob('*.swift'))+[
+    paths=list((root/'haejo').glob('*.py'))+list((root/'helper').glob('*.swift'))+[
         Path(__file__).resolve(),root/'examples/eval.py',root/'tests/fixtures/NativePopoverReceiptFixture.swift',
-        root/'launcher/tacto',root/'launcher/tacto.swift',root/'helper/tacto-helper',
-        root/'helper/Tacto Helper.app/Contents/MacOS/TactoHelper',root/'helper/Tacto Helper.app/Contents/Info.plist']
+        root/'launcher/haejo',root/'launcher/haejo.swift',root/'helper/haejo-helper',
+        root/'helper/Haejo Helper.app/Contents/MacOS/HaejoHelper',root/'helper/Haejo Helper.app/Contents/Info.plist']
     def manifest():return {str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(paths)}
     report['source_subset_before']=manifest();host=Driver();host._pump(.05)
     if host._resolve(TARGET,launch=False) is not None:raise RuntimeError('owned_fixture_already_running')
     try:
-        with tempfile.TemporaryDirectory(prefix='tacto-popover-receipt-') as directory:
+        with tempfile.TemporaryDirectory(prefix='haejo-popover-receipt-') as directory:
             work=Path(directory);binary=work/'Receipt.app/Contents/MacOS/Receipt';binary.parent.mkdir(parents=True)
             info=binary.parent.parent/'Info.plist';info.write_bytes(plistlib.dumps({'CFBundleIdentifier':TARGET,
-                'CFBundleExecutable':'Receipt','CFBundleName':'TACTO Popover Receipt','CFBundlePackageType':'APPL','LSUIElement':True}))
+                'CFBundleExecutable':'Receipt','CFBundleName':'HAEJO Popover Receipt','CFBundlePackageType':'APPL','LSUIElement':True}))
             subprocess.run(['xcrun','swiftc','-O','-warnings-as-errors','-parse-as-library',
                 str(root/'tests/fixtures/NativePopoverReceiptFixture.swift'),'-o',str(binary)],capture_output=True,check=True,timeout=60)
             report['fixture_artifact']={'binary_sha256':hashlib.sha256(binary.read_bytes()).hexdigest(),
@@ -147,11 +147,11 @@ def _run(driver,report,*,prepared=False,routing_refusal=False):
                             if owner_error!=0 or owner!=child.pid:raise RuntimeError('focus_window_owner')
                             title=attribute(focused,'AXTitle')
                             case['owned_app_focused_target']=(CFGetTypeID(title)==CFStringGetTypeID()
-                                and str(title)=='TACTO Popover Receipt '+'AB'[index])
+                                and str(title)=='HAEJO Popover Receipt '+'AB'[index])
                             if case['owned_app_focused_target']==routing_refusal:raise RuntimeError('owned_focus_condition_not_met')
                             observation=driver.observe(TARGET,'tree_full')
                             if observation.get('type')!='observation':raise RuntimeError('observation_unavailable')
-                            window,_=Selector(role='Window',title='TACTO Popover Receipt '+'AB'[index]).resolve(observation['tree'])
+                            window,_=Selector(role='Window',title='HAEJO Popover Receipt '+'AB'[index]).resolve(observation['tree'])
                             if prepared:
                                 case['before_preparation']=state()
                                 case['preparation_response']=driver.act(observation['obs_id'],TARGET,
@@ -167,7 +167,7 @@ def _run(driver,report,*,prepared=False,routing_refusal=False):
                                 if any(v for r in ready['receivers'] for v in r.values()):raise RuntimeError('preparation_touched_content')
                                 observation=driver.observe(TARGET,'tree_full')
                                 if observation.get('type')!='observation':raise RuntimeError('post_preparation_observation_unavailable')
-                                window,_=Selector(role='Window',title='TACTO Popover Receipt '+'AB'[index]).resolve(observation['tree'])
+                                window,_=Selector(role='Window',title='HAEJO Popover Receipt '+'AB'[index]).resolve(observation['tree'])
                             case['before']=before=state()
                             if not prepared and mode!='clear' and not before['popover_shown']:raise RuntimeError('popover_closed_before_input')
                             # Window-relative top-left coordinates, inside the owned receiver rectangle.

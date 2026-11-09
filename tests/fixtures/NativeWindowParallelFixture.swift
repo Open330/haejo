@@ -27,7 +27,7 @@ func report() {
 }
 for i in 0..<4 {
     let window=WitnessWindow(contentRect:NSRect(x:80+i*35,y:100+i*35,width:360,height:170),styleMask:[.titled,.closable],backing:.buffered,defer:false)
-    window.title="Tacto scoped window \(i)";window.isReleasedWhenClosed=false
+    window.title="Haejo scoped window \(i)";window.isReleasedWhenClosed=false
     let field=NSTextField(string:"initial-\(i)");field.frame=NSRect(x:20,y:90,width:310,height:30)
     field.setAccessibilityIdentifier("window-editor")
     let receiver=Receiver(i)

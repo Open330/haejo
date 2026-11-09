@@ -7,12 +7,12 @@ from signed_owned_textedit import SignedOwnedTextEdit, TARGET
 
 def run(driver,*,can_cleanup,scoped_save=False,cli_save=False):
     from focus_witness import FocusWitness
-    from tacto.commit_evidence import make_event,evidence_error
-    from tacto.existing_file_receipt import ExistingTextFileReceipt,SAVE_PATH,_file_state
+    from haejo.commit_evidence import make_event,evidence_error
+    from haejo.existing_file_receipt import ExistingTextFileReceipt,SAVE_PATH,_file_state
     report={'scope':'installed_cli_scoped_textedit_save_and_saved_state' if cli_save else 'owned_textedit_scoped_save_dispatch_and_saved_state' if scoped_save else 'owned_textedit_in_place_save_dispatch_and_saved_state',
             'passed':False,'model_requests':0,'producer_attribution_verified':False}
-    fixture=SignedOwnedTextEdit(driver,'Tacto 저장 검증 '+secrets.token_hex(8)+'.txt')
-    body='Tacto 실제 저장 검증 '+secrets.token_hex(16)+'\n두 번째 줄\n'
+    fixture=SignedOwnedTextEdit(driver,'Haejo 저장 검증 '+secrets.token_hex(8)+'.txt')
+    body='Haejo 실제 저장 검증 '+secrets.token_hex(16)+'\n두 번째 줄\n'
     with FocusWitness() as witness:
         try:
             if witness.initial==TARGET:raise RuntimeError('target_initially_frontmost')
@@ -24,7 +24,7 @@ def run(driver,*,can_cleanup,scoped_save=False,cli_save=False):
             report['exact_document_text']=True
             menu_driver=driver
             if scoped_save:
-                from tacto.document_scope import DocumentScopedDriver
+                from haejo.document_scope import DocumentScopedDriver
                 driver=DocumentScopedDriver(driver,TARGET,str(fixture.path))
             report['disk_matched_before_prepare']=_file_state(str(fixture.path))[5]==body.encode()
             report['menu_enabled_before_prepare']=menu_driver.menu_state(TARGET,SAVE_PATH).get('enabled')
@@ -38,14 +38,14 @@ def run(driver,*,can_cleanup,scoped_save=False,cli_save=False):
                 preparation=driver.act(obs['obs_id'],TARGET,{'name':'prepare_window','element_index':windows[0]},expect={'role':'Window'})
                 report['preparation_type']=preparation.get('type')
                 report['preparation_effect']=preparation.get('effect')
-                from tacto.preparation_diagnostic import preparation_diagnostic
+                from haejo.preparation_diagnostic import preparation_diagnostic
                 diagnostic=preparation_diagnostic(preparation.get('preparation_diagnostic'))
                 if diagnostic is not None:report['preparation_diagnostic']=diagnostic
                 if preparation.get('type')!='acted':raise RuntimeError('window_preparation_unverified')
             else:report['preparation_type']='not_needed'
             # Preparation is only dispatched, not assumed to have enabled Save.
             if report['preparation_type']=='acted':
-                from tacto.menu_readiness import wait_menu_enabled
+                from haejo.menu_readiness import wait_menu_enabled
                 readiness=wait_menu_enabled(menu_driver,TARGET,SAVE_PATH,timeout_seconds=1,
                     cancelled=lambda:not can_cleanup())
                 report['menu_readiness']=readiness.to_dict()
@@ -61,9 +61,9 @@ def run(driver,*,can_cleanup,scoped_save=False,cli_save=False):
                 import os,subprocess
                 from pathlib import Path
                 env={key:value for key,value in os.environ.items()
-                     if key not in ('TACTO_HELPER_FD','TACTO_HELPER_TOKEN','TACTO_LAUNCHER')}
+                     if key not in ('HAEJO_HELPER_FD','HAEJO_HELPER_TOKEN','HAEJO_LAUNCHER')}
                 report['disk_matched_before_save']=_file_state(str(fixture.path))[5]==body.encode()
-                result=subprocess.run([str(Path.home()/'.local/bin/tacto'),'replay','textedit_save',
+                result=subprocess.run([str(Path.home()/'.local/bin/haejo'),'replay','textedit_save',
                     '-p','document='+str(fixture.path),'-p','name='+fixture.name,
                     '--helper','--document',str(fixture.path),'--yes','--no-indicator'],
                     env=env,close_fds=True,capture_output=True,text=True,timeout=25)

@@ -1,11 +1,11 @@
-"""An explicit backbone must reach every model boundary of tacto do."""
+"""An explicit backbone must reach every model boundary of haejo do."""
 import contextlib
 import io
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
 
-from tacto import cli
+from haejo import cli
 
 
 class CLIProvider(unittest.TestCase):
@@ -48,19 +48,19 @@ class CLIProvider(unittest.TestCase):
             candidates = [{'label':'name','role':'TextField','can':['read']}]
             here(goal,candidates,[])
             kwargs['ask_where']('recipient',candidates)
-        modules = {'tacto.onboard':SimpleNamespace(run=lambda **kw:True),
-                   'tacto.session':SimpleNamespace(preflight=lambda:{'verdict':'ready'}, sandboxed=lambda:False, SANDBOXED='',
+        modules = {'haejo.onboard':SimpleNamespace(run=lambda **kw:True),
+                   'haejo.session':SimpleNamespace(preflight=lambda:{'verdict':'ready'}, sandboxed=lambda:False, SANDBOXED='',
                                                  KeepAwake=contextlib.nullcontext)}
-        # Relative package imports may use an already cached tacto.onboard.
+        # Relative package imports may use an already cached haejo.onboard.
         with patch.dict('sys.modules',modules), \
-             patch('tacto.onboard',modules['tacto.onboard'],create=True), \
+             patch('haejo.onboard',modules['haejo.onboard'],create=True), \
              patch.object(cli,'Agent',Host), \
              patch.object(cli,'_make_driver',return_value=driver), \
              patch.object(cli,'_indicator_for',return_value=contextlib.nullcontext()), \
-             patch('tacto.ask.ask',return_value=None) as ask, \
-             patch('tacto.authoring.author') as author, \
-             patch('tacto.general.run',side_effect=run), \
-             patch('tacto.judge.model_judge',return_value=Mock()) as judge, \
+             patch('haejo.ask.ask',return_value=None) as ask, \
+             patch('haejo.authoring.author') as author, \
+             patch('haejo.general.run',side_effect=run), \
+             patch('haejo.judge.model_judge',return_value=Mock()) as judge, \
              contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(0,cli.main(['do','read this','--provider','codex','--learn','--think','1']))
         self.assertEqual('read this',captured['intent'])

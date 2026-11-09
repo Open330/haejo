@@ -1,8 +1,8 @@
 import json
 import unittest
 from unittest.mock import patch
-from tacto.text_paging import page_text, text_ref
-from tacto.ask import ask_here_paged
+from haejo.text_paging import page_text, text_ref
+from haejo.ask import ask_here_paged
 
 
 class TextPagingTests(unittest.TestCase):
@@ -28,7 +28,7 @@ class TextPagingTests(unittest.TestCase):
             self.assertEqual('first_literal_match',payload['search']['kind'])
             self.assertIsNone(q.check({'actions':[{'pick':0,'do':'select_custom_option','option_label':'항목127😀'}]}))
             return q.check({'actions':[{'pick':0,'do':'select_custom_option','option_label':'항목126😀'}]})
-        with patch('tacto.ask.ask',side_effect=respond):
+        with patch('haejo.ask.ask',side_effect=respond):
             answer=ask_here_paged('find the last option',[candidate],max_pages=2)
         self.assertEqual(2,len(prompts))
         self.assertEqual(candidate,answer['actions'][0]['candidate'])
@@ -43,7 +43,7 @@ class TextPagingTests(unittest.TestCase):
             self.assertIn('전체 옵션은 참조 원문',q.prompt)
             self.assertIsNone(q.check({'actions':[{'pick':0,'do':'select_custom_option','option_label':'Choice127'}]}))
             return q.check({'actions':[{'pick':0,'do':'select_custom_option','option_label':'Choice126'}]})
-        with patch('tacto.ask.ask',side_effect=respond):
+        with patch('haejo.ask.ask',side_effect=respond):
             answer=ask_here_paged('select',[candidate])
         self.assertEqual(candidate,answer['actions'][0]['candidate'])
         self.assertNotIn('visible_option_labels',candidate)
@@ -65,7 +65,7 @@ class TextPagingTests(unittest.TestCase):
                     self.assertLess(payload['search']['match_start'],100)
                     self.assertIn(needle,payload['text'])
                 return q.check({'actions':[{'pick':0,'do':'read'}]})
-            with self.subTest(needle=needle),patch('tacto.ask.ask',side_effect=respond):
+            with self.subTest(needle=needle),patch('haejo.ask.ask',side_effect=respond):
                 answer=ask_here_paged('read',[candidate],max_pages=2)
             self.assertEqual(candidate,answer['actions'][0]['candidate'])
 
@@ -113,7 +113,7 @@ class TextPagingTests(unittest.TestCase):
             for length in (0,-1,True,'12'):
                 self.assertIsNone(q.check({'read_context':{'ref':refs[0]['ref'],'offset':0,'length':length}}))
             return q.check({'read_context':{'ref':refs[0]['ref'],'offset':0,'length':12}})
-        with patch('tacto.ask.ask',side_effect=respond):
+        with patch('haejo.ask.ask',side_effect=respond):
             result=ask_here_paged('read',[candidate],max_pages=2)
         self.assertEqual(result['stop_reason'],'context_page_limit')
         self.assertEqual(result['paging']['token_count'],len(prompts[-1].encode()))
@@ -140,7 +140,7 @@ class TextPagingTests(unittest.TestCase):
             self.assertIn('CANDIDATE_END',q.prompt)
             self.assertIn('provided_ranges',q.prompt)
             return q.check({'actions':[{'pick':0,'do':'read'}]})
-        with patch('tacto.ask.ask',side_effect=respond):
+        with patch('haejo.ask.ask',side_effect=respond):
             answer=ask_here_paged('inspect the tails then read',[candidate],history)
         self.assertEqual(len(stages),3)
         self.assertEqual(answer['actions'][0]['candidate'],candidate)
@@ -156,7 +156,7 @@ class TextPagingTests(unittest.TestCase):
                            {'read_context':{'ref':ref,'offset':0},'done':True}):
                 self.assertIsNone(q.check(answer))
             return q.check({'read_context':{'ref':ref,'offset':0}})
-        with patch('tacto.ask.ask',side_effect=respond) as ask:
+        with patch('haejo.ask.ask',side_effect=respond) as ask:
             result=ask_here_paged('read',[candidate],max_pages=1)
         self.assertEqual(result['stop_reason'],'context_page_limit')
         self.assertEqual(ask.call_count,1)
@@ -169,11 +169,11 @@ class TextPagingTests(unittest.TestCase):
             remembered.append(refs[0]['ref'])
             candidate['line']='0 StaticText Value: changed externally'
             return q.check({'actions':[{'pick':0,'do':'read'}]})
-        with patch('tacto.ask.ask',side_effect=first):
+        with patch('haejo.ask.ask',side_effect=first):
             answer=ask_here_paged('read',[candidate],iter(['old history']))
         self.assertEqual(answer['actions'][0]['candidate'],original)
         def second(q,**kwargs):
             self.assertIsNone(q.check({'read_context':{'ref':remembered[0],'offset':0}}))
             return None
-        with patch('tacto.ask.ask',side_effect=second):
+        with patch('haejo.ask.ask',side_effect=second):
             ask_here_paged('read',[original],['old history'])

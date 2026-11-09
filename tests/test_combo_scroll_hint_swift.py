@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 @unittest.skipUnless(shutil.which('swift'), 'Swift required')
 class ComboScrollHintSwiftTests(unittest.TestCase):
     def test_distance_hints_are_bounded_and_invalid_geometry_is_not_a_hint(self):
-        source = (ROOT/'helper/TactoHelper.swift').read_text()
+        source = (ROOT/'helper/HaejoHelper.swift').read_text()
         function = source[source.index('func comboBoxScrollPagesHint('):]
         function = function[:function.index('\n}\n')+3]
         script = 'import Foundation\nimport CoreGraphics\n'+function+r'''

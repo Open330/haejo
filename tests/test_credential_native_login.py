@@ -1,6 +1,6 @@
 """Opt-in real Safari + signed launcher + Keychain receiving test.
 
-TACTO_RUN_NATIVE_CREDENTIAL_TESTS=1 python -m unittest discover -s tests -p test_credential_native_login.py -v
+HAEJO_RUN_NATIVE_CREDENTIAL_TESTS=1 python -m unittest discover -s tests -p test_credential_native_login.py -v
 Uses only unique synthetic Keychain entries, removes them and its grants, and
 never reads, unlocks or locks an external Vault. Requires a built source helper
 bundle/launcher and existing macOS Accessibility permission.
@@ -16,12 +16,12 @@ import unittest
 import uuid
 from http.server import ThreadingHTTPServer
 from test_credential_browser import Page, SECRET
-from tacto.credential_grants import CredentialStore
-from tacto.credential_vault import KeychainVault
+from haejo.credential_grants import CredentialStore
+from haejo.credential_vault import KeychainVault
 
 ROOT=Path(__file__).resolve().parents[1]
 
-@unittest.skipUnless(sys.platform=='darwin' and os.environ.get('TACTO_RUN_NATIVE_CREDENTIAL_TESTS')=='1','explicit native GUI credential fixture required')
+@unittest.skipUnless(sys.platform=='darwin' and os.environ.get('HAEJO_RUN_NATIVE_CREDENTIAL_TESTS')=='1','explicit native GUI credential fixture required')
 class NativeLogin(unittest.TestCase):
     def test_real_safari_keychain_signed_input_receiving_and_reuse(self):
         server=ThreadingHTTPServer(('127.0.0.1',0),Page);server.received=[]
@@ -41,7 +41,7 @@ class NativeLogin(unittest.TestCase):
         store.grant(name,{'target':'com.apple.Safari','origin':url,'level':'login','fields':fields,
             'submit':{'role':'Button','title':'Sign in'},'success':{'field':{'role':'Heading','title':'Signed in'},'attribute':'Title','equals':'Signed in'}})
         def command(*args):
-            r=subprocess.run([str(ROOT/'launcher/tacto'),*args],cwd=ROOT,capture_output=True,text=True,timeout=40)
+            r=subprocess.run([str(ROOT/'launcher/haejo'),*args],cwd=ROOT,capture_output=True,text=True,timeout=40)
             self.assertNotIn(SECRET,r.stdout+r.stderr)
             result=json.loads(r.stdout);self.assertEqual(0,r.returncode,result)
             return result

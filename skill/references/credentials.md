@@ -6,7 +6,7 @@ require rc.11 or later. rc.10 supports the original single-screen CLI route.
 For an already authorized task with a user-provided value, use `set_value` on
 its observed password field and `run --yes`. The task approval covers the input;
 no separate Vault registration is required. New and confirmation-password fields
-work the same way. Tacto masks the entered value in runtime results and traces.
+work the same way. Haejo masks the entered value in runtime results and traces.
 Prefer parameters and private input channels to literal secrets in saved Flows,
 command arguments or shell history. Filling a field does not submit the form;
 keep submission as its own requested step. Use app scope for credential edits,
@@ -14,9 +14,9 @@ which may need to focus the exact field (rather than a `--window-id` session).
 
 For secrets that should stay outside agent context, use the optional Vault route
 below. Read this only for credential entry or login. Vault credentials stay outside model
-context, Flow JSON, command arguments, traces and Tacto access logs. The runtime
+context, Flow JSON, command arguments, traces and Haejo access logs. The runtime
 reads the selected Vault field and sends it directly over the signed helper
-connection. Tacto does not unlock, lock or change the external Vault session.
+connection. Haejo does not unlock, lock or change the external Vault session.
 
 ## Web forms that ignore AX field edits
 
@@ -40,9 +40,9 @@ Inspect the result before submitting again; uncertain paste is never retried.
 
 ## Use an existing delegation
 
-`tacto auth list` lists grant names, app/site and allowed level (no secrets or
-Vault item references). Select the matching scope. Run `tacto auth login NAME --helper` for
-login, or `tacto auth fill NAME --helper` to fill without submitting. A login
+`haejo auth list` lists grant names, app/site and allowed level (no secrets or
+Vault item references). Select the matching scope. Run `haejo auth login NAME --helper` for
+login, or `haejo auth fill NAME --helper` to fill without submitting. A login
 grant also permits fill-only use; a fill grant cannot submit. No repeated
 approval or model call is needed. Open the requested login page before running.
 `login_verified` means the configured success condition and destination were
@@ -71,10 +71,10 @@ Choosing fill-only narrows the imported plan and cannot grant submission.
 Register one provider:
 
 ```sh
-tacto auth vault work --bitwarden https://vault.example.com --executable "$(command -v bw)" --session-file /absolute/private/session-file
+haejo auth vault work --bitwarden https://vault.example.com --executable "$(command -v bw)" --session-file /absolute/private/session-file
 # Or local macOS Keychain:
-tacto auth vault local --keychain
-tacto auth put account-password
+haejo auth vault local --keychain
+haejo auth put account-password
 ```
 
 Bitwarden must already be unlocked; use an existing `BW_SESSION` or a private
@@ -84,7 +84,7 @@ stdin, never a password argument. Do not retrieve credentials into agent output
 or shell command text. Local items use the `password` field; create a separate
 item for a username if using the local provider.
 
-Observe the login screen once with Tacto and copy fixed selectors from that
+Observe the login screen once with Haejo and copy fixed selectors from that
 observation into a plan containing references only. Example for Safari (replace
 selectors, site and item ID with the actual authorized destination):
 
@@ -103,7 +103,7 @@ selectors, site and item ID with the actual authorized destination):
 }
 ```
 
-`tacto auth grant work-login /absolute/login-plan.json --yes` registers the
+`haejo auth grant work-login /absolute/login-plan.json --yes` registers the
 user's delegation. Omit `minutes` (or use `0`) to keep it until revoked; set a
 positive value only when the user wants a time-limited delegation.
 Choose `level: "fill"` and omit `submit`/`success` for entry without submission.
@@ -111,7 +111,7 @@ Native application grants can omit `origin`; browser fields require their
 actual web origin. HTTPS is supported; HTTP is limited to local loopback tests.
 An explicit `success_origin` supports an authorized post-login redirect.
 
-`tacto auth revoke work-login` revokes the delegation. Replacing a provider
+`haejo auth revoke work-login` revokes the delegation. Replacing a provider
 configuration invalidates existing grants using that provider.
 
 For username → password screens or checking the logged-in account, read
@@ -133,7 +133,7 @@ For username → password screens or checking the logged-in account, read
 - `credential_account_mismatch`: use the authorized account-switch path; the
   runtime did not silently accept the currently signed-in different account.
 - `credential_login_unverified`: inspect the resulting session before another
-  submission. Tacto does not retry an uncertain submit automatically.
+  submission. Haejo does not retry an uncertain submit automatically.
 
 This credential route uses its own live verification rather than a general
 Flow's typed commit receipt. `run --yes` alone does not choose a Vault item.

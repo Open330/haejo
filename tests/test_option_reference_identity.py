@@ -2,7 +2,7 @@
 import json
 import unittest
 from unittest.mock import patch
-from tacto.ask import ask_here_paged
+from haejo.ask import ask_here_paged
 
 
 class OptionReferenceIdentityTests(unittest.TestCase):
@@ -27,7 +27,7 @@ class OptionReferenceIdentityTests(unittest.TestCase):
             self.assertIn('"label": "선택끝"',chunk['text'])
             self.assertIsNone(q.check({'actions':[{'pick':1,'do':'select_custom_option','option_label':'선택끝'}]}))
             return q.check({'actions':[{'pick':2,'do':'scroll','direction':'down','pages':1}]})
-        with patch('tacto.ask.ask',side_effect=answer):
+        with patch('haejo.ask.ask',side_effect=answer):
             result=ask_here_paged('choose 선택끝',candidates,budget=6000,max_pages=2,
                                   token_counter=lambda text:len(text.encode())//4)
         self.assertEqual(2,len(prompts))

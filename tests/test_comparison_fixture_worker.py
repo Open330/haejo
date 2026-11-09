@@ -99,7 +99,7 @@ class ProtocolTests(unittest.TestCase):
             self.assertIsNotNone(worker.process.returncode)
 
     def test_external_signed_controller_is_rejected_before_worker_launch(self):
-        with patch('tacto.helper.InheritedHelperDriver.available', return_value=True), \
+        with patch('haejo.helper.InheritedHelperDriver.available', return_value=True), \
              patch('comparison_fixture_worker.FixtureWorker') as worker, \
              self.assertRaises(SystemExit) as error:
             comparison.main(['--external-owned-worker','/fake','--only','textedit_edit_owned'])
@@ -116,7 +116,7 @@ class ProtocolTests(unittest.TestCase):
         worker.request.assert_called_once_with('oracle')
 
     def test_unsigned_worker_stops_before_reading_rpc(self):
-        with patch('tacto.helper.InheritedHelperDriver.available', return_value=False), \
+        with patch('haejo.helper.InheritedHelperDriver.available', return_value=False), \
              patch('comparison_fixture_worker.serve') as server, \
              patch('sys.stderr', io.StringIO()):
             self.assertEqual(2,comparison.main(['--fixture-worker']))
@@ -156,7 +156,7 @@ class ProtocolTests(unittest.TestCase):
              patch.object(comparison,'_locked',return_value=False), \
              patch.object(comparison,'_agent_executable_available',return_value=True), \
              patch.object(comparison,'_run_agent') as agent:
-            row=comparison.run_one(task,'tacto')
+            row=comparison.run_one(task,'haejo')
         self.assertEqual(prepared,row['owned_fixture_evidence'])
         self.assertFalse(row['comparison_eligible'])
         self.assertEqual('setup_failed_left_as_is',row['cleanup_status'])
@@ -175,7 +175,7 @@ class ProtocolTests(unittest.TestCase):
              patch.object(comparison,'_locked',side_effect=[False,None]), \
              patch.object(comparison,'_agent_executable_available',return_value=True), \
              patch.object(comparison,'_run_agent') as agent:
-            row=comparison.run_one(task,'tacto')
+            row=comparison.run_one(task,'haejo')
         self.assertEqual(prepared,row['owned_fixture_evidence'])
         self.assertFalse(row['comparison_eligible'])
         self.assertEqual('environment_unavailable_left_as_is',row['cleanup_status'])
@@ -188,16 +188,16 @@ class ProtocolTests(unittest.TestCase):
             launcher.write_text('#!'+sys.executable+'\nimport sys,json,os\n'
                 'for line in sys.stdin:\n'
                 ' r=json.loads(line)\n'
-                ' print(json.dumps({"id":r["id"],"ok":True,"value":{k:os.environ.get(k) for k in ("TACTO_HELPER_FD","TACTO_LAUNCHER","TACTO_HELPER_TOKEN")}}),flush=True)\n'
+                ' print(json.dumps({"id":r["id"],"ok":True,"value":{k:os.environ.get(k) for k in ("HAEJO_HELPER_FD","HAEJO_LAUNCHER","HAEJO_HELPER_TOKEN")}}),flush=True)\n'
                 ' if r["op"]=="shutdown": break\n')
             launcher.chmod(0o700)
-            with patch.dict(os.environ,{'TACTO_HELPER_FD':'999','TACTO_LAUNCHER':'1','TACTO_HELPER_TOKEN':'secret'}):
+            with patch.dict(os.environ,{'HAEJO_HELPER_FD':'999','HAEJO_LAUNCHER':'1','HAEJO_HELPER_TOKEN':'secret'}):
                 worker=FixtureWorker(str(launcher),timeout=2)
                 try:
                     self.assertTrue(all(v is None for v in worker.request('check').values()))
                     self.assertFalse(os.get_inheritable(worker.process.stdout.fileno()))
                     self.assertFalse(os.get_inheritable(worker.process.stdin.fileno()))
-                    self.assertEqual('secret',os.environ['TACTO_HELPER_TOKEN'])
+                    self.assertEqual('secret',os.environ['HAEJO_HELPER_TOKEN'])
                 finally:
                     worker.close()
             self.assertEqual(0,worker.process.returncode)
@@ -318,8 +318,8 @@ class ChainTaskTests(unittest.TestCase):
         worker=Mock();worker.request.return_value={'task':'calc_to_textedit'}
         with tempfile.TemporaryDirectory() as directory, \
              patch.object(comparison,'ROOT',Path(directory)), \
-             patch('tacto.helper.InheritedHelperDriver.available',return_value=False), \
-             patch.dict(os.environ,{'TACTO_HELPER_FD':'','TACTO_LAUNCHER':'','TACTO_HELPER_TOKEN':''}), \
+             patch('haejo.helper.InheritedHelperDriver.available',return_value=False), \
+             patch.dict(os.environ,{'HAEJO_HELPER_FD':'','HAEJO_LAUNCHER':'','HAEJO_HELPER_TOKEN':''}), \
              patch('comparison_fixture_worker.FixtureWorker',return_value=worker) as factory, \
              patch.object(comparison,'_locked',return_value=False), \
              patch.object(comparison,'run_one',side_effect=lambda *a,**kw: (
@@ -327,7 +327,7 @@ class ChainTaskTests(unittest.TestCase):
                  self.assertEqual('test-model',comparison._REQUESTED_MODEL) or
                  self.assertEqual('medium',comparison._REQUESTED_REASONING_EFFORT) or result)) as run, \
              patch('sys.stdout',io.StringIO()):
-            code=comparison.main(['--external-owned-worker',sys.executable,'--only','calc_to_textedit','--arms','tacto','--cold-start',
+            code=comparison.main(['--external-owned-worker',sys.executable,'--only','calc_to_textedit','--arms','haejo','--cold-start',
                                   '--model','test-model','--reasoning-effort','medium'])
         self.assertEqual(2,code)
         self.assertEqual('calc_to_textedit',factory.call_args.kwargs['task'])
@@ -339,12 +339,12 @@ class SkyGuideTests(unittest.TestCase):
     def test_host_guide_is_only_added_to_sky_and_constraints_stay_present(self):
         with patch.object(comparison,'_SKY_SKILL_FILE','/host/public skill.md'):
             sky=comparison._arm_prompt('owned task','sky')
-            tacto=comparison._arm_prompt('owned task','tacto')
+            haejo=comparison._arm_prompt('owned task','haejo')
         self.assertIn('"/host/public skill.md"',sky)
         self.assertIn('do not guess arguments',sky)
-        self.assertNotIn('/host/public skill.md',tacto)
+        self.assertNotIn('/host/public skill.md',haejo)
         self.assertIn(comparison.BACKGROUND_CONSTRAINT,sky)
-        self.assertIn(comparison.BACKGROUND_CONSTRAINT,tacto)
+        self.assertIn(comparison.BACKGROUND_CONSTRAINT,haejo)
 
     def test_external_skill_snapshot_detects_change_loss_and_oversize(self):
         with tempfile.TemporaryDirectory() as directory:

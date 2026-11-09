@@ -7,7 +7,7 @@
 .venv/bin/python examples/probes/build-typing-witness.py /existing/parent/new-directory
 ```
 
-`TACTO Typing Witness.app`은 사용자 문서를 열지 않는 빈 NSTextView와 자체 window의
+`HAEJO Typing Witness.app`은 사용자 문서를 열지 않는 빈 NSTextView와 자체 window의
 key down/up 횟수·UTF-16 선택 범위·본문 SHA256 상태를 제공합니다. 본문을 파일에
 기록하지 않습니다. 실행 후 실제 AX caret 노출과 launch의 전경 변화는 별도로
 측정해야 하며 빌드 성공이 입력 보존 증거는 아닙니다. 창은 닫으면 종료되며
@@ -33,7 +33,7 @@ navigation 앱을 컴파일·서명하며 실행하지 않습니다.
 ```
 
 실행 전 사용자가 전용 witness의 빈 입력 필드를 선택해야 합니다. `ARMED` 안내
-후 영문 입력 상태에서 `tacto typing 12345`를 약 1초에 한 글자씩 직접 입력합니다.
+후 영문 입력 상태에서 `haejo typing 12345`를 약 1초에 한 글자씩 직접 입력합니다.
 붙여넣기나 Enter는 사용하지 않습니다. 첫 입력을 최대 60초 기다린 뒤 배경 A 창에
 Right 16회를 보내며, 각 단계에서 실제 위치와 A/B 수신 횟수를 확인합니다.
 전경 본문을 읽거나 기록하지 않고 자체 상태 label의 hash·입력 횟수·선택 범위를
@@ -44,7 +44,7 @@ Right 16회를 보내며, 각 단계에서 실제 위치와 A/B 수신 횟수를
 입증하는 시험은 아니며 최대 표본 간격도 보고서에 기록합니다. 실제 사람의
 동시 입력이 없는 준비·컴파일 성공을 동시 입력 검증으로 해석할 수 없습니다.
 
-Tacto의 배경 입력 검증은 목표 앱의 결과와 사용자 입력 상태를 따로 확인합니다. `UNCHANGED_SAMPLED`는 수집한 표본이 같다는 뜻입니다. 표본 사이의 변화나 관측하지 않은 속성까지 보장하지 않습니다.
+Haejo의 배경 입력 검증은 목표 앱의 결과와 사용자 입력 상태를 따로 확인합니다. `UNCHANGED_SAMPLED`는 수집한 표본이 같다는 뜻입니다. 표본 사이의 변화나 관측하지 않은 속성까지 보장하지 않습니다.
 
 기본 `InputAudit`와 `ProcessInputAudit`는 전경 PID, 전역 포인터 위치, 전경 앱의 포커스 요소 identity를 비교합니다. 같은 요소 안에서 캐럿이나 선택 영역만 움직이는 경우는 이 세 항목만으로 알 수 없습니다.
 
@@ -55,7 +55,7 @@ Python driver와 signed helper의 창 준비 권한 판단도 이 native 전경 
 `require_selection=True`는 전경 포커스 요소의 `AXSelectedTextRange`도 필수 관측에 포함합니다. 위치와 길이는 UTF-16 단위이며 선택된 텍스트 자체는 수집하지 않습니다. 캐럿은 길이 0인 범위입니다. AX가 속성을 지원하지 않거나 읽기 오류·잘못된 범위·읽는 동안 포커스 변경이 있으면 보존 성공으로 처리하지 않습니다. ProcessInputAudit의 초기 필수 관측이 없으면 본문 실행 전에 중단합니다.
 
 ```python
-from tacto.input_audit_process import ProcessInputAudit
+from haejo.input_audit_process import ProcessInputAudit
 
 # spawn 방식이므로 실행 스크립트의 __main__ 가드 안에서 사용합니다.
 with ProcessInputAudit(require_selection=True) as audit:
@@ -70,7 +70,7 @@ report = audit.report()
   --require-selection --output /absolute/new-report.json
 ```
 
-이 옵션을 추가하기 전의 실앱 보고서는 캐럿 보존 검증으로 소급 해석할 수 없습니다. 현재 추가 검사는 모의 AX 응답과 별도 프로세스 회귀로 검증하며, 실제 전경 텍스트 필드와 동시 입력하는 검증은 별도로 남아 있습니다. 사용자 입력으로 캐럿이 움직인 경우도 `CHANGED`이며 원인이 Tacto라고 자동으로 단정하지 않습니다. 포인터 모양, IME 조합 상태, 여러 선택 범위 및 관측 사이의 일시 변화는 이 범위에 포함되지 않습니다.
+이 옵션을 추가하기 전의 실앱 보고서는 캐럿 보존 검증으로 소급 해석할 수 없습니다. 현재 추가 검사는 모의 AX 응답과 별도 프로세스 회귀로 검증하며, 실제 전경 텍스트 필드와 동시 입력하는 검증은 별도로 남아 있습니다. 사용자 입력으로 캐럿이 움직인 경우도 `CHANGED`이며 원인이 Haejo라고 자동으로 단정하지 않습니다. 포인터 모양, IME 조합 상태, 여러 선택 범위 및 관측 사이의 일시 변화는 이 범위에 포함되지 않습니다.
 
 네이티브 owned 키/시각 입력 시험에도 `--require-selection`을 사용할 수 있습니다.
 한 번에 한 시나리오만 선택하며, 다음 명령은 전경 요소를 바꾸거나 앱을 활성화하지
@@ -78,8 +78,8 @@ report = audit.report()
 
 ```bash
 .venv/bin/python examples/eval.py native_navigation --require-selection
-./launcher/tacto eval visual_input_codex --require-selection
-./launcher/tacto eval visual_input_claude --require-selection
+./launcher/haejo eval visual_input_codex --require-selection
+./launcher/haejo eval visual_input_claude --require-selection
 ```
 
 지원 시나리오는 `native_navigation`, `signed_window_keys`,
@@ -107,7 +107,7 @@ caret·포인터·전경·포커스의 관측 변화 없음. 실제 동시 사�
 
 이어진 opaque 입력 시험은 click_point 전에 window validation 오류로 중단했고
 시도된 point events는0입니다. 감사 마지막 두 표본의 전경/포커스 변경과 caret 읽기
-실패도 관측해 INCONCLUSIVE로 유지했습니다. 원인을 사용자나 Tacto로 단정하지
+실패도 관측해 INCONCLUSIVE로 유지했습니다. 원인을 사용자나 Haejo로 단정하지
 않습니다. 후속 signed navigation은 caret readiness에서 실패해 fixture/입력이
 없었습니다. 두 FAIL을 성공으로 바꾸지 않았고 전용 앱으로 포커스를 복원하지
 않았습니다. 현재 창 순서 변경과 객체 변경 진단은 분리했지만 모두 입력을 거절하며,

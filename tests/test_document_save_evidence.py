@@ -2,7 +2,7 @@
 from dataclasses import replace
 import unittest
 
-from tacto.commit_evidence import (ArtifactEvidence, CommitEvidence, DocumentSaveEvidence,
+from haejo.commit_evidence import (ArtifactEvidence, CommitEvidence, DocumentSaveEvidence,
     SavedFileStateEvidence, evidence_error, make_event)
 
 

@@ -6,7 +6,7 @@ import time
 import unittest
 from unittest.mock import patch
 
-from tacto.document_packages import _snapshot, capture_rtfd_package, PackageEvidenceError
+from haejo.document_packages import _snapshot, capture_rtfd_package, PackageEvidenceError
 
 
 class PackageTests(unittest.TestCase):
@@ -46,7 +46,7 @@ class PackageTests(unittest.TestCase):
         with self.assertRaises(PackageEvidenceError): self.snapshot()
 
     def test_aggregate_limit_refuses_before_reading_payload(self):
-        with patch('tacto.document_packages.os.read') as read:
+        with patch('haejo.document_packages.os.read') as read:
             with self.assertRaisesRegex(PackageEvidenceError, 'payload_bound'):
                 self.snapshot(payload=4)
             read.assert_not_called()
@@ -58,7 +58,7 @@ class PackageTests(unittest.TestCase):
             if not (self.package / 'new').exists():
                 (self.package / 'new').mkdir(mode=0o700)
             return raw
-        with patch('tacto.document_packages.os.read', side_effect=changed):
+        with patch('haejo.document_packages.os.read', side_effect=changed):
             with self.assertRaises(PackageEvidenceError): self.snapshot()
 
     def test_file_replacement_during_read_refuses(self):
@@ -72,7 +72,7 @@ class PackageTests(unittest.TestCase):
                 self.file.write_bytes(b'owned')
                 self.file.chmod(0o600)
             return raw
-        with patch('tacto.document_packages.os.read', side_effect=replaced):
+        with patch('haejo.document_packages.os.read', side_effect=replaced):
             with self.assertRaisesRegex(PackageEvidenceError, 'identity_changed'):
                 self.snapshot()
 
@@ -86,13 +86,13 @@ class PackageTests(unittest.TestCase):
     def test_host_path_is_not_normalized_and_invalid_bounds_read_nothing(self):
         for path in [str(self.package)+'/', str(self.package)+'/../owned.rtfd', 'owned.rtfd']:
             with self.assertRaises(PackageEvidenceError): capture_rtfd_package(path)
-        with patch('tacto.document_packages._snapshot') as read:
+        with patch('haejo.document_packages._snapshot') as read:
             for kwargs in [{'max_entries':True}, {'max_depth':17}, {'timeout_seconds':float('nan')}, {'max_utf16_units':0}]:
                 with self.assertRaises(ValueError): capture_rtfd_package(self.package, **kwargs)
             read.assert_not_called()
 
     def test_second_snapshot_difference_prevents_native_decode(self):
-        with patch('tacto.document_packages._snapshot', side_effect=[(('a',), 1, 5), (('b',), 1, 5)]):
+        with patch('haejo.document_packages._snapshot', side_effect=[(('a',), 1, 5), (('b',), 1, 5)]):
             with self.assertRaisesRegex(PackageEvidenceError, 'snapshot_changed'):
                 capture_rtfd_package(self.package)
 
@@ -101,7 +101,7 @@ class PackageTests(unittest.TestCase):
         from AppKit import NSDocumentTypeDocumentAttribute, NSRTFDTextDocumentType
         from examples.probes.attachment_payloads import owned_body
         from examples.probes.signed_document_attachments import write_owned_package
-        from tacto.document_attachments import compare_attachment_payloads
+        from haejo.document_attachments import compare_attachment_payloads
         self.file.unlink()
         self.package.rmdir()
         body = owned_body()
@@ -131,7 +131,7 @@ class PackageTests(unittest.TestCase):
         def change(*args, **kwargs):
             self.file.write_bytes(b'changed')
             return {}
-        with patch('tacto.document_packages.attachment_inventory', side_effect=change):
+        with patch('haejo.document_packages.attachment_inventory', side_effect=change):
             with self.assertRaisesRegex(PackageEvidenceError, 'snapshot_changed'):
                 capture_rtfd_package(self.package)
 
@@ -162,7 +162,7 @@ class PackageTests(unittest.TestCase):
         from AppKit import NSDocumentTypeDocumentAttribute, NSRTFDTextDocumentType
         from examples.probes.attachment_payloads import owned_body
         from examples.probes.signed_document_attachments import write_owned_package
-        from tacto.document_packages import CapturedRTFDPackage
+        from haejo.document_packages import CapturedRTFDPackage
         self.file.unlink()
         self.package.rmdir()
         body = owned_body()
@@ -174,7 +174,7 @@ class PackageTests(unittest.TestCase):
             result = CapturedRTFDPackage(*args)
             clock[0] = 104.0
             return result
-        with patch('tacto.document_packages.time.monotonic', side_effect=lambda:clock[0]), \
-             patch('tacto.document_packages.CapturedRTFDPackage', side_effect=late):
+        with patch('haejo.document_packages.time.monotonic', side_effect=lambda:clock[0]), \
+             patch('haejo.document_packages.CapturedRTFDPackage', side_effect=late):
             with self.assertRaisesRegex(PackageEvidenceError, 'deadline'):
                 capture_rtfd_package(self.package)

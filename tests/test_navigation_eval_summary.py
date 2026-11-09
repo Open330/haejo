@@ -29,7 +29,7 @@ class NavigationEvaluationSummaryTests(unittest.TestCase):
             module.__file__=str(Path(directory)/'examples/eval.py')
             main=Mock(return_value=report)
             with patch('runpy.run_path',return_value={'main':main}), \
-                    patch('tacto.helper.InheritedHelperDriver') as driver, \
+                    patch('haejo.helper.InheritedHelperDriver') as driver, \
                     contextlib.redirect_stdout(io.StringIO()) as stdout,self.assertRaises(AssertionError) as failure:
                 driver.available.return_value=True
                 module.scenario_navigation_model_claude()
@@ -64,7 +64,7 @@ class NativeRecoverySummaryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             module.__file__=str(Path(directory)/'examples/eval.py')
             with patch('runpy.run_path',return_value={'main':Mock(return_value=report)}), \
-                 patch('tacto.helper.InheritedHelperDriver') as driver, \
+                 patch('haejo.helper.InheritedHelperDriver') as driver, \
                  contextlib.redirect_stdout(io.StringIO()) as stdout, \
                  self.assertRaises(AssertionError) as failure:
                 driver.available.return_value=True

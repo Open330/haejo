@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 
 from examples.probes.signed_popup_flow_replay import reserve_report
-from tacto.document_attachments import compare_attachment_payloads,AttachmentEvidenceError
+from haejo.document_attachments import compare_attachment_payloads,AttachmentEvidenceError
 
 
 def owned_body():
@@ -30,7 +30,7 @@ def owned_body():
 def main(output):
     with reserve_report(output) as stream:
         root=Path(__file__).resolve().parents[2]
-        names=['tacto/document_attachments.py','examples/probes/attachment_payloads.py','tests/test_document_attachments.py']
+        names=['haejo/document_attachments.py','examples/probes/attachment_payloads.py','tests/test_document_attachments.py']
         hashes=lambda:{p:hashlib.sha256((root/p).read_bytes()).hexdigest() for p in names}
         report={'passed':False,'scope':'owned AppKit RTFD serialization payloads, no GUI input',
                 'source_before':hashes(),'model_requests':0,'gui_input_requests':0,

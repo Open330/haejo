@@ -11,17 +11,17 @@ enum ModeConnection {
 
 func modeDiagnostic(_ requested: String, _ effective: String, _ reason: String = "", pid: Int? = nil) {
     guard let bytes = try? JSONSerialization.data(withJSONObject:
-        ["tacto_helper_mode":requested,"effective":effective,"reason":reason,"helper_pid":pid as Any? ?? NSNull()]) else { return }
+        ["haejo_helper_mode":requested,"effective":effective,"reason":reason,"helper_pid":pid as Any? ?? NSNull()]) else { return }
     FileHandle.standardError.write(bytes); FileHandle.standardError.write(Data([10]))
 }
 
 func tryWarmConnection(_ key: String, path: String, idleSeconds: Int) -> ModeConnection {
-    guard let fd = TactoMode.connect(path) else { return .unavailable("absent") }
+    guard let fd = HaejoMode.connect(path) else { return .unavailable("absent") }
     var yes: Int32 = 1
     _ = setsockopt(fd,SOL_SOCKET,SO_NOSIGPIPE,&yes,socklen_t(MemoryLayout<Int32>.size))
     guard peerSatisfies(fd,helperRequirement).0,
-          TactoMode.send(fd,["protocol":1,"build":key,"idle_seconds":idleSeconds]),
-          let answer = TactoMode.receive(fd) else { close(fd); return .unavailable("handshake_failed") }
+          HaejoMode.send(fd,["protocol":1,"build":key,"idle_seconds":idleSeconds]),
+          let answer = HaejoMode.receive(fd) else { close(fd); return .unavailable("handshake_failed") }
     if answer["status"] as? String == "busy" { close(fd); return .busy }
     guard answer["status"] as? String == "ready", answer["build"] as? String == key,
           answer["protocol"] as? Int == 1 else { close(fd); return .unavailable("incompatible") }
@@ -29,8 +29,8 @@ func tryWarmConnection(_ key: String, path: String, idleSeconds: Int) -> ModeCon
 }
 
 func warmConnection(_ build: String, slot: Int, idleSeconds: Int) -> ModeConnection {
-    let key = TactoMode.workerKey(build,slot:slot)
-    guard let directory = TactoMode.directory(key) else { return .unavailable("private_directory") }
+    let key = HaejoMode.workerKey(build,slot:slot)
+    guard let directory = HaejoMode.directory(key) else { return .unavailable("private_directory") }
     let path = directory+"/helper.sock"
     switch tryWarmConnection(key,path:path,idleSeconds:idleSeconds) {
     case .unavailable(let reason) where reason == "absent": break
@@ -85,11 +85,11 @@ func warmConnection(_ build: String, slot: Int, idleSeconds: Int) -> ModeConnect
 // Workers isolate observation/token/abort state in separate signed processes.
 // Exhausting the bounded pool waits; it never starts an unbounded fallback.
 func acquireModeConnection(_ key: String, idleSeconds: Int, cancelled: () -> Bool) -> ModeConnection {
-    let raw = Double(ProcessInfo.processInfo.environment["TACTO_HELPER_WAIT_SECONDS"] ?? "10") ?? 10
+    let raw = Double(ProcessInfo.processInfo.environment["HAEJO_HELPER_WAIT_SECONDS"] ?? "10") ?? 10
     let seconds = raw.isFinite ? min(30,max(0,raw)) : 10
-    return TactoMode.waitForLease(seconds:seconds,
+    return HaejoMode.waitForLease(seconds:seconds,
         attempt:{
-            for slot in 0..<TactoMode.workerCount {
+            for slot in 0..<HaejoMode.workerCount {
                 if cancelled() { return .cancelled }
                 let result = warmConnection(key,slot:slot,idleSeconds:idleSeconds)
                 if case .busy = result { continue }

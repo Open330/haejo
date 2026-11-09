@@ -49,7 +49,7 @@ class SignedRecoveryEvaluationTests(unittest.TestCase):
                 'expected_budget_exhaustion':exhaust_budget}
             main=Mock(return_value=report)
             with patch('runpy.run_path',return_value={'main':main}), \
-                    patch('tacto.helper.InheritedHelperDriver') as driver,contextlib.redirect_stdout(io.StringIO()):
+                    patch('haejo.helper.InheritedHelperDriver') as driver,contextlib.redirect_stdout(io.StringIO()):
                 driver.available.return_value=True
                 module.scenario_signed_native_recovery(repeated=repeated,exhaust_budget=exhaust_budget)
                 self.assertEqual({'repeated':repeated,'exhaust_budget':exhaust_budget},main.call_args.kwargs)
@@ -61,7 +61,7 @@ class SignedRecoveryEvaluationTests(unittest.TestCase):
         module = self.evaluator()
         report={'passed':False,'input_audit':{'raw_report':'PRIVATE_INPUT_SENTINEL'}}
         with patch('runpy.run_path',return_value={'main':Mock(return_value=report)}), \
-                patch('tacto.helper.InheritedHelperDriver') as driver, \
+                patch('haejo.helper.InheritedHelperDriver') as driver, \
                 contextlib.redirect_stdout(io.StringIO()) as out, self.assertRaises(AssertionError) as failure:
             driver.available.return_value=True
             module.scenario_signed_native_recovery()
@@ -76,7 +76,7 @@ class SignedRecoveryEvaluationTests(unittest.TestCase):
             'interleaved_textedit':[{'parent_stage':n,'phase':'completed'} for n in (8,14,20)]}
         main=Mock(return_value=report)
         with patch('runpy.run_path',return_value={'main':main}), \
-                patch('tacto.helper.InheritedHelperDriver') as driver,contextlib.redirect_stdout(io.StringIO()):
+                patch('haejo.helper.InheritedHelperDriver') as driver,contextlib.redirect_stdout(io.StringIO()):
             driver.available.return_value=True
             module.scenario_signed_native_recovery_multi_app()
             self.assertEqual({'repeated':True,'exhaust_budget':False,'interleave_textedit':True},main.call_args.kwargs)
@@ -93,7 +93,7 @@ class SignedRecoveryEvaluationTests(unittest.TestCase):
             'interleaved_textedit':[{'parent_stage':8,'phase':'failed'}]}
         main=Mock(return_value=report)
         with patch('runpy.run_path',return_value={'main':main}), \
-                patch('tacto.helper.InheritedHelperDriver') as driver,contextlib.redirect_stdout(io.StringIO()):
+                patch('haejo.helper.InheritedHelperDriver') as driver,contextlib.redirect_stdout(io.StringIO()):
             driver.available.return_value=True
             module.scenario_signed_native_recovery_multi_app_disconnect()
             self.assertEqual({'repeated':True,'exhaust_budget':False,'interleave_textedit':True,
@@ -112,7 +112,7 @@ class SignedRecoveryEvaluationTests(unittest.TestCase):
             'parent_change_injected':True,'expected_stop_verified':True,'task_oracle_passed':False,
             'interleaved_textedit':[{'parent_stage':8,'phase':'failed'}]}
         main=Mock(return_value=report)
-        with patch('runpy.run_path',return_value={'main':main}),patch('tacto.helper.InheritedHelperDriver') as driver,contextlib.redirect_stdout(io.StringIO()):
+        with patch('runpy.run_path',return_value={'main':main}),patch('haejo.helper.InheritedHelperDriver') as driver,contextlib.redirect_stdout(io.StringIO()):
             driver.available.return_value=True
             module.scenario_signed_native_recovery_multi_app_parent_change()
             self.assertTrue(main.call_args.kwargs['interleave_parent_change'])

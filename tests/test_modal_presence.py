@@ -6,7 +6,7 @@ import subprocess
 import sys
 import unittest
 from unittest.mock import patch
-from tacto.modal_presence import modal_presence
+from haejo.modal_presence import modal_presence
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -75,7 +75,7 @@ class ModalPresenceTests(unittest.TestCase):
         self.assertEqual(modal_presence(0,read,is_element=lambda x:type(x) is int),'present')
 
     def test_real_direct_adapter_enforces_timeout_and_reset_failures(self):
-        from tacto import driver
+        from haejo import driver
         class BridgedRole(str): pass
         def read(node,key,unused):
             if key=='AXWindows':return 0,[1]
@@ -95,7 +95,7 @@ class ModalPresenceTests(unittest.TestCase):
 @unittest.skipUnless(sys.platform=='darwin' and shutil.which('swift'),'macOS Swift required')
 class NativeModalPresenceTests(unittest.TestCase):
     def test_actual_swift_checker_matches_nested_error_and_budget_cases(self):
-        source=(ROOT/'helper/TactoHelper.swift').read_text()
+        source=(ROOT/'helper/HaejoHelper.swift').read_text()
         core=source[source.index('enum NativeModalPresence:'):source.index('func modalSheet(')]
         harness=r'''import Foundation
 import ApplicationServices

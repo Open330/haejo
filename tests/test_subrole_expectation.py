@@ -5,8 +5,8 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from tacto.flow import Selector
-from tacto.driver import _line_attr, _elem_label, Driver
+from haejo.flow import Selector
+from haejo.driver import _line_attr, _elem_label, Driver
 from unittest.mock import patch
 from types import SimpleNamespace
 
@@ -25,7 +25,7 @@ class SubroleParsing(unittest.TestCase):
         for title,role,expected in [('named','AXButton','Title: named'),
                                     ('','AXWindow',''),('','AXButton','Subrole: AXCloseButton')]:
             attrs={'AXTitle':title,'AXRole':role,'AXSubrole':'AXCloseButton'}
-            with patch('tacto.driver._attr',side_effect=lambda e,k:attrs.get(k)), \
+            with patch('haejo.driver._attr',side_effect=lambda e,k:attrs.get(k)), \
                  patch('ApplicationServices.AXUIElementCopyMultipleAttributeValues',side_effect=RuntimeError('fixture fallback')):
                 self.assertEqual(expected,_elem_label('owned'))
 
@@ -35,14 +35,14 @@ class SubroleParsing(unittest.TestCase):
         for subrole in ('AXCloseButton','AXMinimizeButton',None):
             attrs={'AXRole':'AXButton','AXSubrole':subrole,'AXEnabled':True}
             with patch.object(driver,'_element',return_value='owned'), \
-                 patch('tacto.driver._attr',side_effect=lambda e,k:attrs.get(k)):
+                 patch('haejo.driver._attr',side_effect=lambda e,k:attrs.get(k)):
                 value=driver._mismatch(SimpleNamespace(pid=42),{'element_index':2},expect)
             self.assertEqual(subrole=='AXCloseButton',value=='')
 
 @unittest.skipUnless(sys.platform=='darwin' and shutil.which('swift'),'macOS Swift required')
 class SubroleSwift(unittest.TestCase):
     def test_actual_mismatch_refuses_changed_missing_disabled_close_control(self):
-        source=(ROOT/'helper/TactoHelper.swift').read_text()
+        source=(ROOT/'helper/HaejoHelper.swift').read_text()
         handler=source[source.index('func mismatch('):source.index('/// The same normalization',source.index('func mismatch('))]
         harness=r'''
 import Foundation

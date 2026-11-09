@@ -1,7 +1,7 @@
 """Exercise real installed command/skill links through upgrade and rollback.
 
-The installed and candidate runtimes must both expose the canonical Tacto
-command, skill, and `<data>/tacto/flows` store. This probe does not exercise
+The installed and candidate runtimes must both expose the canonical Haejo
+command, skill, and `<data>/haejo/flows` store. This probe does not exercise
 removed command aliases or older storage namespaces.
 Existing grants are read only; this never changes OS permissions.
 """
@@ -14,20 +14,20 @@ import subprocess
 import time
 import uuid
 
-COMMANDS = ('tacto',)
+COMMANDS = ('haejo',)
 AGENTS = ('.codex', '.claude')
 
 
 def launcher_of(runtime):
-    """Return the runtime's signed Tacto launcher."""
-    candidate = Path(runtime)/'launcher/tacto'
+    """Return the runtime's signed Haejo launcher."""
+    candidate = Path(runtime)/'launcher/haejo'
     if candidate.is_file():
         return candidate
-    raise ValueError(f'{runtime}: no launcher/tacto')
+    raise ValueError(f'{runtime}: no launcher/haejo')
 
 
 def bin_dir(environ, home):
-    return Path(environ['TACTO_BIN_DIR']) if environ.get('TACTO_BIN_DIR') else Path(home)/'.local/bin'
+    return Path(environ['HAEJO_BIN_DIR']) if environ.get('HAEJO_BIN_DIR') else Path(home)/'.local/bin'
 
 
 def data_dir(environ, home):
@@ -37,7 +37,7 @@ def data_dir(environ, home):
 
 def stores(environ, home):
     data = data_dir(environ, home)
-    return {'canonical': data/'tacto/flows'}
+    return {'canonical': data/'haejo/flows'}
 
 
 def has_flows(path):
@@ -51,7 +51,7 @@ def probe_store(environ, home):
 
 def links(environ, home):
     b = bin_dir(environ, home)
-    return [b/name for name in COMMANDS] + [Path(home)/agent/'skills/tacto' for agent in AGENTS]
+    return [b/name for name in COMMANDS] + [Path(home)/agent/'skills/haejo' for agent in AGENTS]
 
 
 def link_state(paths):
@@ -63,15 +63,15 @@ def links_target(runtime, environ, home):
     entry = launcher_of(runtime).resolve()
     b = bin_dir(environ, home)
     return (all((b/name).resolve() == entry for name in COMMANDS)
-            and all((Path(home)/agent/'skills/tacto').resolve() == (Path(runtime)/'skill').resolve()
+            and all((Path(home)/agent/'skills/haejo').resolve() == (Path(runtime)/'skill').resolve()
                     for agent in AGENTS))
 
 
 def manifest(environ, home):
     """Hashes of canonical user store and config files."""
     data = data_dir(environ, home)
-    roots = {data/'tacto/flows', Path(home)/'.local/share/tacto/flows',
-             Path(home)/'.config/tacto'}
+    roots = {data/'haejo/flows', Path(home)/'.local/share/haejo/flows',
+             Path(home)/'.config/haejo'}
     result = {}
     for root in sorted(roots):
         if root.is_dir():
@@ -90,13 +90,13 @@ def standalone_runtime(path):
 def main():
     from release_identity import identity
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument('--candidate', type=Path, required=True, help='signed standalone Tacto.app')
+    parser.add_argument('--candidate', type=Path, required=True, help='signed standalone Haejo.app')
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     environ, home = dict(os.environ), Path.home()
     out = args.output.resolve(); out.mkdir(mode=0o700)
     bins = bin_dir(environ, home)
-    old = (bins/'tacto').resolve(strict=True).parent.parent
+    old = (bins/'haejo').resolve(strict=True).parent.parent
     new = args.candidate.resolve(strict=True)/'Contents/Resources/runtime'
     assert old != new, 'distinct baseline and candidate required'
     for root in (old, new):
@@ -134,7 +134,7 @@ def main():
             started = time.monotonic()
             call(['/bin/bash', str(root/'skill/install.sh')], stage+'-install')
             call(['/bin/bash', str(root/'skill/install.sh'), '--check'], stage+'-check')
-            doctor = call([str(bins/'tacto'), 'doctor', '--check'], stage+'-doctor')
+            doctor = call([str(bins/'haejo'), 'doctor', '--check'], stage+'-doctor')
             for command in COMMANDS:
                 decoded = json.loads(call([str(bins/command), 'show', flow['name']], f'{stage}-{command}-show'))
                 assert decoded['name'] == flow['name'] and decoded['target'] == flow['target']
@@ -170,8 +170,8 @@ def main():
                   'original_links': original, 'final_links': link_state(watched),
                   'user_state_unchanged': manifest(environ, home) == before,
                   'probe_store': str(store), 'owned_probe_flow_sha256': digest,
-                  'scope': 'actual tacto command and both agent skill links across installed and candidate '
-                           'launcher/tacto runtimes, canonical-store preservation, existing grants and '
+                  'scope': 'actual haejo command and both agent skill links across installed and candidate '
+                           'launcher/haejo runtimes, canonical-store preservation, existing grants and '
                            'signatures; no OS permission changes or cold-machine claims',
                   'permissions_requested': False}
         (out/'report.json').write_text(json.dumps(report, ensure_ascii=False, indent=2))

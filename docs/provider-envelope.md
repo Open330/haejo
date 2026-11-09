@@ -2,7 +2,7 @@
 
 `ask_model_result`와 `reach_model_result`는 `ProviderResult`를 반환한다. signed 경로는 `ask_provider --result-envelope`의 구조화된 결과를 launcher의 `provider_result_v1` 필드로 전달한다. 기존 `answer.text`와 `ask_launcher` 텍스트 API는 유지한다. metadata를 얻기 위한 두 번째 모델 호출은 하지 않는다.
 
-응답은 로컬 request_id, 요청한 provider와 실제 관측 provider, transport/status/text/error/elapsed_seconds 및 관측된 model·원격 ID·token·cost를 담는다. 미관측 값은 null이다. Tacto request_id를 provider_request_id로 복사하지 않는다. cost_basis가 CLI list estimate이면 실제 청구금액을 뜻하지 않는다.
+응답은 로컬 request_id, 요청한 provider와 실제 관측 provider, transport/status/text/error/elapsed_seconds 및 관측된 model·원격 ID·token·cost를 담는다. 미관측 값은 null이다. Haejo request_id를 provider_request_id로 복사하지 않는다. cost_basis가 CLI list estimate이면 실제 청구금액을 뜻하지 않는다.
 
 `ask_launcher_result`는 필드 타입, 음수/비유한 수치, boolean token 수, 상태와 text/error의 모순, 외부 응답과 metadata의 불일치를 거절한다. 구형 launcher의 text-only 응답은 metadata를 합성하지 않는다. 기존 --json 옵션은 모델 답변 형식이며 --result-envelope와 독립적이다.
 
@@ -48,7 +48,7 @@ Claude 계산은 [공식 prompt caching 문서](https://platform.claude.com/docs
 
 호스트 취소: `model_budget.model_cancellation(predicate)` 범위 안에서는 provider 파이프 루프가 `CANCEL_POLL_SECONDS`(0.05초)마다 predicate를 확인하고, 참이면 timeout과 같은 소유 프로세스 그룹 정리 경로로 로컬 CLI를 멈춘다. predicate가 예외를 내면 취소로 간주한다. 결과 status와 attempt status는 `cancelled`, 오류 코드는 `ModelCancelled`이며, 정리 전까지 관측한 부분 usage는 timeout과 같은 규칙으로 보존한다. 취소된 범위에서는 `remaining_model_seconds`가 즉시 거부하므로 새 route, auto fallback, 검증 재시도가 시작되지 않는다. `general.run(cancelled=...)`은 planner와 ask_where 호출을 이 범위로 감싸고, driver 입력 전송에는 적용하지 않는다. `cancellation_supported=false`는 유지하며 원격 생성·청구 중단을 뜻하지 않는다.
 
-서명 런처 경로(`launcher_capabilities`에 `ask_cancel_v1`): 취소 범위 안의 ask는 요청별 무작위 `cancel_id`를 싣는다. 응답을 기다리는 동안 별도 watcher가 0.05초마다 취소를 확인하고, 취소되면 같은 private socketpair로 `{"type":"ask_cancel","cancel_id":…}`를 한 번 쓴다. watcher는 쓰기만 하므로 채널의 reader는 계속 주 스레드 하나다. 런처의 `relayAsk`는 모델 실행 중에도 같은 버퍼로 child 쪽을 읽는다. 맨 앞의 유효한 `ask_cancel` 프레임만 소비하고, 다른 프레임은 읽지 않은 채 relay loop에 남긴다. id가 일치하면 wrapper(`tacto.ask_provider`)에 SIGUSR1을 보낸다. wrapper는 같은 취소 범위로 소유 CLI 그룹을 정리하고, 관측 usage를 담은 `cancelled` envelope을 exit 0으로 낸다. 런처는 이를 `model_cancelled`로 한 번만 응답한다. wrapper가 2초(`modelCancelGrace`, 요청 기한을 넘지 않음) 안에 끝나지 않으면 기존 SIGTERM→SIGKILL 정리로 넘어가고, envelope 없는 `model_cancelled`를 응답한다. 클라이언트는 4초 안에 응답이 없으면 채널을 닫는다. 이미 끝난 요청을 가리키는 `ask_cancel`에는 응답하지 않으므로 프레이밍이 어긋나지 않는다. child 연결이 끊겨도(POLLHUP/EOF) 같은 방식으로 취소한다. 취소와 경합해 도착한 답은 수용하지 않고 관측 telemetry만 남긴다. 런처가 기능을 광고하지 않으면 cancel 프레임을 보내지 않으므로, 기존 런처는 보내기 전 확인만 한다.
+서명 런처 경로(`launcher_capabilities`에 `ask_cancel_v1`): 취소 범위 안의 ask는 요청별 무작위 `cancel_id`를 싣는다. 응답을 기다리는 동안 별도 watcher가 0.05초마다 취소를 확인하고, 취소되면 같은 private socketpair로 `{"type":"ask_cancel","cancel_id":…}`를 한 번 쓴다. watcher는 쓰기만 하므로 채널의 reader는 계속 주 스레드 하나다. 런처의 `relayAsk`는 모델 실행 중에도 같은 버퍼로 child 쪽을 읽는다. 맨 앞의 유효한 `ask_cancel` 프레임만 소비하고, 다른 프레임은 읽지 않은 채 relay loop에 남긴다. id가 일치하면 wrapper(`haejo.ask_provider`)에 SIGUSR1을 보낸다. wrapper는 같은 취소 범위로 소유 CLI 그룹을 정리하고, 관측 usage를 담은 `cancelled` envelope을 exit 0으로 낸다. 런처는 이를 `model_cancelled`로 한 번만 응답한다. wrapper가 2초(`modelCancelGrace`, 요청 기한을 넘지 않음) 안에 끝나지 않으면 기존 SIGTERM→SIGKILL 정리로 넘어가고, envelope 없는 `model_cancelled`를 응답한다. 클라이언트는 4초 안에 응답이 없으면 채널을 닫는다. 이미 끝난 요청을 가리키는 `ask_cancel`에는 응답하지 않으므로 프레이밍이 어긋나지 않는다. child 연결이 끊겨도(POLLHUP/EOF) 같은 방식으로 취소한다. 취소와 경합해 도착한 답은 수용하지 않고 관측 telemetry만 남긴다. 런처가 기능을 광고하지 않으면 cancel 프레임을 보내지 않으므로, 기존 런처는 보내기 전 확인만 한다.
 
 CLI general 실행은 `cooperative_stop`으로 첫 SIGTERM/SIGHUP을 위 취소로 바꾼다. 처리 뒤 이전 disposition을 복원하므로 두 번째 신호는 기존과 같이 동작한다. 도우미의 Esc와 중단 표시는 이제 바로 runtime status(`stopped=true`)를 게시한다. 런처는 이 실행의 인증된 도우미 연결의 audit-token PID에 묶어 그 status를 관찰한다. 같은 uid, active, stopped인 status만 받으며, 한 번 받으면 이 실행 동안 유지한다. 관찰은 main run loop에서 한다. CLI 프로세스의 distributed notification은 main run loop로만 전달되므로, 런처 main thread는 `waitpid` 대신 run loop를 돌리며 자식을 기다린다. 관찰된 중단은 위와 같은 요청 취소 경로로 이 런처의 진행 중 provider만 멈추고, 클라이언트 취소 범위가 없어도 동작한다. 알림 자체는 인증되지 않으므로 이 경로는 작업을 일찍 멈출 수만 있다. 입력을 허가하거나 중단을 해제하지 않는다.
 
@@ -135,8 +135,8 @@ code에도 보존한다. 앞선 접근 제한으로 나중 route의 다른 실�
 
 ## 실제 Codex 호출의 선택적 프로세스 관측
 
-공통 `_provider_env()`는 Claude 세션 여부와 관계없이 TACTO_HELPER_FD,
-TACTO_LAUNCHER, TACTO_HELPER_TOKEN을 모델 자식 환경에서 제거한다. 부모 환경과
+공통 `_provider_env()`는 Claude 세션 여부와 관계없이 HAEJO_HELPER_FD,
+HAEJO_LAUNCHER, HAEJO_HELPER_TOKEN을 모델 자식 환경에서 제거한다. 부모 환경과
 사용자 profile·credential은 유지한다. 이는 채널 표지 제거이며 TCC 책임 분리를
 증명하지 않는다.
 
@@ -166,7 +166,7 @@ null로 유지했다. owner-only 보고서의 source hash는 호출 전후 일�
 AskSendNew도 활성 대화를 바꾼다. 선택을 읽어 일치할 때 호출하거나, 호출 뒤
 복원하는 방식은 다른 클라이언트와의 경쟁을 막지 못한다.
 
-Tacto의 legacy `_try_muxa`는 prompt 전송·subprocess·설정 변경 전에
+Haejo의 legacy `_try_muxa`는 prompt 전송·subprocess·설정 변경 전에
 `muxa_isolated_ask_unavailable`로 로컬 거절한다. 요청한 provider의 CLI fallback을
 유지한다. Muxa에만 의존한 설치는 해당 모델 경로를 사용할 수 없으며, Muxa의
 격리된 per-call provider/새 대화/구조화된 결과 계약 구현은 아직 남아 있다.
@@ -179,8 +179,8 @@ Muxa message 계약으로 계속 사용한다.
 독립 증명은 아니며 다른 route가 원격에 도달했다고 추측하지 않는다. token/cost
 미관측 기록은 계속 null/unknown으로 보존하고 임의로0을 넣지 않는다.
 
-이전 Tacto는 `--agent`를 사용했으므로 `muxa ask providers`로 현재 선택을 확인할 수
-있다. Tacto는 이전 선택을 추측해 복원하지 않는다. 이 동작이 데몬의 공유 메모리
+이전 Haejo는 `--agent`를 사용했으므로 `muxa ask providers`로 현재 선택을 확인할 수
+있다. Haejo는 이전 선택을 추측해 복원하지 않는다. 이 동작이 데몬의 공유 메모리
 선택을 바꾸는 것과 디스크 config 파일을 쓰는 것은 다르다.
 
 남은 상류 계약은 **제안**이며 현재 사용 가능한 API가 아니다. 새 요청 종류로
@@ -188,7 +188,7 @@ provider를 atomically 고정하고, 기존 selected provider/active conversatio
 바꾸지 않는 별도 단일 턴을 만들어야 한다. 구형 데몬이 새 필드를 무시해 다른
 provider를 쓰지 않도록 지원하지 않는 요청 종류는 명시적으로 거절해야 한다.
 수용된 요청의 provider/독립 request ID·상태·관측 usage를 구조화된 durable 결과로
-반환하고 configured/requested model과 reported model을 구분해야 한다. Tacto에
+반환하고 configured/requested model과 reported model을 구분해야 한다. Haejo에
 연결하기 전 두 클라이언트의 동시 Ask에서 선택/대화가 유지되는지, 다른 provider
 응답·기한·중단·usage 누락을 실제 검증해야 한다. 원격 취소는 별도 확인 전에는
 지원한다고 표시하지 않는다.
@@ -225,7 +225,7 @@ Gemini CLI 실패 경로가 provider=gemini로 호출한 경우, 관측한 인�
 마이그레이션은 하지 않는다.
 
 실제 Gemini 호출은 모델 답변 전에 이 오류로 종료됐다. JSON 응답·usage·비용은
-없었다. Tacto envelope에서도 error/unsupported_client, usage와cost null,
+없었다. Haejo envelope에서도 error/unsupported_client, usage와cost null,
 cancellation_supported=False를 보존했다. 이는 해당 설치/계정 조합에서 CLI가
 보고한 실패이며 서비스 전체의 정책 또는 다른 계정/클라이언트의 상태를 증명하지
 않는다. null을0으로 집계하거나 모델 평가 성공으로 세지 않는다.
@@ -247,7 +247,7 @@ OpenCode 경로에 한해 이 framed refusal(정수 timestamp, sessionID, error 
 error object나 오류에 관한 설명은 같은 인증 상태로 추론하지 않는다.
 다른 provider 경로에는 이 판정을 적용하지 않는다.
 
-실제 실패 응답을 캡처한 뒤 Tacto에 재생했을 때 error/text:null, usage/cost:null로
+실제 실패 응답을 캡처한 뒤 Haejo에 재생했을 때 error/text:null, usage/cost:null로
 보존됐다. 인증·usage를 확인하지 못한 것과 사용량0은 다르다. 이 초기 처리는 관측한
 특정 인증 실패만 거부했다. 아래 후속 adapter에서 정상 응답 framing 검증을
 추가했으며 실제 정상 모델 실행은 여전히 인증 때문에 미검증이다.
@@ -256,7 +256,7 @@ error object나 오류에 관한 설명은 같은 인증 상태로 추론하지 
 
 ## OpenCode의 structured planning adapter
 
-`opencode_result`는 fresh `run --format json --agent TACTOPlanner`를 사용하고
+`opencode_result`는 fresh `run --format json --agent HAEJOPlanner`를 사용하고
 prompt를 stdin으로 전달한다. 호출별 임시 cwd/config에서 permission 전체 deny,
 plugin 빈 목록, 공유/자동 업데이트/project config/external skills 비활성화를
 요청한다. 사용자 auth data는 유지하며 login/token/원래 config를 수정하지 않는다.

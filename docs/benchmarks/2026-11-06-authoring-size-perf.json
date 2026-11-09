@@ -16,7 +16,7 @@
   "cohorts": {
     "before": {
       "arms": {
-        "tacto": {
+        "haejo": {
           "runs": 3,
           "passed": 3,
           "seconds_median": 38.5,
@@ -29,7 +29,7 @@
       },
       "rows": [
         {
-          "arm": "tacto",
+          "arm": "haejo",
           "rep": 0,
           "status": "passed",
           "seconds": 53.8,
@@ -62,7 +62,7 @@
           ]
         },
         {
-          "arm": "tacto",
+          "arm": "haejo",
           "rep": 1,
           "status": "passed",
           "seconds": 35.8,
@@ -95,7 +95,7 @@
           ]
         },
         {
-          "arm": "tacto",
+          "arm": "haejo",
           "rep": 2,
           "status": "passed",
           "seconds": 38.5,
@@ -132,13 +132,13 @@
         "harness_exit": 2,
         "evidence_stable": true,
         "source_commit": "4d48c204322d8a94520495961e87bef509f22155",
-        "profiling_request_same_for_both_Tacto_cohorts": true,
+        "profiling_request_same_for_both_Haejo_cohorts": true,
         "strict_equivalence_not_verified": true
       }
     },
     "after": {
       "arms": {
-        "tacto": {
+        "haejo": {
           "runs": 3,
           "passed": 3,
           "seconds_median": 38.7,
@@ -161,7 +161,7 @@
       },
       "rows": [
         {
-          "arm": "tacto",
+          "arm": "haejo",
           "rep": 0,
           "status": "passed",
           "seconds": 43.8,
@@ -230,7 +230,7 @@
           "sessions": []
         },
         {
-          "arm": "tacto",
+          "arm": "haejo",
           "rep": 1,
           "status": "passed",
           "seconds": 38.7,
@@ -263,7 +263,7 @@
           ]
         },
         {
-          "arm": "tacto",
+          "arm": "haejo",
           "rep": 2,
           "status": "passed",
           "seconds": 35.5,
@@ -318,7 +318,7 @@
         "harness_exit": 2,
         "evidence_stable": true,
         "source_commit": "35995a3f5aa19563821bfdf78ecdcae52394185f",
-        "profiling_request_same_for_both_Tacto_cohorts": true,
+        "profiling_request_same_for_both_Haejo_cohorts": true,
         "strict_equivalence_not_verified": true
       }
     }
@@ -768,7 +768,7 @@
     "new_permissions_required": false
   },
   "limits": [
-    "Three trials per arm, sequential before Tacto then after Tacto/Sky pairs; server cache/load not controlled.",
+    "Three trials per arm, sequential before Haejo then after Haejo/Sky pairs; server cache/load not controlled.",
     "Common native lifecycle fix was applied to both arms; this is a guide comparison, not a pure rc24-vs-rc25 binary comparison.",
     "Output tokens and parent CLI-reported input reduced in this sample; time median 38.5 to 38.7 seconds gives no latency improvement.",
     "Static --compact savings apply to saved Flow inspection; show was not used by this fresh task.",

@@ -4,7 +4,7 @@ import unittest
 from unittest import mock
 
 from tests.test_app_launch import PresentationTests
-from tacto.app_launch import activate_app
+from haejo.app_launch import activate_app
 
 
 
@@ -246,11 +246,11 @@ class NoWindowTests(unittest.TestCase):
 
 class ActivateCommandTests(unittest.TestCase):
     def test_window_requires_the_helper_and_usage_is_strict(self):
-        from tacto import cli
+        from haejo import cli
         for argv in (['activate'], ['activate', 'a.b', 'c.d'], ['activate', 'a.b', '--window'],
                      ['activate', 'com.apple.Safari', '--window', 'Gmail']):
-            with self.subTest(argv=argv), mock.patch('tacto.session.sandboxed', return_value=False), \
-                    mock.patch('tacto.app_launch.activate_app') as activate, mock.patch('builtins.print'):
+            with self.subTest(argv=argv), mock.patch('haejo.session.sandboxed', return_value=False), \
+                    mock.patch('haejo.app_launch.activate_app') as activate, mock.patch('builtins.print'):
                 self.assertEqual(2, cli.main(argv))
                 activate.assert_not_called()
 

@@ -1,11 +1,11 @@
 import unittest
 from unittest.mock import patch
-from tacto import onboard
+from haejo import onboard
 
 class OnboardingSnapshotTests(unittest.TestCase):
     def test_denied_helper_is_checked_once_without_shared_python_advice(self):
-        state={'built':True,'trusted':False,'bundled':True,'path':'/owned/Tacto Helper.app',
-               'name':'Tacto Helper','why':'접근성 권한이 필요합니다'}
+        state={'built':True,'trusted':False,'bundled':True,'path':'/owned/Haejo Helper.app',
+               'name':'Haejo Helper','why':'접근성 권한이 필요합니다'}
         lines=[]
         check=onboard.Check('accessibility',False,'accessibility','enable','x-test')
         with patch.object(onboard,'helper_status',side_effect=[state,OSError('Bad file descriptor')]) as status, \
@@ -21,12 +21,12 @@ class LockedSessionReadinessTests(unittest.TestCase):
     def run_state(self, locked, *, interactive=False, apps=True):
         from types import SimpleNamespace
         state = {'built':True, 'trusted':True, 'bundled':True,
-                 'path':'/owned/Tacto Helper.app', 'name':'Tacto Helper', 'screen_capture':True}
+                 'path':'/owned/Haejo Helper.app', 'name':'Haejo Helper', 'screen_capture':True}
         lines = []
         workspace = SimpleNamespace(runningApplications=lambda:([SimpleNamespace(activationPolicy=lambda:0)] if apps else []))
         with patch.object(onboard, 'helper_status', return_value=state), \
              patch.object(onboard, 'check_all', return_value=[]), \
-             patch('tacto.session.lock_state', return_value={'locked':locked}), \
+             patch('haejo.session.lock_state', return_value={'locked':locked}), \
              patch('AppKit.NSWorkspace', SimpleNamespace(sharedWorkspace=lambda:workspace)), \
              patch.object(onboard, 'open_settings') as settings, \
              patch.object(onboard, 'request_accessibility') as permission:
@@ -62,7 +62,7 @@ class LockedSessionReadinessTests(unittest.TestCase):
             with self.subTest(locked=locked), \
                  patch.object(onboard,'helper_status',return_value={'built':False}), \
                  patch.object(onboard,'check_all',return_value=[missing]), \
-                 patch('tacto.session.lock_state',return_value={'locked':locked}), \
+                 patch('haejo.session.lock_state',return_value={'locked':locked}), \
                  patch('AppKit.NSWorkspace',SimpleNamespace(sharedWorkspace=lambda:workspace)), \
                  patch.object(onboard,'request_accessibility') as request, \
                  patch.object(onboard,'open_settings') as settings:

@@ -5,7 +5,7 @@ import types
 import unittest
 from unittest.mock import Mock,patch
 from examples.probes import signed_textedit_saved_state as probe
-from tacto.helper import InheritedHelperDriver
+from haejo.helper import InheritedHelperDriver
 try:
     from tests._artifacts import requires_signed_build
 except ImportError:  # discovered with tests/ as the top level
@@ -28,7 +28,7 @@ class TextEditSavedStateTests(unittest.TestCase):
             with patch.object(InheritedHelperDriver,'available',return_value=True), \
                  patch.object(probe,'background_precondition',return_value={'ready':True,'reason':'background_target'}), \
                  patch.dict('sys.modules',{'signed_textedit_save':module}), \
-                 patch('tacto.input_audit_process.ProcessInputAudit',return_value=audit):
+                 patch('haejo.input_audit_process.ProcessInputAudit',return_value=audit):
                 result=probe.main(driver,output)
             self.assertTrue(result['passed'])
             self.assertTrue(result['source_subset_stable'])
@@ -48,7 +48,7 @@ class TextEditSavedStateTests(unittest.TestCase):
             with patch.object(InheritedHelperDriver,'available',return_value=True), \
                  patch.object(probe,'background_precondition',return_value={'ready':False,'reason':'target_already_foreground'}), \
                  patch.dict('sys.modules',{'signed_textedit_save':module}), \
-                 patch('tacto.input_audit_process.ProcessInputAudit') as audit:
+                 patch('haejo.input_audit_process.ProcessInputAudit') as audit:
                 result=probe.main(Mock(spec=InheritedHelperDriver),output)
             self.assertEqual(result['run_status'],'precondition_unmet')
             self.assertFalse(result['passed'])

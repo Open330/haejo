@@ -6,8 +6,8 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from tacto.native_drag import drag_problem
-from tacto.protocol import drag_reobservation
+from haejo.native_drag import drag_problem
+from haejo.protocol import drag_reobservation
 ROOT=Path(__file__).resolve().parents[1]
 
 class DragPayloadTests(unittest.TestCase):
@@ -111,7 +111,7 @@ print("DRAG_PASS")
             self.assertEqual('DRAG_PASS',result.stdout.strip())
 
     def test_launcher_accepts_generic_drag_without_vroid_title(self):
-        source=(ROOT/'launcher/tacto.swift').read_text()
+        source=(ROOT/'launcher/haejo.swift').read_text()
         schema=source[source.index('let allowedTypes:'):source.index('// MARK: - Socket plumbing')]
         checks=r'''
 let action:[String:Any] = ["name":"drag","element_index":0,"from":["x":20,"y":40],"to":["x":220,"y":80],"duration":0.6]
@@ -133,8 +133,8 @@ print("LAUNCHER_DRAG_PASS")
 
 class DragReplayTests(unittest.TestCase):
     def test_replay_requires_receiving_effect_and_never_retries(self):
-        from tacto.contract import Envelope,ContextBinding
-        from tacto.flow import Flow,Step,Selector,Postcondition,replay,pin_params
+        from haejo.contract import Envelope,ContextBinding
+        from haejo.flow import Flow,Step,Selector,Postcondition,replay,pin_params
         params={'from':{'x':20,'y':40},'to':{'x':220,'y':80},'duration':0.6}
         env=Envelope.minimal()
         step=Step('drag',Selector(role='Window',title='Fixture'),params=params,
@@ -162,7 +162,7 @@ class DragReplayTests(unittest.TestCase):
 class DragCLITests(unittest.TestCase):
     def test_single_window_compact_output_and_no_retry_on_partial_send(self):
         import contextlib,io
-        from tacto.native_drag import main
+        from haejo.native_drag import main
         class App:
             capabilities={'action.drag'}
             def __init__(self,partial=False):self.calls=[];self.partial=partial
@@ -186,7 +186,7 @@ class DragCLITests(unittest.TestCase):
 
     def test_prepare_reobserves_and_never_reuses_old_element_index(self):
         import contextlib,io
-        from tacto.native_drag import main
+        from haejo.native_drag import main
         class App:
             capabilities={'action.drag'}
             def __init__(self):self.calls=[]
@@ -207,11 +207,11 @@ class DragCaptureTests(unittest.TestCase):
         import contextlib,io
         from types import SimpleNamespace
         from unittest.mock import Mock,patch
-        from tacto.native_drag import capture_main
+        from haejo.native_drag import capture_main
         driver=Mock()
         driver.observe.return_value={'type':'observation','obs_id':'obs','tree':'0 Window Title: "Fixture"'}
         capture=SimpleNamespace(png=b'private png',viewport={'width':960,'height':640},window_frame=(20,30,480,320))
-        with tempfile.TemporaryDirectory() as directory,patch('tacto.native_visual_actions.capture_window',return_value=capture):
+        with tempfile.TemporaryDirectory() as directory,patch('haejo.native_visual_actions.capture_window',return_value=capture):
             path=Path(directory)/'window.png'
             argv=['fixture','--helper','--output',str(path)]
             output=io.StringIO()
@@ -220,11 +220,11 @@ class DragCaptureTests(unittest.TestCase):
             self.assertEqual(json.loads(output.getvalue())['pixel_to_point'],{'x':0.5,'y':0.5})
             self.assertEqual(path.stat().st_mode&0o777,0o600)
             self.assertEqual(path.read_bytes(),b'private png')
-            with contextlib.redirect_stdout(io.StringIO()),patch('tacto.access_log.record_failure') as failed:
+            with contextlib.redirect_stdout(io.StringIO()),patch('haejo.access_log.record_failure') as failed:
                 self.assertEqual(capture_main(argv,driver),1)
             self.assertEqual(path.read_bytes(),b'private png')
             failed.assert_called_once_with('output_exists','capture')
             driver.observe.return_value={'type':'observation','obs_id':'obs','tree':'0 Window Title: "A"\n1 Window Title: "B"'}
-            with contextlib.redirect_stdout(io.StringIO()),patch('tacto.access_log.record_failure') as failed:
+            with contextlib.redirect_stdout(io.StringIO()),patch('haejo.access_log.record_failure') as failed:
                 self.assertEqual(capture_main(['fixture','--helper','--output',str(Path(directory)/'other.png')],driver),1)
             failed.assert_called_once_with('window_missing_or_ambiguous','select_window')

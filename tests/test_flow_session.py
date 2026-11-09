@@ -7,14 +7,14 @@ import pty
 import threading
 import unittest
 from unittest.mock import Mock, patch
-from tacto.command_help import calculator_example
-from tacto.flow_session import run_session, read_flow_line, flow_input_mode
+from haejo.command_help import calculator_example
+from haejo.flow_session import run_session, read_flow_line, flow_input_mode
 from tests.test_flow_safety_defaults import Calculator
 
 
 class FlowSessionTests(unittest.TestCase):
     def test_target_and_parameter_repairs_prepare_once_and_keep_template(self):
-        from tacto.flow_session import read_session_flow,prepare_session_flow
+        from haejo.flow_session import read_session_flow,prepare_session_flow
         target='com.apple.calculator'
         doc={'name':'read','target':target,'params':{'id':None},'steps':[{
             'action':'read','selector':{'identifier':'{{id}}'},
@@ -22,8 +22,8 @@ class FlowSessionTests(unittest.TestCase):
         wrong={**doc,'target':'PRIVATE_TARGET'}
         corrected={**doc,'params':{'id':'StandardInputView'}}
         messages=[]
-        with patch('tacto.flow_session.os.isatty',return_value=True), \
-             patch('tacto.flow_session.read_flow_line',side_effect=[json.dumps(wrong),json.dumps(doc),json.dumps(corrected)]):
+        with patch('haejo.flow_session.os.isatty',return_value=True), \
+             patch('haejo.flow_session.read_flow_line',side_effect=[json.dumps(wrong),json.dumps(doc),json.dumps(corrected)]):
             flow,template=read_session_flow(42,5,messages.append,
                 prepare=lambda parsed:prepare_session_flow(parsed,target))
         self.assertEqual('StandardInputView',flow.steps[0].selector.identifier)
@@ -32,10 +32,10 @@ class FlowSessionTests(unittest.TestCase):
         self.assertNotIn('PRIVATE_TARGET','\n'.join(messages))
 
     def test_authoring_metrics_count_repairs_without_input_values(self):
-        from tacto.flow_session import read_session_flow
+        from haejo.flow_session import read_session_flow
         metrics={};good=json.dumps(calculator_example());bad='{"private":"PRIVATE_SENTINEL"}'
-        with patch('tacto.flow_session.os.isatty',return_value=True), \
-             patch('tacto.flow_session.read_flow_line',side_effect=['{',bad,good]):
+        with patch('haejo.flow_session.os.isatty',return_value=True), \
+             patch('haejo.flow_session.read_flow_line',side_effect=['{',bad,good]):
             read_session_flow(42,5,lambda _:None,metrics=metrics)
         self.assertEqual(3,metrics['flow_input_attempts'])
         self.assertEqual(2,metrics['flow_input_corrections'])
@@ -60,11 +60,11 @@ class FlowSessionTests(unittest.TestCase):
                 self.assertEqual(timed,'window_listing_diagnostic' in packet)
 
     def test_windows_corrections_share_one_input_reader(self):
-        from tacto.flow_session import read_session_flow
+        from haejo.flow_session import read_session_flow
         reader=Mock(side_effect=[b'{}\n',(json.dumps(calculator_example())+'\n').encode()])
-        with patch('tacto.flow_session.sys.platform','win32'), \
-             patch('tacto.flow_session.os.isatty',return_value=True), \
-             patch('tacto.flow_session._windows_reader',return_value=reader) as factory:
+        with patch('haejo.flow_session.sys.platform','win32'), \
+             patch('haejo.flow_session.os.isatty',return_value=True), \
+             patch('haejo.flow_session._windows_reader',return_value=reader) as factory:
             flow=read_session_flow(42,5,lambda message:None)
         self.assertEqual('com.apple.calculator',flow.target)
         factory.assert_called_once_with(42)
@@ -76,7 +76,7 @@ class FlowSessionTests(unittest.TestCase):
         master,slave=pty.openpty();writers=[]
         def emit(message):
             messages.append(message)
-            if message.startswith('TACTO_SESSION_READY send'):
+            if message.startswith('HAEJO_SESSION_READY send'):
                 os.write(master,b'{"private":"PRIVATE_SENTINEL"}\n')
             elif message.startswith('session_invalid_flow:'):
                 self.assertEqual([],app.calls)
@@ -96,25 +96,25 @@ class FlowSessionTests(unittest.TestCase):
             os.close(master);os.close(slave)
         self.assertEqual(0,result);make.assert_called_once();runner.assert_called_once()
         self.assertEqual(1,app.observations)
-        self.assertEqual(1,sum(m.startswith('TACTO_FLOW_GUIDE') for m in messages))
-        self.assertEqual(2,sum(m.startswith('TACTO_SESSION_READY') for m in messages))
+        self.assertEqual(1,sum(m.startswith('HAEJO_FLOW_GUIDE') for m in messages))
+        self.assertEqual(2,sum(m.startswith('HAEJO_SESSION_READY') for m in messages))
         self.assertNotIn('PRIVATE_SENTINEL','\n'.join(messages))
         app.close.assert_called_once()
 
     def test_repair_keeps_original_deadline_and_eof_does_not_loop(self):
-        from tacto.flow_session import read_session_flow
-        with patch('tacto.flow_session.os.isatty',return_value=True), \
-             patch('tacto.flow_session.time.monotonic',side_effect=[100,101,104]), \
-             patch('tacto.flow_session.read_flow_line',side_effect=['{}',TimeoutError()]) as read:
+        from haejo.flow_session import read_session_flow
+        with patch('haejo.flow_session.os.isatty',return_value=True), \
+             patch('haejo.flow_session.time.monotonic',side_effect=[100,101,104]), \
+             patch('haejo.flow_session.read_flow_line',side_effect=['{}',TimeoutError()]) as read:
             with self.assertRaises(TimeoutError):read_session_flow(3,5,lambda message:None)
             self.assertEqual([4,1],[call.args[1] for call in read.call_args_list])
-        with patch('tacto.flow_session.read_flow_line',side_effect=ValueError('session_input_closed')) as read:
+        with patch('haejo.flow_session.read_flow_line',side_effect=ValueError('session_input_closed')) as read:
             with self.assertRaisesRegex(ValueError,'session_input_closed'):
                 read_session_flow(3,5,lambda message:None)
             read.assert_called_once()
 
     def test_stored_comparisonless_skip_keeps_legacy_load_and_execution(self):
-        from tacto.flow import Flow, replay
+        from haejo.flow import Flow, replay
         doc=calculator_example()
         doc['steps'][0]['skip_if']={'field':{'identifier':'StandardInputView'}}
         flow=Flow.from_json(json.dumps(doc))
@@ -142,15 +142,15 @@ class FlowSessionTests(unittest.TestCase):
                 self.assertNotIn('PRIVATE',text)
 
     def run_with(self, doc, args=None, runner=None):
-        from tacto.cli import _run_flow
+        from haejo.cli import _run_flow
         app=Calculator();app.close=Mock()
         make=Mock(return_value=app);messages=[]
         read,write=os.pipe()
         try:
             os.write(write,(json.dumps(doc,ensure_ascii=False)+'\n').encode());os.close(write);write=None
             with os.fdopen(read) as stream,contextlib.redirect_stdout(io.StringIO()),contextlib.redirect_stderr(io.StringIO()), \
-                 patch('tacto.cli._make_driver',side_effect=AssertionError('second startup')), \
-                 patch('tacto.cli._indicator_for',return_value=contextlib.nullcontext()):
+                 patch('haejo.cli._make_driver',side_effect=AssertionError('second startup')), \
+                 patch('haejo.cli._indicator_for',return_value=contextlib.nullcontext()):
                 result=run_session(args or ['com.apple.calculator','--helper'],make_driver=make,
                                    run_flow=runner or _run_flow,stdin=stream,emit=messages.append)
         finally:
@@ -162,7 +162,7 @@ class FlowSessionTests(unittest.TestCase):
         self.assertEqual(0,result);self.assertEqual('408',app.value)
         self.assertEqual(1,make.call_count);app.close.assert_called_once()
         self.assertGreater(app.observations,1)
-        self.assertTrue(any(line.startswith('TACTO_SESSION_READY') for line in messages))
+        self.assertTrue(any(line.startswith('HAEJO_SESSION_READY') for line in messages))
 
     def test_guide_is_opt_in_and_precedes_observation_without_extra_driver(self):
         for guide in (False, True):
@@ -170,7 +170,7 @@ class FlowSessionTests(unittest.TestCase):
             result,app,make,messages=self.run_with(calculator_example(),args=args)
             self.assertEqual(0,result);self.assertEqual(1,make.call_count)
             self.assertEqual('408',app.value)
-            self.assertEqual(guide, messages[0].startswith('TACTO_FLOW_GUIDE'))
+            self.assertEqual(guide, messages[0].startswith('HAEJO_FLOW_GUIDE'))
             if guide:
                 self.assertEqual('observation', json.loads(messages[1])['type'])
 
@@ -178,7 +178,7 @@ class FlowSessionTests(unittest.TestCase):
         result,app,make,messages=self.run_with(calculator_example(),args=[
             'com.apple.calculator','--helper','--guide','--timings'])
         self.assertEqual(0,result)
-        timing=json.loads(messages[-1].removeprefix('TACTO_SESSION_TIMINGS '))
+        timing=json.loads(messages[-1].removeprefix('HAEJO_SESSION_TIMINGS '))
         keys=('observation_ready_seconds','input_ready_seconds','flow_received_seconds',
               'replay_done_seconds','session_done_seconds')
         self.assertEqual(list(keys),list(sorted(keys,key=lambda k:timing[k])))
@@ -224,7 +224,7 @@ class FlowSessionTests(unittest.TestCase):
             read,write=os.pipe()
             try:
                 os.write(write,data)
-                with patch('tacto.flow_session.MAX_FLOW_BYTES',100),self.assertRaises(ValueError):
+                with patch('haejo.flow_session.MAX_FLOW_BYTES',100),self.assertRaises(ValueError):
                     read_flow_line(read,1)
             finally:os.close(read);os.close(write)
 

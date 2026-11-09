@@ -7,9 +7,9 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import patch
-from tacto.opencode_result import OpenCodeProtocolError, opencode_result, parse_opencode_events
-from tacto.provider_result import parse_provider_result
-from tacto.authoring import ask_model_result
+from haejo.opencode_result import OpenCodeProtocolError, opencode_result, parse_opencode_events
+from haejo.provider_result import parse_provider_result
+from haejo.authoring import ask_model_result
 
 
 def frames():
@@ -52,14 +52,14 @@ class OpenCodeResultTests(unittest.TestCase):
     def test_error_after_valid_step_keeps_usage_but_never_answer(self):
         events=frames()+[{'type':'error','timestamp':102,'sessionID':'ses_owned',
             'error':{'name':'UnknownError','data':{'message':'private error'}}}]
-        with patch('tacto.authoring._run_provider',return_value=subprocess.CompletedProcess([],0,stream(events),'')):
+        with patch('haejo.authoring._run_provider',return_value=subprocess.CompletedProcess([],0,stream(events),'')):
             result=opencode_result('private prompt')
         self.assertEqual('error',result.status);self.assertIsNone(result.text)
         self.assertEqual(18,result.total_input_tokens);self.assertEqual(.001,result.cost)
         self.assertNotIn('private error',str(result.to_dict()))
         parse_provider_result(result.to_dict())
-        with patch('tacto.authoring.shutil.which',return_value='/owned/opencode'), \
-             patch('tacto.authoring._run_provider',return_value=subprocess.CompletedProcess([],0,stream(events),'')):
+        with patch('haejo.authoring.shutil.which',return_value='/owned/opencode'), \
+             patch('haejo.authoring._run_provider',return_value=subprocess.CompletedProcess([],0,stream(events),'')):
             logical=ask_model_result('private prompt','opencode')
         self.assertEqual('error',logical.status)
         self.assertEqual(18,logical.attempts[-1].total_input_tokens)
@@ -67,7 +67,7 @@ class OpenCodeResultTests(unittest.TestCase):
 
     def test_length_limited_finish_retains_usage_without_accepting_answer(self):
         events=frames();events[-1]['part']['reason']='length'
-        with patch('tacto.authoring._run_provider',return_value=subprocess.CompletedProcess([],0,stream(events),'')):
+        with patch('haejo.authoring._run_provider',return_value=subprocess.CompletedProcess([],0,stream(events),'')):
             result=opencode_result('q')
         self.assertEqual('error',result.status);self.assertIsNone(result.text)
         self.assertEqual(18,result.total_input_tokens)
@@ -75,7 +75,7 @@ class OpenCodeResultTests(unittest.TestCase):
 
     def test_framed_answer_can_discuss_authentication_and_quotas(self):
         events=frames();events[1]['part']['text']='Error: Token refresh failed: 401; quota explanation'
-        with patch('tacto.authoring._run_provider',return_value=subprocess.CompletedProcess([],0,stream(events),'')):
+        with patch('haejo.authoring._run_provider',return_value=subprocess.CompletedProcess([],0,stream(events),'')):
             result=opencode_result('q')
         self.assertEqual('ok',result.status)
         self.assertEqual(events[1]['part']['text'],result.text)
@@ -87,7 +87,7 @@ class OpenCodeResultTests(unittest.TestCase):
             elif variant=='late_error':
                 events.append({'type':'error','timestamp':102,'sessionID':'ses_owned',
                     'error':{'name':'UnknownError','data':{'message':'unrelated failure'}}})
-            with self.subTest(variant=variant), patch('tacto.authoring._run_provider',
+            with self.subTest(variant=variant), patch('haejo.authoring._run_provider',
                     return_value=subprocess.CompletedProcess([],1 if variant=='nonzero' else 0,stream(events),'')):
                 result=opencode_result('q')
             self.assertEqual('error',result.status);self.assertIsNone(result.text)
@@ -95,7 +95,7 @@ class OpenCodeResultTests(unittest.TestCase):
             self.assertEqual(None if variant=='truncated' else 18,result.total_input_tokens)
 
     def test_only_diagnostic_channels_classify_service_unavailability(self):
-        from tacto.opencode_result import diagnostic_unavailable
+        from haejo.opencode_result import diagnostic_unavailable
         auth={'type':'error','timestamp':102,'sessionID':'ses_owned',
             'error':{'name':'UnknownError','data':{'message':'Error: Token refresh failed: 401'}}}
         self.assertEqual('authentication_failed',diagnostic_unavailable(json.dumps(auth),''))
@@ -108,7 +108,7 @@ class OpenCodeResultTests(unittest.TestCase):
 
     def test_route_stdin_isolated_config_and_metadata_attempts(self):
         def run(argv, timeout, **kwargs):
-            self.assertEqual(['opencode','run','--format','json','--agent','TactoPlanner'],argv)
+            self.assertEqual(['opencode','run','--format','json','--agent','HaejoPlanner'],argv)
             self.assertEqual('private prompt',kwargs['input_text'])
             self.assertNotIn('private prompt',argv)
             env=kwargs['env'];config=json.loads(env['OPENCODE_CONFIG_CONTENT'])
@@ -118,8 +118,8 @@ class OpenCodeResultTests(unittest.TestCase):
             self.assertNotIn('OPENCODE_CONFIG',env)
             self.assertEqual('true',env['OPENCODE_DISABLE_PROJECT_CONFIG'])
             return subprocess.CompletedProcess(argv,0,stream(frames()),'')
-        with patch('tacto.authoring.shutil.which',return_value='/owned/opencode'), \
-             patch('tacto.authoring._run_provider',side_effect=run):
+        with patch('haejo.authoring.shutil.which',return_value='/owned/opencode'), \
+             patch('haejo.authoring._run_provider',side_effect=run):
             result=ask_model_result('private prompt','opencode',expect_json=True)
         self.assertEqual('ok',result.status);self.assertEqual('cli-json',result.transport)
         self.assertEqual(18,result.attempts[-1].total_input_tokens)
@@ -130,7 +130,7 @@ class OpenCodeResultTests(unittest.TestCase):
         for response in (subprocess.TimeoutExpired('owned',1),
                          subprocess.CompletedProcess([],1,stream(frames()),'private error')):
             runner = ({'side_effect':response} if isinstance(response,Exception) else {'return_value':response})
-            with patch('tacto.authoring._run_provider',**runner):result=opencode_result('q')
+            with patch('haejo.authoring._run_provider',**runner):result=opencode_result('q')
             self.assertIn(result.status,('error','timeout'));self.assertIsNone(result.text)
             self.assertNotIn('private error',str(result.to_dict()))
 
@@ -138,16 +138,16 @@ class OpenCodeResultTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             executable=Path(folder)/'opencode'
             executable.write_text('#!'+sys.executable+'\n'+'''import json,os,sys
-assert sys.argv[1:]==['run','--format','json','--agent','TactoPlanner']
+assert sys.argv[1:]==['run','--format','json','--agent','HaejoPlanner']
 assert sys.stdin.read()=='private stdin prompt'
-assert os.getcwd()!=os.environ['TACTO_TEST_CALLER_CWD']
+assert os.getcwd()!=os.environ['HAEJO_TEST_CALLER_CWD']
 assert json.loads(os.environ['OPENCODE_CONFIG_CONTENT'])['permission']=={'*':'deny'}
 assert 'OPENCODE_CONFIG' not in os.environ
 print('''+repr(stream(frames()))+''')
 ''')
             executable.chmod(0o700)
             with patch.dict(os.environ,{'PATH':folder+os.pathsep+os.environ['PATH'],
-                    'OPENCODE_CONFIG':'/foreign/config','TACTO_TEST_CALLER_CWD':os.getcwd()}):
+                    'OPENCODE_CONFIG':'/foreign/config','HAEJO_TEST_CALLER_CWD':os.getcwd()}):
                 result=opencode_result('private stdin prompt',timeout=3)
             self.assertEqual('ok',result.status,result.error)
             self.assertEqual('{"ok":true}',result.text)

@@ -1,8 +1,8 @@
 """Replay cannot widen a pinned document on polling, failure or a stale token."""
 import unittest
 from unittest.mock import Mock, patch
-from tacto.document_scope import DocumentScopedDriver, DocumentScopeUnavailable
-from tacto.helper import HelperDriver
+from haejo.document_scope import DocumentScopedDriver, DocumentScopeUnavailable
+from haejo.helper import HelperDriver
 
 TARGET='com.apple.TextEdit';PATH='/owned/document.txt'
 CAPS={'evidence.document_text.path_selector','observe.document_token'}
@@ -25,12 +25,12 @@ class ScopedDriverTests(unittest.TestCase):
         return d
 
     def test_real_replay_reads_and_reobserves_only_pinned_body(self):
-        from tacto.flow import Flow,Step,Capture,Selector,replay
+        from haejo.flow import Flow,Step,Capture,Selector,replay
         inner=self.inner()
         inner.observe.return_value['tree']='0 Window Title: "owned", Document: "/owned/document.txt"\n  1 TextArea Value: owned, Identifier: body'
         driver=DocumentScopedDriver(inner,TARGET,PATH)
         field=Selector(role='TextArea',identifier='body',ancestor=PATH)
-        from tacto.contract import Envelope
+        from haejo.contract import Envelope
         safety=Envelope.minimal().contract_for({'read'},'read owned document')
         flow=Flow('read_owned',TARGET,[Step('read',safety=safety,captures=[Capture('body',field=field)]),
                                       Step('read',safety=safety,captures=[Capture('body',field=field)])],schema=2)
@@ -40,7 +40,7 @@ class ScopedDriverTests(unittest.TestCase):
         for call in inner.observe.call_args_list:self.assertEqual('pin',call.kwargs['document_token'])
 
     def test_selector_without_ancestor_resolves_only_the_connection_document(self):
-        from tacto.flow import Selector
+        from haejo.flow import Selector
         inner=self.inner()
         inner.observe.return_value['tree'] += ', Identifier: First Text View'
         driver=DocumentScopedDriver(inner,TARGET,PATH)
@@ -53,19 +53,19 @@ class ScopedDriverTests(unittest.TestCase):
         inner.act.assert_not_called()
 
     def test_cli_replay_uses_scoped_driver_and_bad_flags_never_construct(self):
-        from tacto.cli import _run_flow
-        from tacto.flow import Flow,Step
-        from tacto.contract import Envelope
+        from haejo.cli import _run_flow
+        from haejo.flow import Flow,Step
+        from haejo.contract import Envelope
         from contextlib import redirect_stdout
         import io
         flow=Flow('read_owned',TARGET,[Step('read',safety=Envelope.minimal().contract_for({'read'},'read'))],schema=2)
         inner=self.inner()
-        with patch('tacto.cli._make_driver',return_value=inner),redirect_stdout(io.StringIO()):
+        with patch('haejo.cli._make_driver',return_value=inner),redirect_stdout(io.StringIO()):
             self.assertEqual(0,_run_flow(flow,['--document',PATH,'--no-indicator']))
         for call in inner.observe.call_args_list:self.assertEqual('pin',call.kwargs['document_token'])
         for args in (['--document'],['--document','relative'],['--document',PATH,'--all-windows'],
                      ['--document',PATH,'--document',PATH]):
-            with patch('tacto.cli._make_driver') as make,redirect_stdout(io.StringIO()):
+            with patch('haejo.cli._make_driver') as make,redirect_stdout(io.StringIO()):
                 self.assertEqual(2,_run_flow(flow,args))
             make.assert_not_called()
 
@@ -81,7 +81,7 @@ class ScopedDriverTests(unittest.TestCase):
         inner.act.assert_not_called()
 
     def test_exact_path_save_requires_dedicated_capability_and_never_widens(self):
-        from tacto.existing_file_receipt import SAVE_PATH
+        from haejo.existing_file_receipt import SAVE_PATH
         inner=self.inner();inner.capabilities=CAPS|{'action.menu.document_token_save','action.menu.focused_document'}
         driver=DocumentScopedDriver(inner,TARGET,PATH);driver.observe(TARGET)
         self.assertIn('action.menu.focused_document',driver.capabilities)
@@ -163,8 +163,8 @@ class ScopedDriverTests(unittest.TestCase):
         driver.capabilities=CAPS;driver._last_action_at=0
         driver._send=Mock(side_effect=[{'type':'error','error':'no_window_content'},
             {'type':'observation','document_token':'pin','obs_id':'fresh','tree':'owned'}])
-        with patch('tacto.helper._explain_no_window',return_value={'reason':'app_hidden'}), \
-             patch('tacto.helper._unhide_target',return_value=True):
+        with patch('haejo.helper._explain_no_window',return_value={'reason':'app_hidden'}), \
+             patch('haejo.helper._unhide_target',return_value=True):
             self.assertEqual('observation',driver.observe(TARGET,document_token='pin')['type'])
         self.assertEqual(2,driver._send.call_count)
         for call in driver._send.call_args_list:self.assertEqual('pin',call.args[0]['document_token'])

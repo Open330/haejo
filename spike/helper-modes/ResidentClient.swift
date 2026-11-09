@@ -12,12 +12,12 @@ final class ModeReplyBox: @unchecked Sendable {
 }
 
 func residentConnection(_ key: String) -> ModeConnection {
-    let connection = NSXPCConnection(machServiceName:TactoResident.service,options:[])
+    let connection = NSXPCConnection(machServiceName:HaejoResident.service,options:[])
     connection.setCodeSigningRequirement(helperRequirement)
-    connection.remoteObjectInterface = NSXPCInterface(with:TactoModeRPC.self)
+    connection.remoteObjectInterface = NSXPCInterface(with:HaejoModeRPC.self)
     connection.resume()
     let hello = ModeReplyBox()
-    let proxy = connection.remoteObjectProxyWithErrorHandler { _ in hello.answer(nil) } as? TactoModeRPC
+    let proxy = connection.remoteObjectProxyWithErrorHandler { _ in hello.answer(nil) } as? HaejoModeRPC
     proxy?.acquire(key) { info in hello.answer(try? JSONSerialization.data(withJSONObject:info)) }
     guard hello.done.wait(timeout:.now()+3) == .success, let bytes=hello.value(),
           let answer=(try? JSONSerialization.jsonObject(with:bytes)) as? [String:Any] else {
@@ -40,14 +40,14 @@ func residentConnection(_ key: String) -> ModeConnection {
         defer { close(bridge); connection.invalidate() }
         var buffer = Data()
         while let message = readJSONLine(bridge,&buffer) {
-            guard let frame=try? JSONSerialization.data(withJSONObject:message), frame.count <= TactoMode.limit else { return }
+            guard let frame=try? JSONSerialization.data(withJSONObject:message), frame.count <= HaejoMode.limit else { return }
             let reply = ModeReplyBox()
-            let remote = connection.remoteObjectProxyWithErrorHandler { _ in reply.answer(nil) } as? TactoModeRPC
+            let remote = connection.remoteObjectProxyWithErrorHandler { _ in reply.answer(nil) } as? HaejoModeRPC
             remote?.request(frame) { reply.answer($0) }
             // Once dispatched, timeout/invalidation closes the bridge. The
             // relay reports UNKNOWN and never reconnects/replays that request.
             guard reply.done.wait(timeout:.now()+120) == .success, let data=reply.value(),
-                  data.count <= TactoMode.limit,
+                  data.count <= HaejoMode.limit,
                   let object=(try? JSONSerialization.jsonObject(with:data)) as? [String:Any] else { return }
             writeJSONLine(bridge,object)
         }

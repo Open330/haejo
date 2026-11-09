@@ -14,16 +14,16 @@ import secrets
 import subprocess
 import time
 
-from tacto.browser import BrowserDriver
-from tacto.provider_observation import capture_provider_calls
-from tacto.visual import capture_browser, query_visual, VisualError
+from haejo.browser import BrowserDriver
+from haejo.provider_observation import capture_provider_calls
+from haejo.visual import capture_browser, query_visual, VisualError
 
 
 def source_hashes():
     root = Path(__file__).resolve().parents[2]
     return {name: hashlib.sha256((root / name).read_bytes()).hexdigest()
-            for name in ('tacto/codex_result.py', 'tacto/browser.py', 'tacto/visual.py',
-                         'tacto/provider_images.py', 'tacto/provider_observation.py',
+            for name in ('haejo/codex_result.py', 'haejo/browser.py', 'haejo/visual.py',
+                         'haejo/provider_images.py', 'haejo/provider_observation.py',
                          'examples/probes/browser-visual-score.py')}
 
 

@@ -4,8 +4,8 @@ import json
 import unittest
 from unittest.mock import patch
 
-from tacto.authoring import _attempt, _to_flow, author
-from tacto.flow import Flow, pin_params
+from haejo.authoring import _attempt, _to_flow, author
+from haejo.flow import Flow, pin_params
 try:
     from tests._artifacts import requires_playwright
 except ImportError:  # discovered with tests/ as the top level
@@ -24,7 +24,7 @@ class AuthoringLiteralTests(unittest.TestCase):
     tree = '0 StaticText Title: {{field}}\n1 StaticText Title: Different'
 
     def attempt(self, spec, tree=None, narrate=None):
-        with patch('tacto.authoring.reach_model', return_value=json.dumps(spec)):
+        with patch('haejo.authoring.reach_model', return_value=json.dumps(spec)):
             return _attempt('prompt','read {{field}}','app','test',
                             {'tree':self.tree if tree is None else tree},narrate)
 
@@ -114,9 +114,9 @@ class AuthoringLiteralTests(unittest.TestCase):
 
     def test_headless_browser_authored_literal_read_survives_saved_flow_replay(self):
         import tempfile
-        from tacto.browser import BrowserDriver
-        from tacto.flow import replay
-        from tacto.store import FlowStore
+        from haejo.browser import BrowserDriver
+        from haejo.flow import replay
+        from haejo.store import FlowStore
         driver=BrowserDriver()
         try:
             driver._page.set_content('<label>{{field}}<input value="correct" readonly></label>'
@@ -125,7 +125,7 @@ class AuthoringLiteralTests(unittest.TestCase):
             spec=recipe();spec['target']='page'
             spec['steps'][0]['selector']['role']='textbox'
             spec['steps'][0]['captures'][0]['field']['role']='textbox'
-            with patch('tacto.authoring.reach_model',return_value=json.dumps(spec)):
+            with patch('haejo.authoring.reach_model',return_value=json.dumps(spec)):
                 flow=author('read literal {{field}}',driver,target='page',provider='test')
             with tempfile.TemporaryDirectory() as directory:
                 store=FlowStore(directory);store.save(flow)
@@ -145,7 +145,7 @@ class AuthoringLiteralTests(unittest.TestCase):
             if not braces:
                 spec.pop('literals');spec.pop('params')
             tree=self.tree if braces else '0 StaticText Title: Normal'
-            with patch('tacto.authoring.reach_model',return_value=json.dumps(spec)) as model:
+            with patch('haejo.authoring.reach_model',return_value=json.dumps(spec)) as model:
                 author('read data',Driver(tree),target='app')
             self.assertEqual('"literals":{"label"' in model.call_args.args[0],braces)
 
@@ -155,8 +155,8 @@ class AuthoringLiteralTests(unittest.TestCase):
             def observe(self,*args,**kwargs):return {'type':'observation','tree':AuthoringLiteralTests.tree}
             def act(self,*args,**kwargs):raise AssertionError('compile must not act')
         bad=recipe('{{field}}');bad.pop('literals')
-        with patch('tacto.authoring.reach_model',side_effect=[json.dumps(bad),json.dumps(recipe())]) as model, \
-             patch('tacto.authoring._verify') as verify:
+        with patch('haejo.authoring.reach_model',side_effect=[json.dumps(bad),json.dumps(recipe())]) as model, \
+             patch('haejo.authoring._verify') as verify:
             flow=author('read {{field}}',Driver(),target='app',verify=False)
         self.assertEqual(model.call_count,2)
         self.assertIn('literal/template name collision',model.call_args.args[0])
@@ -168,18 +168,18 @@ class AuthoringLiteralTests(unittest.TestCase):
             capabilities=()
             def observe(self,*args,**kwargs):return {'type':'observation','tree':AuthoringLiteralTests.tree}
         bad=recipe('{{field}}');bad.pop('literals')
-        with patch('tacto.authoring.reach_model',return_value=json.dumps(bad)) as model:
+        with patch('haejo.authoring.reach_model',return_value=json.dumps(bad)) as model:
             with self.assertRaisesRegex(ValueError,'literal/template name collision'):
                 author('read {{field}}',Driver(),target='app',rounds=0)
             self.assertEqual(model.call_count,1)
         for invalid in (True,-1,1.5):
-            with patch('tacto.authoring.reach_model') as model:
+            with patch('haejo.authoring.reach_model') as model:
                 with self.assertRaisesRegex(ValueError,'rounds'):
                     author('read',Driver(),target='app',rounds=invalid)
                 model.assert_not_called()
 
     def test_corrections_share_local_deadline_and_stop_before_next_request(self):
-        from tacto.model_budget import model_deadline, remaining_model_seconds
+        from haejo.model_budget import model_deadline, remaining_model_seconds
         class Driver:
             capabilities=()
             def observe(self,*args,**kwargs):return {'type':'observation','tree':AuthoringLiteralTests.tree}
@@ -189,17 +189,17 @@ class AuthoringLiteralTests(unittest.TestCase):
             remaining.append(remaining_model_seconds())
             clock[0]=11
             return json.dumps(bad)
-        with patch('tacto.authoring.time.monotonic',side_effect=lambda:clock[0]), \
-             model_deadline(10), patch('tacto.authoring.reach_model',side_effect=answer) as model:
+        with patch('haejo.authoring.time.monotonic',side_effect=lambda:clock[0]), \
+             model_deadline(10), patch('haejo.authoring.reach_model',side_effect=answer) as model:
             with self.assertRaises(TimeoutError):
                 author('read {{field}}',Driver(),target='app',rounds=1)
         self.assertEqual(model.call_count,1)
         self.assertEqual(remaining,[10])
 
     def test_nested_branch_provenance_is_data_but_opaque_parameter_values_are_references(self):
-        from tacto.authoring import _check_authored_literal_ambiguity
-        from tacto.flow import Step, Selector, literal_text
-        from tacto.contract import Evidence
+        from haejo.authoring import _check_authored_literal_ambiguity
+        from haejo.flow import Step, Selector, literal_text
+        from haejo.contract import Evidence
         from tests.test_runtime_contract import contract
         safety=contract();safety.evidence=[Evidence('user_intent','asked','read {{field}} literally')]
         leaf=Step('read',Selector(title=literal_text('{{field}}')),safety=safety)

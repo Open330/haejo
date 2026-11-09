@@ -1,6 +1,6 @@
 """An app macOS lists with process identifier -1 is reported, not driven."""
 import unittest
-from tacto.app_launch import activate_app, launch_app
+from haejo.app_launch import activate_app, launch_app
 
 
 class Backend:

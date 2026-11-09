@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 @unittest.skipUnless(sys.platform == 'darwin' and shutil.which('xcrun'), 'Swift macOS SDK required')
 class SwiftAXEffectTests(unittest.TestCase):
     def test_actual_classifier_marks_uncertain_errors_unknown(self):
-        source = (ROOT/'helper/TactoHelper.swift').read_text()
+        source = (ROOT/'helper/HaejoHelper.swift').read_text()
         match = re.search(r'^func axActionFailureEffect\(_ error: AXError\) -> String \{\n.*?^\}',
                           source, re.M | re.S)
         self.assertIsNotNone(match)
@@ -24,7 +24,7 @@ for code in [-25206, -25204, -25200, -25201, -25202, -25208, -25211] as [Int32] 
 }
 print("AX_EFFECT_CLASSIFICATION_PASS")
 '''
-        with tempfile.TemporaryDirectory(prefix='tacto-ax-effects-') as directory:
+        with tempfile.TemporaryDirectory(prefix='haejo-ax-effects-') as directory:
             script = Path(directory)/'main.swift'
             binary = Path(directory)/'check'
             script.write_text('import ApplicationServices\n' + match.group() + '\n' + harness)

@@ -2,8 +2,8 @@
 import unittest
 from unittest import mock
 
-from tacto import driver as native
-from tacto.protocol import reveal_problem
+from haejo import driver as native
+from haejo.protocol import reveal_problem
 
 
 class Node:
@@ -91,7 +91,7 @@ class WalkTests(unittest.TestCase):
 
 class HelperClientTests(unittest.TestCase):
     def client(self, capabilities):
-        from tacto.helper import HelperDriver
+        from haejo.helper import HelperDriver
         driver = HelperDriver.__new__(HelperDriver)
         driver.capabilities = frozenset(capabilities)
         driver._last_action_at = 0
@@ -116,7 +116,7 @@ class ReplayTests(unittest.TestCase):
               '    … (40개 더 있음)')
 
     def run_flow(self, capabilities, revealed_tree=None, complete=True):
-        from tacto.flow import Flow, Step, Selector, replay
+        from haejo.flow import Flow, Step, Selector, replay
         calls = {'observe': [], 'act': []}
 
         class App:
@@ -135,7 +135,7 @@ class ReplayTests(unittest.TestCase):
             def wait_until(self, target, predicate, **kwargs):
                 return self.observe(target)
         app = App(); app.capabilities = frozenset(capabilities)
-        from tacto.contract import SafetyContract
+        from haejo.contract import SafetyContract
         step = Step('read', Selector(role='TextField', value='file90'),
                     safety=SafetyContract(effects=['read'], reversibility='reversible'))
         result = replay(app, Flow('open', 'com.apple.finder', [step]))
@@ -163,7 +163,7 @@ class ReplayTests(unittest.TestCase):
 
 class CommandTests(unittest.TestCase):
     def test_observe_takes_repeatable_reveal_labels(self):
-        from tacto import cli
+        from haejo import cli
         seen = []
 
         class Driver:
@@ -171,7 +171,7 @@ class CommandTests(unittest.TestCase):
             def observe(self, target, mode='tree_full', **kwargs):
                 seen.append((target, kwargs.get('reveal')))
                 return {'type': 'observation', 'obs_id': 'o', 'tree': '0 Window  Title: "F"'}
-        with mock.patch('tacto.session.sandboxed', return_value=False), \
+        with mock.patch('haejo.session.sandboxed', return_value=False), \
              mock.patch.object(cli, '_make_driver', lambda rest: Driver()), mock.patch('builtins.print'):
             self.assertEqual(0, cli.main(['observe', 'com.apple.finder', '--reveal', 'file90', '--reveal', 'file91']))
             for argv in (['observe', 'com.apple.finder', '--reveal'],
@@ -206,15 +206,15 @@ class TracedAndGuardedTests(unittest.TestCase):
         return App()
 
     def flow(self, effects=('read',), action='read'):
-        from tacto.flow import Flow, Step, Selector
-        from tacto.contract import SafetyContract, Resource
+        from haejo.flow import Flow, Step, Selector
+        from haejo.contract import SafetyContract, Resource
         safety = SafetyContract(effects=list(effects), reversibility='reversible',
                                 resource=Resource(object_type='파일', scope='item'))
         return Flow('open', 'com.apple.finder', [Step(action, Selector(role='TextField', value='file90'), safety=safety)])
 
     def test_the_traced_run_reveals_records_and_replays_the_same_request(self):
-        from tacto.flow import replay
-        from tacto.trace import Trace, TraceDriver, TracingDriver
+        from haejo.flow import replay
+        from haejo.trace import Trace, TraceDriver, TracingDriver
         inner = self.app()
         tracer = TracingDriver(inner, Trace(flow='open', target='com.apple.finder'))
         result = replay(tracer, self.flow())
@@ -231,7 +231,7 @@ class TracedAndGuardedTests(unittest.TestCase):
         self.assertTrue(again.ok, again.log)
 
     def test_a_reveal_that_cannot_run_is_named_not_hidden(self):
-        from tacto.flow import replay
+        from haejo.flow import replay
         inner = self.app()
         inner.observe_plain = inner.observe
         def observe(target, mode='tree_full', require_window=True, **kwargs):
@@ -243,7 +243,7 @@ class TracedAndGuardedTests(unittest.TestCase):
         self.assertIn('재확인 실패', str(result.log))
 
     def test_an_incomplete_scan_blocks_consequential_steps_only(self):
-        from tacto.flow import replay
+        from haejo.flow import replay
         read = self.app(complete=False)
         self.assertTrue(replay(read, self.flow()).ok)
         self.assertEqual(1, len(read.acts))
@@ -254,7 +254,7 @@ class TracedAndGuardedTests(unittest.TestCase):
         self.assertEqual([], delete.acts)
 
     def test_a_document_scoped_read_refuses_reveal(self):
-        from tacto.document_scope import _refuse
+        from haejo.document_scope import _refuse
         self.assertEqual('reveal_unavailable', _refuse('reveal_unavailable')['reason_code'])
 
 

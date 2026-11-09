@@ -13,21 +13,21 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 PAGE = '''<!doctype html><html lang="en"><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>Tacto owned counter</title>
+<title>Haejo owned counter</title>
 <style>
 body{font:24px system-ui;text-align:center;margin:0;background:#fff;color:#111}
 main{padding:12vh 16px}button{display:block;margin:40px auto;width:280px;
 height:100px;font:22px system-ui;background:#1747b0;color:white;border:0;border-radius:12px}
-</style><main><h1>Tacto test</h1>
-<p id="tacto-counter-value" role="status" aria-live="polite">Counter 0</p>
-<button id="tacto-counter-increment">Increment test counter</button>
-<p id="tacto-counter-receipt">No input received</p></main>
+</style><main><h1>Haejo test</h1>
+<p id="haejo-counter-value" role="status" aria-live="polite">Counter 0</p>
+<button id="haejo-counter-increment">Increment test counter</button>
+<p id="haejo-counter-receipt">No input received</p></main>
 <script>
 'use strict';
 let pending=false,sequence=0;
-const output=document.getElementById('tacto-counter-value');
-const receipt=document.getElementById('tacto-counter-receipt');
-document.getElementById('tacto-counter-increment').addEventListener('click',async event=>{
+const output=document.getElementById('haejo-counter-value');
+const receipt=document.getElementById('haejo-counter-receipt');
+document.getElementById('haejo-counter-increment').addEventListener('click',async event=>{
   if(!event.isTrusted){receipt.textContent='Untrusted event refused';return;}
   if(pending){receipt.textContent='Overlapping input detected';}
   pending=true;
@@ -81,7 +81,7 @@ class CounterHandler(BaseHTTPRequestHandler):
             with self.server.lock:
                 count = len(self.server.events)
             page = PAGE.replace('>Counter 0<', '>Counter '+str(count)+'<')
-            page = page.replace('>Tacto test<', '>Tacto test '+self.server.token[:8]+'<')
+            page = page.replace('>Haejo test<', '>Haejo test '+self.server.token[:8]+'<')
             self.respond(200, page, 'text/html; charset=utf-8')
         elif self.path == root + 'state':
             with self.server.lock:

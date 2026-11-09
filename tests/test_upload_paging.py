@@ -3,7 +3,7 @@ import re
 import unittest
 from unittest.mock import patch
 
-from tacto.ask import ask_here_paged
+from haejo.ask import ask_here_paged
 
 
 class UploadPagingTests(unittest.TestCase):
@@ -27,7 +27,7 @@ class UploadPagingTests(unittest.TestCase):
                     'find': '"scope": "payload_063"', 'length': 1000}})
             self.assertIn('검토_063_', q.prompt)
             return q.check({'actions': [{'pick': 0, 'do': 'upload', 'scope': 'payload_063'}]})
-        with patch('tacto.ask.ask', side_effect=respond):
+        with patch('haejo.ask.ask', side_effect=respond):
             result = ask_here_paged('upload 검토_063 only', [candidate], budget=16000,
                 token_counter=lambda text: len(text.encode()), max_pages=3)
         self.assertEqual(2, len(prompts))
@@ -36,7 +36,7 @@ class UploadPagingTests(unittest.TestCase):
 
     def test_display_excerpt_never_authorizes_unknown_registration(self):
         candidate = self.candidate()
-        with patch('tacto.ask.ask', side_effect=lambda q, **_: q.check(
+        with patch('haejo.ask.ask', side_effect=lambda q, **_: q.check(
                 {'actions': [{'pick': 0, 'do': 'upload', 'scope': 'unregistered'}]})):
             result = ask_here_paged('upload', [candidate], budget=16000,
                 token_counter=lambda text: len(text.encode()))
@@ -46,7 +46,7 @@ class UploadPagingTests(unittest.TestCase):
         def respond(q, **_):
             ref = re.search(r'"ref": "([^"]+)"', q.prompt).group(1)
             return q.check({'read_context': {'ref': ref, 'offset': 0, 'length': 1}})
-        with patch('tacto.ask.ask', side_effect=respond) as ask:
+        with patch('haejo.ask.ask', side_effect=respond) as ask:
             result = ask_here_paged('upload', [self.candidate()], budget=16000,
                 token_counter=lambda text: len(text.encode()), max_pages=2)
         self.assertEqual(2, ask.call_count)
@@ -66,7 +66,7 @@ class UploadPagingTests(unittest.TestCase):
                 ref = re.search(r'"ref": "([^"]+)"', q.prompt).group(1)
                 return q.check({'read_context': {'ref': ref, 'find': 'payload_063', 'length': 1000}})
             return q.check({'actions': [{'pick': 0, 'do': 'upload', 'scope': 'payload_063'}]})
-        with patch('tacto.ask.ask', side_effect=respond) as ask:
+        with patch('haejo.ask.ask', side_effect=respond) as ask:
             result = ask_here_paged('upload', [self.candidate()], budget=2500,
                 token_counter=counter, max_pages=3)
         self.assertEqual(2, ask.call_count)

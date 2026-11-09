@@ -3,9 +3,9 @@ import socket
 import threading
 import unittest
 from types import SimpleNamespace
-from tacto.foreground_scope import foreground_scope
-from tacto.window_scope import take_window_arg,bind_window
-from tacto.helper import InheritedHelperDriver
+from haejo.foreground_scope import foreground_scope
+from haejo.window_scope import take_window_arg,bind_window
+from haejo.helper import InheritedHelperDriver
 
 class ParallelCoordination(unittest.TestCase):
     def test_explicit_handoff_resets_scope_only_after_helper_receipt(self):

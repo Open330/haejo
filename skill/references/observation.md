@@ -13,17 +13,17 @@ Each line is `<indent><index> <Role>  Key: value, Key2: value`:
 Indices are **volatile** — they change on every observation. Never put one in a
 recipe; select by meaning instead.
 
-`tacto observe` prints the uniquely focused window and summarizes the others.
+`haejo observe` prints the uniquely focused window and summarizes the others.
 If focus is absent or more than one window is marked, it prints all windows.
 When a file chooser, attachment dialog or expected control is missing, first
-read `tacto observe <app> --helper --all-windows`; indices remain unchanged.
+read `haejo observe <app> --helper --all-windows`; indices remain unchanged.
 A condensed tree is not proof that another window does not exist.
 The app's `[focused]` window is not necessarily the desktop's foreground app.
 Reading another window does not require activation; pin its observed identity
 with `ancestor` before acting.
 
 For the backend's complete structured observation, use
-`tacto observe <app> --helper --json`. This returns the full observed tree and
+`haejo observe <app> --helper --json`. This returns the full observed tree and
 metadata such as `custom_selects`; it does not apply the focused-window text
 summary. `--document <path>` keeps its document scope in JSON mode too.
 An observation error is JSON with exit code 1; connection failures still need
@@ -39,12 +39,12 @@ fresh popup/row checks. Keep selectors based on names; JSON indices and
 Keep `open_select` and its subsequent scroll/selection in one `run` or `do`
 invocation: the opened-list pin belongs to that helper connection. A separate
 CLI invocation cannot resume that pin. For live option planning, use
-`tacto do '<selection goal>' --helper`, which observes between actions on the same
+`haejo do '<selection goal>' --helper`, which observes between actions on the same
 channel. JSON is a diagnostic snapshot, not a session or input authorization.
 
 ### Waiting for a state
 
-`tacto observe <app> --helper --until-text "<exact text>" [--timeout 30]` waits
+`haejo observe <app> --helper --until-text "<exact text>" [--timeout 30]` waits
 inside one command until that text appears (`--until-gone` until it
 disappears, `--until '<postcondition JSON>'` for a field check such as
 `{"field":{"identifier":"status"},"equals":"Done"}`). It prints the matching

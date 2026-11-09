@@ -211,10 +211,10 @@ class ProbeRunTests(unittest.TestCase):
         def planner(capture, goal, **kwargs):
             return {'action': 'click', 'x': 20, 'y': 30}
         with tempfile.TemporaryDirectory() as directory, \
-             patch('tacto.browser.BrowserDriver', return_value=driver), \
-             patch('tacto.visual.capture_browser', return_value=Capture()), \
-             patch('tacto.visual.plan_visual', side_effect=plan or planner), \
-             patch('tacto.visual_actions.VisualClickExecutor', Executor):
+             patch('haejo.browser.BrowserDriver', return_value=driver), \
+             patch('haejo.visual.capture_browser', return_value=Capture()), \
+             patch('haejo.visual.plan_visual', side_effect=plan or planner), \
+             patch('haejo.visual_actions.VisualClickExecutor', Executor):
             output = Path(directory)/'report.json'
             if digests:
                 with patch.object(probe.hashlib, 'sha256', side_effect=digests):
@@ -243,7 +243,7 @@ class ProbeRunTests(unittest.TestCase):
         self.assertTrue(result['source_subset_stable'])
 
     def test_source_mismatch_or_cleanup_failure_cannot_pass(self):
-        count = len(sorted((ROOT/'tacto').glob('*.py'))) + 1
+        count = len(sorted((ROOT/'haejo').glob('*.py'))) + 1
         hexes = iter(['a'] * count + ['b'] * count)
         def digest(data):
             value = next(hexes)
@@ -257,8 +257,8 @@ class ProbeRunTests(unittest.TestCase):
         self.assertNotIn('PRIVATE', json.dumps(result))
 
     def test_planner_failure_keeps_observed_provider_cost_and_no_click(self):
-        from tacto.provider_observation import record_provider_result
-        from tacto.provider_result import ProviderResult
+        from haejo.provider_observation import record_provider_result
+        from haejo.provider_result import ProviderResult
         def plan(capture, goal, **kwargs):
             record_provider_result(ProviderResult(
                 'owned-call', 'codex', 'codex', 'cli-json', 'ok', 'PRIVATE_RESPONSE', None, 1.2,

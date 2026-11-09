@@ -1,19 +1,19 @@
 # TextEdit text and Save
 
 For a requested body edit/read in a known file, start
-`tacto session com.apple.TextEdit --helper --document /absolute/path --guide`.
+`haejo session com.apple.TextEdit --helper --document /absolute/path --guide`.
 Use its scoped observation and schema; one JSON flow completes this session.
 No native-input implementation document is needed for ordinary AX text edits.
 An edit returning `commit_unverified` may already have changed the text: read
 that same document to verify the body, without repeating the edit. Text is not
 proof of a Save. Saved Flow files do not retain this invocation's read scope;
-use the returned `TACTO_FLOW_SCOPE` replay argv including `--document`.
+use the returned `HAEJO_FLOW_SCOPE` replay argv including `--document`.
 For older runtimes without this session flag, use observe/run with `--document`.
 
 **To save a TextEdit document that already has a file, replay the built-in
-`textedit_save`** — `tacto replay textedit_save -p document=/abs/path/name.txt
+`textedit_save`** — `haejo replay textedit_save -p document=/abs/path/name.txt
 -p name=name.txt --helper --document /abs/path/name.txt --yes`. The absolute path is on the window's line in
-`tacto observe`: `Window  Title: "name.txt", …, Document: "/abs/path/name.txt"`. The focused TextEdit window must be that
+`haejo observe`: `Window  Title: "name.txt", …, Document: "/abs/path/name.txt"`. The focused TextEdit window must be that
 document (its title is checked right before the press), and the run ends
 `done` only when the file on disk holds exactly the document's text (plain
 `.txt` only; it certifies the saved state — macOS autosave may have written it
@@ -32,7 +32,7 @@ Do not lower the declared effect or repeat the edit to remove this uncertainty.
 Report the observed body separately from the unverified persistent effect.
 
 **To work in one exact document** when an app has several open (TextEdit),
-read just that window: `tacto observe com.apple.TextEdit --helper --document
+read just that window: `haejo observe com.apple.TextEdit --helper --document
 /abs/path/name.txt` (it fails rather than guess when no window, or more than
 one, shows that file). This pins by path and reads the selected window through
 a connection-local native token. Pinning reads only that document's complete
@@ -49,8 +49,8 @@ For window-title checks, use a `field` selector with `attribute: "Title"` and
 `equals`; raw `contains`/`absent` patterns written for unquoted window labels
 must be updated. Other control labels keep their existing format.
 To retain this read scope throughout execution, use
-`tacto run flow.json --helper --document /abs/path/name.txt` or
-`tacto replay recipe --helper --document /abs/path/name.txt`.
+`haejo run flow.json --helper --document /abs/path/name.txt` or
+`haejo replay recipe --helper --document /abs/path/name.txt`.
 Each observation, polling read and document-text witness retains the same
 connection-local token. Failed or changed observations invalidate actions;
 the runtime never repins another window or falls back to the whole app.
@@ -69,7 +69,7 @@ An ancestor selector alone restricts the element acted on, not the read scope.
 
 
 For attachment checks in an already-open TextEdit document, use
-`tacto document-attachments /canonical/document/path --helper`. It reads the
+`haejo document-attachments /canonical/document/path --helper`. It reads the
 selected document through the signed channel and reports UTF16 replacement
 positions and AX attachment/reference presence. It creates no document or
 input. The command does not read attachment payload bytes or certify a save;

@@ -11,8 +11,8 @@ import time
 import uuid
 
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT))
-from tacto.flow import Flow
-from tacto.provider_io import require_provider_child_ownership
+from haejo.flow import Flow
+from haejo.provider_io import require_provider_child_ownership
 from examples.repeat_benchmark import Fixture, build, cli_flow, jobs, source_manifest, write
 from examples.benchmark_grouped_checks import variants
 
@@ -23,14 +23,14 @@ class BatchClient:
         self.job_timeout=180 if auto_repair else 20
         stderr=base/'stderr.txt';self.stderr=stderr.open('w');stderr.chmod(0o600)
         require_provider_child_ownership();self.started=time.monotonic()
-        command=[str(Path.home()/'.local/bin/tacto'),'batch',str(template),
+        command=[str(Path.home()/'.local/bin/haejo'),'batch',str(template),
             '--helper','--max-jobs',str(maximum),'--timings']
         if repair_packet is not None:command.extend(['--repair-packet',str(repair_packet)])
         if auto_repair:command.extend(['--auto-repair','codex'])
         command.extend(extra_flags)
         self.process=subprocess.Popen(command,stdin=subprocess.PIPE,stdout=subprocess.PIPE,
             stderr=self.stderr,start_new_session=True)
-        try:self.marker('TACTO_BATCH_READY ',timeout=20)
+        try:self.marker('HAEJO_BATCH_READY ',timeout=20)
         except Exception:
             self.close();raise
         self.startup_seconds=time.monotonic()-self.started
@@ -50,10 +50,10 @@ class BatchClient:
     def job(self,params):
         started=time.monotonic()
         self.process.stdin.write((json.dumps({'params':params},separators=(',',':'))+'\n').encode());self.process.stdin.flush()
-        result=self.marker('TACTO_BATCH_RESULT ',timeout=self.job_timeout)
+        result=self.marker('HAEJO_BATCH_RESULT ',timeout=self.job_timeout)
         return {'seconds':time.monotonic()-started,'runtime_result':result,'exit':result['exit']}
     def finish(self):
-        started=time.monotonic();result=self.marker('TACTO_BATCH_DONE ')
+        started=time.monotonic();result=self.marker('HAEJO_BATCH_DONE ')
         code=self.process.wait(timeout=10);seconds=time.monotonic()-started
         return {'seconds':seconds,'exit':code,'completed':result['completed']}
     def close(self):
@@ -76,7 +76,7 @@ def manifest():
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--source',required=True);parser.add_argument('--output',required=True)
     args=parser.parse_args();base=Path(args.output).resolve();base.mkdir(mode=0o700)
-    target='ai.callabo.tacto.repeatbench.'+uuid.uuid4().hex[:8]
+    target='ai.callabo.haejo.repeatbench.'+uuid.uuid4().hex[:8]
     app=build(base,target);fixture=Fixture(base/'fixture',app)
     recipe=variants(Flow.from_json(Path(args.source).read_text()),target)['grouped_checks']
     template=base/'template.json';template.write_text(recipe.to_json());template.chmod(0o600)
@@ -105,7 +105,7 @@ def main():
         negdir=base/'negative';negdir.mkdir(mode=0o700)
         client=BatchClient(badtemplate,negdir,maximum=2)
         client.process.stdin.write(b'{"params":{}}\n{"params":{}}\n');client.process.stdin.flush()
-        first=client.marker('TACTO_BATCH_RESULT ');ending=client.finish();state=fixture.state()
+        first=client.marker('HAEJO_BATCH_RESULT ');ending=client.finish();state=fixture.state()
         negative_passed=first['job']==1 and first['exit']==1 and ending['exit']==1 and ending['completed']==0 and state['phase']=='done' and len([c for c in state['commits'] if c['job']==own['job']])==1
         client.close();client=None
         write(base/'report.json',{'rows':rows,'seconds':totals,'batch_startup_seconds':startup,'batch_shutdown':shutdown,

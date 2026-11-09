@@ -3,8 +3,8 @@ from dataclasses import asdict, replace
 import hashlib
 import unittest
 
-from tacto.commit_evidence import CommitEvidence, evidence_error, make_event
-from tacto.delivery_receipt import (DeliveredMessageReceipt, DeliveryReceiptError,
+from haejo.commit_evidence import CommitEvidence, evidence_error, make_event
+from haejo.delivery_receipt import (DeliveredMessageReceipt, DeliveryReceiptError,
                                   InboxDelivery, PendingDelivery, InboxTemporarilyUnavailable)
 
 
@@ -264,7 +264,7 @@ class DeliveryReceiptTests(unittest.TestCase):
             self.receipt.after_commit(self.event, {'type':'acted'}, context)
 
     def test_event_changes_during_receiving_read_or_final_clock_refuse_completion(self):
-        from tacto.commit_evidence import action_digest
+        from haejo.commit_evidence import action_digest
         for hook in ('inbox','clock'):
             for mutation in ('event_id','action','rehash','malformed'):
                 with self.subTest(hook=hook,mutation=mutation):
@@ -389,7 +389,7 @@ class DeliveryReceiptTests(unittest.TestCase):
 
 class AttachmentDeliveryTests(unittest.TestCase):
     def setUp(self):
-        from tacto.commit_evidence import AttachmentEvidence
+        from haejo.commit_evidence import AttachmentEvidence
         self.attachment=AttachmentEvidence('검토.pdf',hashlib.sha256(b'owned bytes').hexdigest(),11)
         self.manifest=(self.attachment,)
         self.event=make_event({'name':'click','element_index':3},{'transmit'},'owned-mail',obs_id='o')
@@ -416,7 +416,7 @@ class AttachmentDeliveryTests(unittest.TestCase):
             self.receipt.prepare_commit(self.event)
 
     def test_receiving_missing_extra_renamed_corrupt_or_resized_attachment_refuses(self):
-        from tacto.commit_evidence import AttachmentEvidence
+        from haejo.commit_evidence import AttachmentEvidence
         changed=[None,(),(replace(self.attachment,filename='other.pdf'),),
             (replace(self.attachment,sha256='0'*64),),(replace(self.attachment,size_bytes=10),),
             (self.attachment,AttachmentEvidence('extra.txt','0'*64,0))]
@@ -432,7 +432,7 @@ class AttachmentDeliveryTests(unittest.TestCase):
         self.pending=replace(self.pending,attachments=None)
         with self.assertRaisesRegex(DeliveryReceiptError,'delivery_binding_mismatch'):
             self.receipt.prepare_commit(self.event)
-        from tacto.commit_evidence import DeliveryEvidence
+        from haejo.commit_evidence import DeliveryEvidence
         proof=CommitEvidence(self.event['event_id'],self.event['action_digest'],
             DeliveryEvidence('message-1','recipient','sender',self.body_hash))
         self.assertEqual('delivery_attachments_unobserved',evidence_error(
@@ -440,7 +440,7 @@ class AttachmentDeliveryTests(unittest.TestCase):
         self.assertIsNone(evidence_error({**self.event,'commit_evidence':proof},{}))
 
     def test_invalid_manifest_is_refused_before_host_readers(self):
-        from tacto.commit_evidence import attachment_manifest_valid
+        from haejo.commit_evidence import attachment_manifest_valid
         malformed=[list(self.manifest),(self.attachment,self.attachment),
             (replace(self.attachment,filename='../outside'),),(replace(self.attachment,filename='a\n'),),
             (replace(self.attachment,size_bytes=True),),(replace(self.attachment,size_bytes=-1),),

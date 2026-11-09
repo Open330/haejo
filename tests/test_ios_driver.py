@@ -8,8 +8,8 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
-from tacto.flow import Flow
-from tacto.ios_driver import IOSDriver, IOSNode, IOSSnapshot, ScreenProgressClock, run_ios_spike, parse_target
+from haejo.flow import Flow
+from haejo.ios_driver import IOSDriver, IOSNode, IOSSnapshot, ScreenProgressClock, run_ios_spike, parse_target
 
 TARGET='ios://00000000-0000000000000000/com.example.OwnedCounter'
 DEVICE,APP=parse_target(TARGET)
@@ -205,7 +205,7 @@ class IOSDriverTests(unittest.TestCase):
         self.assertEqual(0,session.taps)
 
     def test_journal_refuses_second_worker_after_lost_touch_reply(self):
-        from tacto.dispatch_journal import DurableDispatchDriver
+        from haejo.dispatch_journal import DurableDispatchDriver
         with tempfile.TemporaryDirectory() as directory:
             session=Session('lost_reply');driver,_,_=self.driver(session,authorize_tap=lambda *a:True)
             with DurableDispatchDriver(driver,directory) as guarded:
@@ -217,7 +217,7 @@ class IOSDriverTests(unittest.TestCase):
             self.assertEqual('not_started',second['effect']);self.assertEqual(1,session.taps)
 
     def test_protocol_never_accepts_arbitrary_unverified_click(self):
-        from tacto.protocol import ios_tap_reobservation
+        from haejo.protocol import ios_tap_reobservation
         driver,session,_=self.driver(authorize_tap=lambda *a:True);obs=driver.observe(TARGET)
         action={'name':'click','element_index':1};reply=driver.act(obs['obs_id'],TARGET,action)
         self.assertTrue(ios_tap_reobservation(action,reply,driver.capabilities,target=TARGET))
@@ -227,8 +227,8 @@ class IOSDriverTests(unittest.TestCase):
         self.assertFalse(ios_tap_reobservation(action,reply,driver.capabilities,target='com.apple.finder'))
 
     def test_cli_never_falls_back_to_a_mac_driver_for_ios(self):
-        from tacto.cli import _run_flow,main
-        with patch('tacto.cli._make_driver') as make,redirect_stdout(io.StringIO()) as output:
+        from haejo.cli import _run_flow,main
+        with patch('haejo.cli._make_driver') as make,redirect_stdout(io.StringIO()) as output:
             self.assertEqual(2,_run_flow(flow(),['--helper']))
             self.assertEqual(2,main(['observe',TARGET,'--helper']))
         make.assert_not_called();self.assertNotIn('PRIVATE',output.getvalue())

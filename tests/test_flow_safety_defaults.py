@@ -6,8 +6,8 @@ import json
 import unittest
 from unittest.mock import patch
 
-from tacto.command_help import calculator_example
-from tacto.flow import Flow, replay
+from haejo.command_help import calculator_example
+from haejo.flow import Flow, replay
 from tests.test_runtime_contract import App
 
 
@@ -142,12 +142,12 @@ class SafetyDefaultsTests(unittest.TestCase):
 
 class CommandHelpTests(unittest.TestCase):
     def test_help_is_available_without_native_driver_or_sandbox_access(self):
-        from tacto.cli import main, _dispatch
+        from haejo.cli import main, _dispatch
         for entry in (main, lambda argv: _dispatch(argv[0], argv[1:])):
             for command in ('observe', 'run'):
                 with self.subTest(entry=entry, command=command), \
-                     patch('tacto.cli._make_driver', side_effect=AssertionError('native input')), \
-                     patch('tacto.session.sandboxed', return_value=True), \
+                     patch('haejo.cli._make_driver', side_effect=AssertionError('native input')), \
+                     patch('haejo.session.sandboxed', return_value=True), \
                      contextlib.redirect_stdout(io.StringIO()) as output:
                     self.assertEqual(0, entry([command, '--help', *(['--example'] if command == 'run' else [])]))
                     if command == 'run':
@@ -158,12 +158,12 @@ class CommandHelpTests(unittest.TestCase):
                         self.assertIn('com.apple.calculator', output.getvalue())
 
     def test_short_help_and_explicit_examples_do_not_start_native_runtime(self):
-        from tacto.cli import main
+        from haejo.cli import main
         for command in ('run', 'session'):
             for example in (False, True):
                 with self.subTest(command=command, example=example), \
-                     patch('tacto.cli._make_driver', side_effect=AssertionError('native input')), \
-                     patch('tacto.session.sandboxed', return_value=True), \
+                     patch('haejo.cli._make_driver', side_effect=AssertionError('native input')), \
+                     patch('haejo.session.sandboxed', return_value=True), \
                      contextlib.redirect_stdout(io.StringIO()) as output:
                     args = [command, '--help'] + (['--example'] if example else [])
                     self.assertEqual(0, main(args))

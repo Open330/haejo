@@ -1,7 +1,7 @@
 import json
 import unittest
-from tacto.flow import Flow, Postcondition, Selector, replay
-from tacto.command_help import calculator_example
+from haejo.flow import Flow, Postcondition, Selector, replay
+from haejo.command_help import calculator_example
 from tests.test_flow_safety_defaults import Calculator
 
 class GroupedChecksTests(unittest.TestCase):
@@ -34,7 +34,7 @@ class GroupedChecksTests(unittest.TestCase):
         self.assertFalse(post.check(tree));self.assertTrue(post.primary_check(tree))
     def test_return_is_not_dispatched_when_original_completion_already_holds(self):
         from tests.test_navigation_replay import App, NavigationReplayTests
-        from tacto.flow import pin_params
+        from haejo.flow import pin_params
         app=App();app.capabilities=set(app.capabilities)|{'press_key.return_bound'}
         flow=NavigationReplayTests().flow();step=flow.steps[0]
         step.params={'key':'Return'};step.is_submit=True

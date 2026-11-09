@@ -53,10 +53,10 @@ import contextlib,json,os,sys
 from pathlib import Path
 from urllib.request import urlopen
 from unittest.mock import patch
-from tacto import cli
-from tacto.browser import BrowserDriver
-from tacto.contract import ContextBinding,Destination,Resource,SafetyContract
-from tacto.flow import Flow,Selector,Step
+from haejo import cli
+from haejo.browser import BrowserDriver
+from haejo.contract import ContextBinding,Destination,Resource,SafetyContract
+from haejo.flow import Flow,Selector,Step
 root=Path(sys.argv[1]);origin=sys.argv[2]
 class CrashAfterReceivedWrite(BrowserDriver):
     def act(self,*args,**kwargs):
@@ -77,10 +77,10 @@ flow=Flow('owned_http_save','page',[Step('click',Selector(role='Button',title='S
 recipe=root/'flow.json';recipe.write_text(flow.to_json())
 driver=CrashAfterReceivedWrite();driver.goto(origin)
 try:
-    with patch('tacto.driver.Driver',return_value=driver), \
+    with patch('haejo.driver.Driver',return_value=driver), \
          patch.object(cli,'_indicator_for',side_effect=lambda *args:contextlib.nullcontext()), \
-         patch('tacto.session.sandboxed',return_value=False), \
-         patch('tacto.session.KeepAwake',side_effect=contextlib.nullcontext):
+         patch('haejo.session.sandboxed',return_value=False), \
+         patch('haejo.session.KeepAwake',side_effect=contextlib.nullcontext):
         result=cli.main(['run',str(recipe),'--yes','--journal-dir',str(root/'journal')])
     assert result==1,result
     assert cli._execution_journal.get() is None

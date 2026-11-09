@@ -9,7 +9,7 @@ ROOT=Path(__file__).resolve().parents[1]
 
 class LauncherVroidPathTests(unittest.TestCase):
     def test_waypoint_bounds_and_types(self):
-        source=(ROOT/'launcher/tacto.swift').read_text()
+        source=(ROOT/'launcher/haejo.swift').read_text()
         schema=source[source.index('let allowedTypes:'):source.index('// MARK: - Socket plumbing')]
         checks=r'''
 let point:[String:Any]=["x":800,"y":500]

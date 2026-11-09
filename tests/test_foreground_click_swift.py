@@ -52,7 +52,7 @@ for mode in ["stable","focus_after_down","navigation_after_up","outside_focus","
 }
 print("FOREGROUND_CLICK_PASS")
 '''
-        with tempfile.TemporaryDirectory(prefix='tacto-foreground-click-') as directory:
+        with tempfile.TemporaryDirectory(prefix='haejo-foreground-click-') as directory:
             source=Path(directory)/'main.swift';binary=Path(directory)/'check';source.write_text(harness)
             built=subprocess.run(['xcrun','swiftc','-warnings-as-errors',str(source),str(ROOT/'helper/WindowInput.swift'),str(ROOT/'helper/WindowDispatch.swift'),str(ROOT/'helper/FrontmostProcess.swift'),'-o',str(binary)],capture_output=True,text=True,timeout=90)
             self.assertEqual(0,built.returncode,built.stderr)

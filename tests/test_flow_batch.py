@@ -8,8 +8,8 @@ import sys
 import unittest
 from unittest.mock import Mock, patch
 
-from tacto.command_help import calculator_example
-from tacto.flow_batch import run_batch, RequestLines, BatchDriver
+from haejo.command_help import calculator_example
+from haejo.flow_batch import run_batch, RequestLines, BatchDriver
 from tests.test_flow_safety_defaults import Calculator
 
 # The signed helper is macOS-only; Windows batches run without --helper.
@@ -23,7 +23,7 @@ class SignedCalculator(Calculator):
 
 class BatchTests(unittest.TestCase):
     def execute(self, records, *, args=None, doc=None, runner=None):
-        from tacto.cli import _run_flow
+        from haejo.cli import _run_flow
         with tempfile.TemporaryDirectory() as tmp:
             src=Path(tmp)/'flow.json';src.write_text(json.dumps(doc or calculator_example()))
             app=SignedCalculator();app.close=Mock();make=Mock(return_value=app);messages=[]
@@ -31,8 +31,8 @@ class BatchTests(unittest.TestCase):
             try:
                 os.write(write,records.encode());os.close(write);write=None
                 with os.fdopen(read) as stream,contextlib.redirect_stdout(io.StringIO()),contextlib.redirect_stderr(io.StringIO()), \
-                     patch('tacto.cli._indicator_for',return_value=contextlib.nullcontext()), \
-                     patch('tacto.cli._make_driver',side_effect=AssertionError('extra connection')):
+                     patch('haejo.cli._indicator_for',return_value=contextlib.nullcontext()), \
+                     patch('haejo.cli._make_driver',side_effect=AssertionError('extra connection')):
                     result=run_batch([str(src),*HELPER]+(args or []),make_driver=make,
                                      run_flow=runner or _run_flow,stdin=stream,emit=messages.append)
             finally:
@@ -42,22 +42,22 @@ class BatchTests(unittest.TestCase):
     def test_multiple_jobs_reuse_driver_but_observe_and_verify_each_time(self):
         code,app,make,messages=self.execute('{"params":{}}\n'*3,args=['--max-jobs','3'])
         self.assertEqual(0,code);self.assertEqual(1,make.call_count);app.close.assert_called_once()
-        results=[json.loads(s[len('TACTO_BATCH_RESULT '):]) for s in messages if s.startswith('TACTO_BATCH_RESULT ')]
+        results=[json.loads(s[len('HAEJO_BATCH_RESULT '):]) for s in messages if s.startswith('HAEJO_BATCH_RESULT ')]
         self.assertEqual([1,2,3],[r['job'] for r in results]);self.assertEqual('408',app.value)
         self.assertGreater(app.observations,3)
         self.assertNotIn('tree','\n'.join(messages))
-        self.assertEqual(0,json.loads(messages[-1][len('TACTO_BATCH_DONE '):])['completed']-3)
+        self.assertEqual(0,json.loads(messages[-1][len('HAEJO_BATCH_DONE '):])['completed']-3)
     def test_the_helper_flag_follows_the_platform(self):
         # Required on macOS, refused on Windows, before any connection.
         make=Mock();messages=[]
         for platform,args,code in (('darwin',[],2),('win32',['--helper'],2)):
-            with patch('tacto.flow_batch.sys.platform',platform):
+            with patch('haejo.flow_batch.sys.platform',platform):
                 self.assertEqual(code,run_batch(['calc_example',*args],make_driver=make,run_flow=Mock(),
                                                 stdin=io.StringIO(),emit=messages.append,load_recipe=Mock()))
         make.assert_not_called()
 
     def test_ios_file_and_saved_batches_refuse_before_driver_or_input(self):
-        from tacto.flow import Flow
+        from haejo.flow import Flow
         doc=calculator_example()
         doc['target']='ios://00000000-0000000000000000/com.example.OwnedCounter'
         with tempfile.TemporaryDirectory() as directory:
@@ -69,7 +69,7 @@ class BatchTests(unittest.TestCase):
                         runner=Mock(side_effect=AssertionError('must not dispatch'))
                         stdin=Mock();stdin.fileno.side_effect=AssertionError('must not read requests')
                         messages=[];loader=Mock(return_value=Flow.from_json(json.dumps(doc)))
-                        with patch('tacto.flow_batch.sys.platform',platform):
+                        with patch('haejo.flow_batch.sys.platform',platform):
                             code=run_batch(['owned_ios' if saved else str(source),*helper],
                                 make_driver=make,run_flow=runner,stdin=stdin,
                                 emit=messages.append,load_recipe=loader)
@@ -81,25 +81,25 @@ class BatchTests(unittest.TestCase):
     def test_windows_reads_requests_without_select(self):
         read,write=os.pipe()
         os.write(write,b'{"params":{}}\n');os.close(write)
-        with patch('tacto.flow_batch.select.select',side_effect=OSError('sockets only')):
+        with patch('haejo.flow_batch.select.select',side_effect=OSError('sockets only')):
             reader=RequestLines(read,platform='win32')
             self.assertEqual('{"params":{}}',reader.read(2));self.assertIsNone(reader.read(2))
         os.close(read)
 
     def test_a_saved_name_repeats_the_recipe_replay_would_run(self):
-        from tacto.cli import _run_flow
-        from tacto.flow import Flow
+        from haejo.cli import _run_flow
+        from haejo.flow import Flow
         loaded=[]
         def load(name):
             loaded.append(name);return Flow.from_json(json.dumps(calculator_example()))
         app=SignedCalculator();app.close=Mock();make=Mock(return_value=app);messages=[]
         read,write=os.pipe();os.write(write,b'{"params":{}}\n'*2);os.close(write)
         with os.fdopen(read) as stream,contextlib.redirect_stdout(io.StringIO()),contextlib.redirect_stderr(io.StringIO()), \
-             patch('tacto.cli._indicator_for',return_value=contextlib.nullcontext()):
+             patch('haejo.cli._indicator_for',return_value=contextlib.nullcontext()):
             code=run_batch(['calc_example',*HELPER,'--max-jobs','2'],make_driver=make,run_flow=_run_flow,
                            stdin=stream,emit=messages.append,load_recipe=load)
         self.assertEqual((0,['calc_example'],1),(code,loaded,make.call_count))
-        self.assertEqual(2,sum(m.startswith('TACTO_BATCH_RESULT ') for m in messages))
+        self.assertEqual(2,sum(m.startswith('HAEJO_BATCH_RESULT ') for m in messages))
         # A path (or a .json name) is still read as a file, never as a recipe name.
         for path in ('/missing/flow.json','flow.json'):
             messages.clear()
@@ -134,26 +134,26 @@ class BatchTests(unittest.TestCase):
         code,app,make,msg=self.execute('{"params":{}}\n'*4,args=['--max-jobs','2'],runner=runner)
         self.assertEqual(0,code);self.assertEqual(2,runner.call_count)
     def test_interruption_reports_failed_step_without_resume_authority(self):
-        from tacto.flow import ReplayResult
+        from haejo.flow import ReplayResult
         def runner(flow,flags,**kwargs):
             result=ReplayResult();result.record(status='error',step=2,error='postcondition_timeout')
             kwargs['_result_observer'](result)
             return 1
         code,app,make,messages=self.execute('{"params":{}}\n'*2,runner=runner)
-        report=json.loads(next(m.removeprefix('TACTO_BATCH_RESULT ') for m in messages if m.startswith('TACTO_BATCH_RESULT ')))
+        report=json.loads(next(m.removeprefix('HAEJO_BATCH_RESULT ') for m in messages if m.startswith('HAEJO_BATCH_RESULT ')))
         self.assertEqual(1,code);self.assertEqual(2,report['failed_step'])
         self.assertGreater(report['remaining_steps'],0);self.assertFalse(report['next']['automatic_resume'])
     def test_repair_suffix_failure_maps_back_to_original_flow(self):
-        from tacto.flow import ReplayResult
+        from haejo.flow import ReplayResult
         def repair(self,recipe,params,flags,*,driver,run_flow,emit):
             segment=recipe.bind();segment.steps=segment.steps[2:]
             return run_flow(segment,flags,_driver=driver,_confirm=lambda _:False),recipe
         def runner(segment,flags,**kwargs):
             result=ReplayResult();result.record(status='error',step=1,error='target_missing')
             kwargs['_result_observer'](result);return 1
-        with patch('tacto.auto_repair.AutoRepair.run',new=repair):
+        with patch('haejo.auto_repair.AutoRepair.run',new=repair):
             code,app,make,messages=self.execute('{"params":{}}\n',args=['--auto-repair','codex'],runner=runner)
-        report=json.loads(next(m.removeprefix('TACTO_BATCH_RESULT ') for m in messages if m.startswith('TACTO_BATCH_RESULT ')))
+        report=json.loads(next(m.removeprefix('HAEJO_BATCH_RESULT ') for m in messages if m.startswith('HAEJO_BATCH_RESULT ')))
         self.assertEqual(1,code);self.assertEqual(3,report['failed_step'])
     def test_invalid_limits_and_target_or_model_changes_refuse_before_connection(self):
         for args in (['--max-jobs','0'],['--max-jobs','1001'],['--idle-timeout','0'],['--yes'],['--document','/tmp/doc']):
@@ -187,9 +187,9 @@ class BatchTests(unittest.TestCase):
             saved=json.loads(packet.read_text())
             self.assertEqual('not_started',saved['effect'])
             sys.platform=='win32' or self.assertEqual(0o600,packet.stat().st_mode&0o777)  # Windows: profile ACLs
-            results=[json.loads(m.removeprefix('TACTO_BATCH_RESULT ')) for m in messages if m.startswith('TACTO_BATCH_RESULT ')]
+            results=[json.loads(m.removeprefix('HAEJO_BATCH_RESULT ')) for m in messages if m.startswith('HAEJO_BATCH_RESULT ')]
             self.assertEqual(1,len(results));self.assertEqual(str(packet),results[0]['repair_packet'])
-            self.assertEqual(0,json.loads(messages[-1].removeprefix('TACTO_BATCH_DONE '))['completed'])
+            self.assertEqual(0,json.loads(messages[-1].removeprefix('HAEJO_BATCH_DONE '))['completed'])
 
     def test_invalid_packet_path_is_refused_before_connection(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -249,7 +249,7 @@ class FramingTests(unittest.TestCase):
             reader=RequestLines(read)
             with self.assertRaises(TimeoutError):reader.read(.001)
             os.write(write,b'12345\n')
-            with patch('tacto.flow_batch.MAX_REQUEST_BYTES',4),self.assertRaises(ValueError):reader.read(1)
+            with patch('haejo.flow_batch.MAX_REQUEST_BYTES',4),self.assertRaises(ValueError):reader.read(1)
         finally:
             # Writer first: on Windows a thread may still be reading `read`,
             # and closing an fd under a pending read blocks until it returns.

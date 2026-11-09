@@ -19,7 +19,7 @@ final class PagesDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ note: Notification) {
         let window = NSWindow(contentRect: NSRect(x: 160, y: 140, width: 960, height: 610),
                               styleMask: [.titled, .closable], backing: .buffered, defer: false)
-        window.title = "Tacto Observation Pages Fixture"
+        window.title = "Haejo Observation Pages Fixture"
         window.isReleasedWhenClosed = false
         self.window = window
         for index in 0..<240 {
@@ -27,11 +27,11 @@ final class PagesDelegate: NSObject, NSApplicationDelegate {
             let button = NSButton(title: title, target: self, action: #selector(pick(_:)))
             button.frame = NSRect(x: 8 + (index % 16) * 59,
                                   y: 46 + (14 - index / 16) * 36, width: 59, height: 30)
-            button.setAccessibilityIdentifier("tacto-pages-\(title)")
+            button.setAccessibilityIdentifier("haejo-pages-\(title)")
             window.contentView!.addSubview(button)
         }
         result.frame = NSRect(x: 16, y: 12, width: 650, height: 24)
-        result.setAccessibilityIdentifier("tacto-pages-result")
+        result.setAccessibilityIdentifier("haejo-pages-result")
         window.contentView!.addSubview(result)
         window.orderFront(nil)
         write("")

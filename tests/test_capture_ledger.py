@@ -1,7 +1,7 @@
 """One reservation under contention and bounded refusal without eviction."""
 from concurrent.futures import ThreadPoolExecutor
 import unittest
-from tacto.capture_ledger import CaptureLedger
+from haejo.capture_ledger import CaptureLedger
 
 
 class CaptureLedgerTests(unittest.TestCase):

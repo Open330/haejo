@@ -13,7 +13,7 @@
       "harness_exit": 2,
       "evidence_stable": true,
       "source_commit": "f6326012803470232b94afed077d47606a32dada",
-      "profiling_request_same_for_both_Tacto_cohorts": true,
+      "profiling_request_same_for_both_Haejo_cohorts": true,
       "strict_equivalence_not_verified": true
     },
     {
@@ -21,7 +21,7 @@
       "harness_exit": 2,
       "evidence_stable": true,
       "source_commit": "def0e9cf0d308655d71b0fb59ec8045e7bd5be58",
-      "profiling_request_same_for_both_Tacto_cohorts": true,
+      "profiling_request_same_for_both_Haejo_cohorts": true,
       "strict_equivalence_not_verified": true
     },
     {
@@ -29,7 +29,7 @@
       "harness_exit": 2,
       "evidence_stable": true,
       "source_commit": "f6326012803470232b94afed077d47606a32dada",
-      "profiling_request_same_for_both_Tacto_cohorts": true,
+      "profiling_request_same_for_both_Haejo_cohorts": true,
       "strict_equivalence_not_verified": true
     },
     {
@@ -37,7 +37,7 @@
       "harness_exit": 2,
       "evidence_stable": true,
       "source_commit": "def0e9cf0d308655d71b0fb59ec8045e7bd5be58",
-      "profiling_request_same_for_both_Tacto_cohorts": true,
+      "profiling_request_same_for_both_Haejo_cohorts": true,
       "strict_equivalence_not_verified": true
     },
     {
@@ -45,7 +45,7 @@
       "harness_exit": 2,
       "evidence_stable": true,
       "source_commit": "f6326012803470232b94afed077d47606a32dada",
-      "profiling_request_same_for_both_Tacto_cohorts": true,
+      "profiling_request_same_for_both_Haejo_cohorts": true,
       "strict_equivalence_not_verified": true
     },
     {
@@ -53,7 +53,7 @@
       "harness_exit": 1,
       "evidence_stable": true,
       "source_commit": "def0e9cf0d308655d71b0fb59ec8045e7bd5be58",
-      "profiling_request_same_for_both_Tacto_cohorts": true,
+      "profiling_request_same_for_both_Haejo_cohorts": true,
       "strict_equivalence_not_verified": true
     },
     {
@@ -61,7 +61,7 @@
       "harness_exit": 2,
       "evidence_stable": true,
       "source_commit": "f6326012803470232b94afed077d47606a32dada",
-      "profiling_request_same_for_both_Tacto_cohorts": true,
+      "profiling_request_same_for_both_Haejo_cohorts": true,
       "strict_equivalence_not_verified": true
     },
     {
@@ -69,7 +69,7 @@
       "harness_exit": 2,
       "evidence_stable": true,
       "source_commit": "def0e9cf0d308655d71b0fb59ec8045e7bd5be58",
-      "profiling_request_same_for_both_Tacto_cohorts": true,
+      "profiling_request_same_for_both_Haejo_cohorts": true,
       "strict_equivalence_not_verified": true
     }
   ],
@@ -125,7 +125,7 @@
   "limitations": [
     "three samples per arm, cloud cache/load and actual serving model not controlled",
     "harness exit and permission equivalence limits retained",
-    "all Tacto conditions include goal task start/end bookkeeping; Sky has its native product behavior",
+    "all Haejo conditions include goal task start/end bookkeeping; Sky has its native product behavior",
     "all values sum three runs except explicitly named medians",
     "no build or regression test was run during model cohorts",
     "cycle2 candidate completed a final message but lost raw transport/usage, so the whole cycle is excluded from matched comparison; full original rows remain",
@@ -135,7 +135,7 @@
     {
       "cohort": "before",
       "cycle": 0,
-      "arm": "tacto",
+      "arm": "haejo",
       "status": "passed",
       "seconds": 48.4,
       "tokens": {
@@ -181,7 +181,7 @@
     {
       "cohort": "after",
       "cycle": 0,
-      "arm": "tacto",
+      "arm": "haejo",
       "status": "passed",
       "seconds": 38.1,
       "tokens": {
@@ -254,7 +254,7 @@
     {
       "cohort": "before",
       "cycle": 1,
-      "arm": "tacto",
+      "arm": "haejo",
       "status": "passed",
       "seconds": 39.5,
       "tokens": {
@@ -327,7 +327,7 @@
     {
       "cohort": "after",
       "cycle": 1,
-      "arm": "tacto",
+      "arm": "haejo",
       "status": "passed",
       "seconds": 48.0,
       "tokens": {
@@ -373,7 +373,7 @@
     {
       "cohort": "before",
       "cycle": 2,
-      "arm": "tacto",
+      "arm": "haejo",
       "status": "passed",
       "seconds": 51.7,
       "tokens": {
@@ -446,7 +446,7 @@
     {
       "cohort": "after",
       "cycle": 2,
-      "arm": "tacto",
+      "arm": "haejo",
       "status": "failed",
       "seconds": 43.6,
       "tokens": {
@@ -473,7 +473,7 @@
     {
       "cohort": "before",
       "cycle": 3,
-      "arm": "tacto",
+      "arm": "haejo",
       "status": "passed",
       "seconds": 43.8,
       "tokens": {
@@ -546,7 +546,7 @@
     {
       "cohort": "after",
       "cycle": 3,
-      "arm": "tacto",
+      "arm": "haejo",
       "status": "passed",
       "seconds": 40.6,
       "tokens": {

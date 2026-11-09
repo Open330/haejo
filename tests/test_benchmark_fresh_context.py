@@ -19,7 +19,7 @@ def batch(percent=0,context='fresh',rep=1,passed=True,seconds=2,total=10,provide
     rows=[{'seconds':seconds,'exit':0,'mode':'agent','context':context,'job':{'job':f'T{i:02d}'},
            'trace_directory':f'/t/{i}','usage':usage(total),
            'oracle':{'passed':True,'single_commit':True,'active':False}} for i in range(1,11)]
-    return {'arm':f'{provider}-tacto-{context}{percent}','kind':'mixed-reuse','reuse_percent':percent,'context':context,'rep':rep,'passed':passed,
+    return {'arm':f'{provider}-haejo-{context}{percent}','kind':'mixed-reuse','reuse_percent':percent,'context':context,'rep':rep,'passed':passed,
             'rows':rows,'agent_runs':rows,'usage':sum_usage(rows),'setup':None,'provider':provider}
 
 
@@ -32,13 +32,13 @@ class FakeFixture:
 
 class ParseArmTests(unittest.TestCase):
     def test_fresh_and_ratio_arms(self):
-        self.assertEqual(('codex','tacto','mixed',30,True),parse_arm('codex-tacto-fresh30'))
-        self.assertEqual(('claude','tacto','mixed',70,False),parse_arm('claude-tacto-ratio70'))
+        self.assertEqual(('codex','haejo','mixed',30,True),parse_arm('codex-haejo-fresh30'))
+        self.assertEqual(('claude','haejo','mixed',70,False),parse_arm('claude-haejo-ratio70'))
         self.assertEqual(('codex','sky','workflow',None,False),parse_arm('codex-sky-workflow'))
 
     def test_bad_arms_are_refused(self):
-        for arm in ('codex-tacto-fresh50','codex-sky-fresh30','gpt-tacto-ratio0','codex-tacto-ratio030',
-                    'codex-tacto-freshx','codex-tacto','codex-tacto-other','codex-tacto-fresh-30'):
+        for arm in ('codex-haejo-fresh50','codex-sky-fresh30','gpt-haejo-ratio0','codex-haejo-ratio030',
+                    'codex-haejo-freshx','codex-haejo','codex-haejo-other','codex-haejo-fresh-30'):
             with self.subTest(arm=arm),self.assertRaises(ValueError):parse_arm(arm)
 
 
@@ -151,14 +151,14 @@ class CommandLineTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as home, tempfile.TemporaryDirectory() as folder, \
              mock.patch.object(Path,'home',lambda:Path(home)), \
              mock.patch.object(repeat_benchmark,'build',side_effect=AssertionError('built')), \
-             mock.patch('sys.argv',['repeat_benchmark','--output',str(Path(folder)/'out'),'--arms','claude-tacto-fresh0']), \
+             mock.patch('sys.argv',['repeat_benchmark','--output',str(Path(folder)/'out'),'--arms','claude-haejo-fresh0']), \
              mock.patch('sys.stderr'):
             with self.assertRaises(SystemExit) as stop:repeat_benchmark.main()
             self.assertEqual(2,stop.exception.code)
             self.assertFalse((Path(folder)/'out').exists())
 
     def test_an_unknown_arm_is_a_usage_error(self):
-        with mock.patch('sys.argv',['repeat_benchmark','--output','/nonexistent/x','--arms','codex-tacto-fresh5']), \
+        with mock.patch('sys.argv',['repeat_benchmark','--output','/nonexistent/x','--arms','codex-haejo-fresh5']), \
              mock.patch('sys.stderr'):
             with self.assertRaises(SystemExit) as stop:repeat_benchmark.main()
             self.assertEqual(2,stop.exception.code)
@@ -170,10 +170,10 @@ class MatchedRepetitionTests(unittest.TestCase):
         def row(arm,seconds,passed=True,total=10):
             return {'arm':arm,'exit':0,'seconds':seconds,'oracle':{'passed':passed},
                     'usage':{'total_input_tokens':total,'new_input_tokens':2,'cache_read_tokens':total-2,'output_tokens':1}}
-        rows=[row('tacto',4),row('tacto',8),row('tacto',99,passed=False),row('sky',5),row('sky',7)]
-        tacto=aggregate(rows)['tacto']
-        self.assertAlmostEqual(0.3333,tacto['failure_rate']);self.assertEqual(6,tacto['median_seconds_passed'])
-        self.assertEqual(10,tacto['median_total_input_tokens_passed'])
+        rows=[row('haejo',4),row('haejo',8),row('haejo',99,passed=False),row('sky',5),row('sky',7)]
+        haejo=aggregate(rows)['haejo']
+        self.assertAlmostEqual(0.3333,haejo['failure_rate']);self.assertEqual(6,haejo['median_seconds_passed'])
+        self.assertEqual(10,haejo['median_total_input_tokens_passed'])
         rows[3]['usage']={}
         sky=aggregate(rows)['sky']
         self.assertEqual(0.0,sky['failure_rate']);self.assertIsNone(sky['median_total_input_tokens_passed'])
@@ -196,13 +196,13 @@ def paired(agent_seconds=20, flow_seconds=2, repair=True, agent_fail=None):
     setup={'seconds':60,'exit':0,'trace_directory':'/seed','usage':usage(100)}
     fix={'seconds':25,'exit':0,'trace_directory':'/repair','usage':usage(40)}
     agents=[p['agent'] for p in rows]+[setup]+([fix] if repair else [])
-    return {'arm':'codex-tacto-paired','kind':'paired-jobs','context':'fresh','provider':'codex','rep':1,
+    return {'arm':'codex-haejo-paired','kind':'paired-jobs','context':'fresh','provider':'codex','rep':1,
             'passed':True,'pairs':rows,'setup':setup,'agent_runs':agents}
 
 
 class PairedJobsTests(unittest.TestCase):
     def test_parse_arm(self):
-        self.assertEqual(('codex','tacto','paired',None,True),parse_arm('codex-tacto-paired'))
+        self.assertEqual(('codex','haejo','paired',None,True),parse_arm('codex-haejo-paired'))
         with self.assertRaises(ValueError):parse_arm('codex-sky-paired')
 
     def test_every_ratio_is_composed_from_one_run_per_mode(self):

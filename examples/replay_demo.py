@@ -9,8 +9,8 @@ import sys
 import time
 
 sys.path.insert(0, __file__.rsplit("/", 2)[0])
-from tacto.driver import Driver
-from tacto.flow import calculator_12x34, replay
+from haejo.driver import Driver
+from haejo.flow import calculator_12x34, replay
 
 
 def screen_locked() -> bool:

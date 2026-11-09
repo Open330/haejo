@@ -4,7 +4,7 @@ Use this path for interactive approval, judgment, journals,
 or tools without interactive stdin. Resolve the signed command and observe
 in one tool call:
 
-`tacto observe <bundle-id> --helper --json`
+`haejo observe <bundle-id> --helper --json`
 
 With interactive stdin, TextEdit scope also works in `session` with
 `--document /absolute/path --guide`; it supplies the needed schema and observation
@@ -14,10 +14,10 @@ Read [documents](documents.md) when saving or inspecting attachment evidence.
 After observing, read [authoring](authoring.md) only if writing a new flow.
 Write the JSON file and run it in the same tool call:
 
-`tacto run /absolute/path/flow.json --helper`
+`haejo run /absolute/path/flow.json --helper`
 
 When the user has already approved the observed operation in the conversation,
-use `tacto run /absolute/path/flow.json --helper --yes --task <id>`. Author only
+use `haejo run /absolute/path/flow.json --helper --yes --task <id>`. Author only
 the approved actions, keep current bindings and real effects/recipients, and
 verify their results. Privacy consent or terms wording does not itself require
 manual handoff. Preserve choices such as marketing refusal; ask only about a

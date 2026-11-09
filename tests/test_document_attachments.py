@@ -3,7 +3,7 @@ import sys
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
-from tacto.document_attachments import attachment_inventory,compare_attachment_payloads,AttachmentEvidenceError
+from haejo.document_attachments import attachment_inventory,compare_attachment_payloads,AttachmentEvidenceError
 
 class Data(bytes):
     def length(self):return len(self)
@@ -107,7 +107,7 @@ class AttachmentTests(unittest.TestCase):
         def late_hash(raw):
             if raw==b'A\xef\xbf\xbc':now[0]=4
             return original(raw)
-        with patch('tacto.document_attachments.time.monotonic',side_effect=lambda:now[0]),patch('tacto.document_attachments.hashlib.sha256',side_effect=late_hash):
+        with patch('haejo.document_attachments.time.monotonic',side_effect=lambda:now[0]),patch('haejo.document_attachments.hashlib.sha256',side_effect=late_hash):
             with self.assertRaisesRegex(AttachmentEvidenceError,'deadline'):attachment_inventory(Body())
 
     def test_changed_second_payload_or_late_result_never_returns_inventory(self):
@@ -119,7 +119,7 @@ class AttachmentTests(unittest.TestCase):
                     if self.reads==2:self.wrapper.payload=Data(b'changed')
                 return super().attributesAtIndex_effectiveRange_(index,range)
         with self.assertRaisesRegex(AttachmentEvidenceError,'snapshot_changed'):attachment_inventory(Changing())
-        with patch('tacto.document_attachments.time.monotonic',side_effect=[0,0,4]):
+        with patch('haejo.document_attachments.time.monotonic',side_effect=[0,0,4]):
             with self.assertRaisesRegex(AttachmentEvidenceError,'deadline'):attachment_inventory(Body())
 
 @unittest.skipUnless(sys.platform=='darwin','AppKit RTFD serialization required')

@@ -1,4 +1,4 @@
-"""Explicit development qualification, never a normal Tacto execution route.
+"""Explicit development qualification, never a normal Haejo execution route.
 
 The trusted host provides a private config for the owned counter and launch PID.
 One durable marker is created before requesting input; reuse never starts a
@@ -15,7 +15,7 @@ import time
 from urllib.parse import urlsplit
 from urllib.request import build_opener, HTTPRedirectHandler
 
-from tacto.ios_ax_probe import IOSAXProbe, IOSAXProbeError
+from haejo.ios_ax_probe import IOSAXProbe, IOSAXProbeError
 
 
 class OwnedCounterProbe(IOSAXProbe):
@@ -45,7 +45,7 @@ def validate_config(config):
     if (parsed.scheme != 'http' or not parsed.hostname or not parsed.port or parsed.query or parsed.fragment
             or parsed.username or not ipaddress.ip_address(parsed.hostname).is_private
             or not re.fullmatch(r'/[A-Za-z0-9_-]{32}/', parsed.path)
-            or config['fixture_heading'] != 'Tacto test ' + parsed.path[1:9]
+            or config['fixture_heading'] != 'Haejo test ' + parsed.path[1:9]
             or type(config['expected_pid']) is not int or config['expected_pid'] <= 0
             or not isinstance(config['binary'], str) or not Path(config['binary']).is_absolute()):
         raise ValueError('fixture_config_invalid')

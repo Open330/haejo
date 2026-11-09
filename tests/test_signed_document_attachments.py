@@ -85,7 +85,7 @@ class SignedAttachmentProbeTests(unittest.TestCase):
             def report(self):return {'status':'INCONCLUSIVE'}
         with tempfile.TemporaryDirectory() as folder:
             output=Path(folder).resolve()/'report.json'
-            with patch('tacto.input_audit_process.ProcessInputAudit',FakeAudit),patch('tacto.helper.InheritedHelperDriver',FakeSigned),patch('tacto.native_frontmost.frontmost_pid',return_value=99), \
+            with patch('haejo.input_audit_process.ProcessInputAudit',FakeAudit),patch('haejo.helper.InheritedHelperDriver',FakeSigned),patch('haejo.native_frontmost.frontmost_pid',return_value=99), \
                  patch('examples.probes.signed_document_attachments.subprocess.run'), \
                  patch('examples.probes.signed_document_attachments.package_manifest',side_effect=[{'files':{}},ValueError('final source drift')]):
                 result=main(FakeSigned(),output)

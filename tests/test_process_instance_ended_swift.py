@@ -10,7 +10,7 @@ ROOT=Path(__file__).resolve().parents[1]
 @unittest.skipUnless(shutil.which('swift'),'Swift required')
 class ProcessInstanceEndedTests(unittest.TestCase):
     def test_pending_slot_requires_both_ended_process_and_absent_popup(self):
-        source=(ROOT/'helper/TactoHelper.swift').read_text()
+        source=(ROOT/'helper/HaejoHelper.swift').read_text()
         part=source[source.index('func menuSlotBusy('):];function=part[:part.index('\n}\n')+3]
         harness=r'''import Foundation
 import ApplicationServices
@@ -31,7 +31,7 @@ for value in ["alive_absent","ended_absent","ended_visible","ended_unknown","end
 }
 print(String(data:try! JSONSerialization.data(withJSONObject:results),encoding:.utf8)!)
 '''
-        with tempfile.TemporaryDirectory(prefix='tacto-pending-slot-') as directory:
+        with tempfile.TemporaryDirectory(prefix='haejo-pending-slot-') as directory:
             path=Path(directory)/'main.swift';path.write_text(harness)
             result=subprocess.run(['swift',str(path)],capture_output=True,text=True,timeout=30)
         self.assertEqual(0,result.returncode,result.stderr)
@@ -60,7 +60,7 @@ results["invalid_current"]=nativeProcessInstanceEnded(42,expectedStart:10,probe:
 results["invalid_pid"]=nativeProcessInstanceEnded(-1,expectedStart:10,probe:{_ in fatalError("invalid PID reached probe")})
 print(String(data:try! JSONSerialization.data(withJSONObject:results),encoding:.utf8)!)
 '''
-        with tempfile.TemporaryDirectory(prefix='tacto-process-proof-') as directory:
+        with tempfile.TemporaryDirectory(prefix='haejo-process-proof-') as directory:
             path=Path(directory)/'main.swift';path.write_text(harness)
             result=subprocess.run(['swift',str(path)],capture_output=True,text=True,timeout=30)
         self.assertEqual(0,result.returncode,result.stderr)

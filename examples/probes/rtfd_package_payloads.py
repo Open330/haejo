@@ -5,13 +5,13 @@ from pathlib import Path
 
 from examples.probes.attachment_payloads import owned_body
 from examples.probes.signed_popup_flow_replay import reserve_report
-from tacto.document_packages import capture_rtfd_package
-from tacto.document_attachments import compare_attachment_payloads
+from haejo.document_packages import capture_rtfd_package
+from haejo.document_attachments import compare_attachment_payloads
 
 
 def main(source, output):
     root = Path(__file__).resolve().parents[2]
-    names = ['tacto/document_packages.py', 'tacto/document_attachments.py',
+    names = ['haejo/document_packages.py', 'haejo/document_attachments.py',
              'examples/probes/rtfd_package_payloads.py',
              'examples/probes/attachment_payloads.py', 'tests/test_document_packages.py']
     hashes = lambda: {name:hashlib.sha256((root/name).read_bytes()).hexdigest() for name in names}

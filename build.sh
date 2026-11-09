@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Build everything the permission boundary needs, in dependency order.
 #
-#   launcher/tacto        signed entry point
+#   launcher/haejo        signed entry point
 #   (the relay lives inside the launcher — a separate signed broker binary was
 #    removed: anyone could run it, so authenticating it proved nothing)
-#   helper/tacto-helper   the binary that holds the Accessibility grant
-#   Tacto Helper.app      that binary packaged so TCC lists it by name
+#   helper/haejo-helper   the binary that holds the Accessibility grant
+#   Haejo Helper.app      that binary packaged so TCC lists it by name
 #
 # Nothing here needs an Xcode licence: the Command Line Tools toolchain is used
 # with an explicit SDK path.
@@ -15,5 +15,5 @@ cd "$(dirname "$0")"
 ./helper/build.sh
 ./helper/bundle.sh
 echo
-echo "다음: ./skill/install.sh && ~/.local/bin/tacto doctor"
-echo "실행: ~/.local/bin/tacto do \"계산기로 12 곱하기 34\" --helper"
+echo "다음: ./skill/install.sh && ~/.local/bin/haejo doctor"
+echo "실행: ~/.local/bin/haejo do \"계산기로 12 곱하기 34\" --helper"

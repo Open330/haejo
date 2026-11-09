@@ -24,11 +24,11 @@ class BenchmarkRuntimeTests(unittest.TestCase):
         self.assertIn('show',result['commands'])
 
     def runtime(self, root):
-        for name in ['launcher/tacto','helper/Tacto Helper.app/Contents/MacOS/TactoHelper',
+        for name in ['launcher/haejo','helper/Haejo Helper.app/Contents/MacOS/HaejoHelper',
                      '.venv/bin/python','skill/SKILL.md',
-                     '.venv/lib/python3.11/site-packages/tacto/__init__.py']:
+                     '.venv/lib/python3.11/site-packages/haejo/__init__.py']:
             p=root/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_text('owned fixture');p.chmod(0o700)
-        return root/'launcher/tacto'
+        return root/'launcher/haejo'
 
     def test_config_evidence_tracks_the_inherited_profile_not_default_home(self):
         import hashlib
@@ -55,23 +55,23 @@ class BenchmarkRuntimeTests(unittest.TestCase):
 
     def test_symlink_records_resolved_runtime_and_changed_executed_source(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root=Path(tmp);entry=self.runtime(root/'app');alias=root/'tacto';alias.symlink_to(entry)
+            root=Path(tmp);entry=self.runtime(root/'app');alias=root/'haejo';alias.symlink_to(entry)
             before=runtime_evidence(alias)
             self.assertEqual(str(entry.resolve()),before['resolved_launcher'])
-            source=root/'app/.venv/lib/python3.11/site-packages/tacto/__init__.py'
+            source=root/'app/.venv/lib/python3.11/site-packages/haejo/__init__.py'
             source.write_text('changed runtime')
             self.assertNotEqual(before['files'],runtime_evidence(alias)['files'])
 
     def test_missing_package_cannot_make_an_empty_success_manifest(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp);entry=self.runtime(root)
-            package=root/'.venv/lib/python3.11/site-packages/tacto';package.rename(package.with_name('unrelated'))
+            package=root/'.venv/lib/python3.11/site-packages/haejo';package.rename(package.with_name('unrelated'))
             with self.assertRaisesRegex(ValueError,'package'):runtime_evidence(entry)
 
     def test_missing_helper_is_a_preflight_failure(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp);entry=self.runtime(root)
-            (root/'helper/Tacto Helper.app/Contents/MacOS/TactoHelper').unlink()
+            (root/'helper/Haejo Helper.app/Contents/MacOS/HaejoHelper').unlink()
             with self.assertRaisesRegex(ValueError,'helper'):runtime_evidence(entry)
 
     def test_preflight_failure_does_not_start_fixture_or_agent(self):
@@ -101,7 +101,7 @@ class BenchmarkRuntimeTests(unittest.TestCase):
             with patch('examples.benchmark_matched_conditions.Fixture') as fixture, \
                  patch('examples.benchmark_matched_conditions.run_agent') as agent, \
                  patch('sys.argv',['benchmark','--output',str(root/'output'),
-                     '--launcher',str(entry),'--tacto-guide',str(root/'missing/SKILL.md')]):
+                     '--launcher',str(entry),'--haejo-guide',str(root/'missing/SKILL.md')]):
                 with self.assertRaises(SystemExit) as error:main()
                 self.assertEqual(2,error.exception.code)
                 fixture.assert_not_called();agent.assert_not_called()
@@ -143,10 +143,10 @@ class BenchmarkRuntimeTests(unittest.TestCase):
     def test_prompt_pins_the_selected_runtime_skill_and_launcher(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp);entry=self.runtime(root)
-            text=prompt({'amount':'1','factor':'2','bonus':False,'result':'2'},'owned.app','tacto',launcher=entry)
+            text=prompt({'amount':'1','factor':'2','bonus':False,'result':'2'},'owned.app','haejo',launcher=entry)
             self.assertIn(str(entry),text);self.assertIn(str(root/'skill/SKILL.md'),text)
-            self.assertNotIn('~/.local/bin/tacto',text)
+            self.assertNotIn('~/.local/bin/haejo',text)
             override=root/'new-guide/SKILL.md'
-            text=prompt({'amount':'1','factor':'2','bonus':False,'result':'2'},'owned.app','tacto',launcher=entry,tacto_guide=override)
+            text=prompt({'amount':'1','factor':'2','bonus':False,'result':'2'},'owned.app','haejo',launcher=entry,haejo_guide=override)
             self.assertIn(str(override),text)
             self.assertNotIn(str(root/'skill/SKILL.md'),text)

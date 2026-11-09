@@ -13,7 +13,7 @@ import unittest
 ROOT=Path(__file__).resolve().parents[1]
 
 
-@unittest.skipUnless(sys.platform=='darwin' and os.environ.get('TACTO_RUN_NATIVE_PARALLEL_TESTS')=='1',
+@unittest.skipUnless(sys.platform=='darwin' and os.environ.get('HAEJO_RUN_NATIVE_PARALLEL_TESTS')=='1',
                      'opt-in signed parallel command receiving test')
 class ParallelCommandNative(unittest.TestCase):
     def test_four_window_receiving_conflict_refusal_and_scoped_stop(self):
@@ -21,11 +21,11 @@ class ParallelCommandNative(unittest.TestCase):
         def pointer():
             point=Quartz.CGEventGetLocation(Quartz.CGEventCreate(None))
             return [point.x,point.y]
-        with tempfile.TemporaryDirectory(prefix='tacto-parallel-command-') as directory:
+        with tempfile.TemporaryDirectory(prefix='haejo-parallel-command-') as directory:
             base=Path(directory);app=base/'OwnedParallel.app'
             binary=app/'Contents/MacOS/OwnedParallel';binary.parent.mkdir(parents=True)
             subprocess.run(['swiftc',str(ROOT/'tests/fixtures/NativeWindowParallelFixture.swift'),'-o',str(binary)],check=True,capture_output=True)
-            target='ai.callabo.tacto.parallelcommandfixture';name='Tacto Parallel Command Fixture'
+            target='ai.callabo.haejo.parallelcommandfixture';name='Haejo Parallel Command Fixture'
             (app/'Contents/Info.plist').write_bytes(plistlib.dumps({'CFBundleIdentifier':target,
                 'CFBundleExecutable':'OwnedParallel','CFBundleName':name,'CFBundlePackageType':'APPL','LSUIElement':True}))
             subprocess.run(['codesign','--force','--sign','-',str(app)],check=True,capture_output=True)
@@ -34,7 +34,7 @@ class ParallelCommandNative(unittest.TestCase):
             def read():return json.loads(state.read_text())
             def execute(manifest):
                 path=base/'jobs.json';path.write_text(json.dumps(manifest))
-                result=subprocess.run([str(ROOT/'launcher/tacto'),'parallel',str(path),'--helper','--json'],
+                result=subprocess.run([str(ROOT/'launcher/haejo'),'parallel',str(path),'--helper','--json'],
                                       capture_output=True,text=True,timeout=80)
                 try:receipt=json.loads(result.stdout)
                 except ValueError:self.fail('parallel command did not return one JSON report: '+result.stderr)
@@ -79,15 +79,15 @@ class ParallelCommandNative(unittest.TestCase):
 let wanted = CommandLine.arguments[1]
 let output = CommandLine.arguments[2]
 let stopAllWindow = CommandLine.arguments.count>3 ? UInt32(CommandLine.arguments[3]) : nil
-var runs:[String:TactoRuntimeStatus.Run] = [:]
+var runs:[String:HaejoRuntimeStatus.Run] = [:]
 var done = false
 let center = DistributedNotificationCenter.default()
-let observer = center.addObserver(forName:TactoRuntimeStatus.status,object:nil,queue:.main) { note in
-    guard !done, let info=note.userInfo, let run=TactoRuntimeStatus.Run(info), run.target==wanted else { return }
+let observer = center.addObserver(forName:HaejoRuntimeStatus.status,object:nil,queue:.main) { note in
+    guard !done, let info=note.userInfo, let run=HaejoRuntimeStatus.Run(info), run.target==wanted else { return }
     if let window=stopAllWindow {
         guard run.active, run.windowID==window else { return }
         done=true
-        center.postNotificationName(Notification.Name("ai.callabo.tacto.runtime.stop-all"),object:nil,
+        center.postNotificationName(Notification.Name("ai.callabo.haejo.runtime.stop-all"),object:nil,
             userInfo:["schema":1,"uid":getuid(),"targets":[CommandLine.arguments[4]]],deliverImmediately:true)
         try! JSONSerialization.data(withJSONObject:["stop_all":true]).write(to:URL(fileURLWithPath:output))
         return
@@ -95,13 +95,13 @@ let observer = center.addObserver(forName:TactoRuntimeStatus.status,object:nil,q
     if run.active { runs[run.id]=run } else { runs.removeValue(forKey:run.id) }
     if runs.count>=2 {
         done=true
-        for id in runs.keys { center.postNotificationName(TactoRuntimeStatus.stop,object:nil,userInfo:["id":id],deliverImmediately:true) }
+        for id in runs.keys { center.postNotificationName(HaejoRuntimeStatus.stop,object:nil,userInfo:["id":id],deliverImmediately:true) }
         try! JSONSerialization.data(withJSONObject:["stopped_runs":runs.count]).write(to:URL(fileURLWithPath:output))
     }
 }
 let end=Date().addingTimeInterval(15)
 while !done && Date()<end {
-    center.postNotificationName(TactoRuntimeStatus.query,object:nil,userInfo:nil,deliverImmediately:true)
+    center.postNotificationName(HaejoRuntimeStatus.query,object:nil,userInfo:nil,deliverImmediately:true)
     RunLoop.current.run(until:Date().addingTimeInterval(0.05))
 }
 center.removeObserver(observer)
@@ -127,13 +127,13 @@ exit(done ? 0 : 1)
 
                 # One window is held by another live session. Stop-all must
                 # cancel the batch's blocked child as well as its visible run.
-                held=subprocess.Popen([str(ROOT/'launcher/tacto'),'session',target,'--helper','--window-id',str(ids[0])],
+                held=subprocess.Popen([str(ROOT/'launcher/haejo'),'session',target,'--helper','--window-id',str(ids[0])],
                     stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True,bufsize=1,start_new_session=True)
                 ready=threading.Event()
                 def drain():
                     try:
                         for line in held.stdout:
-                            if line.startswith('TACTO_SESSION_READY'):ready.set()
+                            if line.startswith('HAEJO_SESSION_READY'):ready.set()
                     except ValueError:pass
                 reader=threading.Thread(target=drain,daemon=True);reader.start()
                 all_listener=None
@@ -145,14 +145,14 @@ exit(done ? 0 : 1)
                     code,cancelled=execute({'schema':1,'jobs':[blocked,visible]})
                     self.assertEqual(0,all_listener.wait(timeout=18))
                     self.assertEqual(1,code,cancelled);self.assertTrue(cancelled.get('cancelled'),cancelled)
-                    from tacto.parallel_run import _stop
+                    from haejo.parallel_run import _stop
                     _stop(held);reader.join(2)
                     time.sleep(.25)
                     self.assertEqual(after['windows'],read()['windows'],'a cancelled waiting job dispatched after release')
                 finally:
                     if all_listener is not None and all_listener.poll() is None:all_listener.kill();all_listener.wait()
                     if held.poll() is None:
-                        from tacto.parallel_run import _stop
+                        from haejo.parallel_run import _stop
                         _stop(held)
                     held.stdin.close();held.stdout.close()
                 print(json.dumps({'passed':True,'four_distinct_helpers':True,'four_window_values_received':True,

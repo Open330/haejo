@@ -14,16 +14,16 @@ def main(driver, output):
     error = None
     with os.fdopen(fd, 'w') as stream:
         try:
-            from tacto.helper import InheritedHelperDriver
-            from tacto.input_audit_process import ProcessInputAudit
+            from haejo.helper import InheritedHelperDriver
+            from haejo.input_audit_process import ProcessInputAudit
             if not isinstance(driver, InheritedHelperDriver) or not InheritedHelperDriver.available():
                 raise RuntimeError('signed_helper_required')
             if 'select_option.strict_parameters' not in driver.capabilities:
                 raise RuntimeError('strict_native_selection_capability_required')
             root = Path(__file__).resolve().parents[2]
-            paths = list((root/'tacto').glob('*.py')) + list((root/'helper').glob('*.swift')) + [
-                Path(__file__), root/'examples/eval.py', root/'launcher/tacto', root/'launcher/tacto.swift',
-                root/'helper/tacto-helper', root/'helper/Tacto Helper.app/Contents/MacOS/TactoHelper']
+            paths = list((root/'haejo').glob('*.py')) + list((root/'helper').glob('*.swift')) + [
+                Path(__file__), root/'examples/eval.py', root/'launcher/haejo', root/'launcher/haejo.swift',
+                root/'helper/haejo-helper', root/'helper/Haejo Helper.app/Contents/MacOS/HaejoHelper']
             def manifest():
                 return {str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(paths)}
             report['source_before'] = manifest()

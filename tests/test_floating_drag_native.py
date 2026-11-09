@@ -10,10 +10,10 @@ import time
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-LAUNCHER = ROOT / 'launcher/tacto'
+LAUNCHER = ROOT / 'launcher/haejo'
 
 
-@unittest.skipUnless(sys.platform == 'darwin' and os.environ.get('TACTO_RUN_NATIVE_DRAG_TESTS') == '1',
+@unittest.skipUnless(sys.platform == 'darwin' and os.environ.get('HAEJO_RUN_NATIVE_DRAG_TESTS') == '1',
                      'opt-in signed floating-window drag')
 class FloatingDragNative(unittest.TestCase):
     def test_floating_canvas_receives_one_stroke_without_hid_pointer_move(self):
@@ -28,17 +28,17 @@ class FloatingDragNative(unittest.TestCase):
     def run_panel(self, borderless, interactive_grip=False):
         from AppKit import NSWorkspace, NSRunningApplication
         import Quartz
-        with tempfile.TemporaryDirectory(prefix='tacto-floating-drag-') as directory:
+        with tempfile.TemporaryDirectory(prefix='haejo-floating-drag-') as directory:
             base = Path(directory)
             app = base / 'OwnedFloating.app'
             binary = app / 'Contents/MacOS/OwnedFloating'
             binary.parent.mkdir(parents=True)
             subprocess.run(['xcrun', 'swiftc', '-parse-as-library', str(ROOT / 'tests/fixtures/NativeDragFixture.swift'),
                             '-o', str(binary)], check=True, capture_output=True)
-            target = 'ai.callabo.tacto.floatingfixture'
+            target = 'ai.callabo.haejo.floatingfixture'
             (app / 'Contents/Info.plist').write_bytes(plistlib.dumps({
                 'CFBundleIdentifier': target, 'CFBundleExecutable': 'OwnedFloating',
-                'CFBundleName': 'Tacto Floating Fixture', 'CFBundlePackageType': 'APPL', 'LSUIElement': True}))
+                'CFBundleName': 'Haejo Floating Fixture', 'CFBundlePackageType': 'APPL', 'LSUIElement': True}))
             subprocess.run(['codesign', '--force', '--sign', '-', str(app)], check=True, capture_output=True)
             process = subprocess.Popen([str(binary), str(base), '--floating', *(['--borderless'] if borderless else []),
                                         *(['--interactive-grip'] if interactive_grip else [])],
@@ -67,7 +67,7 @@ class FloatingDragNative(unittest.TestCase):
                 front = NSWorkspace.sharedWorkspace().frontmostApplication().processIdentifier()
                 pointer = Quartz.CGEventGetLocation(Quartz.CGEventCreate(None))
                 result = subprocess.run([str(LAUNCHER), 'drag', target, '--helper', '--json',
-                                         '--window', 'Tacto Drag Fixture', '--from', '40', '80',
+                                         '--window', 'Haejo Drag Fixture', '--from', '40', '80',
                                          '--to', '180', '100', '--duration', '0.2'],
                                         capture_output=True, text=True, timeout=40)
                 self.assertEqual(0, result.returncode, result.stdout + result.stderr)
@@ -83,7 +83,7 @@ class FloatingDragNative(unittest.TestCase):
                 self.assertEqual('up', events[-1]['kind'])
                 self.assertEqual(1, len({e['window'] for e in events}))
                 resized = subprocess.run([str(LAUNCHER), 'resize', target, '--helper',
-                                          '--window', 'Tacto Drag Fixture', '--width', '600', '--height', '360'],
+                                          '--window', 'Haejo Drag Fixture', '--width', '600', '--height', '360'],
                                          capture_output=True, text=True, timeout=30)
                 if interactive_grip:
                     self.assertNotEqual(0,resized.returncode)

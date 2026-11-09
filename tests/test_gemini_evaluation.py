@@ -112,7 +112,7 @@ class GeminiEvaluationTests(unittest.TestCase):
               'error':{'code':'organization_access_disabled'}}]}
         def invoke(report):
             with patch.object(module,'_owned_select_fixture',return_value=None), \
-                 patch('tacto.helper.InheritedHelperDriver'), \
+                 patch('haejo.helper.InheritedHelperDriver'), \
                  patch('examples.probe_native_select.run_and_save',return_value=report), \
                  contextlib.redirect_stdout(io.StringIO()):
                 return module.scenario_native_select_combo_model_fixture('claude')
@@ -159,7 +159,7 @@ class GeminiEvaluationTests(unittest.TestCase):
               'error':{'code':'organization_access_disabled'}}]}
         def invoke(report):
             with patch.object(module,'_owned_select_fixture',return_value=None), \
-                 patch('tacto.helper.InheritedHelperDriver'), \
+                 patch('haejo.helper.InheritedHelperDriver'), \
                  patch('examples.probe_native_select.run_and_save',return_value=report), \
                  contextlib.redirect_stdout(io.StringIO()):
                 return module.scenario_native_select_model_fixture('claude')

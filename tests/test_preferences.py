@@ -4,14 +4,14 @@ from pathlib import Path
 import tempfile
 import time
 import unittest
-from tacto.preferences import load_preferences, DEFAULTS
-from tacto.access_log import AccessLog, recent_logs
+from haejo.preferences import load_preferences, DEFAULTS
+from haejo.access_log import AccessLog, recent_logs
 
 
 class PreferencesTests(unittest.TestCase):
     def test_defaults_do_not_create_files_and_only_supported_types_are_applied(self):
         with tempfile.TemporaryDirectory() as folder:
-            root = Path(folder)/'Tacto'
+            root = Path(folder)/'Haejo'
             self.assertEqual(DEFAULTS, load_preferences(root))
             self.assertFalse(root.exists())
             root.mkdir()
@@ -40,7 +40,7 @@ class PreferencesTests(unittest.TestCase):
 
     def test_disabled_logging_creates_no_receipt_or_log_directory(self):
         with tempfile.TemporaryDirectory() as folder:
-            root = Path(folder)/'Tacto'; root.mkdir()
+            root = Path(folder)/'Haejo'; root.mkdir()
             (root/'preferences.json').write_text('{"schema":1,"logging_enabled":false}')
             log = AccessLog('observe', root=root/'Logs')
             log.event('access_start', operation='observe'); log.finish(0); log.close()
@@ -49,8 +49,8 @@ class PreferencesTests(unittest.TestCase):
 
     def test_retention_setting_prunes_old_receipts_but_preserves_unrelated_files(self):
         with tempfile.TemporaryDirectory() as folder:
-            root=Path(folder)/'Tacto'; logs=root/'Logs'; logs.mkdir(parents=True)
-            old=logs/('tacto-20260101T000000000000Z-'+'1'*32+'.jsonl'); old.write_text('{}\n')
+            root=Path(folder)/'Haejo'; logs=root/'Logs'; logs.mkdir(parents=True)
+            old=logs/('haejo-20260101T000000000000Z-'+'1'*32+'.jsonl'); old.write_text('{}\n')
             stamp=time.time()-10*86400; os.utime(old,(stamp,stamp))
             sentinel=logs/'notes.json'; sentinel.write_text('KEEP')
             (root/'preferences.json').write_text('{"schema":1,"retention_days":90}')
@@ -62,7 +62,7 @@ class PreferencesTests(unittest.TestCase):
 
     def test_symlink_and_oversized_settings_are_ignored_without_reading_target(self):
         with tempfile.TemporaryDirectory() as folder:
-            root=Path(folder)/'Tacto'; root.mkdir(); outside=Path(folder)/'outside'
+            root=Path(folder)/'Haejo'; root.mkdir(); outside=Path(folder)/'outside'
             outside.write_text('{"logging_enabled":false}')
             (root/'preferences.json').symlink_to(outside)
             self.assertEqual(DEFAULTS,load_preferences(root))

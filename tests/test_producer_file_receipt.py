@@ -4,9 +4,9 @@ import hashlib
 from pathlib import Path
 import tempfile
 import unittest
-from tacto.artifact_receipt import ArtifactReceiptError
-from tacto.producer_file_receipt import ProducerFileReceipt,ProducerObservation
-from tacto.commit_evidence import evidence_error,make_event,ProducerArtifactEvidence,ArtifactEvidence,CommitEvidence
+from haejo.artifact_receipt import ArtifactReceiptError
+from haejo.producer_file_receipt import ProducerFileReceipt,ProducerObservation
+from haejo.commit_evidence import evidence_error,make_event,ProducerArtifactEvidence,ArtifactEvidence,CommitEvidence
 
 
 class ProducerReceiptTests(unittest.TestCase):

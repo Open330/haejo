@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 @unittest.skipUnless(sys.platform == 'darwin' and shutil.which('xcrun'), 'macOS Swift required')
 class NativeSavePanelSwiftTests(unittest.TestCase):
     def test_launcher_accepts_panel_fields_only_for_panel_reads(self):
-        source = (ROOT / 'launcher/tacto.swift').read_text()
+        source = (ROOT / 'launcher/haejo.swift').read_text()
         protocol = source[source.index('let allowedTypes:'):source.index('// MARK: - Socket plumbing')]
         protocol += source[source.index('@Sendable func modelTimeout('):source.index('enum ModelProcessError:')]
         harness = '''
@@ -41,7 +41,7 @@ for name in ["window_element_index", "panel_token", "require_format"] {
 }
 print("SWIFT_SAVE_PANEL_PROTOCOL_PASS")
 '''
-        with tempfile.TemporaryDirectory(prefix='tacto-swift-save-protocol-') as directory:
+        with tempfile.TemporaryDirectory(prefix='haejo-swift-save-protocol-') as directory:
             main = Path(directory) / 'main.swift'
             binary = Path(directory) / 'check'
             main.write_text('import Foundation\nimport CoreFoundation\n' + protocol + harness)
@@ -216,7 +216,7 @@ set(group, "AXChildren", ["not an AX object"] as NSArray)
 mustReject { _ = try reader.read(window) }
 print("SWIFT_SAVE_PANEL_PASS")
 '''
-        with tempfile.TemporaryDirectory(prefix='tacto-swift-save-panel-') as directory:
+        with tempfile.TemporaryDirectory(prefix='haejo-swift-save-panel-') as directory:
             source = Path(directory) / 'main.swift'
             binary = Path(directory) / 'check'
             source.write_text(harness)

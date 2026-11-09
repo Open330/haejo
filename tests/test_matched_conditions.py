@@ -19,9 +19,9 @@ class MatchedConditionsTests(unittest.TestCase):
                 child=Mock();child.returncode=0;child.__enter__=Mock(return_value=child);child.__exit__=Mock(return_value=False)
                 return child
             with patch('examples.benchmark_agent.subprocess.Popen',side_effect=launch), \
-                 patch('tacto.provider_io.communicate_owned_provider',return_value=(stream,'')), \
-                 patch('tacto.provider_io.require_provider_child_ownership'):
-                for arm in ('tacto','sky'):
+                 patch('haejo.provider_io.communicate_owned_provider',return_value=(stream,'')), \
+                 patch('haejo.provider_io.require_provider_child_ownership'):
+                for arm in ('haejo','sky'):
                     row=run_agent('codex','same task, layer '+arm,Path(tmp)/arm,
                                   model='gpt-6.1-sol',reasoning_effort='medium')
                     self.assertEqual('gpt-6.1-sol',row['requested_model'])
@@ -34,18 +34,18 @@ class MatchedConditionsTests(unittest.TestCase):
             self.assertIn('--ephemeral',calls[0][0])
             self.assertIn('model_reasoning_effort="medium"',calls[0][0])
             self.assertNotEqual(calls[0][1]['cwd'],calls[1][1]['cwd'])
-            self.assertNotIn('TACTO_HELPER_FD',calls[0][1]['env'])
+            self.assertNotIn('HAEJO_HELPER_FD',calls[0][1]['env'])
 
     def test_unknown_usage_and_failed_tasks_do_not_get_zero_token_savings(self):
         rows=[{'arm':arm,'exit':0,'oracle':{'passed':True},'seconds':2,
                'usage':{'total_input_tokens':30,'new_input_tokens':10,'cache_read_tokens':20,'output_tokens':3}}
-              for arm in ('tacto','sky')]
+              for arm in ('haejo','sky')]
         self.assertEqual(30,aggregate(rows)['sky']['total_input_tokens'])
         rows[1]['usage']={};self.assertIsNone(aggregate(rows)['sky']['total_input_tokens'])
-        rows[0]['exit']=1;self.assertEqual(0,aggregate(rows)['tacto']['passed'])
-        self.assertIsNone(aggregate(rows)['tacto']['total_input_tokens'])
-        self.assertEqual(30,aggregate(rows)['tacto']['observed_usage_all_attempts']['total_input_tokens']['sum'])
-        self.assertEqual(0,aggregate(rows)['tacto']['observed_usage_all_attempts']['total_input_tokens']['unknown_records'])
+        rows[0]['exit']=1;self.assertEqual(0,aggregate(rows)['haejo']['passed'])
+        self.assertIsNone(aggregate(rows)['haejo']['total_input_tokens'])
+        self.assertEqual(30,aggregate(rows)['haejo']['observed_usage_all_attempts']['total_input_tokens']['sum'])
+        self.assertEqual(0,aggregate(rows)['haejo']['observed_usage_all_attempts']['total_input_tokens']['unknown_records'])
         self.assertEqual(1,aggregate(rows)['sky']['observed_usage_all_attempts']['total_input_tokens']['unknown_records'])
         self.assertIsNone(aggregate(rows)['sky']['observed_usage_all_attempts']['total_input_tokens']['sum'])
 
@@ -120,8 +120,8 @@ class FreshFixtureOrchestrationTests(unittest.TestCase):
         self.assertIsNone(error)
         self.assertEqual(6, len(fixtures))
         names = [e[1] for e in events if e[0] == 'start']
-        self.assertEqual(['fixture-01-tacto', 'fixture-01-sky', 'fixture-02-sky', 'fixture-02-tacto',
-                          'fixture-03-tacto', 'fixture-03-sky'], names)
+        self.assertEqual(['fixture-01-haejo', 'fixture-01-sky', 'fixture-02-sky', 'fixture-02-haejo',
+                          'fixture-03-haejo', 'fixture-03-sky'], names)
         self.assertTrue(all(e[2] == 0 for e in events if e[0] == 'start'))
         for start in range(0, len(events), 3):
             kind = [e[0] for e in events[start:start + 3]]
@@ -137,21 +137,21 @@ class FreshFixtureOrchestrationTests(unittest.TestCase):
             self.assertEqual(1, row['initial_state']['sequence'])
             self.assertEqual(0, row['fixture_isolation']['exit_code'])
         self.assertEqual(6, len({row['fixture_isolation']['pid'] for row in report['rows']}))
-        self.assertEqual(12, report['summary']['tacto']['observed_usage_all_attempts']['new_input_tokens']['sum'])
+        self.assertEqual(12, report['summary']['haejo']['observed_usage_all_attempts']['new_input_tokens']['sum'])
 
-    def test_claude_tacto_uses_its_own_cli_without_codex_model_flags(self):
-        events,fixtures,report,error=self.run_main(extra_args=['--tacto-provider','claude','--profile'])
+    def test_claude_haejo_uses_its_own_cli_without_codex_model_flags(self):
+        events,fixtures,report,error=self.run_main(extra_args=['--haejo-provider','claude','--profile'])
         self.assertIsNone(error)
         self.assertTrue(report['passed'])
         self.assertFalse(report['requested_backbones_matched'])
         self.assertIsNone(report['requested_model'])
-        self.assertEqual({'tacto':'CLI default','sky':'gpt-6.1-sol'},report['requested_models'])
+        self.assertEqual({'haejo':'CLI default','sky':'gpt-6.1-sol'},report['requested_models'])
         self.assertFalse(report['requested_conditions_matched'])
         self.assertFalse(report['comparison_eligible'])
         calls=[e for e in events if e[0]=='agent']
         self.assertEqual(6,len(calls))
         for _,name,provider,kwargs in calls:
-            if name.endswith('tacto'):
+            if name.endswith('haejo'):
                 self.assertEqual('claude',provider)
                 self.assertNotIn('model',kwargs);self.assertNotIn('reasoning_effort',kwargs)
                 self.assertNotIn('profile',kwargs)
@@ -160,24 +160,24 @@ class FreshFixtureOrchestrationTests(unittest.TestCase):
                 self.assertEqual('gpt-6.1-sol',kwargs['model'])
                 self.assertEqual('medium',kwargs['reasoning_effort'])
                 self.assertTrue(kwargs['profile'])
-        self.assertTrue(all(row['profiling_status']==('unsupported_for_provider' if row['arm']=='tacto' else 'enabled') for row in report['rows']))
+        self.assertTrue(all(row['profiling_status']==('unsupported_for_provider' if row['arm']=='haejo' else 'enabled') for row in report['rows']))
         self.assertEqual(['claude','codex','codex','claude','claude','codex'],
                          [row['requested_provider'] for row in report['rows']])
 
     def test_aborted_claude_trial_keeps_backbone_mismatch_metadata(self):
         def agent(name):raise RuntimeError('PRIVATE failure')
-        _,_,report,error=self.run_main(agent=agent,extra_args=['--tacto-provider','claude'])
+        _,_,report,error=self.run_main(agent=agent,extra_args=['--haejo-provider','claude'])
         self.assertIsInstance(error,RuntimeError)
         self.assertTrue(report['aborted'])
         self.assertFalse(report['requested_conditions_matched'])
         self.assertFalse(report['requested_backbones_matched'])
-        self.assertEqual('claude',report['tacto_provider'])
+        self.assertEqual('claude',report['haejo_provider'])
         self.assertEqual('claude',report['interrupted_arm']['requested_provider'])
-        self.assertEqual('CLI default',report['requested_models']['tacto'])
+        self.assertEqual('CLI default',report['requested_models']['haejo'])
         self.assertNotIn('PRIVATE',json.dumps(report))
 
     def test_missing_claude_does_not_start_fixture_or_agent(self):
-        events,fixtures,report,error=self.run_main(extra_args=['--tacto-provider','claude'],with_claude=False)
+        events,fixtures,report,error=self.run_main(extra_args=['--haejo-provider','claude'],with_claude=False)
         self.assertIsInstance(error,SystemExit)
         self.assertEqual([],events);self.assertEqual([],fixtures);self.assertIsNone(report)
 
@@ -211,7 +211,7 @@ class FreshFixtureOrchestrationTests(unittest.TestCase):
         self.assertEqual('sky', report['interrupted_arm']['arm'])
         self.assertIsNone(report['interrupted_arm']['usage'])
         self.assertFalse(report['interrupted_arm']['cost_known'])
-        self.assertEqual(10, report['summary']['tacto']['observed_usage_all_attempts']['total_input_tokens']['sum'])
+        self.assertEqual(10, report['summary']['haejo']['observed_usage_all_attempts']['total_input_tokens']['sum'])
         self.assertNotIn('provider crashed', json.dumps(report))
 
     def test_interrupt_keeps_partial_evidence_without_claiming_zero_cost(self):

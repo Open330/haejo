@@ -10,16 +10,16 @@ class ModelProbeFinalizationTests(unittest.TestCase):
     def run_failure(self,mode):
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder)
-            names=['examples/probe_native_select.py','examples/eval.py','tacto/drift.py',
-                   'helper/TactoHelper.swift','helper/WindowInput.swift','helper/WindowDispatch.swift',
-                   'helper/tacto-helper','helper/Tacto Helper.app/Contents/MacOS/TactoHelper',
-                   'launcher/tacto','tests/fixtures/NativeSelectFixture.swift']
+            names=['examples/probe_native_select.py','examples/eval.py','haejo/drift.py',
+                   'helper/HaejoHelper.swift','helper/WindowInput.swift','helper/WindowDispatch.swift',
+                   'helper/haejo-helper','helper/Haejo Helper.app/Contents/MacOS/HaejoHelper',
+                   'launcher/haejo','tests/fixtures/NativeSelectFixture.swift']
             for name in names:
                 p=root/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_text('before')
             if mode=='initial_missing':(root/'helper/WindowInput.swift').unlink()
             class Audit:
                 def __enter__(self):
-                    if mode=='drift':(root/'tacto/drift.py').write_text('after')
+                    if mode=='drift':(root/'haejo/drift.py').write_text('after')
                     if mode=='deleted':(root/'helper/WindowInput.swift').unlink()
                     raise RuntimeError('collector_not_ready')
                 def __exit__(self,*args):pass
@@ -28,14 +28,14 @@ class ModelProbeFinalizationTests(unittest.TestCase):
                     return {'status':'INCONCLUSIVE','errors':['collector_not_ready']}
             driver=Mock()
             driver.observe.return_value={'type':'observation','tree':
-                '0 StaticText  Value: Alpha, Identifier: tacto-fixture-result\n'
-                '1 StaticText  Value: 0, Identifier: tacto-fixture-count'}
+                '0 StaticText  Value: Alpha, Identifier: haejo-fixture-result\n'
+                '1 StaticText  Value: 0, Identifier: haejo-fixture-count'}
             with patch.object(probe,'ROOT',root),patch.object(probe,'__file__',str(root/names[0])), \
-                 patch('tacto.driver.Driver') as reader,patch('tacto.driver.AXUIElementCreateApplication'), \
-                 patch('tacto.driver._attr',return_value=False), \
-                 patch('tacto.input_audit_process.ProcessInputAudit',return_value=Audit(),
+                 patch('haejo.driver.Driver') as reader,patch('haejo.driver.AXUIElementCreateApplication'), \
+                 patch('haejo.driver._attr',return_value=False), \
+                 patch('haejo.input_audit_process.ProcessInputAudit',return_value=Audit(),
                        side_effect=RuntimeError('audit_init_failed') if mode=='init_error' else None), \
-                 patch('tacto.general.run') as model_loop,patch('tacto.ask.ask_here_paged') as ask:
+                 patch('haejo.general.run') as model_loop,patch('haejo.ask.ask_here_paged') as ask:
                 reader.return_value._resolve.return_value=42
                 result=probe.run_model_probe(driver,provider='codex')
             driver.act.assert_not_called();model_loop.assert_not_called();ask.assert_not_called()

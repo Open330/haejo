@@ -46,19 +46,19 @@ def main(driver,output,expected_pid):
                 'actual_human_typing_verified':False,'comparison_eligible':False,
                 'crash_recovery_verified':False,'automatic_resume_verified':False,'whole_goal_complete':False}
         names=['examples/probes/signed_popup_journal_restart.py','examples/probes/signed_popup_flow_replay.py',
-               'examples/eval.py','tacto/dispatch_journal.py','tacto/cli.py','tacto/flow.py',
-               'launcher/tacto','helper/Tacto Helper.app/Contents/MacOS/TactoHelper']
+               'examples/eval.py','haejo/dispatch_journal.py','haejo/cli.py','haejo/flow.py',
+               'launcher/haejo','helper/Haejo Helper.app/Contents/MacOS/HaejoHelper']
         hashes=lambda:{p:hashlib.sha256((ROOT/p).read_bytes()).hexdigest() for p in names}
         report['source_before']=hashes()
         try:
             if type(expected_pid) is not int or expected_pid<=0:raise ValueError('owned_pid_required')
-            from tacto.helper import InheritedHelperDriver
+            from haejo.helper import InheritedHelperDriver
             if not isinstance(driver,InheritedHelperDriver) or not InheritedHelperDriver.available():
                 raise ValueError('signed_channel_required')
             if 'action.open_select.explicit_ax' not in driver.capabilities:raise ValueError('explicit_opening_required')
-            from tacto.driver import Driver,_attr,AXUIElementCreateApplication
-            from tacto.flow import Selector
-            from tacto.input_audit_process import ProcessInputAudit
+            from haejo.driver import Driver,_attr,AXUIElementCreateApplication
+            from haejo.flow import Selector
+            from haejo.input_audit_process import ProcessInputAudit
             from examples.focus_diagnostics import FocusDiagnosticReader
             metadata=Driver();base=Path(output).parent
             def receiving():
@@ -72,8 +72,8 @@ def main(driver,output,expected_pid):
                     lines=[line for line in observation['tree'].splitlines() if line.strip().split(maxsplit=1)[0]==str(index)]
                     if len(lines)!=1:raise ValueError('receiving_ambiguous')
                     return Selector._attr(lines[0],'Value')
-                index,_=Selector(identifier='tacto-fixture-choice').resolve(observation['tree'])
-                return {'value':value('tacto-fixture-result'),'count':value('tacto-fixture-count'),
+                index,_=Selector(identifier='haejo-fixture-choice').resolve(observation['tree'])
+                return {'value':value('haejo-fixture-result'),'count':value('haejo-fixture-count'),
                         'menu_state':observation.get('custom_selects',{}).get(str(index),{}).get('state')}
             report['initial']=receiving()
             if report['initial']!={'value':'Alpha','count':'0','menu_state':'closed'}:raise ValueError('initial_mismatch')
@@ -83,7 +83,7 @@ def main(driver,output,expected_pid):
             journal=base/'journal';journal.mkdir(mode=0o700)
             # Both fresh workers must use this measured checkout, regardless
             # of which older release the user's global alias points to.
-            launcher=(ROOT/'launcher/tacto').resolve(strict=True)
+            launcher=(ROOT/'launcher/haejo').resolve(strict=True)
             report['worker_launcher']=str(launcher)
             report['worker_launcher_sha256']=hashlib.sha256(launcher.read_bytes()).hexdigest()
             config=base/'worker-config.json'
@@ -99,7 +99,7 @@ def main(driver,output,expected_pid):
                 try:
                     with audit:
                         receiving()
-                        from tacto.provider_io import require_provider_child_ownership,communicate_owned_provider
+                        from haejo.provider_io import require_provider_child_ownership,communicate_owned_provider
                         require_provider_child_ownership()
                         with subprocess.Popen(dispatch_argv if ordinal==0 else restart_argv,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,start_new_session=True) as process:
                             row['pid']=process.pid

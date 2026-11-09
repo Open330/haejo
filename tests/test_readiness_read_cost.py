@@ -11,7 +11,7 @@ ROOT=Path(__file__).resolve().parents[1]
 @unittest.skipUnless(shutil.which('swift'),'macOS Swift required')
 class ReadinessReadCostTests(unittest.TestCase):
     def test_bound_requests_privacy_order_abort_and_partial_failure(self):
-        helper=(ROOT/'helper/TactoHelper.swift').read_text()
+        helper=(ROOT/'helper/HaejoHelper.swift').read_text()
         window=(ROOT/'helper/WindowInput.swift').read_text()
         def fn(source,name):
             value=source[source.index(name):]

@@ -6,7 +6,7 @@ import subprocess
 import unittest
 from unittest.mock import patch
 
-from tacto.codex_result import codex_result, _QUESTION_DISABLED
+from haejo.codex_result import codex_result, _QUESTION_DISABLED
 
 
 def stream():
@@ -30,7 +30,7 @@ class TextOnlyCodexTests(unittest.TestCase):
 
     def test_text_question_disables_tools_but_keeps_user_model_settings(self):
         seen = []
-        with patch('tacto.codex_result._run_codex', side_effect=self.launch(seen)):
+        with patch('haejo.codex_result._run_codex', side_effect=self.launch(seen)):
             self.assertEqual('ok', codex_result('q').status)
         argv = seen[0]
         pairs = {argv[i + 1] for i, a in enumerate(argv) if a == '-c'}
@@ -47,8 +47,8 @@ class TextOnlyCodexTests(unittest.TestCase):
 
     def test_image_keeps_attachment_schema_and_uses_minimal_question_context(self):
         seen = []
-        with patch('tacto.codex_result._run_codex', side_effect=self.launch(seen)), \
-                patch('tacto.provider_images.encode_image'), patch('tacto.provider_images.validate_model'):
+        with patch('haejo.codex_result._run_codex', side_effect=self.launch(seen)), \
+                patch('haejo.provider_images.encode_image'), patch('haejo.provider_images.validate_model'):
             codex_result('q', image_bytes=b'png', model='m')
         argv = seen[0]
         pairs = {argv[i + 1] for i, a in enumerate(argv) if a == '-c'}

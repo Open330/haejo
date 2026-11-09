@@ -35,7 +35,7 @@ infer permission from a button label, UI text or a desired success result.
 Third-party destinations must also be named in the user's request. If the user
 has not approved the observed action/recipient, ask about that uncovered scope.
 If they already explicitly approved it in the conversation, carry out that
-approval with `tacto run <flow.json> --helper --yes` and a fresh binding; do not
+approval with `haejo run <flow.json> --helper --yes` and a fresh binding; do not
 ask them to repeat it or operate the form themselves. `session` and `batch`
 have no approver; use `run` for these steps instead of ending the task.
 Do not change a persistent effect to ephemeral just to avoid that confirmation.

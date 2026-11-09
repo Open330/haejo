@@ -55,7 +55,7 @@ class PreflightStageTests(unittest.TestCase):
 @unittest.skipUnless(shutil.which('swift'),'macOS Swift required')
 class NativePreflightTests(unittest.TestCase):
     def test_actual_preflight_then_new_sheet_is_refused_by_fresh_traversal(self):
-        helper=(ROOT/'helper/TactoHelper.swift').read_text();window=(ROOT/'helper/WindowInput.swift').read_text()
+        helper=(ROOT/'helper/HaejoHelper.swift').read_text();window=(ROOT/'helper/WindowInput.swift').read_text()
         def fn(source,name):
             value=source[source.index(name):];return value[:value.index('\n}\n')+3]
         scope=fn(window,'final class NativeWindowReadScope {')

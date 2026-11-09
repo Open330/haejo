@@ -1,0 +1,519 @@
+{
+  "recorded_on": "2026-10-15",
+  "scenarios": [
+    {
+      "name": "wikipedia",
+      "recorded_on": "2026-10-15",
+      "entry_url": "https://en.wikipedia.org/wiki/Main_Page",
+      "final": {
+        "article": "Seoul",
+        "section": "History",
+        "url": "https://en.wikipedia.org/wiki/Seoul#History"
+      },
+      "flow_steps": 4,
+      "actions": [
+        {
+          "at": 2.719,
+          "action": "set_value",
+          "target": "Search Wikipedia",
+          "bounds": {
+            "x": 266,
+            "y": 17,
+            "width": 404.296875,
+            "height": 32
+          },
+          "outcome": "acted"
+        },
+        {
+          "at": 4.297,
+          "action": "click",
+          "target": "Search",
+          "bounds": {
+            "x": 669.296875,
+            "y": 17,
+            "width": 70.703125,
+            "height": 32
+          },
+          "outcome": "acted"
+        },
+        {
+          "at": 7.104,
+          "action": "click",
+          "target": "History",
+          "bounds": {
+            "x": 60,
+            "y": 228.375,
+            "width": 164,
+            "height": 28
+          },
+          "outcome": "acted"
+        },
+        {
+          "at": 9.415,
+          "action": "read",
+          "target": "History",
+          "bounds": {
+            "x": 264,
+            "y": 75.46875,
+            "width": 79.828125,
+            "height": 27
+          },
+          "outcome": "acted"
+        }
+      ],
+      "passed": true,
+      "model_calls_during_replay": 0,
+      "scope": "Dedicated headless Chromium viewport, no user profile. Haejo BrowserDriver + Flow replay. Guided pointer is a decorative recording overlay. Pauses inserted for legibility; not a performance measurement.",
+      "video": {
+        "file": "browser-wikipedia.mp4",
+        "bytes": 851227,
+        "sha256": "ae3c24931fbf974db59bad5995b21bf49102e75a576506d305443e43e27cedc6",
+        "seconds": 13.64
+      },
+      "screenshots": [
+        {
+          "file": "browser-wikipedia-poster.png",
+          "sha256": "2dfdcd54486b60034e08130ab66548d69f039e1d74782178601530b8833c3234"
+        },
+        {
+          "file": "browser-wikipedia-original.png",
+          "sha256": "76f82a8bc0b2a8671dee3c2b8c45401ba680ef3be26cbeb90c9ce8fb176e0194"
+        }
+      ],
+      "result_verified": true
+    },
+    {
+      "name": "shopping",
+      "recorded_on": "2026-10-15",
+      "entry_url": "https://books.toscrape.com/",
+      "final": {
+        "title": "Full Moon over Noah’s Ark: An Odyssey to Mount Ararat and Beyond",
+        "price": "£49.43",
+        "stock": "In stock (15 available)",
+        "url": "https://books.toscrape.com/catalogue/full-moon-over-noahs-ark-an-odyssey-to-mount-ararat-and-beyond_811/index.html",
+        "site_kind": "public shopping sandbox, not real prices or purchase"
+      },
+      "flow_steps": 3,
+      "actions": [
+        {
+          "at": 3.583,
+          "action": "click",
+          "target": "Travel",
+          "bounds": {
+            "x": 90,
+            "y": 277.109375,
+            "width": 36.5625,
+            "height": 16
+          },
+          "outcome": "acted"
+        },
+        {
+          "at": 5.303,
+          "action": "click",
+          "target": "Full Moon over Noah’s Ark: An Odyssey to Mount Ararat and Beyond",
+          "bounds": {
+            "x": 590,
+            "y": 437.109375,
+            "width": 195,
+            "height": 155
+          },
+          "outcome": "acted"
+        },
+        {
+          "at": 6.992,
+          "action": "read",
+          "target": "Full Moon over Noah’s Ark: An Odyssey to Mount Ararat and Beyond",
+          "bounds": {
+            "x": 655,
+            "y": 215.109375,
+            "width": 580,
+            "height": 78.21875
+          },
+          "outcome": "acted"
+        }
+      ],
+      "passed": true,
+      "model_calls_during_replay": 0,
+      "scope": "Dedicated headless Chromium viewport, no user profile. Haejo BrowserDriver + Flow replay. Guided pointer is a decorative recording overlay. Pauses inserted for legibility; not a performance measurement.",
+      "video": {
+        "file": "browser-shopping.mp4",
+        "bytes": 355561,
+        "sha256": "b0bfdb208c080f576bd2ac7d354f0dd842838905fcddf313891a85bffe8a3dab",
+        "seconds": 9.28
+      },
+      "screenshots": [
+        {
+          "file": "browser-shopping-poster.png",
+          "sha256": "f66b215c1757817a8fea6d15f0bb68cab32673de64ad01ac3c07a42e27255974"
+        },
+        {
+          "file": "browser-shopping-original.png",
+          "sha256": "c338d7d2a2ebd32203a592c37b5d97038430bc1da4c42d6a2c593a0d6a324104"
+        }
+      ],
+      "result_verified": true
+    },
+    {
+      "name": "form",
+      "recorded_on": "2026-10-15",
+      "entry_url": "https://www.selenium.dev/selenium/web/web-form.html",
+      "final": {
+        "text": "Haejo Demo",
+        "date": "10/20/2026",
+        "message": "Please confirm the weekend workshop details.",
+        "choice": "2",
+        "submitted": false,
+        "url": "https://www.selenium.dev/selenium/web/web-form.html",
+        "site_kind": "Selenium public test form; draft only"
+      },
+      "flow_steps": 5,
+      "actions": [
+        {
+          "at": 2.255,
+          "action": "set_value",
+          "target": "Text input",
+          "bounds": {
+            "x": 82,
+            "y": 88,
+            "width": 356,
+            "height": 38
+          },
+          "outcome": "acted"
+        },
+        {
+          "at": 3.746,
+          "action": "set_value",
+          "target": "Date picker",
+          "bounds": {
+            "x": 842,
+            "y": 160,
+            "width": 356,
+            "height": 38
+          },
+          "outcome": "acted"
+        },
+        {
+          "at": 5.235,
+          "action": "set_value",
+          "target": "Textarea",
+          "bounds": {
+            "x": 82,
+            "y": 228,
+            "width": 356,
+            "height": 86
+          },
+          "outcome": "acted"
+        },
+        {
+          "at": 6.704,
+          "action": "select_option",
+          "target": "Dropdown (select)",
+          "bounds": {
+            "x": 462,
+            "y": 88,
+            "width": 356,
+            "height": 38
+          },
+          "outcome": "acted"
+        },
+        {
+          "at": 8.181,
+          "action": "read",
+          "target": "Text input",
+          "bounds": {
+            "x": 82,
+            "y": 88,
+            "width": 356,
+            "height": 38
+          },
+          "outcome": "acted"
+        }
+      ],
+      "passed": true,
+      "model_calls_during_replay": 0,
+      "scope": "Dedicated headless Chromium viewport, no user profile. Haejo BrowserDriver + Flow replay. Guided pointer is a decorative recording overlay. Pauses inserted for legibility; not a performance measurement.",
+      "video": {
+        "file": "browser-form.mp4",
+        "bytes": 208424,
+        "sha256": "d90beebdb7c6532c25bc1951f2b0194fa0ed0f8c125a225c79dc906babe77215",
+        "seconds": 12.72
+      },
+      "screenshots": [
+        {
+          "file": "browser-form-poster.png",
+          "sha256": "8863ba52416f2ecb21d7387548881c2c2e7aefdebf23fa056fdd74df7d3308bd"
+        },
+        {
+          "file": "browser-form-original.png",
+          "sha256": "670b41bf3e82474e7b776f211ef2d0bf8979a93a3d9f8b4f833bf8b44ddc650c"
+        }
+      ],
+      "result_verified": true
+    },
+    {
+      "name": "translate",
+      "recorded_on": "2026-10-15",
+      "entry_url": "https://translate.google.com/?sl=en&tl=ko&op=translate",
+      "final": {
+        "source": "Hello. Thank you.",
+        "korean_output_present": true,
+        "output": "Translation results\n안녕하세요. 감사합니다.",
+        "signed_in": false
+      },
+      "flow_steps": 2,
+      "flow_replay_ok": false,
+      "actions": [
+        {
+          "at": 2.874,
+          "action": "set_value",
+          "target": "Source text",
+          "bounds": {
+            "x": 41,
+            "y": 193,
+            "width": 534,
+            "height": 32
+          },
+          "outcome": "acted"
+        }
+      ],
+      "passed": false,
+      "model_calls_during_replay": 0,
+      "scope": "Dedicated headless Chromium viewport, no user profile. Haejo BrowserDriver + Flow replay. Guided pointer is a decorative recording overlay. Pauses inserted for legibility; not a performance measurement.",
+      "video": {
+        "file": "browser-translate.mp4",
+        "bytes": 66946,
+        "sha256": "f80b58971c7188e2b20800dce9196daf855c9bf7126abde8d752131706e527f9",
+        "seconds": 7.4
+      },
+      "screenshots": [
+        {
+          "file": "browser-translate-poster.png",
+          "sha256": "c93a39cc43ce106952bf47bc540a8cd4d4efb75e461c93c96efb7f7188ae8e9e"
+        },
+        {
+          "file": "browser-translate-original.png",
+          "sha256": "31691335f9fcc689ef6df90df34d0194738140a10b8a663bfee215a6cd949341"
+        }
+      ],
+      "result_verified": true,
+      "completion": "output_verified_after_unverified_transmission",
+      "verification_scope": "Displayed Korean output independently checked; not delivery certification or completed replay."
+    },
+    {
+      "name": "github",
+      "recorded_on": "2026-10-15",
+      "entry_url": "https://github.com/microsoft/vscode/issues",
+      "final": {
+        "query": "is:issue state:open label:bug sort:comments-desc",
+        "result_count_on_page": 25,
+        "url": "https://github.com/microsoft/vscode/issues?q=is%3Aissue+state%3Aopen+label%3Abug+sort%3Acomments-desc",
+        "issue_created": false
+      },
+      "flow_steps": 3,
+      "actions": [
+        {
+          "at": 4.702,
+          "action": "set_value",
+          "target": "Search issues",
+          "bounds": {
+            "x": 293,
+            "y": 331,
+            "width": 902,
+            "height": 30
+          },
+          "outcome": "acted"
+        },
+        {
+          "at": 6.242,
+          "action": "click",
+          "target": "Search",
+          "bounds": {
+            "x": 1224,
+            "y": 330,
+            "width": 32,
+            "height": 32
+          },
+          "outcome": "acted"
+        },
+        {
+          "at": 7.849,
+          "action": "read",
+          "target": "Issues",
+          "bounds": {
+            "x": 281,
+            "y": 435,
+            "width": 974,
+            "height": 460
+          },
+          "outcome": "acted"
+        }
+      ],
+      "passed": true,
+      "model_calls_during_replay": 0,
+      "scope": "Dedicated headless Chromium viewport, no user profile. Haejo BrowserDriver + Flow replay. Guided pointer is a decorative recording overlay. Pauses inserted for legibility; not a performance measurement.",
+      "video": {
+        "file": "browser-github.mp4",
+        "bytes": 406837,
+        "sha256": "c27b8c6be2701f4f71f20a9ef026e93fddec25475f7aeaa5ad6ddd838596200c",
+        "seconds": 9.24
+      },
+      "screenshots": [
+        {
+          "file": "browser-github-poster.png",
+          "sha256": "e5eb08b2ebcac80203ecac8a26077cda72dc72d8c26b782dca5a50fcaae29a9c"
+        },
+        {
+          "file": "browser-github-original.png",
+          "sha256": "6883fef5cb364e734f29bb07b54c4329724eeb9bfec3351df9d56b066e98ec73"
+        }
+      ],
+      "result_verified": true
+    },
+    {
+      "name": "units",
+      "recorded_on": "2026-10-15",
+      "entry_url": "https://www.unitconverters.net/length-converter.html",
+      "final": {
+        "meters": 3.5,
+        "feet": "11.482939633",
+        "independent_formula": "3.5 / 0.3048",
+        "matches_within": 1e-05
+      },
+      "flow_steps": 3,
+      "actions": [
+        {
+          "at": 2.89,
+          "action": "set_value",
+          "target": "From:",
+          "bounds": {
+            "x": 159.4375,
+            "y": 194.953125,
+            "width": 276,
+            "height": 41
+          },
+          "outcome": "acted"
+        },
+        {
+          "at": 4.415,
+          "action": "click",
+          "target": "foot [ft]",
+          "bounds": {
+            "x": 472.4375,
+            "y": 443.546875,
+            "width": 274.125,
+            "height": 20.1875
+          },
+          "outcome": "acted"
+        },
+        {
+          "at": 6.008,
+          "action": "read",
+          "target": "To:",
+          "bounds": {
+            "x": 468.4375,
+            "y": 215.953125,
+            "width": 276,
+            "height": 41
+          },
+          "outcome": "acted"
+        }
+      ],
+      "passed": true,
+      "model_calls_during_replay": 0,
+      "scope": "Dedicated headless Chromium viewport, no user profile. Haejo BrowserDriver + Flow replay. Guided pointer is a decorative recording overlay. Pauses inserted for legibility; not a performance measurement.",
+      "video": {
+        "file": "browser-units.mp4",
+        "bytes": 184287,
+        "sha256": "0fa07fa490505803186a6a49755754ed003c43c35ed588346f96840f2dc23c4d",
+        "seconds": 9.44
+      },
+      "screenshots": [
+        {
+          "file": "browser-units-poster.png",
+          "sha256": "25c3dc90b291588098ad6e491701b829feb1fbf25d5bde03f6a9d4be81cc2c7b"
+        },
+        {
+          "file": "browser-units-original.png",
+          "sha256": "f2da5d14f4c6e027ecf84f447f3d125abc79d6b665f1151ac6ffbbbfed95311b"
+        }
+      ],
+      "result_verified": true
+    },
+    {
+      "name": "markdown",
+      "recorded_on": "2026-10-15",
+      "entry_url": "https://markdownlivepreview.com/",
+      "final": {
+        "heading": "Weekend plan",
+        "subheading": "Saturday",
+        "bold_text": "Bring a notebook.",
+        "exported": false,
+        "plan_list_items": 2,
+        "remaining_sample_content": true
+      },
+      "flow_steps": 2,
+      "actions": [
+        {
+          "at": 14.472,
+          "action": "set_value",
+          "target": "Editor content",
+          "bounds": {
+            "x": 52,
+            "y": 40,
+            "width": 565,
+            "height": 21
+          },
+          "outcome": "acted"
+        },
+        {
+          "at": 15.987,
+          "action": "read",
+          "target": "Weekend plan",
+          "bounds": {
+            "x": 658.984375,
+            "y": 48,
+            "width": 605.015625,
+            "height": 50.59375
+          },
+          "outcome": "acted"
+        }
+      ],
+      "passed": true,
+      "model_calls_during_replay": 0,
+      "scope": "Dedicated headless Chromium viewport, no user profile. Haejo BrowserDriver + Flow replay. Guided pointer is a decorative recording overlay. Pauses inserted for legibility; not a performance measurement.",
+      "video": {
+        "file": "browser-markdown.mp4",
+        "bytes": 170598,
+        "sha256": "1fe04ff1a6e4f4ca8b4ffce109dcbe3b95d9aa3f87e521358431199f8b2014f5",
+        "seconds": 18.24
+      },
+      "screenshots": [
+        {
+          "file": "browser-markdown-poster.png",
+          "sha256": "b4f6845abcd1eda2814a85f5f81ea608b2abe8a9095b12bcaed57356db6551e2"
+        },
+        {
+          "file": "browser-markdown-original.png",
+          "sha256": "27803503c39f03e3b5a23e0407cb6ed0b770a41f1cc8e8f7906c703d9e743670"
+        }
+      ],
+      "result_verified": true,
+      "verification_scope": "Opening portion of existing sample edited and rendered; remaining sample retained. Complete replacement and export were not requested or verified."
+    }
+  ],
+  "browser_path": "Haejo BrowserDriver Python API, dedicated headless Chromium context; no existing Chrome/Safari profile connection.",
+  "annotation": "Decorative pointer/highlight recording overlay uses observed element bounds. Click rings follow actual browser pointerdown events. It is not the system mouse.",
+  "pacing": "450ms pointer preview and 650ms after-action pause added for legibility. Continuous viewport recordings; not execution-time or token benchmarks.",
+  "network_note": "These are live public websites and may issue their own telemetry requests. The recording host made no credential entry, purchase, or form submission. The landing page serves only local recordings. Google Translate received the synthetic sentence Hello. Thank you.; output verification is not delivery certification.",
+  "limits": [
+    "No natural-language agent authoring is filmed; these are authored Flow replays.",
+    "Books to Scrape and Selenium are public test sites, not real shopping/registration services.",
+    "TodoMVC was not included: Enter-only item creation is unsupported by the current BrowserDriver key policy. No navigation-key policy was weakened.",
+    "Google Translate transmission replay stopped commit_unverified (passed=false, flow_replay_ok=false). Only the displayed Korean output was independently verified (result_verified=true).",
+    "Markdown demonstrates an opening-section edit; remaining sample content stays. No whole-document replacement, save or export is claimed."
+  ],
+  "result_fields": {
+    "passed": "Flow replay completed; false when a transmission remained unverified.",
+    "result_verified": "An independent checker verified the explicitly described result scope; does not imply successful replay or delivery certification."
+  }
+}

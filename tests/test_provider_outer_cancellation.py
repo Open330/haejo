@@ -20,7 +20,7 @@ class OuterCancellationTests(unittest.TestCase):
     def setUpClass(cls):
         cls.folder = tempfile.TemporaryDirectory()
         base = Path(cls.folder.name)
-        source = (ROOT / 'launcher/tacto.swift').read_text()
+        source = (ROOT / 'launcher/haejo.swift').read_text()
         functions = source[source.index('enum ModelProcessError:'):source.index('\nfunc askModel(')]
         harness = '''
 let proc = Process()
@@ -54,7 +54,7 @@ _ = modelCleanupGroup.wait(timeout: .now() + 1)
                 wrapper = base / 'wrapper.py'
                 wrapper.write_text('''import sys, os, pathlib, threading, time
 sys.path.insert(0, ROOT)
-from tacto import authoring, ask_provider, codex_result, claude_result
+from haejo import authoring, ask_provider, codex_result, claude_result
 def owned(*args, **kwargs):
     if MODE == 'output_limit':
         def flood():
@@ -104,7 +104,7 @@ raise SystemExit(ask_provider.main())
 @unittest.skipUnless(os.name == 'posix', 'POSIX termination handler')
 class TerminationHandlerTests(unittest.TestCase):
     def test_handler_restores_previous_signal_state_on_success_and_exception(self):
-        from tacto import ask_provider
+        from haejo import ask_provider
         previous = signal.getsignal(signal.SIGTERM)
         with patch.object(ask_provider, '_main', return_value=0):
             self.assertEqual(0, ask_provider.main())
@@ -114,7 +114,7 @@ class TerminationHandlerTests(unittest.TestCase):
         self.assertEqual(previous, signal.getsignal(signal.SIGTERM))
 
     def test_termination_unwinds_without_becoming_an_answer(self):
-        from tacto import ask_provider
+        from haejo import ask_provider
         def terminate():
             os.kill(os.getpid(), signal.SIGTERM)
             raise AssertionError('termination swallowed')

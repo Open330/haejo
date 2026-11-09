@@ -8,8 +8,8 @@ It does not replay a recipe prefix, reconnect a helper, select a continuation,
 or grant approval. Default CLI/restart behavior still refuses existing slots.
 
 ```python
-from tacto.dispatch_journal import DurableDispatchDriver
-from tacto.journal_reconciliation import CommitReconciliation, reconcile_journal
+from haejo.dispatch_journal import DurableDispatchDriver
+from haejo.journal_reconciliation import CommitReconciliation, reconcile_journal
 
 # These values come from the original trusted task, not the journal or a model.
 commit = CommitReconciliation(original_event, original_expected,
@@ -72,7 +72,7 @@ power-loss durability, automatic resume or exactly-once delivery under all failu
 
 ## Signed native integration
 
-`tacto eval signed_producer_worker_reconcile --report NEW.json` explicitly checks
+`haejo eval signed_producer_worker_reconcile --report NEW.json` explicitly checks
 an owned producer Save, worker exit17 before reply logging, and a new signed
 worker. The original event/expectation is retained before input. Fresh callback
 and file reads reconcile slot0; slot1 dispatches one new owned native button
@@ -88,7 +88,7 @@ Use `reconcile_and_replay` when the trusted host has retained an explicitly
 authored **new** Flow and its independent approvals and expected outcomes:
 
 ```python
-from tacto.journal_reconciliation import reconcile_and_replay
+from haejo.journal_reconciliation import reconcile_and_replay
 
 with DurableDispatchDriver(fresh_driver, same_private_directory) as guarded:
     result = reconcile_and_replay(

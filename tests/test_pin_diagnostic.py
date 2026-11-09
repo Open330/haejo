@@ -1,6 +1,6 @@
 import json
 import unittest
-from tacto.pin_diagnostic import MARKER,pin_diagnostic,format_pin_diagnostic,diagnostic_lines
+from haejo.pin_diagnostic import MARKER,pin_diagnostic,format_pin_diagnostic,diagnostic_lines
 
 
 class PinDiagnosticTests(unittest.TestCase):
@@ -24,7 +24,7 @@ class PinDiagnosticTests(unittest.TestCase):
         from tests.test_product_comparison_provenance import Provenance
         fixture=Provenance();fixture.setUp()
         try:
-            item={'id':'pin','type':'command_execution','command':'tacto observe owned --helper',
+            item={'id':'pin','type':'command_execution','command':'haejo observe owned --helper',
                   'aggregated_output':format_pin_diagnostic('text_range_unreadable'),'exit_code':1}
             events=[{'type':'item.started','item':item},{'type':'item.completed','item':item}]
             result=fixture.execute(stdout='\n'.join(json.dumps(e) for e in events))

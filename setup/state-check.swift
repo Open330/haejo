@@ -3,30 +3,30 @@ import Foundation
  static func main() {
   var state = SetupState()
   func json(_ text:String)->Data { text.data(using:.utf8)! }
-  assert(state.receive(json("{\"accessibility_trusted\":true,\"screen_capture_preflight\":false,\"bundle_id\":\"ai.callabo.tacto.helper\",\"pid\":123}"),expected:"ai.callabo.tacto.helper"))
+  assert(state.receive(json("{\"accessibility_trusted\":true,\"screen_capture_preflight\":false,\"bundle_id\":\"ai.callabo.haejo.helper\",\"pid\":123}"),expected:"ai.callabo.haejo.helper"))
   assert(state.accessibility && !state.screen && state.ready && !state.captureReady)
-  for text in ["{}", "{\"accessibility_trusted\":true,\"screen_capture_preflight\":true,\"bundle_id\":\"wrong\",\"pid\":123}", "{\"accessibility_trusted\":true,\"screen_capture_preflight\":true,\"bundle_id\":\"ai.callabo.tacto.helper\",\"pid\":0}", "{\"accessibility_trusted\":\"true\",\"screen_capture_preflight\":true,\"bundle_id\":\"ai.callabo.tacto.helper\",\"pid\":123}", "not json"] {
-   assert(!state.receive(json(text),expected:"ai.callabo.tacto.helper"))
+  for text in ["{}", "{\"accessibility_trusted\":true,\"screen_capture_preflight\":true,\"bundle_id\":\"wrong\",\"pid\":123}", "{\"accessibility_trusted\":true,\"screen_capture_preflight\":true,\"bundle_id\":\"ai.callabo.haejo.helper\",\"pid\":0}", "{\"accessibility_trusted\":\"true\",\"screen_capture_preflight\":true,\"bundle_id\":\"ai.callabo.haejo.helper\",\"pid\":123}", "not json"] {
+   assert(!state.receive(json(text),expected:"ai.callabo.haejo.helper"))
    assert(!state.accessibility && !state.screen)
   }
   for ax in [false, true] {
    for screen in [false, true] {
-    let receipt = "{\"accessibility_trusted\":\(ax),\"screen_capture_preflight\":\(screen),\"bundle_id\":\"ai.callabo.tacto.helper\",\"pid\":123}"
-    assert(state.receive(json(receipt),expected:"ai.callabo.tacto.helper"))
+    let receipt = "{\"accessibility_trusted\":\(ax),\"screen_capture_preflight\":\(screen),\"bundle_id\":\"ai.callabo.haejo.helper\",\"pid\":123}"
+    assert(state.receive(json(receipt),expected:"ai.callabo.haejo.helper"))
     assert(state.ready == ax)
     assert(state.captureReady == (ax && screen))
    }
   }
   assert(state.ready)
-  assert(!state.refresh(nil, expected: "ai.callabo.tacto.helper"))
+  assert(!state.refresh(nil, expected: "ai.callabo.haejo.helper"))
   assert(!state.ready && !state.accessibility && !state.screen)
   state.accessibility = true; state.screen = true
-  assert(!state.refresh(json("{}"), expected: "ai.callabo.tacto.helper"))
+  assert(!state.refresh(json("{}"), expected: "ai.callabo.haejo.helper"))
   assert(!state.ready)
   print("Permission state: 12 cases PASS; AX required; capture permission optional for readiness")
 
-  let helper = URL(fileURLWithPath: "/checkout/helper/Tacto Helper.app")
-  let setup = URL(fileURLWithPath: "/Applications/Tacto.app")
+  let helper = URL(fileURLWithPath: "/checkout/helper/Haejo Helper.app")
+  let setup = URL(fileURLWithPath: "/Applications/Haejo.app")
   assert(permissionApp(.control, helper: helper, setupApp: setup, bundledRuntime: true) == helper)
   assert(permissionApp(.screen, helper: helper, setupApp: setup, bundledRuntime: true) == setup)
   assert(permissionApp(.control, helper: helper, setupApp: setup, bundledRuntime: false) == helper)
@@ -85,17 +85,17 @@ import Foundation
   // Real isolated filesystem layouts: readiness must follow the installed
   // links, including another version, partial installs and foreign files.
   let fm = FileManager.default
-  let temp = fm.temporaryDirectory.appendingPathComponent("tacto-connection-check-" + UUID().uuidString)
+  let temp = fm.temporaryDirectory.appendingPathComponent("haejo-connection-check-" + UUID().uuidString)
   defer { try? fm.removeItem(at: temp) }
   let root = temp.appendingPathComponent("runtime"), home = temp.appendingPathComponent("home")
   func directory(_ path: URL) { try! fm.createDirectory(at: path, withIntermediateDirectories: true) }
   directory(root.appendingPathComponent("launcher")); directory(root.appendingPathComponent("skill"))
-  try! Data("fixture".utf8).write(to: root.appendingPathComponent("launcher/tacto"))
-  try! Data("---\nname: tacto\n---\n".utf8).write(to: root.appendingPathComponent("skill/SKILL.md"))
+  try! Data("fixture".utf8).write(to: root.appendingPathComponent("launcher/haejo"))
+  try! Data("---\nname: haejo\n---\n".utf8).write(to: root.appendingPathComponent("skill/SKILL.md"))
   func status(_ environment: [String:String] = [:]) -> AgentConnection { agentConnection(root: root, home: home, environment: environment) }
   assert(status() == .missing)
-  let targets = [(".local/bin/tacto", "launcher/tacto"),
-                 (".claude/skills/tacto", "skill"), (".codex/skills/tacto", "skill")]
+  let targets = [(".local/bin/haejo", "launcher/haejo"),
+                 (".claude/skills/haejo", "skill"), (".codex/skills/haejo", "skill")]
   for (name, destination) in targets {
     let link = home.appendingPathComponent(name); directory(link.deletingLastPathComponent())
     try! fm.createSymbolicLink(at: link, withDestinationURL: root.appendingPathComponent(destination))
@@ -106,11 +106,11 @@ import Foundation
   let repeatedProfile = ["CODEX_HOME": home.appendingPathComponent(".codex").path + "/"]
   assert(agentConnection(root: canonicalRoot, home: canonicalHome, environment: repeatedProfile) == .current)
   assert(agentConnectionLinks(root: canonicalRoot, home: canonicalHome, environment: repeatedProfile).count == 3)
-  assert(status(["TACTO_BIN_DIR":""]) == .current)
-  let codex = home.appendingPathComponent(".codex/skills/tacto")
+  assert(status(["HAEJO_BIN_DIR":""]) == .current)
+  let codex = home.appendingPathComponent(".codex/skills/haejo")
   try! fm.removeItem(at: codex); assert(status() == .missing)
   let previous = temp.appendingPathComponent("previous/skill"); directory(previous)
-  try! Data("---\nname: tacto\n---\n".utf8).write(to: previous.appendingPathComponent("SKILL.md"))
+  try! Data("---\nname: haejo\n---\n".utf8).write(to: previous.appendingPathComponent("SKILL.md"))
   try! fm.createSymbolicLink(at: codex, withDestinationURL: previous); assert(status() == .other)
   try! fm.removeItem(at: codex); directory(codex)
   try! Data("foreign skill".utf8).write(to: codex.appendingPathComponent("SKILL.md")); assert(status() == .conflict)
@@ -122,10 +122,10 @@ import Foundation
     return (ProcessInfo.processInfo.systemUptime - began) * 1000
   }.sorted()
   print(String(format: "Connection readback: 50 local samples, median %.3f ms, max %.3f ms; no process launch", timings[25], timings[49]))
-  let command = home.appendingPathComponent(".local/bin/tacto")
+  let command = home.appendingPathComponent(".local/bin/haejo")
   let previousRoot = previous.deletingLastPathComponent()
   directory(previousRoot.appendingPathComponent(".venv/bin"))
-  for name in ["tacto"] {
+  for name in ["haejo"] {
     let entry = previousRoot.appendingPathComponent(".venv/bin/" + name)
     try! Data("fixture".utf8).write(to: entry)
     try! fm.removeItem(at: command); try! fm.createSymbolicLink(at: command, withDestinationURL: entry)

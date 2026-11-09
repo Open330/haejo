@@ -17,7 +17,7 @@ POKI's architecture and identifies POKI as AGPL-3.0. Its repository returned 404
 the linked documentation returned 403 during this investigation. No POKI code
 was obtained or copied. Details such as the reported lost-touch cohort, launch
 delay and floating-bar behavior remain claims from that brief, not measurements
-reproduced by Tacto.
+reproduced by Haejo.
 
 The independently inspected upstream is [jkcoxson/idevice](https://github.com/jkcoxson/idevice),
 fixed at `89702099f4d7552f704f93b4526756abda319ceb` (crate 0.1.68).
@@ -64,7 +64,7 @@ flowchart LR
     Probe[Read-only Rust probe] --> Upstream[Pinned idevice library]
 ```
 
-`tacto.ios_driver.IOSSession` requires an already-open connection with
+`haejo.ios_driver.IOSSession` requires an already-open connection with
 `read_snapshot`, `tap_once` and `close`. The host must independently read actual
 device ID, foreground bundle, connection epoch, orientation, lock/modal state,
 viewport and AX element identities. It must not echo the requested app or infer
@@ -93,7 +93,7 @@ Python contract's cooperative clock.
 For a host-provided session, the entry point is:
 
 ```python
-from tacto.ios_driver import run_ios_spike
+from haejo.ios_driver import run_ios_spike
 
 # `session` and the per-element authorization callback are trusted host inputs.
 # This example does not instantiate a live bridge.
@@ -191,7 +191,7 @@ still reported `ddiServicesAvailable=false` and `tunnelState=disconnected`.
 The query explicitly used `--no-auto-mount-ddis`; no DDI mount was requested.
 A compatible DDI and an active developer service are separate readiness facts.
 
-The installed signed Tacto launched Accessibility Inspector and read its macOS
+The installed signed Haejo launched Accessibility Inspector and read its macOS
 AX controls. Its Device Target list exposed no children; iPhone AX content was
 not obtained. A window capture was refused with `window_missing_or_ambiguous`
 for its untitled window. No phone tap, app installation, WDA setup, or deployment
@@ -210,7 +210,7 @@ After authorization to continue physical qualification, explicit
 Subsequent discovery still reported no DDI services and a disconnected tunnel;
 the metadata command's success does not establish a mounted DDI or live service.
 A development-only binary was copied to a private temporary directory on
-june-mba and executed without replacing/installing Tacto. Its CoreDevice usage
+june-mba and executed without replacing/installing Haejo. Its CoreDevice usage
 assertion completed, but `createservicesocket` for the AX lockdown shim failed:
 the system could not establish a connection to the device. No focus movement,
 AX screen content, HID input, phone app installation or fixture interaction
@@ -264,7 +264,7 @@ is made. Despite that path's earlier `usb-lockdown` name, CoreDevice reported
 `localNetwork` and USB enumeration had no iPhone rows; the API was renamed
 `mobiledevice-lockdown` so it does not imply a verified cable connection.
 
-The signed installed Tacto opened DeviceHub and pressed its observed View
+The signed installed Haejo opened DeviceHub and pressed its observed View
 Screen control. Afterward CoreDevice reported `tunnelState=connected` and
 `ddiServicesAvailable=true`; process enumeration succeeded. The AX shim socket
 request still failed, but separate CoreDevice deviceinfo and UniversalHID
@@ -312,7 +312,7 @@ The next physical qualification needs a verified no-WDA AX transport, then:
    no second touch, including after a new worker uses the same journal directory.
 4. Measure launch settling, bottom-bar hit areas, Wi-Fi/USB behavior and user
    interference. Preserve failures and unknowns. Do not adopt the brief's delay or
-   loss figures as Tacto guarantees. Never auto-accept Allow Paste.
+   loss figures as Haejo guarantees. Never auto-accept Allow Paste.
 
 No WDA/helper app was installed, no physical tap was sent, and no push or
 production deployment is part of this work. Physical AX → one tap → receiving verification
@@ -320,15 +320,15 @@ remains required before calling iPhone execution supported.
 
 ## Changed files
 
-- `tacto/ios_driver.py`: explicit iPhone target/session, snapshot bounds, one-tap
+- `haejo/ios_driver.py`: explicit iPhone target/session, snapshot bounds, one-tap
   receipts, same-screen budget and checked spike replay.
-- `tacto/ios_ax_probe.py`, `spike/ios-ax-bridge/`: native no-WDA service probe,
+- `haejo/ios_ax_probe.py`, `spike/ios-ax-bridge/`: native no-WDA service probe,
   bounded subprocess boundary, pinned MIT notices, and owned receiving fixture.
-- `tacto/protocol.py`, `tacto/flow.py`, `tacto/cli.py`: narrow iOS readback contract,
+- `haejo/protocol.py`, `haejo/flow.py`, `haejo/cli.py`: narrow iOS readback contract,
   pre-existing-result refusal, and no implicit macOS fallback.
-- `tacto/execution_summary.py`, `tacto/flow_batch.py`: interruption metadata and
+- `haejo/execution_summary.py`, `haejo/flow_batch.py`: interruption metadata and
   auto-repair suffix index mapping, without automatic resume authority.
-- `tacto/general.py`, `tacto/promote.py`: host intervention/context metadata and
+- `haejo/general.py`, `haejo/promote.py`: host intervention/context metadata and
   exact-context candidate keys/grouping.
 - `spike/ios-idevice/{Cargo.toml,Cargo.lock,src/main.rs,upstream.json,validation.json,README.md,.gitignore}`:
   pinned MIT dependency, read-only probe and provenance.

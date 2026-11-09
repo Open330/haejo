@@ -2,7 +2,7 @@
 import json
 import math
 import time
-from tacto.cli_event_timing import CLIEventTiming
+from haejo.cli_event_timing import CLIEventTiming
 
 
 def numeric_timings(value):
@@ -64,7 +64,7 @@ class AgentTimeline:
             if not isinstance(output, str):
                 continue
             for text in output.splitlines():
-                for marker in ('TACTO_SESSION_TIMINGS ', 'TACTO_TIMINGS '):
+                for marker in ('HAEJO_SESSION_TIMINGS ', 'HAEJO_TIMINGS '):
                     if text.startswith(marker):
                         try:
                             value = numeric_timings(json.loads(text[len(marker):]))
@@ -77,7 +77,7 @@ class AgentTimeline:
         return {**snapshot, 'duration_seconds': duration, 'tool_spans': spans,
             'completed_tool_union_seconds': union,
             'outside_completed_tool_spans_seconds': max(0.0, duration-union),
-            'incomplete_tools': len(starts), 'tacto_timings': timings,
+            'incomplete_tools': len(starts), 'haejo_timings': timings,
             'timing_records_dropped': timing_records_dropped,
             'limits': ['tool spans include scheduling and interactive stdin waits',
                        'outside spans is not pure model time or time to first token']}

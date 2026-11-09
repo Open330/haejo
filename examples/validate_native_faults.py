@@ -28,7 +28,7 @@ def record(scenario,i,passed,**extra):
  if not passed:raise RuntimeError(scenario+' failed; inspect owned artifacts')
 try:
  for i in range(3):
-  name='Tacto-closed-'+uuid.uuid4().hex[:8]+'.txt';doc=out/name;doc.write_text('');doc.chmod(0o600)
+  name='Haejo-closed-'+uuid.uuid4().hex[:8]+'.txt';doc=out/name;doc.write_text('');doc.chmod(0o600)
   subprocess.run(['open','-g','-a','TextEdit',str(doc)],capture_output=True,check=True)
   deadline=time.monotonic()+10
   while str(doc) not in observe('com.apple.TextEdit'):
@@ -44,7 +44,7 @@ try:
   record('owned_window_closed_and_reopened',i,safe and r2.returncode==0,refused_actions=len(acts),recovery='fresh observation after reopening exact owned file')
   r,_=run('com.apple.TextEdit',[close],f'close-cleanup-{i}');assert r.returncode==0
  for i in range(3):
-  doc=out/('Tacto-delayed-'+uuid.uuid4().hex[:8]+'.txt');doc.write_text('');doc.chmod(0o600)
+  doc=out/('Haejo-delayed-'+uuid.uuid4().hex[:8]+'.txt');doc.write_text('');doc.chmod(0o600)
   fired=[]
   def later():
    p=subprocess.run(['open','-g','-a','TextEdit',str(doc)],capture_output=True);fired.append(p.returncode)
@@ -65,8 +65,8 @@ try:
   close={'action':'click','selector':{'role':'Button','subrole':'AXCloseButton','ancestor':str(doc)},'postcondition':{'absent':str(doc)},'safety':safety}
   cleanup,_=run('com.apple.TextEdit',[close],f'delayed-cleanup-{i}');assert cleanup.returncode==0
  for i in range(3):
-  folder=out/('Tacto-target-'+uuid.uuid4().hex[:8]);folder.mkdir();old=folder/'before.txt';old.write_text('canary');new=folder/'after.txt'
-  trap=out/('Tacto-trap-'+uuid.uuid4().hex[:8]);trap.mkdir()
+  folder=out/('Haejo-target-'+uuid.uuid4().hex[:8]);folder.mkdir();old=folder/'before.txt';old.write_text('canary');new=folder/'after.txt'
+  trap=out/('Haejo-trap-'+uuid.uuid4().hex[:8]);trap.mkdir()
   r,_=run('com.apple.finder',[openstep(folder)],f'target-setup-{i}');assert r.returncode==0
   old.rename(new)
   deadline=time.monotonic()+10
@@ -80,13 +80,13 @@ try:
   r2,_=run('com.apple.finder',[{'action':'click','selector':field,'postcondition':{'field':field,'contains':'[selected]'},'safety':safety}],f'target-repair-{i}')
   record('target_renamed_then_reobserved',i,safe and r2.returncode==0,refused_actions=len(acts),recovery='new selector after fresh observed filename')
  for i in range(3):
-  folder=out/('Tacto-partial-'+uuid.uuid4().hex[:8]);folder.mkdir();trap=out/('Tacto-unrun-'+uuid.uuid4().hex[:8]);trap.mkdir()
+  folder=out/('Haejo-partial-'+uuid.uuid4().hex[:8]);folder.mkdir();trap=out/('Haejo-unrun-'+uuid.uuid4().hex[:8]);trap.mkdir()
   stale={'action':'click','selector':{'role':'TextField','value':'does-not-exist.txt','ancestor':folder.name},'postcondition':{'contains':'UNREACHABLE'},'safety':safety}
   r,acts=run('com.apple.finder',[openstep(folder),stale,openstep(trap)],f'partial-{i}')
   safe=r.returncode==1 and 'target_missing' in r.stdout and len(acts)==1 and acts[0]['request']['action']['name']=='open_folder' and trap.name not in observe('com.apple.finder')
   r2,_=run('com.apple.finder',[openstep(trap)],f'partial-resume-{i}')
   record('flow_stops_after_failed_step',i,safe and r2.returncode==0,completed_prefix_actions=len(acts),recovery='explicit new flow; completed prefix not resent')
 finally:
- write(out/'report.json',{'passed':len(rows)==12 and all(r['passed'] for r in rows) and before==identity(cli),'candidate_identity':before,'identity_unchanged':before==identity(cli),'rows':rows,'model_requests':0,'permission_revocation_tested':False,'scope':'actual signed helper; owned physical windows closed, delayed fixture open, real Finder rename and partial flow failure; explicit host-prescribed recovery; no permission changes','helper_sha256':hashlib.sha256((cli.parent.parent/'helper/Tacto Helper.app/Contents/MacOS/TactoHelper').read_bytes()).hexdigest()})
+ write(out/'report.json',{'passed':len(rows)==12 and all(r['passed'] for r in rows) and before==identity(cli),'candidate_identity':before,'identity_unchanged':before==identity(cli),'rows':rows,'model_requests':0,'permission_revocation_tested':False,'scope':'actual signed helper; owned physical windows closed, delayed fixture open, real Finder rename and partial flow failure; explicit host-prescribed recovery; no permission changes','helper_sha256':hashlib.sha256((cli.parent.parent/'helper/Haejo Helper.app/Contents/MacOS/HaejoHelper').read_bytes()).hexdigest()})
 
 if len(rows)!=12 or not all(row["passed"] for row in rows):raise SystemExit(1)

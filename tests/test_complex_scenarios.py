@@ -1,6 +1,6 @@
 import unittest
 from examples.benchmark_complex_scenarios import recipe,job,params,Fixture
-from tacto.flow import Flow
+from haejo.flow import Flow
 
 
 class ComplexScenarioTests(unittest.TestCase):

@@ -2,7 +2,7 @@ import hashlib
 import unittest
 from unittest.mock import Mock
 
-from tacto.document_snapshot import CAPABILITY, REQUIRED, SnapshotDriver, SnapshotUnavailable, TARGET
+from haejo.document_snapshot import CAPABILITY, REQUIRED, SnapshotDriver, SnapshotUnavailable, TARGET
 
 
 class Native:

@@ -2,21 +2,21 @@
 from pathlib import Path
 import subprocess,json,time,threading,queue,os,plistlib,concurrent.futures,unittest,sys,tempfile
 ROOT=Path(__file__).resolve().parents[1]
-LAUNCHER=ROOT/'launcher/tacto'
+LAUNCHER=ROOT/'launcher/haejo'
 
-@unittest.skipUnless(sys.platform=='darwin' and os.environ.get('TACTO_RUN_NATIVE_PARALLEL_TESTS')=='1',
+@unittest.skipUnless(sys.platform=='darwin' and os.environ.get('HAEJO_RUN_NATIVE_PARALLEL_TESTS')=='1',
                      'opt-in signed same-app window receiving test')
 class WindowParallelNative(unittest.TestCase):
     def test_same_app_windows_wait_resume_and_cancelled_activation(self):
-        with tempfile.TemporaryDirectory(prefix='tacto-window-test-') as directory:
+        with tempfile.TemporaryDirectory(prefix='haejo-window-test-') as directory:
             base=Path(directory);root=ROOT;cli=LAUNCHER
             app=base/'OwnedWindows.app';binary=app/'Contents/MacOS/OwnedWindows';binary.parent.mkdir(parents=True,exist_ok=True)
             subprocess.run(['swiftc',str(root/'tests/fixtures/NativeWindowParallelFixture.swift'),'-o',str(binary)],check=True,capture_output=True)
-            (app/'Contents/Info.plist').write_bytes(plistlib.dumps({'CFBundleIdentifier':'ai.callabo.tacto.scopedfixture','CFBundleName':'Tacto Scoped Fixture','CFBundleExecutable':'OwnedWindows','CFBundlePackageType':'APPL','LSUIElement':True}))
+            (app/'Contents/Info.plist').write_bytes(plistlib.dumps({'CFBundleIdentifier':'ai.callabo.haejo.scopedfixture','CFBundleName':'Haejo Scoped Fixture','CFBundleExecutable':'OwnedWindows','CFBundlePackageType':'APPL','LSUIElement':True}))
             subprocess.run(['codesign','--force','--sign','-',str(app)],check=True,capture_output=True)
             state=base/'window-state.json';state.unlink(missing_ok=True)
             p=subprocess.Popen([str(binary),str(state)],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
-            target='ai.callabo.tacto.scopedfixture';env=dict(os.environ,TACTO_HELPER_MODE='warm',TACTO_HELPER_WAIT_SECONDS='1',TACTO_HELPER_IDLE_SECONDS='30');sessions=[]
+            target='ai.callabo.haejo.scopedfixture';env=dict(os.environ,HAEJO_HELPER_MODE='warm',HAEJO_HELPER_WAIT_SECONDS='1',HAEJO_HELPER_IDLE_SECONDS='30');sessions=[]
             def read_state():return json.loads(state.read_text())
             def start(window):
              args=[str(cli),'session',target,'--helper','--window-id',str(window)]
@@ -31,7 +31,7 @@ class WindowParallelNative(unittest.TestCase):
              while True:
               line=q.get(timeout=max(.05,end-time.monotonic()))
               if line is None:raise AssertionError('closed before ready: '+''.join(lines)+child.stderr.read())
-              if 'TACTO_SESSION_READY' in line:return
+              if 'HAEJO_SESSION_READY' in line:return
               assert time.monotonic()<end
             safety={'effects':['write_ephemeral'],'reversibility':'reversible','resource':{'object_type':'fixture entry','scope':'entry'}}
             def flow(text,write=True):

@@ -6,7 +6,7 @@ import threading
 import unittest
 from unittest.mock import Mock, patch
 
-from tacto.helper import HelperUnavailable, InheritedHelperDriver
+from haejo.helper import HelperUnavailable, InheritedHelperDriver
 
 
 class HelperChannelFailureTests(unittest.TestCase):
@@ -65,14 +65,14 @@ class HelperChannelFailureTests(unittest.TestCase):
                 self.exercise(reply)
 
     def test_inherited_busy_handshake_keeps_predispatch_refusal(self):
-        from tacto.helper import HelperLeaseRefused
+        from haejo.helper import HelperLeaseRefused
         client, peer = socket.socketpair()
         descriptor = client.detach()
         self.addCleanup(peer.close)
         peer.sendall(json.dumps({'type': 'error', 'error': 'helper_busy',
                                  'effect': 'not_started', 'detail': 'PRIVATE'}).encode()+b'\n')
         with patch.object(InheritedHelperDriver, '_shared', None), \
-                patch.dict(os.environ, {'TACTO_HELPER_FD': str(descriptor)}):
+                patch.dict(os.environ, {'HAEJO_HELPER_FD': str(descriptor)}):
             with self.assertRaises(HelperLeaseRefused) as failure:
                 InheritedHelperDriver()
         self.assertEqual('helper_busy', failure.exception.code)

@@ -9,7 +9,7 @@ from unittest.mock import patch
 class ForegroundPreparationFocusTests(unittest.TestCase):
     def world(self, *, main=False, front=None, status=0, focused='field',
               owner='other', role='AXTextField', value='draft', settable=True):
-        from tacto import driver
+        from haejo import driver
         window, other = object(), object()
         nodes = {'field': object(), 'none': None}
         element = nodes.get(focused, focused)
@@ -36,7 +36,7 @@ class ForegroundPreparationFocusTests(unittest.TestCase):
         return window
 
     def decide(self, **world):
-        from tacto.driver import Driver
+        from haejo.driver import Driver
         return Driver._foreground_preparation(123, self.world(**world))
 
     def test_already_prepared_window_needs_no_write(self):
@@ -45,7 +45,7 @@ class ForegroundPreparationFocusTests(unittest.TestCase):
                                               value=None, settable=False))
 
     def test_editable_focus_elsewhere_is_not_taken(self):
-        from tacto.driver import _NeedsForeground
+        from haejo.driver import _NeedsForeground
         for world in ({'role': 'AXTextField'}, {'role': 'AXTextArea'},
                       {'role': 'AXGroup', 'value': 'text', 'settable': True}):
             with self.subTest(world=world), self.assertRaises(_NeedsForeground):
@@ -58,7 +58,7 @@ class ForegroundPreparationFocusTests(unittest.TestCase):
         self.assertEqual('write', self.decide(status=-25212, focused='none'))
 
     def test_unreadable_focus_is_refused_without_a_foreground_handoff(self):
-        from tacto.driver import NotStarted, _NeedsForeground
+        from haejo.driver import NotStarted, _NeedsForeground
         for world in ({'status': -25204}, {'status': -25205},
                       {'status': 0, 'focused': 'none'}, {'status': -25212}):
             with self.subTest(world=world), self.assertRaises(NotStarted) as error:
@@ -66,24 +66,24 @@ class ForegroundPreparationFocusTests(unittest.TestCase):
             self.assertNotIsInstance(error.exception, _NeedsForeground)
 
     def test_refusal_precedes_every_write_and_reports_needs_foreground(self):
-        from tacto.driver import Driver, _NeedsForeground
+        from haejo.driver import Driver, _NeedsForeground
         driver = Driver.__new__(Driver)
         with patch.object(Driver, '_frontmost', return_value=True), \
              patch.object(Driver, '_foreground_preparation',
                           side_effect=_NeedsForeground('editable focus')), \
-             patch('tacto.driver._attr', return_value=False), \
-             patch('tacto.driver.AXUIElementSetAttributeValue') as write:
+             patch('haejo.driver._attr', return_value=False), \
+             patch('haejo.driver.AXUIElementSetAttributeValue') as write:
             with self.assertRaises(_NeedsForeground):
                 driver._prepare_window(SimpleNamespace(pid=123), object())
             write.assert_not_called()
 
     def test_prepared_window_returns_without_writing(self):
-        from tacto.driver import Driver
+        from haejo.driver import Driver
         driver = Driver.__new__(Driver)
         with patch.object(Driver, '_frontmost', return_value=True), \
              patch.object(Driver, '_foreground_preparation', return_value='prepared'), \
-             patch('tacto.driver._attr', return_value=False), \
-             patch('tacto.driver.AXUIElementSetAttributeValue') as write:
+             patch('haejo.driver._attr', return_value=False), \
+             patch('haejo.driver.AXUIElementSetAttributeValue') as write:
             result = driver._prepare_window(SimpleNamespace(pid=123), object())
         write.assert_not_called()
         self.assertEqual([], result['wrote'])

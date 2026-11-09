@@ -49,7 +49,7 @@ final class ServiceSocket {
     }
     func checkIn() throws {
         let body = try PropertyListSerialization.data(fromPropertyList:
-            ["Label": "tacto-ios-ax-spike", "ProtocolVersion": "2", "Request": "RSDCheckin"],
+            ["Label": "haejo-ios-ax-spike", "ProtocolVersion": "2", "Request": "RSDCheckin"],
             format: .xml, options: 0)
         var length = UInt32(body.count).bigEndian
         try write(Data(bytes: &length, count: 4) + body)

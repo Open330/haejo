@@ -13,34 +13,34 @@ import shutil
 def build(output: Path):
     source = Path(__file__).resolve().parent
     root = source.parent
-    for name in (".venv/bin/python", "launcher/tacto", "helper/Tacto Helper.app", "skill/install.sh"):
+    for name in (".venv/bin/python", "launcher/haejo", "helper/Haejo Helper.app", "skill/install.sh"):
         if not (root / name).exists():
             raise SystemExit(f"Build the native checkout first: missing {name}")
     if output.exists() or output.is_symlink():
         raise SystemExit(f"Refusing to replace existing output: {output}")
     if not output.parent.is_dir() or output.suffix != ".app":
         raise SystemExit("Output must be a new .app in an existing directory")
-    identity = os.environ.get("TACTO_SIGN_IDENTITY")
+    identity = os.environ.get("HAEJO_SIGN_IDENTITY")
     if not identity:
         listing = subprocess.check_output(["security", "find-identity", "-p", "codesigning", "-v"], text=True)
         identity = next((m.group(1) for line in listing.splitlines()
                          if "CSSMERR" not in line and (m := re.search(r'"([^"]+)"', line))), None)
     if not identity:
-        raise SystemExit("No signing identity; set TACTO_SIGN_IDENTITY")
-    with tempfile.TemporaryDirectory(prefix="tacto-setup-build-", dir=output.parent) as temporary:
+        raise SystemExit("No signing identity; set HAEJO_SIGN_IDENTITY")
+    with tempfile.TemporaryDirectory(prefix="haejo-setup-build-", dir=output.parent) as temporary:
         app = Path(temporary) / output.name
         contents = app / "Contents"
         (contents / "MacOS").mkdir(parents=True)
         (contents / "Resources").mkdir()
-        for name in ("tacto-app.icns", "tacto-logo.svg", "tacto-menu-template.svg"):
+        for name in ("haejo-app.icns", "haejo-logo.svg", "haejo-menu-template.svg"):
             shutil.copy2(root / "docs/assets" / name, contents / "Resources" / name)
-        executable = contents / "MacOS/TactoSetup"
+        executable = contents / "MacOS/HaejoSetup"
         subprocess.run(["swiftc", str(source / "main.swift"), str(source / "PermissionState.swift"), str(source / "ActivityCenter.swift"), str(root / "RuntimeStatus.swift"),
                         "-o", str(executable)], check=True)
         (contents / "Info.plist").write_bytes(plistlib.dumps({
-            "CFBundleDisplayName": "Tacto", "CFBundleName": "Tacto",
-            "CFBundleIconFile": "tacto-app.icns",
-            "CFBundleExecutable": "TactoSetup", "CFBundleIdentifier": "ai.callabo.tacto.setup.preview",
+            "CFBundleDisplayName": "Haejo", "CFBundleName": "Haejo",
+            "CFBundleIconFile": "haejo-app.icns",
+            "CFBundleExecutable": "HaejoSetup", "CFBundleIdentifier": "ai.callabo.haejo.setup.preview",
             "CFBundlePackageType": "APPL", "CFBundleShortVersionString": "1.0.0",
             "LSUIElement": True,
             "LSMinimumSystemVersion": "13.0",
@@ -48,7 +48,7 @@ def build(output: Path):
         (contents / "Resources/runtime.json").write_text(json.dumps({"root": str(root)}))
         for target in (executable, app):
             subprocess.run(["codesign", "--force", "--sign", identity, "--identifier",
-                            "ai.callabo.tacto.setup.preview", "--options", "runtime",
+                            "ai.callabo.haejo.setup.preview", "--options", "runtime",
                             "--timestamp=none", str(target)], check=True)
         subprocess.run(["codesign", "--verify", "--deep", "--strict", str(app)], check=True)
         shutil.move(str(app), str(output))

@@ -1,10 +1,10 @@
 import unittest
 from dataclasses import replace
 
-from tacto.browser_upload import (BrowserUploadFile, BrowserUploadScope,
+from haejo.browser_upload import (BrowserUploadFile, BrowserUploadScope,
                                 BrowserUploadDriver, upload_params_valid)
-from tacto.flow import Flow, Step, Selector, replay, pin_params
-from tacto.contract import SafetyContract, Resource, ContextBinding
+from haejo.flow import Flow, Step, Selector, replay, pin_params
+from haejo.contract import SafetyContract, Resource, ContextBinding
 
 
 class BrowserUploadContract(unittest.TestCase):
@@ -43,7 +43,7 @@ class BrowserUploadContract(unittest.TestCase):
                 BrowserUploadScope(*scope_args)
 
     def adapter(self):
-        from tacto.browser import BrowserDriver
+        from haejo.browser import BrowserDriver
         # No GUI or browser startup: only test refusal paths preceding reads.
         driver = BrowserDriver.__new__(BrowserDriver)
         driver._latest = {}
@@ -89,7 +89,7 @@ class BrowserUploadContract(unittest.TestCase):
             self.assertEqual('upload_contract_required', result.log[-1]['error'])
 
     def test_upload_effect_is_intrinsically_transmit(self):
-        from tacto.safety import effects_of
+        from haejo.safety import effects_of
         self.assertEqual({'transmit'}, effects_of({'name': 'upload'}, '0 button Title: harmless')[0])
 
     def test_params_require_exact_closed_scope_and_digest(self):

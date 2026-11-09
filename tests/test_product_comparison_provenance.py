@@ -10,7 +10,7 @@ from unittest.mock import patch
 from shutil import rmtree as _real_rmtree
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-spec = importlib.util.spec_from_file_location('tacto_product_provenance', ROOT / 'examples/product_comparison.py')
+spec = importlib.util.spec_from_file_location('haejo_product_provenance', ROOT / 'examples/product_comparison.py')
 comparison = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = comparison
 spec.loader.exec_module(comparison)
@@ -35,7 +35,7 @@ class SessionAvailabilityTests(unittest.TestCase):
                 self.assertIsNone(comparison._locked())
 
     def test_missing_lock_key_with_logged_in_console_is_not_a_false_block(self):
-        from tacto.session import lock_state
+        from haejo.session import lock_state
         with patch('Quartz.CGSessionCopyCurrentDictionary', return_value={
                 'kCGSSessionOnConsoleKey': True, 'kCGSessionLoginDoneKey': True}):
             self.assertIs(False, comparison._locked())
@@ -43,7 +43,7 @@ class SessionAvailabilityTests(unittest.TestCase):
                              'source':'CGSessionCopyCurrentDictionary'}, lock_state())
 
     def test_malformed_flags_are_unknown_and_reader_details_are_not_exposed(self):
-        from tacto.session import lock_state
+        from haejo.session import lock_state
         for value in (None, 0, 'false', [], {}):
             with self.subTest(value=value), \
                  patch('Quartz.CGSessionCopyCurrentDictionary', return_value={
@@ -65,9 +65,9 @@ class SessionAvailabilityTests(unittest.TestCase):
         with patch('Quartz.CGSessionCopyCurrentDictionary', return_value={
                 'kCGSSessionOnConsoleKey': True}), \
              patch.object(comparison, 'source_manifest', return_value=manifest), \
-             patch('tacto.helper.InheritedHelperDriver.available', return_value=True), \
+             patch('haejo.helper.InheritedHelperDriver.available', return_value=True), \
              patch.object(comparison.subprocess, 'run') as run:
-            result = comparison.run_one(task, 'tacto')
+            result = comparison.run_one(task, 'haejo')
         self.assertEqual('not_run', result['status'])
         self.assertEqual('session_unobservable', result['observed'])
         self.assertFalse(result['comparison_eligible'])
@@ -95,7 +95,7 @@ class Provenance(unittest.TestCase):
 
     def test_rebuild_and_missing_artifact_are_part_of_identity(self):
         old = comparison.source_manifest()
-        key = 'helper/Tacto Helper.app/Contents/MacOS/TactoHelper'
+        key = 'helper/Haejo Helper.app/Contents/MacOS/HaejoHelper'
         self.assertIsNone(old['files'][key])
         self.write(key, 'signed-v1')
         built = comparison.source_manifest()
@@ -105,13 +105,13 @@ class Provenance(unittest.TestCase):
 
     def test_helper_source_and_relative_paths_change_identity(self):
         self.write('helper/WindowDispatch.swift', 'guard')
-        self.write('tacto/a.py', 'same')
+        self.write('haejo/a.py', 'same')
         before = comparison.source_manifest()
         self.write('helper/WindowDispatch.swift', 'new-guard')
         self.assertNotEqual(before['sha256'], comparison.source_manifest()['sha256'])
-        self.assertIn('tacto/a.py', before['files'])
+        self.assertIn('haejo/a.py', before['files'])
 
-    def execute(self, *, change=False, exit_code=0, setup=None, cleanup=None, observations=(), arm="tacto", launch_error=False, stdout=""):
+    def execute(self, *, change=False, exit_code=0, setup=None, cleanup=None, observations=(), arm="haejo", launch_error=False, stdout=""):
         class Witness:
             def __enter__(self): return self
             def __exit__(self, *args): pass
@@ -122,13 +122,13 @@ class Provenance(unittest.TestCase):
                 raise FileNotFoundError('PRIVATE executable details')
             pathlib.Path(argv[argv.index('-o') + 1]).write_text('claimed success')
             if change:
-                self.write('helper/tacto-helper', 'rebuilt-during-run')
+                self.write('helper/haejo-helper', 'rebuilt-during-run')
             return subprocess.CompletedProcess(argv, exit_code, stdout, '')
         task = comparison.Task('owned-test', 'owned goal', lambda answer: (True, 'oracle satisfied'), setup=setup, cleanup=cleanup)
         with patch.dict(sys.modules, {'focus_witness': types.SimpleNamespace(FocusWitness=Witness)}), \
              patch.object(comparison, '_locked', return_value=False), \
              patch.object(comparison, '_agent_executable_available',return_value=True), \
-             patch('tacto.helper.InheritedHelperDriver.available', return_value=True), \
+             patch('haejo.helper.InheritedHelperDriver.available', return_value=True), \
              patch.object(comparison, '_run_agent', side_effect=fake_run):
             return comparison.run_one(task, arm)
 
@@ -145,34 +145,34 @@ class Provenance(unittest.TestCase):
 
     def test_tool_lifecycle_counts_are_distinct_from_legacy_event_counts(self):
         import json
-        item={'id':'call-1','type':'command_execution','command':'tacto observe fixture --helper'}
+        item={'id':'call-1','type':'command_execution','command':'haejo observe fixture --helper'}
         events=[{'type':kind,'item':item} for kind in ('item.started','item.updated','item.completed','item.completed')]
         events.append({'type':'turn.completed','usage':{}})
         result=self.execute(stdout='\n'.join(json.dumps(event) for event in events))
-        self.assertEqual({'shell:tacto':4},result['calls'])
-        self.assertEqual({'shell:tacto':1},result['tool_item_usage']['observed_unique_items'])
-        self.assertEqual({'shell:tacto':1},result['tool_item_usage']['completed_unique_items'])
+        self.assertEqual({'shell:haejo':4},result['calls'])
+        self.assertEqual({'shell:haejo':1},result['tool_item_usage']['observed_unique_items'])
+        self.assertEqual({'shell:haejo':1},result['tool_item_usage']['completed_unique_items'])
         self.assertTrue(result['tool_item_usage']['complete_unique_counts'])
         self.assertFalse(result['comparison_eligible'])
 
     def test_quoted_launcher_paths_are_counted_and_rejected_in_sky_arm(self):
         import json
-        for command in ('"/owned runtime/launcher/tacto" observe fixture --helper',
-                        "'/owned runtime/launcher/tacto' observe fixture --helper",
-                        'tacto --help'):
+        for command in ('"/owned runtime/launcher/haejo" observe fixture --helper',
+                        "'/owned runtime/launcher/haejo' observe fixture --helper",
+                        'haejo --help'):
             events=[{'type':'item.completed','item':{'id':'one','type':'command_execution',
                                                      'command':command}},
                     {'type':'turn.completed','usage':{}}]
             stdout='\n'.join(json.dumps(event) for event in events)
             with self.subTest(command=command):
                 row=self.execute(stdout=stdout)
-                self.assertEqual({'shell:tacto':1},row['calls'])
+                self.assertEqual({'shell:haejo':1},row['calls'])
                 self.assertEqual('passed',row['status'])
                 self.assertEqual('invalid',self.execute(stdout=stdout,arm='sky')['status'])
 
     def test_abnormal_or_unfinished_stream_does_not_claim_complete_counts(self):
         import json
-        start={'type':'item.started','item':{'id':'one','type':'command_execution','command':'tacto list'}}
+        start={'type':'item.started','item':{'id':'one','type':'command_execution','command':'haejo list'}}
         cases=[([start],0),([start,{'type':'turn.failed'}],0),
                ([start,{'type':'turn.completed'}],1),([start,{'type':'turn.completed'}],0)]
         for events,code in cases:
@@ -198,7 +198,7 @@ class Provenance(unittest.TestCase):
         unchanged = self.execute()
         self.assertEqual('passed', unchanged['status'])
         self.assertEqual('com.example.foreground-sentinel', unchanged['initial_frontmost_bundle'])
-        result = self.execute(setup=lambda: self.write('tacto/setup.py', 'changed'))
+        result = self.execute(setup=lambda: self.write('haejo/setup.py', 'changed'))
         self.assertTrue(result['source_changed'])
         self.assertEqual('invalid', result['status'])
 
@@ -216,7 +216,7 @@ class Provenance(unittest.TestCase):
         self.assertEqual('failed', result['cleanup_status'])
         self.assertEqual('RuntimeError', result['cleanup_error'])
         self.assertNotIn('private error', str(result))
-        changed = self.execute(cleanup=lambda: self.write('helper/tacto-helper', 'new-binary'))
+        changed = self.execute(cleanup=lambda: self.write('helper/haejo-helper', 'new-binary'))
         self.assertEqual('completed', changed['cleanup_status'])
         self.assertEqual('invalid', changed['status'])
 
@@ -229,7 +229,7 @@ class OwnedDocumentTests(unittest.TestCase):
         self.P._OWNED.clear()
         self.addCleanup(self.P._OWNED.clear)
 
-    def own(self, path='/private/tmp/x/TACTO.txt', window=None):
+    def own(self, path='/private/tmp/x/HAEJO.txt', window=None):
         self.P._OWNED.update(path=path, directory='/private/tmp/x', inode=(1, 2),
                              process=('pid', 1), window=window or object())
         return self.P._OWNED['window']
@@ -286,7 +286,7 @@ class OwnedDocumentTests(unittest.TestCase):
         paths = {mine: self.P._owned_path()}
         for press, label in ((-25200, 'close_failed_left_as_is'), (0, 'still_open_left_as_is')):
             with patch('shutil.rmtree', side_effect=lambda *a: self.fail('removed while open')), \
-                 patch('tacto.driver._attr', side_effect=lambda el, k: 'close' if k == 'AXCloseButton' else []), \
+                 patch('haejo.driver._attr', side_effect=lambda el, k: 'close' if k == 'AXCloseButton' else []), \
                  patch('ApplicationServices.AXUIElementPerformAction', return_value=press), \
                  patch.object(self.P, '_observed_windows', return_value=(('pid', 1), [mine])), \
                  patch.object(self.P.time, 'sleep'):
@@ -304,7 +304,7 @@ class OwnedDocumentTests(unittest.TestCase):
                 self.P.owned_setup()
         directory = self.P._OWNED['directory']
         self.assertEqual(0o700, os.stat(directory).st_mode & 0o777)
-        self.assertTrue(os.path.basename(directory).startswith('tacto-compare-owned-'))
+        self.assertTrue(os.path.basename(directory).startswith('haejo-compare-owned-'))
         import shutil; shutil.rmtree(directory)
 
     def test_only_local_file_urls_are_paths(self):
@@ -312,12 +312,12 @@ class OwnedDocumentTests(unittest.TestCase):
         for url, ok in (('file:///tmp/a.txt', True), ('file://localhost/tmp/a.txt', True),
                         ('file://evil.example/tmp/a.txt', False), ('file:///tmp/a.txt?x=1', False),
                         ('https://x/tmp/a.txt', False)):
-            with patch('tacto.driver._attr', return_value=url):
+            with patch('haejo.driver._attr', return_value=url):
                 self.assertEqual(ok, P._window_path(object()) is not None, url)
 
     def test_korean_names_compare_composed(self):
         import unicodedata
-        self.own(path='/private/tmp/x/TACTO 비교 문서.txt')
+        self.own(path='/private/tmp/x/HAEJO 비교 문서.txt')
         nfd = unicodedata.normalize('NFD', str(self.P._owned_path()))
         self.assertEqual(self.P._owned_path(), self.P._nfc(nfd))
 
@@ -327,7 +327,7 @@ class OwnedDocumentTests(unittest.TestCase):
         for seen in (None, (('pid', 2), [])):          # read failed / restarted
             with patch('shutil.rmtree', side_effect=lambda *a: self.fail('removed after unknown close')), \
                  patch.object(self.P, '_observed_windows', return_value=seen), \
-                 patch('tacto.driver._attr', side_effect=lambda el, k: 'close' if k == 'AXCloseButton' else []), \
+                 patch('haejo.driver._attr', side_effect=lambda el, k: 'close' if k == 'AXCloseButton' else []), \
                  patch('ApplicationServices.AXUIElementPerformAction', return_value=0), \
                  patch.object(self.P.time, 'sleep'):
                 windows = iter([[mine], [mine]] + [[]] * 40)
@@ -345,7 +345,7 @@ class OwnedDocumentTests(unittest.TestCase):
              patch.object(self.P, '_observed_windows', return_value=seen), \
              patch.object(self.P, '_document_read', side_effect=read), \
              patch.object(self.P, '_owned_file_is_ours', return_value=False), \
-             patch('tacto.driver._attr', side_effect=lambda el, k: 'close' if k == 'AXCloseButton' else []), \
+             patch('haejo.driver._attr', side_effect=lambda el, k: 'close' if k == 'AXCloseButton' else []), \
              patch('ApplicationServices.AXUIElementPerformAction', return_value=0), \
              patch.object(self.P.time, 'sleep'):
             windows = iter([[mine], [mine]] + [[]] * 40)
@@ -466,7 +466,7 @@ class FinderFolderTaskTests(unittest.TestCase):
                 self.P.finder_setup()
 
     def test_a_failed_read_is_not_an_empty_finder(self):
-        self.P._FOLDER['path'] = '/tmp/tacto-compare-folder-x'
+        self.P._FOLDER['path'] = '/tmp/haejo-compare-folder-x'
         for failing in ('AXTitle', 'AXChildren', 'AXIdentifier'):
             def ax(el, name, failing=failing):
                 if name == failing:
@@ -487,14 +487,14 @@ class FinderFolderTaskTests(unittest.TestCase):
     def test_answer_and_finder_showing_the_count_pass(self):
         with patch.object(self.P, 'finder_state', return_value=self.state(shown=['w'])), \
                 patch.object(self.P, '_find_identified', return_value='bar'), \
-                patch('tacto.driver._attr', return_value='7 items, 286 GB available'):
+                patch('haejo.driver._attr', return_value='7 items, 286 GB available'):
             passed, _ = self.P.finder_oracle('7 items')
         self.assertTrue(passed)
 
     def test_wrong_count_on_screen_fails(self):
         with patch.object(self.P, 'finder_state', return_value=self.state(shown=['w'])), \
                 patch.object(self.P, '_find_identified', return_value='bar'), \
-                patch('tacto.driver._attr', return_value='17 items'):
+                patch('haejo.driver._attr', return_value='17 items'):
             passed, _ = self.P.finder_oracle('7 items')
         self.assertFalse(passed)
 
@@ -558,9 +558,9 @@ class NewTaskOracleTests(unittest.TestCase):
             self.P._OWNED.clear(); self.addCleanup(self.P._OWNED.clear)
             st = os.stat(d)
             self.P._OWNED.update(path=path, directory=d, inode=(st.st_dev, st.st_ino))
-            for disk, shown, want in (('TACTO 저장 확인 4417', True, True),
+            for disk, shown, want in (('HAEJO 저장 확인 4417', True, True),
                                       ('', True, False),          # typed but not saved
-                                      ('TACTO 저장 확인 4417', False, False),
+                                      ('HAEJO 저장 확인 4417', False, False),
                                       (None, True, False)):
                 if disk is None:
                     if os.path.exists(path): os.unlink(path)
@@ -568,7 +568,7 @@ class NewTaskOracleTests(unittest.TestCase):
                     pathlib.Path(path).write_text(disk, encoding='utf-8')
                 with self.subTest(disk=disk, shown=shown), \
                         patch.object(self.P, 'owned_oracle', return_value=(shown, 'w')):
-                    self.assertEqual(want, self.P.owned_saved_oracle('TACTO 저장 확인 4417')[0])
+                    self.assertEqual(want, self.P.owned_saved_oracle('HAEJO 저장 확인 4417')[0])
 
     def test_new_folder_needs_exactly_one_named_folder(self):
         import os

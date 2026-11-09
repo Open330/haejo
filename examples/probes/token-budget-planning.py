@@ -18,9 +18,9 @@ import subprocess
 from unittest.mock import patch
 
 import tiktoken
-from tacto.ask import ask_here_paged
-from tacto.browser import BrowserDriver
-from tacto.general import candidates
+from haejo.ask import ask_here_paged
+from haejo.browser import BrowserDriver
+from haejo.general import candidates
 
 
 def private_json(path, data):
@@ -32,7 +32,7 @@ def private_json(path, data):
 
 def source_hashes():
     root = Path(__file__).resolve().parents[2]
-    paths = list((root / 'tacto').glob('*.py')) + [Path(__file__).resolve()]
+    paths = list((root / 'haejo').glob('*.py')) + [Path(__file__).resolve()]
     return {str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest()
             for p in sorted(paths)}
 
@@ -48,7 +48,7 @@ def selection_case(value):
 
 
 def executable_snapshot(provider):
-    from tacto.authoring import _provider_env
+    from haejo.authoring import _provider_env
     environment = _provider_env()
     path = shutil.which(provider, path=environment.get('PATH', os.defpath))
     if path is None:
@@ -69,7 +69,7 @@ def executable_snapshot(provider):
 
 def case_outcome(report):
     """A provider gate without an answer/action is not a task failure rate."""
-    from tacto.provider_result import UNAVAILABLE_REASONS
+    from haejo.provider_result import UNAVAILABLE_REASONS
     calls = report['calls']
     errors = [call.get('provider_result', {}).get('error') for call in calls]
     codes = [error.get('code') if isinstance(error, dict) else None for error in errors]
@@ -86,13 +86,13 @@ def case_outcome(report):
 def live_cli_result(provider, prompt, timeout):
     """Use each provider's structured adapter, never raw CLI text fallback."""
     if provider == 'codex':
-        from tacto.codex_result import codex_result
+        from haejo.codex_result import codex_result
         return codex_result(prompt, timeout=timeout)
     if provider == 'claude':
-        from tacto.claude_result import claude_result
+        from haejo.claude_result import claude_result
         return claude_result(prompt, timeout=timeout)
     if provider == 'opencode':
-        from tacto.opencode_result import opencode_result
+        from haejo.opencode_result import opencode_result
         return opencode_result(prompt, timeout=timeout)
     raise ValueError('unsupported structured probe provider')
 
@@ -162,7 +162,7 @@ def main():
 
             result, action_result, error = None, None, None
             try:
-                with patch('tacto.ask.reach_model', side_effect=live_request):
+                with patch('haejo.ask.reach_model', side_effect=live_request):
                     result = ask_here_paged('Set only ' + names[wanted] + ' to ' + priority_label + '. '
                         'Return exactly one select_option action for that control.', rows,
                         provider=args.provider, budget=args.budget, token_counter=counter,

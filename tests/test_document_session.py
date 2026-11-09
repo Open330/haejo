@@ -8,8 +8,8 @@ import tempfile
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from tacto.cli import _run_flow
-from tacto.flow_session import run_session
+from haejo.cli import _run_flow
+from haejo.flow_session import run_session
 from tests import test_document_scoped_driver as scoped
 PATH, TARGET = scoped.PATH, scoped.TARGET
 
@@ -30,8 +30,8 @@ class DocumentSessionTests(unittest.TestCase):
         read,write=os.pipe()
         os.write(write,(json.dumps(flow)+'\n').encode());os.close(write)
         with os.fdopen(read) as stream,contextlib.redirect_stdout(io.StringIO()), \
-             patch('tacto.cli._make_driver',side_effect=AssertionError('second connection')), \
-             patch('tacto.cli._indicator_for',return_value=contextlib.nullcontext()):
+             patch('haejo.cli._make_driver',side_effect=AssertionError('second connection')), \
+             patch('haejo.cli._indicator_for',return_value=contextlib.nullcontext()):
             code=run_session(args or [TARGET,'--helper','--document',PATH,'--guide'],
                              make_driver=make,run_flow=runner or _run_flow,stdin=stream,emit=messages.append)
         return code,make,messages
@@ -45,10 +45,10 @@ class DocumentSessionTests(unittest.TestCase):
         self.assertGreater(len(inner.observe.call_args_list),2)
         for call in inner.observe.call_args_list:self.assertEqual('pin',call.kwargs['document_token'])
         inner.close.assert_called_once()
-        self.assertTrue(any(x.startswith('TACTO_SESSION_READY') for x in messages))
+        self.assertTrue(any(x.startswith('HAEJO_SESSION_READY') for x in messages))
 
     def test_generated_guide_flow_executes_on_the_same_scoped_driver(self):
-        from tacto.command_help import session_guide
+        from haejo.command_help import session_guide
         doc=json.loads(session_guide(TARGET,document=PATH).splitlines()[1])
         doc['steps'][0]['postcondition']['equals']='owned'
         inner=self.inner();code,_,_=self.run_session(inner,doc=doc)
@@ -63,14 +63,14 @@ class DocumentSessionTests(unittest.TestCase):
             code,_,messages=self.run_session(inner,args=[TARGET,'--helper','--document',PATH,
                                                          '--guide','--save',str(saved)])
             self.assertEqual(0,code)
-            guide=next(m for m in messages if m.startswith('TACTO_FLOW_GUIDE'))
+            guide=next(m for m in messages if m.startswith('HAEJO_FLOW_GUIDE'))
             template=json.loads(guide.splitlines()[1])
             self.assertEqual(PATH,template['selector_defaults']['ancestor'])
             self.assertEqual(PATH,template['check_defaults']['field']['ancestor'])
             self.assertNotIn('Reusable template:',guide)
 
     def test_guide_edit_keeps_named_selector_and_unverified_persistence(self):
-        from tacto.command_help import session_guide
+        from haejo.command_help import session_guide
         doc=json.loads(session_guide(TARGET,document=PATH).splitlines()[1])
         step=doc['steps'][0]
         step.update(action='set_value',params={'value':'changed'})
@@ -96,7 +96,7 @@ class DocumentSessionTests(unittest.TestCase):
         inner.act.assert_called_once()
         self.assertEqual(1,inner.act.call_args.args[2]['element_index'])
         self.assertEqual(2,inner.document_text.call_count)  # pin + one body-state read
-        state=json.loads(next(x.removeprefix('TACTO_DOCUMENT_STATE ') for x in messages if x.startswith('TACTO_DOCUMENT_STATE ')))
+        state=json.loads(next(x.removeprefix('HAEJO_DOCUMENT_STATE ') for x in messages if x.startswith('HAEJO_DOCUMENT_STATE ')))
         self.assertTrue(state['matches_requested_text'])
         self.assertFalse(state['save_verified']);self.assertFalse(state['dispatch_confirmed'])
         inner.close.assert_called_once()
@@ -108,14 +108,14 @@ class DocumentSessionTests(unittest.TestCase):
             self.assertEqual(0,code)
             saved=json.loads(Path(save).read_text())
             self.assertNotIn('document_token',saved)
-            scope=json.loads(next(x.removeprefix('TACTO_FLOW_SCOPE ') for x in messages if x.startswith('TACTO_FLOW_SCOPE ')))
+            scope=json.loads(next(x.removeprefix('HAEJO_FLOW_SCOPE ') for x in messages if x.startswith('HAEJO_FLOW_SCOPE ')))
             self.assertFalse(scope['scope_stored_in_flow'])
-            self.assertEqual(['tacto','run',save,'--helper','--document',PATH],scope['replay_argv'])
+            self.assertEqual(['haejo','run',save,'--helper','--document',PATH],scope['replay_argv'])
             self.assertEqual(1,inner.document_text.call_count)
             inner.close.assert_called_once()
 
     def test_run_callback_receives_existing_wrapper_without_repin_flag(self):
-        from tacto.document_scope import DocumentScopedDriver
+        from haejo.document_scope import DocumentScopedDriver
         inner=self.inner();runner=Mock(return_value=0)
         code,_,_=self.run_session(inner,runner=runner)
         self.assertEqual(0,code)
@@ -130,7 +130,7 @@ class DocumentSessionTests(unittest.TestCase):
         code,_,messages=self.run_session(inner,runner=runner)
         self.assertEqual(1,code)
         inner.observe.assert_not_called();runner.assert_not_called();inner.close.assert_called_once()
-        self.assertFalse(any(x.startswith('TACTO_SESSION_READY') for x in messages))
+        self.assertFalse(any(x.startswith('HAEJO_SESSION_READY') for x in messages))
 
     def test_token_loss_during_replay_stops_without_repin_or_input(self):
         inner=self.inner();first=dict(inner.observe.return_value)
@@ -152,6 +152,6 @@ class DocumentSessionTests(unittest.TestCase):
 
     def test_windows_document_flag_is_refused_before_connection(self):
         inner=self.inner()
-        with patch('tacto.flow_session.sys.platform','win32'):
+        with patch('haejo.flow_session.sys.platform','win32'):
             code,make,_=self.run_session(inner,args=[TARGET,'--document',PATH])
         self.assertEqual(2,code);make.assert_not_called()

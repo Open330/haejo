@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 @unittest.skipUnless(sys.platform == 'darwin' and shutil.which('xcrun'), 'macOS Swift required')
 class HelperSaveDocumentSwiftTests(unittest.TestCase):
     def test_document_token_scope_freshness_and_mid_read_stop(self):
-        source = (ROOT / 'helper/TactoHelper.swift').read_text()
+        source = (ROOT / 'helper/HaejoHelper.swift').read_text()
         pins = source[source.index('struct PinnedSavePanel {'):source.index('func saveDirectoryResource(')]
         handler = source[source.index('func readSavePanel('):source.index('// Read-only: resolve only a running process', source.index('func readSavePanel('))]
         harness = r'''
@@ -138,7 +138,7 @@ refused(readSavePanel(request), "aborted_by_user")
 precondition(reads == beforeStop + 3)
 print("SWIFT_SAVE_DOCUMENT_HANDLER_PASS")
 '''
-        with tempfile.TemporaryDirectory(prefix='tacto-save-document-handler-') as directory:
+        with tempfile.TemporaryDirectory(prefix='haejo-save-document-handler-') as directory:
             main = Path(directory) / 'main.swift'
             binary = Path(directory) / 'check'
             main.write_text(harness + pins + handler + checks)

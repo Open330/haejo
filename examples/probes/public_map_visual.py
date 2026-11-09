@@ -94,11 +94,11 @@ def browser_environment(page):
 def run(provider, output, *, clock=time.monotonic, perturb_background=False):
     if provider not in ('codex','claude'):raise ValueError('unsupported_provider')
     if type(perturb_background) is not bool:raise ValueError('invalid perturbation flag')
-    from tacto.browser import BrowserDriver
-    from tacto.visual import VisualError,capture_browser,plan_visual
-    from tacto.visual_actions import VisualClickExecutor
-    from tacto.model_budget import model_deadline
-    from tacto.provider_observation import capture_provider_calls,summarize_provider_calls
+    from haejo.browser import BrowserDriver
+    from haejo.visual import VisualError,capture_browser,plan_visual
+    from haejo.visual_actions import VisualClickExecutor
+    from haejo.model_budget import model_deadline
+    from haejo.provider_observation import capture_provider_calls,summarize_provider_calls
     output=Path(output)
     descriptor=os.open(output,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
     report={'passed':False,'scope':'public app, headless browser, one host-authorized pixel zoom',
@@ -108,7 +108,7 @@ def run(provider, output, *, clock=time.monotonic, perturb_background=False):
             'started_at_utc':datetime.now(timezone.utc).isoformat(timespec='seconds'),
             'stage':'initialization','capture_attempts':[],
             'controlled_background_perturbation':perturb_background}
-    paths=sorted((ROOT/'tacto').glob('*.py'))+[Path(__file__).resolve()]
+    paths=sorted((ROOT/'haejo').glob('*.py'))+[Path(__file__).resolve()]
     def manifest():return {str(p.relative_to(ROOT)):hashlib.sha256(p.read_bytes()).hexdigest() for p in paths}
     before=None;driver=None;calls=[];began=clock()
     try:

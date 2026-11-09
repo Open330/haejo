@@ -2,9 +2,9 @@
 import copy
 import json
 import unittest
-from tacto.command_help import calculator_example
-from tacto.flow import Flow
-from tacto.flow_errors import feedback
+from haejo.command_help import calculator_example
+from haejo.flow import Flow
+from haejo.flow_errors import feedback
 
 
 class FieldFeedbackTests(unittest.TestCase):
@@ -71,7 +71,7 @@ class FieldFeedbackTests(unittest.TestCase):
 
 class ContractFeedbackTests(unittest.TestCase):
     def test_blocked_static_contracts_are_correctable_before_execution(self):
-        from tacto.flow_session import prepare_session_flow
+        from haejo.flow_session import prepare_session_flow
         cases=[({'resource':{'scope':'PRIVATE_DOCUMENT'}},'resource.scope','item'),
                ({'resource':{'scope':'unknown'}},'resource.scope','item'),
                ({'reversibility':'unknown'},'reversibility','reversible'),
@@ -88,7 +88,7 @@ class ContractFeedbackTests(unittest.TestCase):
             self.assertIn(hint,message);self.assertNotIn('PRIVATE',message)
 
     def test_read_with_unknown_scope_and_valid_confirmation_policy_are_unchanged(self):
-        from tacto.flow_session import prepare_session_flow
+        from haejo.flow_session import prepare_session_flow
         for effects in (['read'],['write_persistent']):
             doc={'name':'task','target':'app','steps':[{'action':'read' if effects==['read'] else 'set_value','selector':{'identifier':'body'},'params':{} if effects==['read'] else {'value':'text'},'safety':{'effects':effects,'reversibility':'unknown' if effects==['read'] else 'reversible','resource':{'scope':'unknown' if effects==['read'] else 'item'}}}]}
             flow=Flow.from_json(json.dumps(doc));prepared,_=prepare_session_flow(flow,'app')
@@ -100,7 +100,7 @@ class ContractFeedbackTests(unittest.TestCase):
         self.assertEqual(flow.to_json(),prepared.to_json())
 
     def test_credential_authority_is_not_rejected_by_static_preflight(self):
-        from tacto.flow_session import prepare_session_flow
+        from haejo.flow_session import prepare_session_flow
         doc={'name':'delegation','target':'app','steps':[{'action':'authenticate','params':{'grant':'owned-grant'},'safety':{'effects':['credential'],'data_classes':['credential']}}]}
         flow=Flow.from_json(json.dumps(doc));prepared,_=prepare_session_flow(flow,'app')
         self.assertEqual(flow.to_json(),prepared.to_json())

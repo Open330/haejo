@@ -19,9 +19,9 @@ import pathlib
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-HELPER = (ROOT / "helper/TactoHelper.swift").read_text()
-LAUNCHER = (ROOT / "launcher/tacto.swift").read_text()
-DRIVER = (ROOT / "tacto/driver.py").read_text()
+HELPER = (ROOT / "helper/HaejoHelper.swift").read_text()
+LAUNCHER = (ROOT / "launcher/haejo.swift").read_text()
+DRIVER = (ROOT / "haejo/driver.py").read_text()
 
 
 class NothingIsSynthesised(unittest.TestCase):
@@ -115,7 +115,7 @@ class WindowIndexMeansOneThing(unittest.TestCase):
     def test_the_capture_badge_is_not_counted_as_a_window(self):
         # Holding the control indicator makes macOS attach its capture badge to
         # the window being captured, and the badge appears in that app's own
-        # AXWindows list — so saying "TACTO is working on this window" was what
+        # AXWindows list — so saying "HAEJO is working on this window" was what
         # made that window ambiguous. Measured at 66x20 inside 460x232, subrole
         # AXDialog, title "Window", no close button (2026-09-21).
         for name, text in (("helper", HELPER), ("driver", DRIVER)):
@@ -177,19 +177,19 @@ class TheTreeStaysParseable(unittest.TestCase):
     """
 
     def test_the_key_terminates_the_value_before_it(self):
-        from tacto.flow import Selector
+        from haejo.flow import Selector
         line = "  12 TextArea  Description: First Text View, Secondary Actions: ShowMenu"
         self.assertEqual(Selector._attr(line, "Description"), "First Text View")
         self.assertEqual(Selector._attr(line, "Secondary Actions"), "ShowMenu")
 
     def test_an_ordinary_line_is_unaffected(self):
-        from tacto.flow import Selector
+        from haejo.flow import Selector
         line = "  5 Button  Description: 7, Identifier: Seven"
         self.assertEqual(Selector._attr(line, "Description"), "7")
         self.assertEqual(Selector._attr(line, "Identifier"), "Seven")
 
     def test_a_selector_still_matches_past_the_actions(self):
-        from tacto.flow import Selector
+        from haejo.flow import Selector
         line = "  12 TextArea  Description: First Text View, Secondary Actions: ShowMenu"
         self.assertTrue(Selector(role="TextArea", desc="First Text View").matches(line))
         # And a wrong one still does not: terminating the value must not have
@@ -197,7 +197,7 @@ class TheTreeStaysParseable(unittest.TestCase):
         self.assertFalse(Selector(role="TextArea", desc="First Text").matches(line))
 
     def test_the_marker_keys_still_terminate_too(self):
-        from tacto.flow import Selector
+        from haejo.flow import Selector
         line = ("  3 Button  Description: Mode, Secondary Actions: ShowMenu, "
                 "Increment [disabled]")
         self.assertEqual(Selector._attr(line, "Description"), "Mode")

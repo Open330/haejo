@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def menu_case():
-    source = (ROOT / 'helper/TactoHelper.swift').read_text()
+    source = (ROOT / 'helper/HaejoHelper.swift').read_text()
     start = source.index('    case "menu":\n')
     return source[start:source.index('    case "reopen_window":', start)]
 

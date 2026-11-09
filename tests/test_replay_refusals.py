@@ -6,8 +6,8 @@ from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
-from tacto import cli
-from tacto.flow import _arith
+from haejo import cli
+from haejo.flow import _arith
 
 
 class ReplayRefusalTests(unittest.TestCase):
@@ -18,7 +18,7 @@ class ReplayRefusalTests(unittest.TestCase):
     def run_cli(self, *argv):
         out, err = io.StringIO(), io.StringIO()
         with patch.object(cli, '_run_flow', side_effect=AssertionError('replayed')), \
-             patch('tacto.access_log.log_directory', lambda: Path(self.tmp.name)/'Logs'), \
+             patch('haejo.access_log.log_directory', lambda: Path(self.tmp.name)/'Logs'), \
              redirect_stdout(out), redirect_stderr(err):
             code = cli.main(list(argv))
         return code, out.getvalue() + err.getvalue()

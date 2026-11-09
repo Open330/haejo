@@ -5,8 +5,8 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
-from tacto import cli
-from tacto.flow import Flow
+from haejo import cli
+from haejo.flow import Flow
 
 
 class CompileRoundsTests(unittest.TestCase):
@@ -15,7 +15,7 @@ class CompileRoundsTests(unittest.TestCase):
                 (['--repair-rounds','2'],False,2),(['--verify-rounds','0'],True,0)):
             with tempfile.TemporaryDirectory() as directory, \
                  patch.object(cli,'_make_driver',return_value=object()), \
-                 patch('tacto.authoring.author',return_value=Flow('compiled','app')) as model, \
+                 patch('haejo.authoring.author',return_value=Flow('compiled','app')) as model, \
                  contextlib.redirect_stdout(io.StringIO()):
                 result=cli.main(['compile','read data',*options,'-o',str(Path(directory)/'flow.json')])
             self.assertEqual(result,0)
@@ -28,6 +28,6 @@ class CompileRoundsTests(unittest.TestCase):
                 ['--repair-rounds','0','--repair-rounds','1'],
                 ['--repair-rounds','0','--verify-rounds','1']):
             with patch.object(cli,'_make_driver') as driver, \
-                 patch('tacto.authoring.author') as model, contextlib.redirect_stdout(io.StringIO()):
+                 patch('haejo.authoring.author') as model, contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(cli.main(['compile','read',*options]),2)
             driver.assert_not_called();model.assert_not_called()

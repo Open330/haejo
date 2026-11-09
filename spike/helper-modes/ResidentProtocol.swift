@@ -1,11 +1,11 @@
 import Foundation
 
-@objc(TactoModeRPC) protocol TactoModeRPC {
+@objc(HaejoModeRPC) protocol HaejoModeRPC {
     func acquire(_ build: String, reply: @escaping (NSDictionary) -> Void)
     func request(_ frame: Data, reply: @escaping (Data) -> Void)
 }
 
-enum TactoResident {
-    static let service = "ai.callabo.tacto.prototype.resident"
-    static let agent = "ai.callabo.tacto.prototype.agent"
+enum HaejoResident {
+    static let service = "ai.callabo.haejo.prototype.resident"
+    static let agent = "ai.callabo.haejo.prototype.agent"
 }

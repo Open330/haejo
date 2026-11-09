@@ -1,5 +1,5 @@
 {
-  "schema": "tacto-observed-benchmark-v1",
+  "schema": "haejo-observed-benchmark-v1",
   "date": "2026-11-06",
   "release": "v1.0.0-rc.22",
   "runtime_source_commit": "8a28650a2cc45c6a066907ceb73d57c43fcbb38d",
@@ -50,7 +50,7 @@
     "billing_verified": false,
     "token_scope": "single reported parent Codex turn.completed usage per task; not a billing or nested-provider accounting claim",
     "arms": {
-      "tacto": {
+      "haejo": {
         "runs": 3,
         "passed": 3,
         "seconds_median": 57.0,
@@ -115,7 +115,7 @@
     },
     "trials": [
       {
-        "arm": "tacto",
+        "arm": "haejo",
         "rep": 0,
         "status": "passed",
         "seconds": 63.0,
@@ -175,7 +175,7 @@
         "source_changed": false
       },
       {
-        "arm": "tacto",
+        "arm": "haejo",
         "rep": 1,
         "status": "passed",
         "seconds": 49.6,
@@ -195,7 +195,7 @@
         "source_changed": false
       },
       {
-        "arm": "tacto",
+        "arm": "haejo",
         "rep": 2,
         "status": "passed",
         "seconds": 57.0,

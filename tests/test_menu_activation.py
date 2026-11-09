@@ -7,8 +7,8 @@ import pathlib
 import unittest
 from unittest.mock import patch
 
-from tacto.contract import Envelope
-from tacto.flow import Flow, Step, Selector, Capture, Postcondition, Resolution, replay
+from haejo.contract import Envelope
+from haejo.flow import Flow, Step, Selector, Capture, Postcondition, Resolution, replay
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
@@ -100,7 +100,7 @@ class MenuActivationTests(unittest.TestCase):
         def escalate(uncertainty):
             asked.append(uncertainty.kind)
             return Resolution(kind='recover', recovery='dismiss_dialog')
-        with patch('tacto.flow._run_fix', side_effect=lambda *a, **k: fixes.append(a[2]) or True):
+        with patch('haejo.flow._run_fix', side_effect=lambda *a, **k: fixes.append(a[2]) or True):
             result = replay(app, step_flow, escalate=escalate, budget=3)
         return result, asked, fixes
 
@@ -131,7 +131,7 @@ class MenuActivationTests(unittest.TestCase):
         self.assertEqual(['postcondition_timeout'], asked)
 
     def test_helper_watches_for_it_after_the_press(self):
-        swift = (ROOT / 'helper/TactoHelper.swift').read_text()
+        swift = (ROOT / 'helper/HaejoHelper.swift').read_text()
         case = swift[swift.index('    case "menu":'):swift.index('    case "select_option":')]
         self.assertIn('if !wasFront {', case)
         self.assertIn('if isFrontmost(pid: p) { activated = true; break }', case)
@@ -140,7 +140,7 @@ class MenuActivationTests(unittest.TestCase):
     def test_open_folder_asks_through_the_bounded_request(self):
         # The stop/deadline check is inside openFolderBounded, right before the
         # request (run for real in tests/test_open_folder_swift.py).
-        swift = (ROOT / 'helper/TactoHelper.swift').read_text()
+        swift = (ROOT / 'helper/HaejoHelper.swift').read_text()
         case = swift[swift.index('    case "open_folder":'):swift.index('    case "select_option":')]
         self.assertEqual(1, case.count('NSWorkspace.shared.open('))
         self.assertIn('switch openFolderBounded(deadline: deadline, stopped: { abortState.isStopped }', case)

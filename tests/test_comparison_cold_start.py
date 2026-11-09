@@ -3,7 +3,7 @@ from pathlib import Path
 import unittest
 from unittest.mock import patch
 from tests.test_product_comparison_provenance import comparison
-from tacto.comparison_tokens import reported_turn_tokens
+from haejo.comparison_tokens import reported_turn_tokens
 
 
 class ColdStartTests(unittest.TestCase):
@@ -12,8 +12,8 @@ class ColdStartTests(unittest.TestCase):
             with self.subTest(cold=cold), patch.object(comparison, '_COLD_START', cold), \
                  patch.object(comparison, '_REQUESTED_MODEL', 'test-model'), \
                  patch.object(comparison, '_REQUESTED_REASONING_EFFORT', 'medium'), \
-                 patch('tacto.codex_result._run_codex', return_value=subprocess.CompletedProcess([], 0, '', '')) as run:
-                for arm in ('tacto', 'sky'):
+                 patch('haejo.codex_result._run_codex', return_value=subprocess.CompletedProcess([], 0, '', '')) as run:
+                for arm in ('haejo', 'sky'):
                     comparison._run_agent(['codex', 'exec', '-'], comparison._arm_prompt('owned task', arm), 5, [])
                     argv = run.call_args.args[0]
                     self.assertEqual('test-model', argv[argv.index('--model') + 1])
@@ -32,8 +32,8 @@ class ColdStartTests(unittest.TestCase):
             self.assertEqual(0o700,path.stat().st_mode & 0o777)
             directories.append(cwd)
             return subprocess.CompletedProcess(argv,0,'','')
-        with patch.object(comparison,'_COLD_START',True),patch('tacto.codex_result._run_codex',side_effect=execute):
-            for arm in ('tacto','sky'):
+        with patch.object(comparison,'_COLD_START',True),patch('haejo.codex_result._run_codex',side_effect=execute):
+            for arm in ('haejo','sky'):
                 result=comparison._run_agent(['codex','exec','-C','/tmp','-'],comparison._arm_prompt('Read the same app.',arm),9,[])
                 self.assertTrue(result.comparison_context['workspace_empty_before_launch'])
                 self.assertFalse(result.comparison_context['prior_conversation_supplied_by_harness'])
@@ -42,14 +42,14 @@ class ColdStartTests(unittest.TestCase):
         self.assertTrue(all(not Path(path).exists() for path in directories))
 
     def test_history_resume_is_refused_before_spawn(self):
-        with patch.object(comparison,'_COLD_START',True),patch('tacto.codex_result._run_codex') as run:
+        with patch.object(comparison,'_COLD_START',True),patch('haejo.codex_result._run_codex') as run:
             for argv in [['codex','exec','resume','--last'],['codex','exec','fork','id']]:
                 with self.assertRaises(ValueError):comparison._run_agent(argv,'task',2,[])
             run.assert_not_called()
 
     def test_failed_execution_keeps_context_evidence(self):
         error=subprocess.TimeoutExpired('owned',1)
-        with patch.object(comparison,'_COLD_START',True),patch('tacto.codex_result._run_codex',side_effect=error):
+        with patch.object(comparison,'_COLD_START',True),patch('haejo.codex_result._run_codex',side_effect=error):
             with self.assertRaises(subprocess.TimeoutExpired):comparison._run_agent(['codex','exec','-'],'task',1,[])
         self.assertTrue(error.comparison_context['ephemeral_requested'])
         self.assertFalse(Path(error.comparison_context['workspace']).exists())

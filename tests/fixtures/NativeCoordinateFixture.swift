@@ -15,8 +15,8 @@ final class CoordinateTargetView: NSView {
         setAccessibilityRole(.button)
         setAccessibilityEnabled(true)
         setAccessibilityLabel("Coordinate target")
-        setAccessibilityIdentifier("tacto-coordinate-button")
-        identifier = NSUserInterfaceItemIdentifier("tacto-coordinate-button")
+        setAccessibilityIdentifier("haejo-coordinate-button")
+        identifier = NSUserInterfaceItemIdentifier("haejo-coordinate-button")
     }
 
     required init?(coder: NSCoder) { fatalError("coder initialization unsupported") }
@@ -68,13 +68,13 @@ final class CoordinateFixtureDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         let window = NSWindow(contentRect: NSRect(x: 120, y: 120, width: 360, height: 190),
                               styleMask: [.titled, .closable], backing: .buffered, defer: false)
-        window.title = "TACTO Native Coordinate Fixture"
+        window.title = "HAEJO Native Coordinate Fixture"
         window.isReleasedWhenClosed = false
         self.window = window
         let counter = NSTextField(labelWithString: "0")
         counter.frame = NSRect(x: 30, y: 25, width: 240, height: 24)
-        counter.identifier = NSUserInterfaceItemIdentifier("tacto-coordinate-count")
-        counter.setAccessibilityIdentifier("tacto-coordinate-count")
+        counter.identifier = NSUserInterfaceItemIdentifier("haejo-coordinate-count")
+        counter.setAccessibilityIdentifier("haejo-coordinate-count")
         window.contentView?.addSubview(CoordinateTargetView(counter: counter))
         window.contentView?.addSubview(counter)
         window.orderBack(nil)

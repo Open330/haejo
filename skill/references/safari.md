@@ -1,10 +1,10 @@
-To just open an address the person asked for, use `tacto open-url <URL>
+To just open an address the person asked for, use `haejo open-url <URL>
 --helper` (LaunchServices, no typing; `loaded_verified` from the page's web area,
 `page_not_shown` for a redirect, never reopened). `already_open: true` with
 `loaded_verified: false` means the page was already in front: done, not a failure;
 do not open it again. `open_unconfirmed` may still finish later; observe, never
 resend. The page opens in the browser's front window; when another task shares the
-browser, add `--window "<part of the intended window's title>"` and Tacto brings
+browser, add `--window "<part of the intended window's title>"` and Haejo brings
 that window forward first (`window_not_found`/`window_ambiguous` list `windows`).
 Use the steps below only when a Flow must navigate an existing window.
 
@@ -19,7 +19,7 @@ leave an existing page unchanged even when `AXConfirm` reports success.
 
 Scope the address selector and binding to the intended window's observed
 Identifier. Before the app-wide menu, verify that this is Safari's main window.
-If the menu needs the foreground, use `tacto activate com.apple.Safari --window
+If the menu needs the foreground, use `haejo activate com.apple.Safari --window
 "<unique observed title>" --helper`.
 Verify the selected window before continuing.
 
@@ -37,6 +37,6 @@ See [URL confirmation](../docs/native-window-input.md#safari-url-confirmation)
 for the receiving evidence and window identity rules.
 
 Observed GitHub support-ticket, issue and pull-request detail links may carry a
-quoted `URL`. Tacto pins that URL again at dispatch, so verbs in the record
+quoted `URL`. Haejo pins that URL again at dispatch, so verbs in the record
 subject do not turn reading the record into a delete/send action. Missing or
 changed URLs are not treated as verified navigation.

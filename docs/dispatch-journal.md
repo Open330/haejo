@@ -1,6 +1,6 @@
 # Opt-in process-restart dispatch barrier
 
-`tacto.dispatch_journal.DurableDispatchDriver` wraps a trusted driver’s `act`
+`haejo.dispatch_journal.DurableDispatchDriver` wraps a trusted driver’s `act`
 method. It reserves an ordinal slot using exclusive creation, flushes and
 fsyncs the reservation file and directory, then delegates input. A second
 worker using the **same directory for the same logical run** refuses the first
@@ -10,7 +10,7 @@ The refusal is sticky: retrying in that wrapper cannot advance past the slot.
 Programmatic use:
 
 ```python
-from tacto.dispatch_journal import DurableDispatchDriver
+from haejo.dispatch_journal import DurableDispatchDriver
 
 # underlying_driver and the run's absolute private path are host-owned.
 with DurableDispatchDriver(underlying_driver, journal_directory) as guarded:
@@ -20,9 +20,9 @@ with DurableDispatchDriver(underlying_driver, journal_directory) as guarded:
 CLI execution can opt in with the same absolute run directory:
 
 ```sh
-tacto run owned-flow.json --helper --journal-dir /absolute/private/run-directory
-tacto replay owned-recipe --helper --journal-dir /absolute/private/run-directory
-tacto do "owned task" --helper --journal-dir /absolute/private/run-directory
+haejo run owned-flow.json --helper --journal-dir /absolute/private/run-directory
+haejo replay owned-recipe --helper --journal-dir /absolute/private/run-directory
+haejo do "owned task" --helper --journal-dir /absolute/private/run-directory
 ```
 
 The option is supported by `do`, `run`, `replay`, and `web-upload`. It is removed before
@@ -91,7 +91,7 @@ Raw log (local evidence: `../reviews/2026-10-11/cli-dispatch-journal-regression-
 and explicit source subset report (local evidence: `../reviews/2026-10-11/cli-dispatch-journal-regression-20261011-a.json`)
 are preserved; declared CLI/journal/test sources were unchanged before/after.
 These CLI tests use owned in-memory app/evidence fixtures. Installed signed
-launcher `tacto run --help` also returned0 and displayed the new option; it did
+launcher `haejo run --help` also returned0 and displayed the new option; it did
 not launch a task or attest GUI recovery.
 
 ## Chromium + CLI worker termination
@@ -120,7 +120,7 @@ as this effect having occurred.
 
 ## Signed native producer reply loss
 
-`tacto eval signed_producer_file_reply_loss` is an isolated, model-free owned
+`haejo eval signed_producer_file_reply_loss` is an isolated, model-free owned
 AppKit save producer evaluation through the installed signed helper. It records
 a reservation before the guarded native Save click. After the helper returns
 `acted`, an owned wrapper injects a TimeoutError before journal reply logging.
@@ -148,7 +148,7 @@ attribution, true native worker restart, or safe automatic continuation.
 
 ## Actual signed native worker restart
 
-`tacto eval signed_producer_worker_restart` keeps the owned Save producer under
+`haejo eval signed_producer_worker_restart` keeps the owned Save producer under
 its parent evaluator. A separate signed launcher runs the internal
 `signed_native_journal_worker` with a parent-created mode0600 configuration.
 The worker uses its own authenticated helper channel, fresh observation and
@@ -169,7 +169,7 @@ only UNCHANGED_SAMPLED. Related48 unit/integration tests/0.899s/OK/no skips
 were confirmed in the terminal; no separate raw unit log is claimed.
 
 Worker configuration/proof handling is fixture-only. It accepts a private
-owned `tacto-save-writer-*` directory under Library/Caches, a fixed producer
+owned `haejo-save-writer-*` directory under Library/Caches, a fixed producer
 bundle, bounded private single-link records and the parent-bound callback
 inode/nonce/process identity. Configuration options apply only to the isolated
 internal worker scenario. The runtime launcher environment allowlist and

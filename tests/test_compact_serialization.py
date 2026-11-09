@@ -1,9 +1,9 @@
 import json
 import unittest
-from tacto.flow import Flow, Capture, Selector
-from tacto.command_help import calculator_example
+from haejo.flow import Flow, Capture, Selector
+from haejo.command_help import calculator_example
 from tests.test_flow_safety_defaults import Calculator
-from tacto.flow import replay
+from haejo.flow import replay
 
 
 class CompactSerializationTests(unittest.TestCase):

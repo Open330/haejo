@@ -38,13 +38,13 @@ def main():
     args = parser.parse_args()
     if args.timeout <= 0:
         parser.error('--timeout must be positive')
-    from tacto.browser import BrowserDriver
-    from tacto.visual import plan_visual
-    from tacto.visual_actions import run_visual
+    from haejo.browser import BrowserDriver
+    from haejo.visual import plan_visual
+    from haejo.visual_actions import run_visual
 
     root = Path(__file__).resolve().parents[1]
-    files = ['tacto/visual.py', 'tacto/visual_actions.py', 'tacto/browser.py',
-             'tacto/claude_result.py', 'tacto/provider_result.py',
+    files = ['haejo/visual.py', 'haejo/visual_actions.py', 'haejo/browser.py',
+             'haejo/claude_result.py', 'haejo/provider_result.py',
              'examples/probe_visual_task.py']
     def hashes():
         return {p: hashlib.sha256((root / p).read_bytes()).hexdigest() for p in files}

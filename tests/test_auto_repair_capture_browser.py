@@ -5,10 +5,10 @@ import json
 import unittest
 from unittest.mock import patch
 
-from tacto.auto_repair import AutoRepair
-from tacto.browser import BrowserDriver
-from tacto.cli import _run_flow
-from tacto.flow import Capture, Flow, Postcondition, Selector, Step
+from haejo.auto_repair import AutoRepair
+from haejo.browser import BrowserDriver
+from haejo.cli import _run_flow
+from haejo.flow import Capture, Flow, Postcondition, Selector, Step
 from tests.test_runtime_contract import contract
 from tests import test_auto_repair as helpers
 try:
@@ -55,7 +55,7 @@ class BrowserCaptureContinuationTests(unittest.TestCase):
                 return _run_flow(*args,**{**kwargs,'_on_result':capture})
             automatic=AutoRepair(chooser=choose)
             with contextlib.redirect_stdout(output),contextlib.redirect_stderr(output), \
-                    patch('tacto.cli._indicator_for',return_value=contextlib.nullcontext()):
+                    patch('haejo.cli._indicator_for',return_value=contextlib.nullcontext()):
                 code,learned=automatic.run(flow,{},[],driver=driver,run_flow=runner,emit=messages.append)
             self.assertEqual(0,code,(output.getvalue(),messages))
             self.assertEqual(12,len(flow.steps))

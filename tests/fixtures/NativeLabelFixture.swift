@@ -3,7 +3,7 @@ let app=NSApplication.shared
 app.setActivationPolicy(.accessory)
 let output=CommandLine.arguments[1]
 let window=NSWindow(contentRect:NSRect(x:100,y:100,width:650,height:260),styleMask:[.titled,.closable],backing:.buffered,defer:false)
-window.title="Tacto owned multiline identity fixture";window.isReleasedWhenClosed=false
+window.title="Haejo owned multiline identity fixture";window.isReleasedWhenClosed=false
 let result=NSTextField(labelWithString:"0,0");result.frame=NSRect(x:20,y:20,width:300,height:25);result.setAccessibilityIdentifier("label-result")
 var counts=[0,0]
 let titles=["미디어 크리에이터 아이콘\n\n크리에이터 공인, 콘텐츠 제작자, 아티스트 및 인플루언서에게 적합합니다.\nmedia_creator","미디어 크리에이터 아이콘\\n\\n크리에이터 공인, 콘텐츠 제작자, 아티스트 및 인플루언서에게 적합합니다.\\nmedia_creator"]

@@ -13,8 +13,8 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-LAUNCHER = (ROOT / "launcher/tacto.swift").read_text()
-HELPER = (ROOT / "helper/TactoHelper.swift").read_text()
+LAUNCHER = (ROOT / "launcher/haejo.swift").read_text()
+HELPER = (ROOT / "helper/HaejoHelper.swift").read_text()
 
 
 class HowTheHelperIsStarted(unittest.TestCase):
@@ -123,7 +123,7 @@ class WhereDiagnosticsGo(unittest.TestCase):
     def test_the_helper_logs_where_it_can_still_be_heard(self):
         # LaunchServices gives a launched app no stderr, so a refusal written
         # only there is a refusal nobody reads.
-        self.assertIn('Logger(subsystem: "ai.callabo.tacto"', HELPER)
+        self.assertIn('Logger(subsystem: "ai.callabo.haejo"', HELPER)
 
     def test_the_rendezvous_refusals_use_it(self):
         body = HELPER[HELPER.index("func connectToLauncher"):]
@@ -136,14 +136,14 @@ class WhereDiagnosticsGo(unittest.TestCase):
 
 class NoTransportPretendsItCanConnect(unittest.TestCase):
     def test_the_python_socket_transport_is_gone(self):
-        import tacto.helper as helper
+        import haejo.helper as helper
         self.assertFalse(hasattr(helper, "SocketHelperDriver"),
                          "it spawned the helper with --listen, a mode that no "
                          "longer exists, and no python process can satisfy the "
                          "helper's compiled-in requirement anyway")
 
     def test_nothing_still_starts_the_helper_with_listen(self):
-        self.assertNotIn('"--listen"', (ROOT / "tacto/helper.py").read_text())
+        self.assertNotIn('"--listen"', (ROOT / "haejo/helper.py").read_text())
 
 
 if __name__ == "__main__":

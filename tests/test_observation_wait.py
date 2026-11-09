@@ -2,8 +2,8 @@
 import unittest
 from unittest.mock import patch
 
-from tacto import driver
-from tacto.observation_wait import MAX_WAIT_PAGES, match_in_pages
+from haejo import driver
+from haejo.observation_wait import MAX_WAIT_PAGES, match_in_pages
 
 
 class Pages:
@@ -69,7 +69,7 @@ class MatchInPagesTests(unittest.TestCase):
 
 class DriverWaitTests(unittest.TestCase):
     def drivers(self, pages):
-        from tacto.helper import HelperDriver
+        from haejo.helper import HelperDriver
         d = driver.Driver.__new__(driver.Driver)
         d.observe = pages.observe
         h = HelperDriver.__new__(HelperDriver)
@@ -79,7 +79,7 @@ class DriverWaitTests(unittest.TestCase):
 
     def test_default_wait_never_reads_pages(self):
         for name, factory in (('driver', 0), ('helper', 1)):
-            with self.subTest(name), patch('tacto.driver.time.sleep'), patch('tacto.helper.time.sleep'):
+            with self.subTest(name), patch('haejo.driver.time.sleep'), patch('haejo.helper.time.sleep'):
                 pages = Pages(['a', 'Item239'])
                 d = self.drivers(pages)[factory][1]
                 reply = d.wait_until('app', lambda t: 'Item239' in t, timeout_ms=0)
@@ -88,7 +88,7 @@ class DriverWaitTests(unittest.TestCase):
 
     def test_search_pages_finds_tail_result_without_sleeping(self):
         for name, factory in (('driver', 0), ('helper', 1)):
-            with self.subTest(name), patch('tacto.driver.time.sleep') as s1, patch('tacto.helper.time.sleep') as s2:
+            with self.subTest(name), patch('haejo.driver.time.sleep') as s1, patch('haejo.helper.time.sleep') as s2:
                 pages = Pages(['a', 'b', 'Item239'])
                 d = self.drivers(pages)[factory][1]
                 reply = d.wait_until('app', lambda t: 'Item239' in t, timeout_ms=4000, search_pages=True)
@@ -107,7 +107,7 @@ class DriverWaitTests(unittest.TestCase):
 
     def test_timeout_reports_the_first_page_and_pages_checked(self):
         for name, factory in (('driver', 0), ('helper', 1)):
-            with self.subTest(name), patch('tacto.driver.time.sleep'), patch('tacto.helper.time.sleep'):
+            with self.subTest(name), patch('haejo.driver.time.sleep'), patch('haejo.helper.time.sleep'):
                 pages = Pages(['first', 'second'])
                 d = self.drivers(pages)[factory][1]
                 reply = d.wait_until('app', lambda t: False, timeout_ms=30, search_pages=True)
@@ -128,7 +128,7 @@ class DriverWaitTests(unittest.TestCase):
         pages = Pages(['a', 'Item239'])
         h = self.drivers(pages)[1][1]
         h.capabilities = set()
-        with patch('tacto.helper.time.sleep'):
+        with patch('haejo.helper.time.sleep'):
             reply = h.wait_until('app', lambda t: 'Item239' in t, timeout_ms=0, search_pages=True)
         self.assertEqual('timeout', reply['type'])
         self.assertEqual(1, len(pages.calls))

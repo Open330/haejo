@@ -12,7 +12,7 @@ ROOT=Path(__file__).resolve().parents[1]
 @unittest.skipUnless(shutil.which('swift'),'Swift required')
 class ScopedSaveSwiftTests(unittest.TestCase):
     def test_only_canonical_bound_save_is_admitted(self):
-        source=(ROOT/'helper/TactoHelper.swift').read_text()
+        source=(ROOT/'helper/HaejoHelper.swift').read_text()
         start=source.index('func documentScopedSaveAction(')
         function=source[start:source.index('\n}\n',start)+3]
         good={'name':'menu','path':['File',['Save','저장']],'focused_document':'/owned/노트.txt'}
@@ -31,7 +31,7 @@ let cases=try! JSONSerialization.jsonObject(with:data) as! [[String:Any]]
 let result=cases.map { documentScopedSaveAction($0["action"] as! [String:Any],selectedPath:$0["path"] as? String) }
 print(String(data:try! JSONSerialization.data(withJSONObject:result),encoding:.utf8)!)
 '''
-        with tempfile.TemporaryDirectory(prefix='tacto-scoped-save-predicate-') as work:
+        with tempfile.TemporaryDirectory(prefix='haejo-scoped-save-predicate-') as work:
             path=Path(work)/'main.swift';path.write_text(code)
             result=subprocess.run(['swift',str(path)],capture_output=True,text=True,timeout=30)
         self.assertEqual(0,result.returncode,result.stderr)

@@ -18,7 +18,7 @@ SELECT_ALL = ['Edit', ['Select All', '전체 선택']]
 
 def _owned(pid, title):
     from ApplicationServices import AXUIElementCreateApplication
-    from tacto.driver import _attr
+    from haejo.driver import _attr
     app = AXUIElementCreateApplication(pid)
     hits = [w for w in (_attr(app, 'AXWindows') or []) if _attr(w, 'AXTitle') == title]
     window = hits[0] if len(hits) == 1 else None
@@ -34,7 +34,7 @@ def _owned(pid, title):
 
 
 def _selection(area):
-    from tacto.driver import _attr
+    from haejo.driver import _attr
     from ApplicationServices import AXValueGetValue, kAXValueCFRangeType
     raw = _attr(area, 'AXSelectedTextRange')
     ok, value = AXValueGetValue(raw, kAXValueCFRangeType, None)
@@ -47,21 +47,21 @@ def _selection(area):
 
 def run_probe(driver):
     from examples.probes.focus_witness import FocusWitness
-    from tacto.driver import _attr
+    from haejo.driver import _attr
     report = {'passed': False, 'scope': 'owned_actual_TextEdit_background_Select_All', 'model_requests': 0}
     timeline = []
 
     def phase(name):
         timeline.append({'phase': name, 't': time.monotonic()})
     root = Path(__file__).resolve().parents[2]
-    sources = [*root.glob('tacto/*.py'), *root.glob('helper/*.swift'), root / 'launcher/tacto',
-               root / 'helper/Tacto Helper.app/Contents/MacOS/TactoHelper', Path(__file__)]
+    sources = [*root.glob('haejo/*.py'), *root.glob('helper/*.swift'), root / 'launcher/haejo',
+               root / 'helper/Haejo Helper.app/Contents/MacOS/HaejoHelper', Path(__file__)]
     hashes = lambda: {str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest()
                       for p in sources if p.is_file()}
     report['source_before'] = hashes()
     nonce = secrets.token_hex(8)
-    body = 'Tacto owned select all ' + nonce
-    directory = Path(tempfile.mkdtemp(prefix='tacto-select-all-')).resolve()
+    body = 'Haejo owned select all ' + nonce
+    directory = Path(tempfile.mkdtemp(prefix='haejo-select-all-')).resolve()
     source = directory / f'select-all-{nonce}.rtf'
     source.write_bytes(b'{\\rtf1\\ansi ' + body.encode('ascii') + b'}')
     window = None

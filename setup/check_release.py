@@ -76,7 +76,7 @@ def inspect(app, image, evidence=None):
     checks['image_checksum'] = True
     # A dedicated mountpoint lets cleanup run even if hdiutil output is malformed.
     # Never recursively delete this directory while an image may still be mounted.
-    mount_root = Path(tempfile.mkdtemp(prefix='tacto-release-check-')).resolve(strict=True)
+    mount_root = Path(tempfile.mkdtemp(prefix='haejo-release-check-')).resolve(strict=True)
     volume = mount_root/'volume'
     volume.mkdir()
     stage = 'attach'
@@ -91,14 +91,14 @@ def inspect(app, image, evidence=None):
                             '-noautoopen', '-mountpoint', str(volume), str(image)])
         attached.check_returncode()
         stage = 'verify_packaged'
-        packaged = volume/'Tacto.app'
+        packaged = volume/'Haejo.app'
         verify_app(packaged)
         checks['packaged_signature'] = True
         checks['packaged_app_matches'] = app_manifest(packaged) == before
         checks['applications_link'] = (volume/'Applications').is_symlink() and (
             volume/'Applications').readlink() == Path('/Applications')
         checks['volume_entries'] = not (set(unicodedata.normalize('NFC', p.name) for p in volume.iterdir()) - {
-            'Tacto.app', 'Applications', '먼저 읽어주세요.txt', '.background',
+            'Haejo.app', 'Applications', '먼저 읽어주세요.txt', '.background',
             '.DS_Store', '.VolumeIcon.icns', '.fseventsd', '.Trashes'})
         stage = 'assess_distribution'
         assess('packaged_gatekeeper_accepted', ['/usr/sbin/spctl', '--assess', '--type',

@@ -3,9 +3,9 @@ import copy
 import json
 import unittest
 from unittest.mock import Mock
-from tacto.document_scope import DocumentScopedDriver
-from tacto.document_readback import failure_readback
-from tacto.flow import Flow, ReplayResult
+from haejo.document_scope import DocumentScopedDriver
+from haejo.document_readback import failure_readback
+from haejo.flow import Flow, ReplayResult
 from tests import test_document_session as sessions
 PATH, TARGET = sessions.PATH, sessions.TARGET
 
@@ -74,7 +74,7 @@ class FailureReadbackTests(unittest.TestCase):
 
 class BodyPresentationTests(unittest.TestCase):
     def test_body_match_does_not_claim_persistence_or_repeat(self):
-        from tacto.document_readback import present_body_state
+        from haejo.document_readback import present_body_state
         messages=[]
         self.assertTrue(present_body_state({'scope':'visible_document_text',
             'matches_requested_text':True,'remaining_steps':0},messages.append))
@@ -83,7 +83,7 @@ class BodyPresentationTests(unittest.TestCase):
         self.assertIn('저장 여부와 쓰기 실행 영수증은 확인되지 않았습니다',messages[0])
 
     def test_incomplete_mismatch_and_unavailable_do_not_claim_done(self):
-        from tacto.document_readback import present_body_state
+        from haejo.document_readback import present_body_state
         for match, remaining, prefix in [(True,1,'body_verified_partial'),
                                          (False,0,'body_mismatch'),(None,0,'body_unavailable')]:
             messages=[]
@@ -93,7 +93,7 @@ class BodyPresentationTests(unittest.TestCase):
             self.assertNotIn('추가 읽기나 재입력은 필요하지 않습니다',messages[0])
 
     def test_unrelated_reports_leave_normal_presentation_intact(self):
-        from tacto.document_readback import present_body_state
+        from haejo.document_readback import present_body_state
         messages=[]
         for report in (None,{}, {'scope':'saved_file'}):
             self.assertFalse(present_body_state(report,messages.append))

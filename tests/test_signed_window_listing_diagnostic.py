@@ -19,7 +19,7 @@ def diagnostic(**updates):
 
 class WindowDiagnosticContractTests(unittest.TestCase):
     def test_closed_schema_rejects_content_and_inconsistent_counts(self):
-        from tacto.window_listing_diagnostic import window_listing_diagnostic
+        from haejo.window_listing_diagnostic import window_listing_diagnostic
         good=diagnostic()
         self.assertEqual(window_listing_diagnostic(good),good)
         for updates in ({'PRIVATE_TREE':'PRIVATE_CONTENT'},{'version':True},
@@ -36,21 +36,21 @@ class WindowDiagnosticContractTests(unittest.TestCase):
             raw_count=0,role_window_count=0,filtered_count=0,badge_count=0)))
 
     def test_unreadable_window_list_never_triggers_empty_window_recovery(self):
-        from tacto.helper import HelperDriver
+        from haejo.helper import HelperDriver
         for required in (True,False):
             driver=object.__new__(HelperDriver);driver._last_action_at=0
             reply={'type':'error','error':'window_list_unavailable',
                    'window_listing_diagnostic':diagnostic(status='role_unavailable',
                        raw_count=4,role_unavailable_count=1)}
             driver._send=Mock(return_value=reply)
-            with patch('tacto.helper._explain_no_window') as explain,patch('tacto.helper._unhide_target') as unhide:
+            with patch('haejo.helper._explain_no_window') as explain,patch('haejo.helper._unhide_target') as unhide:
                 self.assertEqual(driver.observe('owned',require_window=required),reply)
             explain.assert_not_called();unhide.assert_not_called()
             self.assertEqual(driver._send.call_count,1)
 
     @unittest.skipUnless(sys.platform=='darwin' and shutil.which('xcrun'),'macOS Swift required')
     def test_swift_classifies_transport_shape_roles_filter_and_invalid_geometry(self):
-        source=(ROOT/'helper/TactoHelper.swift').read_text()
+        source=(ROOT/'helper/HaejoHelper.swift').read_text()
         begin=source.index('struct WindowListingDiagnostic {')
         end=source.index('// MARK: - A point is',begin)
         actual=source[begin:end]
@@ -143,6 +143,6 @@ print(String(data:try! JSONSerialization.data(withJSONObject:rows),encoding:.utf
         for name in ['wrong_geometry','wrong_geometry_type','nonfinite_geometry']:
             self.assertEqual(rows[name]['windows'],[2,4])
             self.assertEqual(rows[name]['diagnostic']['badge_count'],0)
-        from tacto.window_listing_diagnostic import window_listing_diagnostic
+        from haejo.window_listing_diagnostic import window_listing_diagnostic
         for row in rows.values():
             self.assertEqual(window_listing_diagnostic(row['diagnostic']),row['diagnostic'])

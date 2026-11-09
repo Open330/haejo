@@ -10,7 +10,7 @@ ROOT=Path(__file__).resolve().parents[1]
 @unittest.skipUnless(shutil.which('swift'),'Swift required')
 class ComboListScopeSwiftTests(unittest.TestCase):
     def test_deadline_abort_identity_metadata_and_timeout_failures_stop_complete_list_reads(self):
-        source=(ROOT/'helper/TactoHelper.swift').read_text()
+        source=(ROOT/'helper/HaejoHelper.swift').read_text()
         window=(ROOT/'helper/WindowInput.swift').read_text()
         def extract(text,prefix):
             part=text[text.index(prefix):]

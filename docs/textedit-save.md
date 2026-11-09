@@ -1,6 +1,6 @@
 # TextEdit 새 이름 저장의 호스트 증거
 
-`tacto.textedit_receipt.make_textedit_receipt`는 명시한 새 파일에 현재 문서의
+`haejo.textedit_receipt.make_textedit_receipt`는 명시한 새 파일에 현재 문서의
 정확한 **텍스트**가 저장됐는지 확인하는 실행별 adapter다. 개발 작업본의 CLI/Agent는
 서명된 네이티브 API를 조합해 이 adapter에 연결한다. 실제 TextEdit의 새 이름 저장은
 동일한 수정본으로3회 연속 통과했다. 소유 RTF 문서·비어 있지 않은 Downloads에서

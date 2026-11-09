@@ -7,7 +7,7 @@ private func activityInteger(_ value: Any?) -> Int? {
     return n.intValue
 }
 
-struct TactoPreferences {
+struct HaejoPreferences {
     var loggingEnabled = true
     var retentionDays = 30
     var showControlBanner = true
@@ -76,7 +76,7 @@ struct ActivityRecord: Equatable {
          "apps":"앱 목록 확인", "launch":"앱 열기", "capture":"화면 확인", "drag":"드래그",
          "web-upload":"파일 첨부", "auth":"Vault 위임 로그인", "windows":"창 목록 확인",
          "open-url":"웹 페이지 열기", "activate":"앱 앞으로 가져오기", "type":"텍스트 입력", "click":"클릭",
-         "press":"키 입력", "read":"내용 읽기", "flows":"워크플로 관리", "show":"워크플로 보기"][command] ?? "Tacto 실행"
+         "press":"키 입력", "read":"내용 읽기", "flows":"워크플로 관리", "show":"워크플로 보기"][command] ?? "Haejo 실행"
     }
     var appName: String {
         ["com.apple.TextEdit":"TextEdit", "com.apple.finder":"Finder", "com.apple.calculator":"계산기",
@@ -84,14 +84,14 @@ struct ActivityRecord: Equatable {
     }
 }
 
-/// The task a group of calls was made for (`tacto task start`), from Tasks/<id>/task.json.
+/// The task a group of calls was made for (`haejo task start`), from Tasks/<id>/task.json.
 struct ActivityTask: Equatable {
     let id: String
     var goal = ""
     var detail = ""                       // agent-written description of the user's request
     var open = true
     var result: String?
-    var notes: [ActivityNote] = []        // `tacto task note` / `task end --note`
+    var notes: [ActivityNote] = []        // `haejo task note` / `task end --note`
     var reasons: [String: String] = [:]   // invocation id -> `--why`
 }
 
@@ -118,7 +118,7 @@ struct ActivityGroup: Equatable {
         return records.allSatisfy { $0.complete }
     }
     var title: String {
-        guard let taskID else { return records.first?.title ?? "Tacto 실행" }
+        guard let taskID else { return records.first?.title ?? "Haejo 실행" }
         if let goal = task?.goal, !goal.isEmpty { return goal }
         return "작업 \(taskID.prefix(10))"
     }
@@ -139,15 +139,15 @@ final class ActivityStore {
     let root: URL
     var logs: URL { root.appendingPathComponent("Logs") }
     var preferencesURL: URL { root.appendingPathComponent("preferences.json") }
-    private let pattern = try! NSRegularExpression(pattern: "^tacto-[0-9]{8}T[0-9]{12}Z-[0-9a-f]{32}\\.jsonl$")
+    private let pattern = try! NSRegularExpression(pattern: "^haejo-[0-9]{8}T[0-9]{12}Z-[0-9a-f]{32}\\.jsonl$")
     private var cache: [URL: (Date, Int, ActivityRecord)] = [:]
     let maximumBytes = 1_048_576 + 8192
-    init(root: URL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support/Tacto")) { self.root = root }
+    init(root: URL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support/Haejo")) { self.root = root }
     func ownedDirectory(_ url: URL, create: Bool = false) throws {
         if create { try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true, attributes: [.posixPermissions:0o700]) }
         let a = try FileManager.default.attributesOfItem(atPath: url.path)
         guard a[.type] as? FileAttributeType == .typeDirectory, (a[.ownerAccountID] as? NSNumber)?.uint32Value == getuid() else {
-            throw NSError(domain:"TactoActivity", code:1)
+            throw NSError(domain:"HaejoActivity", code:1)
         }
     }
     func readPrivate(_ url: URL, limit: Int) throws -> Data {
@@ -157,22 +157,22 @@ final class ActivityStore {
         defer { try? handle.close() }
         var info = stat()
         guard fstat(fd, &info) == 0, info.st_mode & S_IFMT == S_IFREG, info.st_uid == getuid(), info.st_size <= limit else {
-            throw NSError(domain:"TactoActivity", code:2)
+            throw NSError(domain:"HaejoActivity", code:2)
         }
         return try handle.read(upToCount:limit) ?? Data()
     }
-    func preferences() throws -> TactoPreferences {
-        guard FileManager.default.fileExists(atPath: preferencesURL.path) else { return TactoPreferences() }
+    func preferences() throws -> HaejoPreferences {
+        guard FileManager.default.fileExists(atPath: preferencesURL.path) else { return HaejoPreferences() }
         try ownedDirectory(root)
         guard let object = try JSONSerialization.jsonObject(with: readPrivate(preferencesURL, limit:16384)) as? [String:Any],
-              (object["schema"] == nil || activityInteger(object["schema"]) == 1) else { throw NSError(domain:"TactoActivity", code:3) }
-        return TactoPreferences(object)
+              (object["schema"] == nil || activityInteger(object["schema"]) == 1) else { throw NSError(domain:"HaejoActivity", code:3) }
+        return HaejoPreferences(object)
     }
-    func save(_ settings: TactoPreferences) throws {
+    func save(_ settings: HaejoPreferences) throws {
         try ownedDirectory(root, create:true)
         if let a = try? FileManager.default.attributesOfItem(atPath:preferencesURL.path) {
             guard a[.type] as? FileAttributeType == .typeRegular, (a[.ownerAccountID] as? NSNumber)?.uint32Value == getuid() else {
-                throw NSError(domain:"TactoActivity", code:4)
+                throw NSError(domain:"HaejoActivity", code:4)
             }
         }
         let temporary = root.appendingPathComponent(".preferences-" + UUID().uuidString)
@@ -351,7 +351,7 @@ final class ActivityDocumentStack: NSStackView { override var isFlipped: Bool { 
 
 private func activityErrorMessage(_ code: String) -> String {
     ["credential_plan_changed":"검토한 뒤 파일 내용이 바뀌었어요. 파일을 다시 선택해 검토하세요.",
-     "credential_plan_invalid":"위임 파일 형식을 확인하세요. 에이전트가 만든 Tacto 위임 파일을 선택하세요.",
+     "credential_plan_invalid":"위임 파일 형식을 확인하세요. 에이전트가 만든 Haejo 위임 파일을 선택하세요.",
      "credential_configuration_invalid":"설정을 읽지 못했어요. 파일과 입력 내용을 확인하세요.",
      "credential_name_invalid":"이름에는 영문·숫자·점·밑줄·하이픈을 사용하세요.",
      "credential_file_unavailable":"등록한 세션 파일을 읽지 못했어요. 파일 위치를 확인하세요.",
@@ -390,7 +390,7 @@ private func activityLabel(_ text: String, _ size: CGFloat = 13, _ weight: NSFon
 final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDataSource, NSTableViewDelegate, NSSearchFieldDelegate, NSSplitViewDelegate {
     let store: ActivityStore
     var onSetup: (() -> Void)?
-    private let queue = DispatchQueue(label:"ai.callabo.tacto.activity-reader", qos:.userInitiated)
+    private let queue = DispatchQueue(label:"ai.callabo.haejo.activity-reader", qos:.userInitiated)
     private let table = NSTableView()
     private let search = NSSearchField()
     private let filter = NSSegmentedControl(labels:["전체", "실패", "완료 확인 없음"], trackingMode:.selectOne, target:nil, action:nil)
@@ -422,7 +422,7 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
     private var loading = false
     private let refreshAutomatically: Bool
     private var isSettings = false
-    private var currentSettings = TactoPreferences()
+    private var currentSettings = HaejoPreferences()
     private var rendered: ActivityGroup?
     private let dateFormatter: DateFormatter = { let f = DateFormatter(); f.dateStyle = .medium; f.timeStyle = .short; return f }()
 
@@ -432,7 +432,7 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
         self.refreshAutomatically = refreshAutomatically
         let window = NSWindow(contentRect:NSRect(x:0,y:0,width:1060,height:700), styleMask:[.titled,.closable,.miniaturizable,.resizable], backing:.buffered, defer:false)
         super.init(window:window)
-        window.title = "Tacto"; window.titlebarAppearsTransparent = true; window.isReleasedWhenClosed = false
+        window.title = "Haejo"; window.titlebarAppearsTransparent = true; window.isReleasedWhenClosed = false
         window.contentMinSize = NSSize(width:900,height:600); window.delegate = self
         window.backgroundColor = .windowBackgroundColor
         let background = ActivityBackground(frame:window.contentView!.bounds); background.wantsLayer = true; window.contentView = background
@@ -452,16 +452,16 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
     private func build() {
         guard let root = window?.contentView else { return }
         let sidebar = ActivityBackground(); sidebar.fill = activitySidebar; sidebar.wantsLayer = true
-        let brand = activityLabel("Tacto", 23, .bold)
-        let logo = NSImageView(); logo.image = NSImage(contentsOf:Bundle.main.url(forResource:"tacto-app", withExtension:"icns") ?? URL(fileURLWithPath:"/nonexistent"))
+        let brand = activityLabel("Haejo", 23, .bold)
+        let logo = NSImageView(); logo.image = NSImage(contentsOf:Bundle.main.url(forResource:"haejo-app", withExtension:"icns") ?? URL(fileURLWithPath:"/nonexistent"))
         logo.imageScaling = .scaleProportionallyUpOrDown; logo.widthAnchor.constraint(equalToConstant:32).isActive = true; logo.heightAnchor.constraint(equalToConstant:32).isActive = true
         let brandRow = NSStackView(views:[logo,brand]); brandRow.spacing = 8
         historyButton.title = "실행 기록"; historyButton.image = NSImage(systemSymbolName:"clock.arrow.circlepath", accessibilityDescription:nil)
         settingsButton.title = "설정"; settingsButton.image = NSImage(systemSymbolName:"slider.horizontal.3", accessibilityDescription:nil)
         flowsButton.title = "저장된 Flow"; flowsButton.image = NSImage(systemSymbolName:"square.stack.3d.up", accessibilityDescription:nil)
-        flowsButton.setAccessibilityIdentifier("tacto.activity.flows")
+        flowsButton.setAccessibilityIdentifier("haejo.activity.flows")
         for b in [historyButton,flowsButton,settingsButton] { b.font = .systemFont(ofSize:13,weight:.medium); b.target = self; b.action = #selector(navigate(_:)); b.bezelStyle = .rounded; b.isBordered = false; b.setButtonType(.pushOnPushOff); b.wantsLayer = true; b.layer?.cornerRadius = 8; b.imagePosition = .imageLeading; b.alignment = .left; b.widthAnchor.constraint(equalToConstant:176).isActive = true; b.heightAnchor.constraint(equalToConstant:38).isActive = true }
-        historyButton.setAccessibilityIdentifier("tacto.activity.history"); settingsButton.setAccessibilityIdentifier("tacto.activity.settings")
+        historyButton.setAccessibilityIdentifier("haejo.activity.history"); settingsButton.setAccessibilityIdentifier("haejo.activity.settings")
         let setup = button("Mac 권한·에이전트", "arrow.up.forward.app", #selector(openSetup))
         let tagline = activityLabel("에이전트의 작업 공간",11,secondary:true)
         let spacer = NSView(); spacer.setContentHuggingPriority(.init(1),for:.vertical)
@@ -486,7 +486,7 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
         history.orientation = .vertical; history.alignment = .leading; history.spacing = 16
         let refresh = button("새로고침", "arrow.clockwise", #selector(refresh))
         let top = NSStackView(views:[heading,NSView(),refresh]); top.alignment = .centerY
-        search.placeholderString = "앱 또는 작업 검색"; search.delegate = self; search.setAccessibilityIdentifier("tacto.activity.search")
+        search.placeholderString = "앱 또는 작업 검색"; search.delegate = self; search.setAccessibilityIdentifier("haejo.activity.search")
         search.widthAnchor.constraint(greaterThanOrEqualToConstant:160).isActive = true
         search.heightAnchor.constraint(greaterThanOrEqualToConstant:28).isActive = true
         filter.target = self; filter.action = #selector(applyFilter); filter.selectedSegment = 0
@@ -495,7 +495,7 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
         let col = NSTableColumn(identifier:NSUserInterfaceItemIdentifier("session")); table.addTableColumn(col)
         table.headerView = nil; table.rowHeight = 64; table.intercellSpacing = .zero
         table.style = .fullWidth; table.delegate = self; table.dataSource = self; table.columnAutoresizingStyle = .lastColumnOnlyAutoresizingStyle
-        table.setAccessibilityIdentifier("tacto.activity.sessions"); list.documentView = table
+        table.setAccessibilityIdentifier("haejo.activity.sessions"); list.documentView = table
         let details = NSScrollView(); details.hasVerticalScroller = true; details.autohidesScrollers = true
         detail.orientation = .vertical; detail.alignment = .leading; detail.spacing = 10
         detail.edgeInsets = NSEdgeInsets(top:24,left:24,bottom:24,right:24); detail.translatesAutoresizingMaskIntoConstraints = false
@@ -526,15 +526,15 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
         settings.orientation = .vertical; settings.alignment = .leading; settings.spacing = 14
         logToggle.target = self; logToggle.action = #selector(saveSettings)
         bannerToggle.target = self; bannerToggle.action = #selector(saveSettings)
-        bannerToggle.setAccessibilityIdentifier("tacto.settings.control-banner")
-        logToggle.setAccessibilityIdentifier("tacto.settings.logging")
+        bannerToggle.setAccessibilityIdentifier("haejo.settings.control-banner")
+        logToggle.setAccessibilityIdentifier("haejo.settings.logging")
         retention.addItems(withTitles:["7일", "30일", "90일"]); retention.target = self; retention.action = #selector(saveSettings)
-        retention.setAccessibilityIdentifier("tacto.settings.retention")
+        retention.setAccessibilityIdentifier("haejo.settings.retention")
         warmToggle.target = self; warmToggle.action = #selector(saveSettings)
-        warmToggle.setAccessibilityIdentifier("tacto.settings.keep-helper-warm")
+        warmToggle.setAccessibilityIdentifier("haejo.settings.keep-helper-warm")
         helperIdle.addItems(withTitles:(1...10).map { "\($0)분" })
         helperIdle.target = self; helperIdle.action = #selector(saveSettings)
-        helperIdle.setAccessibilityIdentifier("tacto.settings.helper-idle")
+        helperIdle.setAccessibilityIdentifier("haejo.settings.helper-idle")
         let warmControls = NSStackView(views:[warmToggle,activityLabel("사용하지 않을 때 종료",12,secondary:true),helperIdle])
         warmControls.orientation = .vertical; warmControls.alignment = .leading; warmControls.spacing = 10
         let remove = button("저장된 기록 모두 삭제…", "trash", #selector(confirmDelete))
@@ -543,11 +543,11 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
                      settingsCard("빠른 실행", "도우미를 잠시 유지해 다음 작업을 더 빠르게 시작합니다. 기본은 꺼짐입니다. 유휴 시간이 지나면 자동 종료하며, 환경변수로 지정한 실행 방식이 우선합니다.",warmControls),
                      settingsCard("실행 기록", "접근한 앱·동작·결과·시간을 이 Mac에 저장합니다. 화면 내용·입력값·프롬프트는 기록하지 않습니다.",logToggle),
                      settingsCard("기록 보관 기간", "선택한 기간과 최대 200개·20MB 제한 안에서 다음 작업 시작 시 정리합니다.",retention),
-                     settingsCard("작업 표시", "끄면 우상단 배너를 숨깁니다. 기존 Tacto 메뉴에서 작업 상태를 확인하거나 중단할 수 있고, Esc로도 중단할 수 있습니다.",bannerToggle)]
+                     settingsCard("작업 표시", "끄면 우상단 배너를 숨깁니다. 기존 Haejo 메뉴에서 작업 상태를 확인하거나 중단할 수 있고, Esc로도 중단할 수 있습니다.",bannerToggle)]
         settings.addArrangedSubview(activityLabel("설정",24,.semibold))
         for card in cards { settings.addArrangedSubview(card); card.widthAnchor.constraint(equalTo:settings.widthAnchor).isActive = true }
-        for v in [saveStatus,remove,activityLabel("기록은 Tacto를 통한 접근 내역입니다. 에이전트의 내부 추론이나 전체 대화는 포함하지 않습니다.",12,secondary:true)] { settings.addArrangedSubview(v) }
-        settings.addArrangedSubview(activityLabel("Tacto · " + (Bundle.main.object(forInfoDictionaryKey:"TactoReleaseTag") as? String ?? "개발 버전"),11,secondary:true))
+        for v in [saveStatus,remove,activityLabel("기록은 Haejo를 통한 접근 내역입니다. 에이전트의 내부 추론이나 전체 대화는 포함하지 않습니다.",12,secondary:true)] { settings.addArrangedSubview(v) }
+        settings.addArrangedSubview(activityLabel("Haejo · " + (Bundle.main.object(forInfoDictionaryKey:"HaejoReleaseTag") as? String ?? "개발 버전"),11,secondary:true))
         let scroll = NSScrollView(); scroll.hasVerticalScroller = true; scroll.autohidesScrollers = true; scroll.drawsBackground = false; scroll.contentView.drawsBackground = false
         settings.translatesAutoresizingMaskIntoConstraints = false; scroll.documentView = settings
         settings.widthAnchor.constraint(equalTo:scroll.contentView.widthAnchor).isActive = true
@@ -587,7 +587,7 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
         guard !loading else { return }; loading = true
         queue.async { [weak self] in
             guard let self else { return }
-            let result = Result { (try self.store.groups(), (try? self.store.preferences()) ?? TactoPreferences()) }
+            let result = Result { (try self.store.groups(), (try? self.store.preferences()) ?? HaejoPreferences()) }
             DispatchQueue.main.async {
                 self.loading = false
                 switch result {
@@ -640,7 +640,7 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
         for v in detail.arrangedSubviews { detail.removeArrangedSubview(v); v.removeFromSuperview() }
         guard let g else {
             detail.addArrangedSubview(activityLabel(allRecords.isEmpty ? (currentSettings.loggingEnabled ? "아직 실행 기록이 없어요" : "실행 기록 저장이 꺼져 있어요") : "조건에 맞는 기록이 없어요",20,.semibold))
-            detail.addArrangedSubview(activityLabel(currentSettings.loggingEnabled ? "Tacto로 작업하면 접근 내역과 결과가 여기에 표시됩니다." : "설정에서 켜면 다음 작업부터 기록을 남깁니다.",13,secondary:true)); layoutDetail(); return
+            detail.addArrangedSubview(activityLabel(currentSettings.loggingEnabled ? "Haejo로 작업하면 접근 내역과 결과가 여기에 표시됩니다." : "설정에서 켜면 다음 작업부터 기록을 남깁니다.",13,secondary:true)); layoutDetail(); return
         }
         if g.isTask { showTask(g); layoutDetail(); return }
         let r = g.records[0]
@@ -728,7 +728,7 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
     }
     private func loadSettings() {
         do { currentSettings = try store.preferences(); saveStatus.stringValue = "변경 사항은 다음 작업부터 적용됩니다." }
-        catch { saveStatus.stringValue = "설정을 읽지 못했어요. 기본값을 표시합니다."; currentSettings = TactoPreferences() }
+        catch { saveStatus.stringValue = "설정을 읽지 못했어요. 기본값을 표시합니다."; currentSettings = HaejoPreferences() }
         logToggle.state = currentSettings.loggingEnabled ? .on : .off
         bannerToggle.state = currentSettings.showControlBanner ? .on : .off
         warmToggle.state = currentSettings.keepHelperWarm ? .on : .off
@@ -769,7 +769,7 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
     }
     func snapshot(to directory: URL, settingsPage: Bool = false, flowsPage: Bool = false, size: NSSize = NSSize(width:1060,height:700)) throws {
         try FileManager.default.createDirectory(at:directory,withIntermediateDirectories:true)
-        allRecords = try store.groups(); currentSettings = (try? store.preferences()) ?? TactoPreferences(); applyFilter()
+        allRecords = try store.groups(); currentSettings = (try? store.preferences()) ?? HaejoPreferences(); applyFilter()
         navigate(settingsPage ? settingsButton : flowsPage ? flowsButton : historyButton)
         window?.setContentSize(size)
         guard let view = window?.contentView else { return }
@@ -812,7 +812,7 @@ final class CredentialPlanDrop: NSView {
 final class CredentialCenter: NSWindowController, NSWindowDelegate {
     typealias Runner = ([String],Data?) throws -> [String:Any]
     private let runner:Runner
-    private let queue=DispatchQueue(label:"ai.callabo.tacto.credential-settings",qos:.userInitiated)
+    private let queue=DispatchQueue(label:"ai.callabo.haejo.credential-settings",qos:.userInitiated)
     private let providerName=NSTextField(string:"")
     private let provider=NSPopUpButton(frame:.zero,pullsDown:false)
     private let providers=NSPopUpButton(frame:.zero,pullsDown:false)
@@ -838,16 +838,16 @@ final class CredentialCenter: NSWindowController, NSWindowDelegate {
     private var tabButtons:[NSButton]=[]
 
     init(runner:Runner?=nil) {
-        let launcher=Bundle.main.resourceURL?.appendingPathComponent("runtime/launcher/tacto")
+        let launcher=Bundle.main.resourceURL?.appendingPathComponent("runtime/launcher/haejo")
         self.runner=runner ?? { args,input in
-            guard let launcher,FileManager.default.isExecutableFile(atPath:launcher.path) else {throw NSError(domain:"TactoCredentials",code:1)}
+            guard let launcher,FileManager.default.isExecutableFile(atPath:launcher.path) else {throw NSError(domain:"HaejoCredentials",code:1)}
             let process=Process();process.executableURL=launcher;process.arguments=["auth"]+args
             let output=Pipe();process.standardOutput=output;process.standardError=FileHandle.nullDevice
             let pipe=input == nil ? nil : Pipe();process.standardInput=pipe ?? FileHandle.nullDevice as Any
             try process.run()
             if let input,let pipe {try pipe.fileHandleForWriting.write(contentsOf:input);try pipe.fileHandleForWriting.close()}
             let data=output.fileHandleForReading.readDataToEndOfFile();process.waitUntilExit()
-            guard data.count<=1_048_576,let result=try JSONSerialization.jsonObject(with:data) as? [String:Any] else {throw NSError(domain:"TactoCredentials",code:2)}
+            guard data.count<=1_048_576,let result=try JSONSerialization.jsonObject(with:data) as? [String:Any] else {throw NSError(domain:"HaejoCredentials",code:2)}
             return result
         }
         let window=NSWindow(contentRect:NSRect(x:0,y:0,width:780,height:620),styleMask:[.titled,.closable,.resizable],backing:.buffered,defer:false)
@@ -1009,7 +1009,7 @@ final class CredentialCenter: NSWindowController, NSWindowDelegate {
 
 // MARK: - Saved flows
 
-/// One saved flow as `tacto flows --json` / `tacto flows show --json` report it.
+/// One saved flow as `haejo flows --json` / `haejo flows show --json` report it.
 struct FlowStepSummary: Equatable {
     var index = 0, action = "", label = "", policy = "", reason = ""
     var consequential = false
@@ -1078,11 +1078,11 @@ private func flowErrorMessage(_ code: String, _ detail: String = "") -> String {
      "legacy_schema":"이전 형식(schema 1)의 Flow예요. 변환한 뒤 사용할 수 있어요.",
      "corrupt_flow":"Flow 파일이 손상되어 읽을 수 없어요.",
      "library_unavailable":"Flow 보관함을 읽지 못했어요.",
-     "runtime_unavailable":"Tacto 실행 파일을 찾지 못했어요. 앱을 다시 설치해 주세요."][code]
+     "runtime_unavailable":"Haejo 실행 파일을 찾지 못했어요. 앱을 다시 설치해 주세요."][code]
     return known ?? ("오류 코드: " + String(code.prefix(80)) + (detail.isEmpty ? "" : " · " + String(detail.prefix(160))))
 }
 
-/// The Flow page inside the Tacto window: list, inspect, run, edit defaults
+/// The Flow page inside the Haejo window: list, inspect, run, edit defaults
 /// and request sentences, rename, delete. Steps are shown, not edited — a step
 /// change is a re-authoring, and the CLI refuses edits that would not parse.
 final class FlowLibraryPage: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSSearchFieldDelegate, NSSplitViewDelegate {
@@ -1096,7 +1096,7 @@ final class FlowLibraryPage: NSObject, NSTableViewDataSource, NSTableViewDelegat
     let split = NSSplitView()
     weak var window: NSWindow?
     private let runner: Runner
-    private let queue = DispatchQueue(label:"ai.callabo.tacto.flow-library", qos:.userInitiated)
+    private let queue = DispatchQueue(label:"ai.callabo.haejo.flow-library", qos:.userInitiated)
     private(set) var flows: [FlowSummary] = []
     private(set) var filtered: [FlowSummary] = []
     private(set) var current: FlowSummary?
@@ -1111,10 +1111,10 @@ final class FlowLibraryPage: NSObject, NSTableViewDataSource, NSTableViewDelegat
     /// `launcher` is the runtime the app resolved (installed bundle or a
     /// checkout preview); without one, the installed bundle's own copy.
     static func launcherRunner(_ launcher: URL? = nil) -> Runner {
-        let launcher = launcher ?? Bundle.main.resourceURL?.appendingPathComponent("runtime/launcher/tacto")
+        let launcher = launcher ?? Bundle.main.resourceURL?.appendingPathComponent("runtime/launcher/haejo")
         return { args in
             guard let launcher, FileManager.default.isExecutableFile(atPath:launcher.path) else {
-                throw NSError(domain:"TactoFlows", code:1)
+                throw NSError(domain:"HaejoFlows", code:1)
             }
             let process = Process(); process.executableURL = launcher; process.arguments = args
             let output = Pipe(); process.standardOutput = output; process.standardError = output
@@ -1138,12 +1138,12 @@ final class FlowLibraryPage: NSObject, NSTableViewDataSource, NSTableViewDelegat
         refresh.bezelStyle = .rounded; refresh.imagePosition = .imageLeading
         let top = NSStackView(views:[heading,NSView(),refresh]); top.alignment = .centerY
         search.placeholderString = "이름·앱·요청 문장 검색"; search.delegate = self
-        search.setAccessibilityIdentifier("tacto.flows.search")
+        search.setAccessibilityIdentifier("haejo.flows.search")
         let list = NSScrollView(); list.hasVerticalScroller = true; list.autohidesScrollers = true
         table.addTableColumn(NSTableColumn(identifier:NSUserInterfaceItemIdentifier("flow")))
         table.headerView = nil; table.rowHeight = 58; table.intercellSpacing = .zero; table.style = .fullWidth
         table.delegate = self; table.dataSource = self; table.columnAutoresizingStyle = .lastColumnOnlyAutoresizingStyle
-        table.setAccessibilityIdentifier("tacto.flows.list"); list.documentView = table
+        table.setAccessibilityIdentifier("haejo.flows.list"); list.documentView = table
         let details = NSScrollView(); details.hasVerticalScroller = true; details.autohidesScrollers = true
         detail.orientation = .vertical; detail.alignment = .leading; detail.spacing = 10
         detail.edgeInsets = NSEdgeInsets(top:24,left:24,bottom:24,right:24); detail.translatesAutoresizingMaskIntoConstraints = false
@@ -1161,7 +1161,7 @@ final class FlowLibraryPage: NSObject, NSTableViewDataSource, NSTableViewDelegat
         split.heightAnchor.constraint(greaterThanOrEqualToConstant:340).isActive = true
         intentsView.isRichText = false; intentsView.font = .systemFont(ofSize:12)
         intentsView.isAutomaticQuoteSubstitutionEnabled = false; intentsView.isAutomaticTextReplacementEnabled = false
-        intentsView.setAccessibilityIdentifier("tacto.flows.intents")
+        intentsView.setAccessibilityIdentifier("haejo.flows.intents")
         showDetail(nil)
     }
 
@@ -1280,15 +1280,15 @@ final class FlowLibraryPage: NSObject, NSTableViewDataSource, NSTableViewDelegat
         paramFields = [:]; actionButtons = []
         guard let f = flow else {
             detail.addArrangedSubview(activityLabel(flows.isEmpty ? "아직 저장된 Flow가 없어요" : "Flow를 선택하세요", 20, .semibold))
-            detail.addArrangedSubview(activityLabel("에이전트가 만든 Flow를 보관함에 저장하면 여기에서 확인하고 다시 실행할 수 있어요. 터미널에서는 tacto flows save <flow.json> 으로 저장합니다.", 13, secondary:true))
+            detail.addArrangedSubview(activityLabel("에이전트가 만든 Flow를 보관함에 저장하면 여기에서 확인하고 다시 실행할 수 있어요. 터미널에서는 haejo flows save <flow.json> 으로 저장합니다.", 13, secondary:true))
             layoutDetail(); return
         }
         detail.addArrangedSubview(activityLabel(f.name, 20, .semibold))
         guard f.ok else {
             detail.addArrangedSubview(activityLabel(flowErrorMessage(f.error, f.detail), 13))
             detail.addArrangedSubview(activityLabel(f.path, 11, secondary:true))
-            let row = NSStackView(views:[button("Finder에서 보기","folder",#selector(reveal),"tacto.flows.reveal")])
-            if f.editable { row.addArrangedSubview(button("삭제…","trash",#selector(confirmRemove),"tacto.flows.remove")) }
+            let row = NSStackView(views:[button("Finder에서 보기","folder",#selector(reveal),"haejo.flows.reveal")])
+            if f.editable { row.addArrangedSubview(button("삭제…","trash",#selector(confirmRemove),"haejo.flows.remove")) }
             actionButtons = row.arrangedSubviews.compactMap { $0 as? NSButton }
             detail.addArrangedSubview(row); layoutDetail(); return
         }
@@ -1299,12 +1299,12 @@ final class FlowLibraryPage: NSObject, NSTableViewDataSource, NSTableViewDelegat
         if f.shadowed {
             detail.addArrangedSubview(activityLabel("같은 이름의 기본 Flow가 있어 실행하면 기본 버전이 쓰여요. 이 파일을 쓰려면 이름을 바꾸세요.", 12, secondary:true))
         }
-        let run = button("실행", "play.fill", #selector(runFlow), "tacto.flows.run")
+        let run = button("실행", "play.fill", #selector(runFlow), "haejo.flows.run")
         run.keyEquivalent = "\r"
-        let row = NSStackView(views:[run, button("Finder에서 보기","folder",#selector(reveal),"tacto.flows.reveal")]); row.spacing = 8
+        let row = NSStackView(views:[run, button("Finder에서 보기","folder",#selector(reveal),"haejo.flows.reveal")]); row.spacing = 8
         if f.editable {
-            row.addArrangedSubview(button("이름 변경…","pencil",#selector(promptRename),"tacto.flows.rename"))
-            row.addArrangedSubview(button("삭제…","trash",#selector(confirmRemove),"tacto.flows.remove"))
+            row.addArrangedSubview(button("이름 변경…","pencil",#selector(promptRename),"haejo.flows.rename"))
+            row.addArrangedSubview(button("삭제…","trash",#selector(confirmRemove),"haejo.flows.remove"))
         }
         actionButtons = row.arrangedSubviews.compactMap { $0 as? NSButton }
         detail.addArrangedSubview(row)
@@ -1318,7 +1318,7 @@ final class FlowLibraryPage: NSObject, NSTableViewDataSource, NSTableViewDelegat
             for (name, value) in f.params {
                 let label = activityLabel(name, 12, .medium); label.widthAnchor.constraint(equalToConstant:120).isActive = true
                 let field = NSTextField(string:value ?? ""); field.placeholderString = "실행할 때 입력"
-                field.setAccessibilityIdentifier("tacto.flows.param." + name)
+                field.setAccessibilityIdentifier("haejo.flows.param." + name)
                 field.widthAnchor.constraint(greaterThanOrEqualToConstant:180).isActive = true
                 paramFields[name] = field
                 let line = NSStackView(views:[label, field]); line.spacing = 12
@@ -1334,7 +1334,7 @@ final class FlowLibraryPage: NSObject, NSTableViewDataSource, NSTableViewDelegat
         box.heightAnchor.constraint(equalToConstant:72).isActive = true
         detail.addArrangedSubview(box)
         if f.editable {
-            let save = button("입력값·문장 저장", "square.and.arrow.down", #selector(saveFields), "tacto.flows.save")
+            let save = button("입력값·문장 저장", "square.and.arrow.down", #selector(saveFields), "haejo.flows.save")
             actionButtons.append(save); detail.addArrangedSubview(NSStackView(views:[save]))
         }
 
@@ -1368,7 +1368,7 @@ final class FlowLibraryPage: NSObject, NSTableViewDataSource, NSTableViewDelegat
     }
 
     private func updateButtons() {
-        for b in actionButtons { b.isEnabled = b.accessibilityIdentifier() == "tacto.flows.reveal" || (!busy && !running) }
+        for b in actionButtons { b.isEnabled = b.accessibilityIdentifier() == "haejo.flows.reveal" || (!busy && !running) }
     }
 
     // MARK: actions
@@ -1402,7 +1402,7 @@ final class FlowLibraryPage: NSObject, NSTableViewDataSource, NSTableViewDelegat
 
     private func start(_ args: [String]) {
         guard let name = current?.name else { return }
-        running = true; updateButtons(); status.stringValue = "\(name) 실행 중… 메뉴바의 Tacto에서 중단할 수 있어요."
+        running = true; updateButtons(); status.stringValue = "\(name) 실행 중… 메뉴바의 Haejo에서 중단할 수 있어요."
         queue.async { [weak self] in
             guard let self else { return }
             let outcome = Result { try self.runner(args) }

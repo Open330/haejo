@@ -9,10 +9,10 @@ import time
 import unittest
 from unittest.mock import patch
 
-from tacto.authoring import ask_model_result, _run_provider
-from tacto.claude_result import _run_claude
-from tacto.provider_result import ProviderError, ProviderResult, parse_provider_result
-from tacto.provider_observation import capture_provider_calls, summarize_provider_calls
+from haejo.authoring import ask_model_result, _run_provider
+from haejo.claude_result import _run_claude
+from haejo.provider_result import ProviderError, ProviderResult, parse_provider_result
+from haejo.provider_observation import capture_provider_calls, summarize_provider_calls
 
 
 class ProviderAttemptTests(unittest.TestCase):
@@ -22,8 +22,8 @@ class ProviderAttemptTests(unittest.TestCase):
                               output_tokens=3, cost=.01, cost_currency='USD', cost_basis='cli_reported_list_estimate')
 
     def test_rejected_paid_reply_survives_fallback_and_roundtrip(self):
-        with patch('tacto.authoring._try_cli', side_effect=lambda provider, *args: self.observed() if provider == 'claude' else None), \
-             patch('tacto.authoring._try_muxa', return_value='{}'), capture_provider_calls() as records:
+        with patch('haejo.authoring._try_cli', side_effect=lambda provider, *args: self.observed() if provider == 'claude' else None), \
+             patch('haejo.authoring._try_muxa', return_value='{}'), capture_provider_calls() as records:
             result = ask_model_result('PRIVATE', expect_json=True)
         self.assertEqual(['invalid_response', 'ok'], [a.status for a in result.attempts])
         self.assertEqual(.01, result.attempts[0].cost)
@@ -40,21 +40,21 @@ class ProviderAttemptTests(unittest.TestCase):
         self.assertEqual({'observed_sum': 4, 'unknown_records': 1}, summary['tokens']['total_input_tokens'])
 
     def test_success_summary_does_not_count_final_cost_twice(self):
-        with patch('tacto.authoring._try_cli', return_value=self.observed('{}')), capture_provider_calls() as records:
+        with patch('haejo.authoring._try_cli', return_value=self.observed('{}')), capture_provider_calls() as records:
             result = ask_model_result('q', 'claude', expect_json=True)
         self.assertEqual(.01, result.cost)
         self.assertEqual(.01, summarize_provider_calls(records)['costs'][0]['observed_sum'])
 
     def test_plain_reply_json_rejection_matches_structured_attempt(self):
-        with patch('tacto.authoring._try_muxa', return_value='PRIVATE invalid JSON'), \
-             patch('tacto.authoring._try_cli', return_value=None):
+        with patch('haejo.authoring._try_muxa', return_value='PRIVATE invalid JSON'), \
+             patch('haejo.authoring._try_cli', return_value=None):
             result = ask_model_result('q', 'codex', expect_json=True)
         self.assertEqual(['invalid_response', 'no_answer'], [a.status for a in result.attempts])
         self.assertNotIn('PRIVATE', json.dumps(result.to_dict()))
 
     def test_interrupt_records_prior_and_current_attempt_then_propagates(self):
-        with patch('tacto.authoring._try_muxa', return_value=None), \
-             patch('tacto.authoring._try_cli', side_effect=KeyboardInterrupt('PRIVATE')), \
+        with patch('haejo.authoring._try_muxa', return_value=None), \
+             patch('haejo.authoring._try_cli', side_effect=KeyboardInterrupt('PRIVATE')), \
              capture_provider_calls() as records:
             with self.assertRaises(KeyboardInterrupt):
                 ask_model_result('PRIVATE', 'codex')
@@ -66,8 +66,8 @@ class ProviderAttemptTests(unittest.TestCase):
         self.assertNotIn('PRIVATE', json.dumps(records))
 
     def test_all_failed_attempts_remain_available(self):
-        with patch('tacto.authoring._try_cli', side_effect=subprocess.TimeoutExpired('SECRET', 1)), \
-             patch('tacto.authoring._try_muxa', return_value=None):
+        with patch('haejo.authoring._try_cli', side_effect=subprocess.TimeoutExpired('SECRET', 1)), \
+             patch('haejo.authoring._try_muxa', return_value=None):
             result = ask_model_result('q', 'codex')
         self.assertEqual('timeout', result.status)
         self.assertEqual(['no_answer', 'timeout'], [a.status for a in result.attempts])
@@ -77,7 +77,7 @@ class ProviderAttemptTests(unittest.TestCase):
         failed = ProviderResult('local', 'claude', 'claude', 'cli-json', 'error', None,
                                 ProviderError('usage_limit', 'PRIVATE OUTPUT'), .1,
                                 output_tokens=2, cost=.005, cost_currency='USD', cost_basis='estimate')
-        with patch('tacto.authoring._try_cli', return_value=failed):
+        with patch('haejo.authoring._try_cli', return_value=failed):
             result = ask_model_result('q', 'claude')
         self.assertEqual('error', result.status)
         self.assertEqual(2, result.attempts[0].output_tokens)
@@ -96,7 +96,7 @@ class ProviderAttemptTests(unittest.TestCase):
         self.assertEqual(0, summary['unknown_cost_records'])
 
     def test_attempt_schema_rejects_untrusted_content_and_tokens(self):
-        with patch('tacto.authoring._try_cli', return_value=self.observed('{}')):
+        with patch('haejo.authoring._try_cli', return_value=self.observed('{}')):
             raw = ask_model_result('q', 'claude').to_dict()
         for change in ({'text': 'PRIVATE'}, {'input_tokens': True}, {'elapsed_seconds': float('inf')},
                        {'error_code': 'raw provider error'}, {'status': 'invented'}):
@@ -112,14 +112,14 @@ class ProviderAttemptTests(unittest.TestCase):
 
     def test_caller_interrupt_cleans_local_process_groups(self):
         # communicate interrupts, while context manager still reaps the process.
-        from tacto.codex_result import _run_codex
+        from haejo.codex_result import _run_codex
         for module, invoke in (
-                ('tacto.authoring', lambda: _run_provider(['unused'], 1)),
-                ('tacto.codex_result', lambda: _run_codex(['unused'], 'payload', 1)),
-                ('tacto.claude_result', lambda: _run_claude(['unused'], 'payload', 1, '/tmp'))):
+                ('haejo.authoring', lambda: _run_provider(['unused'], 1)),
+                ('haejo.codex_result', lambda: _run_codex(['unused'], 'payload', 1)),
+                ('haejo.claude_result', lambda: _run_claude(['unused'], 'payload', 1, '/tmp'))):
             with patch(module + '.subprocess.Popen') as popen, patch(module + '.os.killpg') as killpg, \
-                 patch('tacto.provider_io.bounded_communicate',side_effect=KeyboardInterrupt), \
-                 patch('tacto.provider_io.provider_process_exited_unreaped',return_value=False), \
+                 patch('haejo.provider_io.bounded_communicate',side_effect=KeyboardInterrupt), \
+                 patch('haejo.provider_io.provider_process_exited_unreaped',return_value=False), \
                  patch('os.getpgid',return_value=12345),patch('os.getsid',return_value=12345):
                 proc = popen.return_value.__enter__.return_value
                 proc.pid = 12345
@@ -132,8 +132,8 @@ class ProviderAttemptTests(unittest.TestCase):
     @unittest.skipUnless(os.name == 'posix', 'POSIX process groups required')
     def test_real_caller_interrupt_stops_delayed_descendant(self):
         with tempfile.TemporaryDirectory() as folder:
-            for module, name, extra in (('tacto.authoring', '_run_provider', ''),
-                                         ('tacto.codex_result', '_run_codex', "'payload', ")):
+            for module, name, extra in (('haejo.authoring', '_run_provider', ''),
+                                         ('haejo.codex_result', '_run_codex', "'payload', ")):
                 marker = str(Path(folder) / (name + '-descendant-write'))
                 child = 'import time,pathlib;time.sleep(1);pathlib.Path(' + repr(marker) + ').write_text("alive")'
                 parent = 'import subprocess,sys,time;subprocess.Popen([sys.executable,"-c",' + repr(child) + ']);time.sleep(10)'

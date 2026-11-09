@@ -53,7 +53,7 @@ assert(!check(fault:"AXParent"))
 assert(!check(fault:"AXValue"))
 print("native-address-confirm-pass")
 '''.replace('FUNCTION',function)
-        with tempfile.TemporaryDirectory(prefix='tacto-safari-confirm-') as folder:
+        with tempfile.TemporaryDirectory(prefix='haejo-safari-confirm-') as folder:
             source=Path(folder)/'main.swift';source.write_text(harness)
             result=subprocess.run(['swift',str(source)],capture_output=True,text=True,timeout=60)
             self.assertEqual(0,result.returncode,result.stderr)
@@ -64,9 +64,9 @@ class SafariValuePinTests(unittest.TestCase):
         from dataclasses import replace
         from unittest.mock import patch
         from tests.test_bound_return import App,CAPS,step
-        from tacto.flow import Flow,Selector,Postcondition,replay
-        from tacto.contract import ContextBinding
-        from tacto.flow import pin_params
+        from haejo.flow import Flow,Selector,Postcondition,replay
+        from haejo.contract import ContextBinding
+        from haejo.flow import pin_params
         url="https://example.com/expected"
         class Browser(App):
             def observe(self,*args,**kwargs):
@@ -79,7 +79,7 @@ class SafariValuePinTests(unittest.TestCase):
                                            operation="press_key",params_digest=pin_params({"key":"Return"}),
                                            destination_identity=url,destination_identity_from={"identifier":"WEB_BROWSER_ADDRESS_AND_SEARCH_FIELD","attribute":"Value"}),
                     postcondition=Postcondition(field=Selector(identifier="navigation-status"),attribute="Value",equals="done"))
-            with patch("tacto.flow._approved",return_value=True):
+            with patch("haejo.flow._approved",return_value=True):
                 replay(app,Flow("navigate","com.apple.Safari",[st],schema=2))
             self.assertEqual(1,len(app.calls))
             claim=app.calls[0][1]["expect"]
@@ -92,8 +92,8 @@ class SafariValuePinTests(unittest.TestCase):
         destination is compared on the host first: nothing is sent at all."""
         from unittest.mock import patch
         from tests.test_bound_return import App,CAPS,step
-        from tacto.flow import Flow,Selector,Postcondition,replay,pin_params
-        from tacto.contract import ContextBinding
+        from haejo.flow import Flow,Selector,Postcondition,replay,pin_params
+        from haejo.contract import ContextBinding
         def run(bound,shown):
             class Browser(App):
                 def observe(self,*args,**kwargs):
@@ -105,7 +105,7 @@ class SafariValuePinTests(unittest.TestCase):
                                            operation="press_key",params_digest=pin_params({"key":"Return"}),
                                            destination_identity=bound,destination_identity_from={"identifier":"WEB_BROWSER_ADDRESS_AND_SEARCH_FIELD","attribute":"Value"}),
                     postcondition=Postcondition(field=Selector(identifier="navigation-status"),attribute="Value",equals="done"))
-            with patch("tacto.flow._approved",return_value=True):
+            with patch("haejo.flow._approved",return_value=True):
                 replay(app,Flow("navigate","com.apple.Safari",[st],schema=2))
             return [c[1].get("expect",{}) for c in app.calls]
         url="https://example.com/expected"

@@ -41,8 +41,8 @@ credentials.json
 
 # Native build outputs; build from source or use notarized Release assets.
 
-# Canonical Tacto native outputs (old output names remain ignored above).
-/launcher/tacto
-/helper/tacto-helper
-/helper/Tacto Helper.app/
-/broker/tacto-broker
+# Canonical Haejo native outputs (old output names remain ignored above).
+/launcher/haejo
+/helper/haejo-helper
+/helper/Haejo Helper.app/
+/broker/haejo-broker

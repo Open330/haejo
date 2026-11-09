@@ -12,7 +12,7 @@ class SnapshotPlanningTests(unittest.TestCase):
     def fixture(self, root):
         path=root/'snapshot.json'
         path.write_text(json.dumps({'evaluation_kind':'real_model_owned_appkit',
-            'target':'ai.callabo.tacto.select-fixture','requested_option':'Choice127',
+            'target':'ai.callabo.haejo.select-fixture','requested_option':'Choice127',
             'plans':[{'candidates':screen()}]}))
         return path
 
@@ -20,13 +20,13 @@ class SnapshotPlanningTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder);path=self.fixture(root);data=json.loads(path.read_text())
             data['target']='other.app';path.write_text(json.dumps(data))
-            with patch('tacto.ask.ask') as model,self.assertRaises(ValueError):
+            with patch('haejo.ask.ask') as model,self.assertRaises(ValueError):
                 probe.run(path,0,'codex',root/'output.json')
             model.assert_not_called();self.assertFalse((root/'output.json').exists())
 
     def test_model_failure_preserves_usage_and_never_claims_ui_completion(self):
-        from tacto.provider_observation import record_provider_result
-        from tacto.provider_result import ProviderResult
+        from haejo.provider_observation import record_provider_result
+        from haejo.provider_result import ProviderResult
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder);path=self.fixture(root);out=root/'output.json'
             def fail(question, **kwargs):
@@ -34,7 +34,7 @@ class SnapshotPlanningTests(unittest.TestCase):
                 record_provider_result(ProviderResult('owned','codex','codex','cli-json',
                     'ok','PRIVATE_RESPONSE',None,.1,total_input_tokens=42,output_tokens=3))
                 raise RuntimeError('PRIVATE_EXCEPTION')
-            with patch('tacto.ask.ask',side_effect=fail):
+            with patch('haejo.ask.ask',side_effect=fail):
                 result=probe.run(path,0,'codex',out)
             self.assertEqual('RuntimeError',result['error_class'])
             self.assertEqual(1,len(result['provider_calls']))

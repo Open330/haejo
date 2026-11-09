@@ -4,7 +4,7 @@ import importlib.util
 import tempfile
 import unittest
 
-from tacto.native_save_directory import SaveDirectoryReader, SaveDirectoryUnavailable
+from haejo.native_save_directory import SaveDirectoryReader, SaveDirectoryUnavailable
 
 
 class Node(dict):
@@ -144,7 +144,7 @@ class SaveDirectoryTests(unittest.TestCase):
     @unittest.skipUnless(importlib.util.find_spec('ApplicationServices'), 'PyObjC unavailable')
     def test_native_directory_url_and_resource_validation(self):
         from Foundation import NSURL
-        from tacto.native_document_ax import AXDocumentAdapter
+        from haejo.native_document_ax import AXDocumentAdapter
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory).resolve()
             for url in (path.as_uri() + '/', str(NSURL.fileURLWithPath_(str(path)).fileReferenceURL().absoluteString())):

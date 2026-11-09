@@ -5,8 +5,8 @@ import sys
 import time
 import unittest
 
-from tacto.input_audit import InputSnapshot
-from tacto.input_audit_process import ProcessInputAudit, InputAuditProcessError
+from haejo.input_audit import InputSnapshot
+from haejo.input_audit_process import ProcessInputAudit, InputAuditProcessError
 
 
 def unchanged_reader():

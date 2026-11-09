@@ -45,7 +45,7 @@ def main(output):
     fd = os.open(output, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     report = {'read_only': True, 'authorizes_input': False, 'readiness_verified': False,
               'backend': 'direct_ax_metadata', 'rows': [], 'passed': False}
-    sources = [Path(__file__), Path(__file__).resolve().parents[2] / 'tacto/process_cpu.py']
+    sources = [Path(__file__), Path(__file__).resolve().parents[2] / 'haejo/process_cpu.py']
     hashes = lambda: {str(p.resolve()): hashlib.sha256(p.read_bytes()).hexdigest() for p in sources}
     report['source_before'] = hashes()
     started = time.monotonic()
@@ -53,7 +53,7 @@ def main(output):
         import ApplicationServices as AX
         from AppKit import NSWorkspace
         from CoreFoundation import CFEqual, CFGetTypeID, CFArrayGetTypeID
-        from tacto.process_cpu import sample_process_cpu, cpu_delta_ns, verify_cpu_clock
+        from haejo.process_cpu import sample_process_cpu, cpu_delta_ns, verify_cpu_clock
         report['cpu_calibration'] = verify_cpu_clock()
         apps = [a for a in NSWorkspace.sharedWorkspace().runningApplications()
                 if a.bundleIdentifier() == 'com.apple.finder']

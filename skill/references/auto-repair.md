@@ -11,7 +11,7 @@ The agent receives only the failed action, old selector, result predicate and
 a page of scoped candidates within an 8192-byte JSON packet. It selects a
 page-local candidate index (copy its explicit `index` field), asks for the next page, or declines; it has
 no authority to edit contracts, actions, parameters, checks or execute UI work.
-Tacto requires an explicit result predicate on the repaired step, false before
+Haejo requires an explicit result predicate on the repaired step, false before
 repair and verified by replay afterward. Only read/write_ephemeral contracts
 can be automatically repinned. It verifies full-tree uniqueness and equality
 with the chosen candidate node, preserves scope/parameter pins and
@@ -44,7 +44,7 @@ refuse them. Literal/reference boundaries are preserved with read-only literal_p
 separate from caller-overridable task params.
 This is not process-restart recovery, and offline --remaining
 files cannot carry captures. Provider markers include actual reported usage; missing
-telemetry remains null. `TACTO_BATCH_RESULT.model_requests` counts repair calls
+telemetry remains null. `HAEJO_BATCH_RESULT.model_requests` counts repair calls
 for that job. No approval/document/journal/trace modes are combined with this
 shortcut; use their explicit run handling instead.
 
@@ -62,4 +62,4 @@ Numeric AX indexes and at most two attribute-free bare Group changes per
 comparison are ignored only for checkpoint equality. All other content, node
 order and retained ancestor paths remain checked. The chosen canonical node
 is mapped to its fresh raw index; selectors and result checks use the raw tree.
-[Complex scenario evidence](../docs/tacto-complex-scenarios-2026-10-14.md).
+[Complex scenario evidence](../docs/haejo-complex-scenarios-2026-10-14.md).

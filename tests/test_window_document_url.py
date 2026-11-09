@@ -7,7 +7,7 @@ import sys
 import tempfile
 import unittest
 
-from tacto.document_label import document_attribute, quote_value, link_attributes
+from haejo.document_label import document_attribute, quote_value, link_attributes
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 @unittest.skipUnless(sys.platform == 'darwin' and shutil.which('swiftc'), 'macOS Swift required')
 class WindowDocumentURLTests(unittest.TestCase):
     def test_webarea_url_is_typed_quoted_and_separate_from_file_identity(self):
-        source = (ROOT / 'helper/TactoHelper.swift').read_text()
+        source = (ROOT / 'helper/HaejoHelper.swift').read_text()
 
         def function(name):
             body = source[source.index('func ' + name + '('):]
@@ -96,7 +96,7 @@ print(String(data:try! JSONSerialization.data(withJSONObject:["rows":rows,"neste
 ''' % (encoded_cases, encoded_title)
         functions = '\n'.join(function(n) for n in ('documentEscapesAreWellFormed',
                                                      'documentDecodePercent', 'documentURLSyntaxPath'))
-        with tempfile.TemporaryDirectory(prefix='tacto-webarea-url-') as directory:
+        with tempfile.TemporaryDirectory(prefix='haejo-webarea-url-') as directory:
             src, exe = Path(directory) / 'main.swift', Path(directory) / 'check'
             src.write_text(support + functions + common + checks)
             built = subprocess.run(['swiftc', '-warnings-as-errors', str(src), '-o', str(exe)],

@@ -8,9 +8,9 @@ func modeRefusal(_ code: String) -> Data {
 
 // The serial worker owns globals; invalidation marks abort immediately and
 // queues cleanup AFTER an in-flight request, before another lease can begin.
-let modeWorker = DispatchQueue(label:"tacto.prototype.driving-lease")
+let modeWorker = DispatchQueue(label:"haejo.prototype.driving-lease")
 
-final class ModeRPCSession: NSObject, TactoModeRPC, @unchecked Sendable {
+final class ModeRPCSession: NSObject, HaejoModeRPC, @unchecked Sendable {
     let id = UUID()
     let build: String
     private let lock = NSLock()
@@ -34,7 +34,7 @@ final class ModeRPCSession: NSObject, TactoModeRPC, @unchecked Sendable {
     func request(_ frame: Data, reply: @escaping (Data) -> Void) {
         modeWorker.async {
             guard self.alive(), ModeLease.shared.owns(self.id) else { reply(modeRefusal("helper_lease_missing")); return }
-            guard frame.count <= TactoMode.limit,
+            guard frame.count <= HaejoMode.limit,
                   let message = (try? JSONSerialization.jsonObject(with:frame)) as? [String:Any] else {
                 reply(modeRefusal("invalid_frame")); return
             }
@@ -60,7 +60,7 @@ final class ModeXPCListener: NSObject, NSXPCListenerDelegate {
     func listener(_ listener: NSXPCListener, shouldAcceptNewConnection connection: NSXPCConnection) -> Bool {
         connection.setCodeSigningRequirement(clientRequirement)
         let session = ModeRPCSession(build:build)
-        connection.exportedInterface = NSXPCInterface(with:TactoModeRPC.self)
+        connection.exportedInterface = NSXPCInterface(with:HaejoModeRPC.self)
         connection.exportedObject = session
         connection.invalidationHandler = { session.invalidate() }
         connection.interruptionHandler = { session.invalidate() }
@@ -73,7 +73,7 @@ var residentListener: NSXPCListener?
 var residentDelegate: ModeXPCListener?
 func startResidentMode(_ build: String) {
     let delegate = ModeXPCListener(build:build)
-    let listener = NSXPCListener(machServiceName:TactoResident.service)
+    let listener = NSXPCListener(machServiceName:HaejoResident.service)
     listener.delegate = delegate; residentDelegate = delegate; residentListener = listener
     listener.resume()
 }

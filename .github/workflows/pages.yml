@@ -1,10 +1,10 @@
-# Publish the static landing page (sites/tacto/dist) to GitHub Pages.
+# Publish the static landing page (sites/haejo/dist) to GitHub Pages.
 name: pages
 
 on:
   push:
     branches: [main]
-    paths: ["sites/tacto/dist/**", ".github/workflows/pages.yml"]
+    paths: ["sites/haejo/dist/**", ".github/workflows/pages.yml"]
   workflow_dispatch:
 
 permissions:
@@ -27,6 +27,6 @@ jobs:
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: sites/tacto/dist
+          path: sites/haejo/dist
       - id: deployment
         uses: actions/deploy-pages@v4

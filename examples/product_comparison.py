@@ -1,11 +1,11 @@
-"""Same agent, same task, two computer-use layers: Tacto versus OpenAI's Sky.
+"""Same agent, same task, two computer-use layers: Haejo versus OpenAI's Sky.
 
 Both arms invoke the same local Codex CLI route. This does not verify identical
 serving models, reasoning, account state, or initial app state; those require
 separate recorded evidence. The requested computer-use layers are:
 
   sky  — Codex's own Computer Use plugin (@oai/sky through node_repl `js`)
-  tacto  — the Tacto skill and the `tacto` command
+  haejo  — the Haejo skill and the `haejo` command
 
 Each task names an independent oracle — read by this harness after the run,
 from the app or the file system — and never trusts what the agent says it did.
@@ -14,7 +14,7 @@ personal (Calculator, TextEdit documents this harness creates, Finder on
 /Applications, the macOS version); nothing reads mail, calendars or browsing.
 
     python examples/product_comparison.py --reps 1             # every task, both arms
-    python examples/product_comparison.py --only calc_mult --arms tacto
+    python examples/product_comparison.py --only calc_mult --arms haejo
     python examples/product_comparison.py --list
 
 Each run is a fresh Codex session in /tmp and spends model tokens (measured
@@ -41,7 +41,7 @@ sys.path.insert(0, str(ROOT / "examples" / "probes"))
 _AGENT_EXECUTABLE = "codex"
 _AGENT_REQUESTED_EXECUTABLE = "codex"
 _SKY_SKILL_FILE = None
-_TACTO_RUNTIME = None
+_HAEJO_RUNTIME = None
 _COLD_START = False
 _REQUESTED_MODEL = None
 _REQUESTED_REASONING_EFFORT = None
@@ -64,10 +64,10 @@ BACKGROUND_CONSTRAINT = (
 ARM_CLAUSE = {
     "sky": ("Use the Computer Use plugin: the `js` tool of the node_repl MCP server with "
             "the @oai/sky interface (search your deferred tools for it if it is not listed). "
-            "Do not use the `tacto` command."),
-    "tacto": ("Use the tacto skill and the `tacto` command to drive the app. "
+            "Do not use the `haejo` command."),
+    "haejo": ("Use the haejo skill and the `haejo` command to drive the app. "
             "Do not use the Computer Use plugin or node_repl. "
-            "Use the installed signed tacto (typically ~/.local/bin/tacto) with --helper for GUI operations. "
+            "Use the installed signed haejo (typically ~/.local/bin/haejo) with --helper for GUI operations. "
             "Do not use AppleScript or direct native input."),
 }
 
@@ -75,16 +75,16 @@ ARM_CLAUSE = {
 # ---------------------------------------------------------------- app state
 
 def _driver():
-    from tacto.helper import InheritedHelperDriver
+    from haejo.helper import InheritedHelperDriver
     if not InheritedHelperDriver.available():
         raise RuntimeError('comparison_requires_signed_launcher')
     return InheritedHelperDriver()
 
 
 def _agent_env():
-    from tacto.authoring import _provider_env
+    from haejo.authoring import _provider_env
     env = _provider_env()
-    for key in ('TACTO_HELPER_FD', 'TACTO_LAUNCHER', 'TACTO_HELPER_TOKEN'):
+    for key in ('HAEJO_HELPER_FD', 'HAEJO_LAUNCHER', 'HAEJO_HELPER_TOKEN'):
         env.pop(key, None)
     return env
 
@@ -101,7 +101,7 @@ def _run_agent(argv, prompt, timeout, diagnostics):
     This is execution, not the planning-only codex_result acceptance parser.
     Process diagnostics grant neither GUI authority nor comparison eligibility.
     """
-    from tacto.codex_result import _run_codex
+    from haejo.codex_result import _run_codex
     argv = list(argv)
     if _REQUESTED_MODEL is not None:
         argv[2:2] = ['--model', _REQUESTED_MODEL]
@@ -112,7 +112,7 @@ def _run_agent(argv, prompt, timeout, diagnostics):
     if len(argv) < 2 or argv[1] != 'exec' or any(arg in ('resume','fork','--last') for arg in argv[2:]):
         raise ValueError('cold_start_requires_new_exec')
     import hashlib
-    with tempfile.TemporaryDirectory(prefix='tacto-cold-agent-') as directory:
+    with tempfile.TemporaryDirectory(prefix='haejo-cold-agent-') as directory:
         work = Path(directory).resolve()
         arguments = [_AGENT_EXECUTABLE, *argv[1:]]
         if '-C' in arguments:
@@ -175,19 +175,19 @@ def _instruction_profile():
     import hashlib
     guide = _sky_skill_evidence()
     return {'schema': 'comparison-instructions-v1',
-            'tacto_template_sha256': hashlib.sha256(_arm_prompt('{TASK}', 'tacto').encode()).hexdigest(),
+            'haejo_template_sha256': hashlib.sha256(_arm_prompt('{TASK}', 'haejo').encode()).hexdigest(),
             'sky_template_sha256': hashlib.sha256(_arm_prompt('{TASK}', 'sky').encode()).hexdigest(),
             'sky_guide_sha256': guide.get('sha256') if guide else None,
             'sky_guide_provided': _SKY_SKILL_FILE is not None,
-            'selected_tacto_runtime': _TACTO_RUNTIME['resolved_launcher'] if _TACTO_RUNTIME else None}
+            'selected_haejo_runtime': _HAEJO_RUNTIME['resolved_launcher'] if _HAEJO_RUNTIME else None}
 
 
 def _arm_prompt(ask, arm):
     clause = ARM_CLAUSE[arm]
-    if arm == 'tacto' and _TACTO_RUNTIME is not None:
-        clause = ('Read the selected Tacto skill at ' + json.dumps(_TACTO_RUNTIME['skill']) +
+    if arm == 'haejo' and _HAEJO_RUNTIME is not None:
+        clause = ('Read the selected Haejo skill at ' + json.dumps(_HAEJO_RUNTIME['skill']) +
                   '. Drive the UI only through the selected launcher ' +
-                  json.dumps(_TACTO_RUNTIME['resolved_launcher']) +
+                  json.dumps(_HAEJO_RUNTIME['resolved_launcher']) +
                   ' with --helper. Use this exact runtime and guide; do not substitute an installed alias. '
                   'Do not use Computer Use, node_repl, AppleScript, or direct native input.')
     if arm == 'sky' and _SKY_SKILL_FILE is not None:
@@ -205,8 +205,8 @@ def _live_agent_probe():
     """Actual model request through this signed host, without a native task."""
     import os
     import secrets
-    from tacto.codex_result import parse_codex_events
-    from tacto.process_responsibility import observe_responsibility
+    from haejo.codex_result import parse_codex_events
+    from haejo.process_responsibility import observe_responsibility
     if not _agent_executable_available():
         manifest=source_manifest()
         return {'scope':'agent_executable_preflight_no_model_or_UI','oracle_passed':False,
@@ -220,7 +220,7 @@ def _live_agent_probe():
     controller = observe_responsibility(os.getpid())
     before = source_manifest()
     started = time.monotonic()
-    with tempfile.TemporaryDirectory(prefix='tacto-agent-probe-') as folder:
+    with tempfile.TemporaryDirectory(prefix='haejo-agent-probe-') as folder:
         final = Path(folder) / 'answer.txt'
         fd = os.open(final, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
         os.close(fd)
@@ -395,7 +395,7 @@ def _owned_lifecycle_probe(resume_directory=None, resume_identity=None, fixture_
 def _responsibility_probe():
     """Observe this controller and one owned, idle non-model child."""
     import os
-    from tacto.process_responsibility import observe_responsibility
+    from haejo.process_responsibility import observe_responsibility
     parent = observe_responsibility(os.getpid())
     cleanup_status = 'completed'
     # The child waits for one stdin byte. No GUI, network, model or file writes.
@@ -433,7 +433,7 @@ def _tree(target):
 
 
 def _calc_display():
-    from tacto.flow import Selector
+    from haejo.flow import Selector
     line = next((l for l in _tree(CALC).splitlines() if "Edit field" in l), "")
     return (Selector._attr(line, "Value") or "").replace(",", "").strip("‎ ")
 
@@ -445,7 +445,7 @@ def _calc_mode():
 
 def calc_reset(mode="basic"):
     """Basic (or given) mode, cleared display — the same start for both arms."""
-    from tacto.flow import Selector
+    from haejo.flow import Selector
     d = _driver()
     o = d.observe(CALC, "tree_full", require_window=False)
     bootstrap='not_needed'
@@ -546,7 +546,7 @@ def _document_read(window):
 def _textedit_windows():
     """TextEdit's windows by AX — the windows only, never what they contain."""
     from ApplicationServices import AXUIElementCreateApplication
-    from tacto.driver import _attr, _unhide_quietly
+    from haejo.driver import _attr, _unhide_quietly
     app, _identity = _textedit_process()
     if app is None:
         return []
@@ -556,7 +556,7 @@ def _textedit_windows():
 
 
 def _text_of(window):
-    from tacto.driver import _attr
+    from haejo.driver import _attr
 
     def find(el, depth=0):
         if depth > 6:
@@ -579,7 +579,7 @@ def _owned_path():
 
 def _window_path(window):
     """The window's document as a local file path, or None."""
-    from tacto.driver import _attr
+    from haejo.driver import _attr
     doc = _attr(window, "AXDocument")
     return _local_path(doc) if isinstance(doc, str) else None
 
@@ -644,7 +644,7 @@ def owned_setup():
     import os
     import tempfile
     _OWNED.clear()
-    directory = tempfile.mkdtemp(prefix="tacto-compare-owned-")       # 0700, unique
+    directory = tempfile.mkdtemp(prefix="haejo-compare-owned-")       # 0700, unique
     # Real path: mkdtemp answers /var/…, TextEdit reports /private/var/….
     directory = os.path.realpath(directory)
     path = os.path.join(directory, OWNED_NAME)
@@ -688,7 +688,7 @@ def owned_cleanup():
     """
     import shutil
     from ApplicationServices import AXUIElementPerformAction
-    from tacto.driver import _attr
+    from haejo.driver import _attr
     if not _OWNED.get("path"):
         return "nothing_owned"
     window = owned_window()
@@ -740,7 +740,7 @@ def owned_cleanup():
 
 
 def _find_button(el, title, depth=0):
-    from tacto.driver import _attr
+    from haejo.driver import _attr
     if depth > 5 or el is None:
         return None
     if _attr(el, "AXRole") == "AXButton" and _attr(el, "AXTitle") == title:
@@ -759,7 +759,7 @@ def textedit_hidden():
 
 
 def _locked():
-    from tacto.session import lock_state
+    from haejo.session import lock_state
     state = lock_state()
     if state['locked'] is True:
         return True
@@ -795,17 +795,17 @@ def _macos_version():
                           text=True).stdout.strip()
 
 
-TEXT = "TACTO 비교 테스트 7781"
-OWNED_NAME = "TACTO 비교 문서.txt"
+TEXT = "HAEJO 비교 테스트 7781"
+OWNED_NAME = "HAEJO 비교 문서.txt"
 # The harness's own document: a fresh 0700 directory per run (mkdtemp), the
 # file created exclusively, the directory's inode remembered; plus the TextEdit process
 # and AX window that showed it. Nothing is assumed from a fixed path.
 _OWNED: dict = {}
 FOLDER_ITEMS = 7
-FOLDER_PREFIX = "tacto-compare-folder-"
+FOLDER_PREFIX = "haejo-compare-folder-"
 # The folder task's own directory: a fresh mkdtemp per run, so its name (the
 # only thing a Finder window shows) is unique to the run, and no fixed path is
-# ever removed. The first version reused /tmp/tacto-compare-folder and removed it
+# ever removed. The first version reused /tmp/haejo-compare-folder and removed it
 # before checking anything (Codex review of 1bf10aa).
 _FOLDER: dict = {}
 
@@ -841,7 +841,7 @@ def _ax(element, name):
 
 
 def _find_identified(el, identifier, depth=0):
-    from tacto.driver import _attr
+    from haejo.driver import _attr
     if el is None or depth > 8:
         return None
     if _attr(el, "AXIdentifier") == identifier:
@@ -920,7 +920,7 @@ def finder_setup():
 def finder_oracle(answer):
     """The answer names the count AND a Finder window titled with this run's
     folder name shows that count in its status bar."""
-    from tacto.driver import _attr
+    from haejo.driver import _attr
     state = finder_state() or {"shown": [], "sheets": []}
     statuses = [_attr(_find_identified(w, "statusBarText"), "AXValue") or ""
                 for w in state["shown"]]
@@ -967,11 +967,11 @@ def finder_cleanup():
     return f"folder_removed; {left}"
 
 
-SAVE_TEXT = "TACTO 저장 확인 4417"
+SAVE_TEXT = "HAEJO 저장 확인 4417"
 
 
 def _read_owned_file_bytes(path, is_ours):
-    """Independent bounded file oracle; never use TACTO's receipt as its judge."""
+    """Independent bounded file oracle; never use HAEJO's receipt as its judge."""
     import os
     import stat
     if not path or not is_ours() or os.path.realpath(path) != path:
@@ -1072,7 +1072,7 @@ def newdir_setup():
     import os
     import tempfile
     if _NEWDIR:raise RuntimeError('previous_owned_folder_not_cleaned')
-    path = os.path.realpath(tempfile.mkdtemp(prefix="tacto-compare-newdir-", dir="/tmp"))
+    path = os.path.realpath(tempfile.mkdtemp(prefix="haejo-compare-newdir-", dir="/tmp"))
     st = os.stat(path)
     _NEWDIR.update(path=path, inode=(st.st_dev, st.st_ino), ui_may_have_opened=False)
     return newdir_evidence()
@@ -1171,26 +1171,26 @@ def appearance_oracle(answer):
 def source_manifest():
     """Explicit source/artifact set, not a dependency-closure claim.
 
-    Both arms record the same TACTO state. Missing signed artifacts are recorded,
+    Both arms record the same HAEJO state. Missing signed artifacts are recorded,
     not silently omitted; package/fixture changes and binary rebuilds matter.
     """
     import hashlib
-    fixed = ["skill/SKILL.md", "launcher/tacto", "launcher/tacto.swift",
-             "helper/tacto-helper", "helper/Tacto Helper.app/Contents/MacOS/TactoHelper",
-             "helper/Tacto Helper.app/Contents/Info.plist", "signing.sh",
+    fixed = ["skill/SKILL.md", "launcher/haejo", "launcher/haejo.swift",
+             "helper/haejo-helper", "helper/Haejo Helper.app/Contents/MacOS/HaejoHelper",
+             "helper/Haejo Helper.app/Contents/Info.plist", "signing.sh",
              "pyproject.toml", "uv.lock"]
     paths = {ROOT / name for name in fixed}
-    for directory, pattern in (("tacto", "**/*.py"), ("helper", "*.swift"),
+    for directory, pattern in (("haejo", "**/*.py"), ("helper", "*.swift"),
                                ("examples", "*.py"), ("examples/probes", "*.py"),
                                ("tests/fixtures", "*.swift"), ("flows", "*.json")):
         paths.update((ROOT / directory).glob(pattern))
     files = {path.relative_to(ROOT).as_posix():
              hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
              for path in sorted(paths)}
-    if _TACTO_RUNTIME is not None:
+    if _HAEJO_RUNTIME is not None:
         from examples.benchmark_runtime import runtime_evidence
         try:
-            selected = runtime_evidence(_TACTO_RUNTIME['resolved_launcher'])
+            selected = runtime_evidence(_HAEJO_RUNTIME['resolved_launcher'])
             files.update({'selected_runtime/' + name:digest for name,digest in selected['files'].items()})
         except (OSError, ValueError):
             files['selected_runtime/unavailable'] = None
@@ -1282,7 +1282,7 @@ def run_one(task: Task, arm: str, timeout: int = 600) -> dict:
                 **_source_evidence(source_before, source_before)}
     instruction_before = _instruction_profile()
     sky_skill_before = _sky_skill_evidence() if arm == 'sky' else None
-    from tacto.helper import InheritedHelperDriver
+    from haejo.helper import InheritedHelperDriver
     signed_channel_available = InheritedHelperDriver.available() or _FIXTURE_WORKER is not None
     if not signed_channel_available or task.cleanup is owned_cleanup:
         # Legacy owned TextEdit cleanup still sends direct AXPress. Do not create
@@ -1375,7 +1375,7 @@ def run_one(task: Task, arm: str, timeout: int = 600) -> dict:
         trace = _preserve_agent_trace(stdout, proc.stderr if proc is not None else '')
     except OSError:
         trace = {'scope': 'raw_cli_stdout_and_stderr', 'error': 'trace_preservation_failed'}
-    from tacto.tool_item_usage import ToolItemUsage
+    from haejo.tool_item_usage import ToolItemUsage
     tool_items=ToolItemUsage()
     calls, usage, layer_violation, shortcut = {}, None, False, False
     usage_events = []
@@ -1401,23 +1401,23 @@ def run_one(task: Task, arm: str, timeout: int = 600) -> dict:
             key = f"{item.get('server')}:{item.get('tool')}"
             calls[key] = calls.get(key, 0) + 1
             tool_items.record(event,key)
-            if arm == "tacto" and item.get("server") in ("node_repl", "cua_repl"):
+            if arm == "haejo" and item.get("server") in ("node_repl", "cua_repl"):
                 layer_violation = True
         elif item.get("type") == "command_execution":
             cmd = item.get("command", "")
             if not isinstance(cmd,str):cmd=""
-            if re.search(r"(^|[\s'\"/])tacto['\"]?(?=\s|$)", cmd):
+            if re.search(r"(^|[\s'\"/])haejo['\"]?(?=\s|$)", cmd):
                 if event.get('type') == 'item.completed':
-                    from tacto.preparation_diagnostic import diagnostic_lines
+                    from haejo.preparation_diagnostic import diagnostic_lines
                     # Tool-reported diagnostics, not a completion oracle or
                     # attestation of a command's execution provenance.
                     preparation_diagnostics.extend(diagnostic_lines(item.get('aggregated_output')))
                     preparation_diagnostics = preparation_diagnostics[:64]
-                    from tacto.pin_diagnostic import diagnostic_lines as pin_lines
+                    from haejo.pin_diagnostic import diagnostic_lines as pin_lines
                     pin_diagnostics.extend(pin_lines(item.get('aggregated_output')))
                     pin_diagnostics = pin_diagnostics[:64]
-                calls["shell:tacto"] = calls.get("shell:tacto", 0) + 1
-                tool_items.record(event,"shell:tacto")
+                calls["shell:haejo"] = calls.get("shell:haejo", 0) + 1
+                tool_items.record(event,"shell:haejo")
                 if arm == "sky":
                     layer_violation = True
             else:
@@ -1499,27 +1499,27 @@ def run_one(task: Task, arm: str, timeout: int = 600) -> dict:
     # Even the external worker mode lacks complete descendant/Sky route and
     # initial-state evidence. Keep task outcomes but exclude product parity.
     result['agent_spawn_parent_boundary'] = ('external_python_controller' if _FIXTURE_WORKER is not None
-                                              else 'signed_tacto_controller')
+                                              else 'signed_haejo_controller')
     if _FIXTURE_WORKER is not None:
         result['fixture_worker_metadata'] = _WORKER_METADATA
     result['agent_requested_executable'] = _AGENT_REQUESTED_EXECUTABLE
     result['agent_requested_model'] = _REQUESTED_MODEL
     result['agent_requested_reasoning_effort'] = _REQUESTED_REASONING_EFFORT
-    result['selected_tacto_runtime'] = ({key:value for key,value in _TACTO_RUNTIME.items()
-                                         if key != 'files'} if _TACTO_RUNTIME else None)
+    result['selected_haejo_runtime'] = ({key:value for key,value in _HAEJO_RUNTIME.items()
+                                         if key != 'files'} if _HAEJO_RUNTIME else None)
     result['selected_runtime_execution_attribution_verified'] = False
     result['agent_serving_model_verified'] = False
     result['agent_executable'] = _AGENT_EXECUTABLE
     result['agent_cli_cwd'] = context_evidence['workspace'] if context_evidence else '/tmp'
     result['cold_start_requested'] = _COLD_START
     result['context_evidence'] = context_evidence
-    from tacto.comparison_tokens import reported_turn_tokens
+    from haejo.comparison_tokens import reported_turn_tokens
     result['token_accounting'] = reported_turn_tokens(usage_events, stream_complete=not timed_out and
         launch_error is None and process_exit == 0 and terminal_completed and not terminal_failed)
     result['agent_started_in_new_session'] = True
     result['agent_responsible_process_observed'] = None
     result['agent_primary_process_diagnostics'] = process_diagnostics
-    from tacto.process_responsibility import summarize_primary_responsibility
+    from haejo.process_responsibility import summarize_primary_responsibility
     result['agent_primary_responsibility_summary'] = summarize_primary_responsibility(process_diagnostics)
     result['comparison_eligible'] = False
     result['comparison_exclusion_reason'] = 'agent_responsibility_not_isolated_or_observed'
@@ -1545,7 +1545,7 @@ def run_one(task: Task, arm: str, timeout: int = 600) -> dict:
 
 
 def main(argv=None) -> int:
-    global _AGENT_EXECUTABLE, _AGENT_REQUESTED_EXECUTABLE, _FIXTURE_WORKER, _WORKER_METADATA, _SKY_SKILL_FILE, _TACTO_RUNTIME, _COLD_START, _REQUESTED_MODEL, _REQUESTED_REASONING_EFFORT
+    global _AGENT_EXECUTABLE, _AGENT_REQUESTED_EXECUTABLE, _FIXTURE_WORKER, _WORKER_METADATA, _SKY_SKILL_FILE, _HAEJO_RUNTIME, _COLD_START, _REQUESTED_MODEL, _REQUESTED_REASONING_EFFORT
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     from comparison_fixture_worker import WORKER_TASKS
     ap.add_argument('--fixture-worker-task', choices=WORKER_TASKS, default='textedit_edit_owned', help=argparse.SUPPRESS)
@@ -1559,7 +1559,7 @@ def main(argv=None) -> int:
                     help='check separate worker/helper metadata without GUI setup or model requests')
     ap.add_argument('--cold-start', action='store_true', help='fresh exec, ephemeral session, empty private workspace; global/system context and server cache remain unverified')
     ap.add_argument('--sky-skill-file', help='host-selected absolute bundled Computer Use SKILL.md path; no installation changes')
-    ap.add_argument('--tacto-launcher', help='host-selected complete runtime/launcher/tacto; explicit guide and hashes, no installation change')
+    ap.add_argument('--haejo-launcher', help='host-selected complete runtime/launcher/haejo; explicit guide and hashes, no installation change')
     ap.add_argument('--agent-executable', help='host-selected absolute Codex CLI path; does not change PATH')
     ap.add_argument('--model', help='same requested Codex model for both arms; omitted preserves CLI default, not serving-model verification')
     ap.add_argument('--reasoning-effort', choices=('minimal', 'low', 'medium', 'high', 'xhigh'),
@@ -1567,7 +1567,7 @@ def main(argv=None) -> int:
     ap.add_argument('--timeout', type=int, default=600,
                     help='per-arm model timeout in seconds (same for both arms)')
     ap.add_argument("--reps", type=int, default=1)
-    ap.add_argument("--arms", nargs="+", default=["tacto", "sky"], choices=["tacto", "sky"])
+    ap.add_argument("--arms", nargs="+", default=["haejo", "sky"], choices=["haejo", "sky"])
     ap.add_argument("--only", nargs="*")
     ap.add_argument("--list", action="store_true")
     checks = ap.add_mutually_exclusive_group()
@@ -1592,14 +1592,14 @@ def main(argv=None) -> int:
     checks.add_argument('--check-owned-scoped-save',action='store_true',help='native document-token Save and exact saved-state receipt')
     checks.add_argument('--check-owned-scoped-cli-save',action='store_true',help='installed scoped CLI built-in Save with disk-state check')
     args = ap.parse_args(argv)
-    if args.tacto_launcher is not None:
+    if args.haejo_launcher is not None:
         from examples.benchmark_runtime import runtime_evidence
         try:
-            _TACTO_RUNTIME = runtime_evidence(args.tacto_launcher)
+            _HAEJO_RUNTIME = runtime_evidence(args.haejo_launcher)
         except (OSError, ValueError):
-            ap.error('--tacto-launcher requires an absolute executable in a complete Tacto runtime')
+            ap.error('--haejo-launcher requires an absolute executable in a complete Haejo runtime')
     else:
-        _TACTO_RUNTIME = None
+        _HAEJO_RUNTIME = None
     if args.model is not None and (not args.model.strip() or len(args.model) > 200 or any(ord(c) < 32 for c in args.model)):
         ap.error('--model requires a nonempty model name without control characters')
     _REQUESTED_MODEL = args.model
@@ -1657,7 +1657,7 @@ def main(argv=None) -> int:
             print(f"{t.name:16} {t.preview if t.preview is not None else (t.ask() if callable(t.ask) else t.ask)}")
         return 0
     if args.fixture_worker:
-        from tacto.helper import InheritedHelperDriver
+        from haejo.helper import InheritedHelperDriver
         if not InheritedHelperDriver.available():
             print('fixture_worker_requires_signed_launcher', file=sys.stderr)
             return 2
@@ -1668,8 +1668,8 @@ def main(argv=None) -> int:
     if args.external_owned_worker:
         import os
         from comparison_fixture_worker import FixtureWorker
-        from tacto.helper import InheritedHelperDriver
-        if InheritedHelperDriver.available() or any(os.environ.get(k) for k in ('TACTO_HELPER_FD', 'TACTO_LAUNCHER', 'TACTO_HELPER_TOKEN')):
+        from haejo.helper import InheritedHelperDriver
+        if InheritedHelperDriver.available() or any(os.environ.get(k) for k in ('HAEJO_HELPER_FD', 'HAEJO_LAUNCHER', 'HAEJO_HELPER_TOKEN')):
             ap.error('external controller must run outside the signed launcher')
         launcher = Path(args.external_owned_worker)
         if not launcher.is_absolute() or not launcher.is_file() or not os.access(launcher, os.X_OK):
@@ -1683,14 +1683,14 @@ def main(argv=None) -> int:
         worker = FixtureWorker(str(launcher), task=selected_task)
         try:
             metadata = worker.request('check')
-            from tacto.process_responsibility import observe_responsibility
+            from haejo.process_responsibility import observe_responsibility
             _WORKER_METADATA = {'worker': metadata, 'controller': observe_responsibility(os.getpid()),
                                 'agent_descendants_observed': False, 'tcc_permission_verified': False}
             if args.check_worker_boundary:
-                from tacto.process_responsibility import observe_responsibility
+                from haejo.process_responsibility import observe_responsibility
                 print(json.dumps({'scope': 'external_controller_signed_worker_metadata_only',
                                   'controller': observe_responsibility(os.getpid()),
-                                  'worker': metadata, 'selected_tacto_runtime': _TACTO_RUNTIME, 'gui_task_executed': False,
+                                  'worker': metadata, 'selected_haejo_runtime': _HAEJO_RUNTIME, 'gui_task_executed': False,
                                   'agent_executed': False, 'comparison_eligible': False}))
                 return 0
             if args.check_worker_lifecycle:
@@ -1706,8 +1706,8 @@ def main(argv=None) -> int:
                          '--timeout', str(args.timeout), '--arms', *args.arms]
             if args.cold_start:
                 forwarded.append('--cold-start')
-            if args.tacto_launcher:
-                forwarded += ['--tacto-launcher', _TACTO_RUNTIME['resolved_launcher']]
+            if args.haejo_launcher:
+                forwarded += ['--haejo-launcher', _HAEJO_RUNTIME['resolved_launcher']]
             if args.sky_skill_file:
                 forwarded += ['--sky-skill-file', _SKY_SKILL_FILE]
             if args.agent_executable:
@@ -1721,9 +1721,9 @@ def main(argv=None) -> int:
             _FIXTURE_WORKER = None
             _WORKER_METADATA = None
             worker.close()
-    from tacto.helper import InheritedHelperDriver
+    from haejo.helper import InheritedHelperDriver
     if not InheritedHelperDriver.available() and _FIXTURE_WORKER is None:
-        print('Use the signed launcher: tacto eval --product-comparison [options]')
+        print('Use the signed launcher: haejo eval --product-comparison [options]')
         return 2
     if args.diagnose_owned_document_pin:
         reply = _driver().document_text('com.apple.TextEdit', document_path=args.diagnose_owned_document_pin)
@@ -1747,8 +1747,8 @@ def main(argv=None) -> int:
             from signed_document_observe import run
         else:
             from signed_textedit_save import run
-        from tacto.driver import Driver
-        from tacto.native_frontmost import frontmost_pid
+        from haejo.driver import Driver
+        from haejo.native_frontmost import frontmost_pid
         def can_cleanup():
             try:return _locked() is False and frontmost_pid()!=Driver()._resolve('com.apple.TextEdit',launch=False)
             except Exception:return False

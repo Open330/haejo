@@ -1,6 +1,6 @@
 """Target guessing works with any driver, including the signed helper's."""
 import unittest
-from tacto.authoring import guess_target
+from haejo.authoring import guess_target
 
 
 class HelperStyleDriver:

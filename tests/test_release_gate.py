@@ -50,7 +50,7 @@ class ReleaseGateTests(unittest.TestCase):
 
     def _inspect(self, mismatch=False, verify_failure=False, detach_failure=False):
         with tempfile.TemporaryDirectory() as folder:
-            root = Path(folder).resolve(); app = root/'Tacto.app'; app.mkdir()
+            root = Path(folder).resolve(); app = root/'Haejo.app'; app.mkdir()
             image = root/'candidate.dmg'; image.write_bytes(b'image')
             mount_root = root/'mount'; mount_root.mkdir()
             volume = mount_root/'volume'
@@ -64,10 +64,10 @@ class ReleaseGateTests(unittest.TestCase):
                 failed = '--assess' in argv or 'stapler' in argv or ('detach' in argv and detach_failure)
                 return subprocess.CompletedProcess(argv, int(failed), b'', b'')
             def verify(path):
-                if verify_failure and path == volume/'Tacto.app':
+                if verify_failure and path == volume/'Haejo.app':
                     raise ValueError('invalid signature')
             def manifest(path):
-                return {'file': 'changed' if mismatch and path == volume/'Tacto.app' else 'same'}
+                return {'file': 'changed' if mismatch and path == volume/'Haejo.app' else 'same'}
             with patch.object(gate, 'command', side_effect=run), \
                  patch.object(gate, 'verify_app', side_effect=verify), \
                  patch.object(gate, 'app_manifest', side_effect=manifest), \
@@ -83,7 +83,7 @@ class ReleaseGateTests(unittest.TestCase):
                     for key in ('packaged_gatekeeper_accepted', 'packaged_notarization_ticket',
                                 'image_gatekeeper_accepted', 'image_notarization_ticket'):
                         self.assertIn(key, result['blockers'])
-                    self.assertTrue(any(str(volume/'Tacto.app') in c and '--assess' in c for c in calls))
+                    self.assertTrue(any(str(volume/'Haejo.app') in c and '--assess' in c for c in calls))
                     self.assertTrue(any(str(image.resolve()) in c and '--assess' in c for c in calls))
                 self.assertIn(['/usr/bin/hdiutil', 'detach', str(volume)], calls)
                 if detach_failure:

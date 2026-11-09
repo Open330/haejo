@@ -1,8 +1,8 @@
-"""Per-command wall time of the signed tacto command, for each helper mode.
+"""Per-command wall time of the signed haejo command, for each helper mode.
 
 Each mode is an environment for the same commands, so modes compare like for
 like: today's per-command helper (default), and opt-in modes as they appear
-(TACTO_HELPER_MODE=warm|resident). `list` needs no helper and marks the floor
+(HAEJO_HELPER_MODE=warm|resident). `list` needs no helper and marks the floor
 of starting the command itself. Only reads: `apps` and `observe`. A locked
 screen stops the run before any screen read.
 """
@@ -26,14 +26,14 @@ def percentile(values, q):
     return ordered[min(len(ordered) - 1, round(q * (len(ordered) - 1)))]
 
 
-def run_once(tacto, argv, env):
+def run_once(haejo, argv, env):
     """(ms, exit code, effective mode, helper pid) — the mode the launcher reports on stderr."""
     start = time.monotonic()
-    done = subprocess.run([tacto, *argv], env=env, capture_output=True, text=True, timeout=120)
+    done = subprocess.run([haejo, *argv], env=env, capture_output=True, text=True, timeout=120)
     ms = round((time.monotonic() - start) * 1000, 1)
     effective = pid = None
     for line in done.stderr.splitlines():
-        if line.startswith('{') and 'tacto_helper_mode' in line:
+        if line.startswith('{') and 'haejo_helper_mode' in line:
             try:
                 report = json.loads(line)
             except ValueError:
@@ -42,7 +42,7 @@ def run_once(tacto, argv, env):
     return ms, done.returncode, effective, pid
 
 
-def measure(tacto, mode, app, repeats, env_extra=None, locked=None):
+def measure(haejo, mode, app, repeats, env_extra=None, locked=None):
     env = dict(os.environ, **(env_extra or {}))
     rows = {}
     for name, template in COMMANDS.items():
@@ -52,9 +52,9 @@ def measure(tacto, mode, app, repeats, env_extra=None, locked=None):
         argv = [part.replace('{app}', app) for part in template]
         samples, codes, modes, pids = [], [], [], []
         for _ in range(repeats):
-            ms, code, effective, pid = run_once(tacto, argv, env)
+            ms, code, effective, pid = run_once(haejo, argv, env)
             samples.append(ms); codes.append(code); modes.append(effective); pids.append(pid)
-        wanted = env.get('TACTO_HELPER_MODE')
+        wanted = env.get('HAEJO_HELPER_MODE')
         # A run that fell back to the per-command helper says nothing about the mode asked for.
         kept = [ms for ms, code, effective in zip(samples, codes, modes)
                 if code == 0 and (name == 'floor' or wanted in (None, 'per_command') or effective == wanted)]
@@ -73,15 +73,15 @@ def main():
     parser.add_argument('--modes', nargs='+', default=['per_command'])
     # The signed launcher, not a development checkout's unsigned entry point:
     # only the signed one may talk to the helper.
-    parser.add_argument('--tacto', default=str(Path.home()/'.local/bin/tacto'))
+    parser.add_argument('--haejo', default=str(Path.home()/'.local/bin/haejo'))
     args = parser.parse_args()
-    tacto = args.tacto
-    from tacto.session import lock_state
+    haejo = args.haejo
+    from haejo.session import lock_state
     locked = lambda: lock_state().get('locked') is not False
-    envs = {'per_command': {'TACTO_HELPER_MODE': 'per_command'}, 'warm': {'TACTO_HELPER_MODE': 'warm'},
-            'resident': {'TACTO_HELPER_MODE': 'resident'}}
-    results = [measure(tacto, mode, args.app, args.repeats, envs[mode], locked) for mode in args.modes]
-    report = {'tacto': tacto, 'app': args.app, 'repeats': args.repeats, 'results': results,
+    envs = {'per_command': {'HAEJO_HELPER_MODE': 'per_command'}, 'warm': {'HAEJO_HELPER_MODE': 'warm'},
+            'resident': {'HAEJO_HELPER_MODE': 'resident'}}
+    results = [measure(haejo, mode, args.app, args.repeats, envs[mode], locked) for mode in args.modes]
+    report = {'haejo': haejo, 'app': args.app, 'repeats': args.repeats, 'results': results,
               'note': 'wall time of whole commands; first_ms includes any cold start'}
     Path(args.output).write_text(json.dumps(report, indent=2) + '\n')
     for result in results:

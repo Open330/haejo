@@ -10,7 +10,7 @@ ROOT=Path(__file__).resolve().parents[1]
 @unittest.skipUnless(shutil.which('swift'),'Swift required')
 class ComboContainerStateTests(unittest.TestCase):
     def test_invalid_control_frees_slot_only_when_pinned_popup_is_confirmed_absent(self):
-        source=(ROOT/'helper/TactoHelper.swift').read_text()
+        source=(ROOT/'helper/HaejoHelper.swift').read_text()
         part=source[source.index('func selectionContainerIsOurs('):]
         function=part[:part.index('\n}\n')+3]
         support=r'''import Foundation
@@ -45,7 +45,7 @@ for value in ["known_closed","closed_visible","closed_unknown","known_open","rep
 }
 print(String(data:try! JSONSerialization.data(withJSONObject:result),encoding:.utf8)!)
 '''
-        with tempfile.TemporaryDirectory(prefix='tacto-combo-slot-') as directory:
+        with tempfile.TemporaryDirectory(prefix='haejo-combo-slot-') as directory:
             path=Path(directory)/'main.swift';path.write_text(support+function+body)
             result=subprocess.run(['swift',str(path)],capture_output=True,text=True,timeout=30)
         self.assertEqual(0,result.returncode,result.stderr)
@@ -54,7 +54,7 @@ print(String(data:try! JSONSerialization.data(withJSONObject:result),encoding:.u
         self.assertTrue(all(values.values()),values)
 
     def test_unknown_reads_never_classify_as_closed_or_open(self):
-        source=(ROOT/'helper/TactoHelper.swift').read_text()
+        source=(ROOT/'helper/HaejoHelper.swift').read_text()
         def extract(name):
             part=source[source.index('func '+name+'('):]
             return part[:part.index('\n}\n')+3]
@@ -112,7 +112,7 @@ for value in ["closed","editable_closed","open","cached_closed","missing_childre
 }
 print(String(data:try! JSONSerialization.data(withJSONObject:results),encoding:.utf8)!)
 '''
-        with tempfile.TemporaryDirectory(prefix='tacto-combo-state-') as directory:
+        with tempfile.TemporaryDirectory(prefix='haejo-combo-state-') as directory:
             path=Path(directory)/'main.swift'
             path.write_text(support+extract('comboBoxAttribute')+extract('comboBoxString')+extract('comboBoxChildren')+extract('comboBoxContainerState')+body)
             result=subprocess.run(['swift',str(path)],capture_output=True,text=True,timeout=30)

@@ -95,13 +95,13 @@ def codex_turn_delta(usage, previous=None):
 
 
 def run_agent(provider, prompt, directory, timeout=240, *, resume=None, workspace=None, retain=False, model=None, reasoning_effort=None, profile=False):
-    from tacto.provider_io import communicate_owned_provider, require_provider_child_ownership
+    from haejo.provider_io import communicate_owned_provider, require_provider_child_ownership
     directory=Path(directory);directory.mkdir(mode=0o700)
-    temporary=None if workspace else tempfile.TemporaryDirectory(prefix='tacto-repeat-agent-')
+    temporary=None if workspace else tempfile.TemporaryDirectory(prefix='haejo-repeat-agent-')
     work=Path(workspace) if workspace else Path(temporary.name)
     work.mkdir(mode=0o700,exist_ok=True)
     env=os.environ.copy()
-    for key in ('TACTO_HELPER_FD','TACTO_HELPER_TOKEN','TACTO_LAUNCHER'):
+    for key in ('HAEJO_HELPER_FD','HAEJO_HELPER_TOKEN','HAEJO_LAUNCHER'):
         env.pop(key,None)
     if provider=='codex':
         if resume:

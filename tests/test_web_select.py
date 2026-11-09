@@ -1,7 +1,7 @@
 import unittest
 from urllib.parse import quote
 
-from tacto.web_select import CustomSelect
+from haejo.web_select import CustomSelect
 
 try:
     import playwright.sync_api
@@ -33,7 +33,7 @@ class FakeSelectTests(unittest.TestCase):
 @unittest.skipUnless(AVAILABLE, 'optional playwright dependency not installed')
 class BrowserSelectTests(unittest.TestCase):
     def setUp(self):
-        from tacto.browser import BrowserDriver
+        from haejo.browser import BrowserDriver
         self.driver = BrowserDriver()
         self.custom = CustomSelect(self.driver)
         self.driver.goto('data:text/html,' + quote(PAGE))

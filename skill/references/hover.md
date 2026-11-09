@@ -3,12 +3,12 @@
 Clicks and drags are sent to the window and leave the person's cursor where it
 is. An app that reacts to where the **real** cursor is — a hover highlight, a
 tooltip, a desktop character that runs away from the cursor — needs the cursor
-itself. `tacto hover` moves it, holds it, and puts it back. It presses no
+itself. `haejo hover` moves it, holds it, and puts it back. It presses no
 button and does not activate the app.
 
 ```bash
-tacto capture com.example.pet --helper --output /tmp/before.png
-tacto hover com.example.pet --helper --to 120 80 --hold 1 --capture /tmp/during.png
+haejo capture com.example.pet --helper --output /tmp/before.png
+haejo hover com.example.pet --helper --to 120 80 --hold 1 --capture /tmp/during.png
 ```
 
 - Points are **window points from the observed window's top-left**, as for

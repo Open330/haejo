@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from unittest.mock import Mock
 
-from tacto.ios_ax_probe import IOSAXProbeError
+from haejo.ios_ax_probe import IOSAXProbeError
 
 spec = importlib.util.spec_from_file_location('qualify_owned_counter',
     Path(__file__).resolve().parents[1]/'spike/ios-ax-bridge/qualify_owned_counter.py')
@@ -14,7 +14,7 @@ spec.loader.exec_module(module)
 
 CONFIG = {'binary':'/tmp/owned-counter-spike', 'device_id':'00000000-0000000000000000',
           'expected_pid':123, 'fixture_url':'http://127.0.0.1:12345/'+'a'*32+'/',
-          'fixture_heading':'Tacto test aaaaaaaa'}
+          'fixture_heading':'Haejo test aaaaaaaa'}
 
 
 class FakeProbe:

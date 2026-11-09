@@ -4,9 +4,9 @@ import contextlib
 import io
 from unittest.mock import patch
 
-from tacto.contract import Envelope, ContextBinding, issue_approval
-from tacto.flow import Flow, Step, Selector, Postcondition, replay
-from tacto.helper import HelperUnavailable
+from haejo.contract import Envelope, ContextBinding, issue_approval
+from haejo.flow import Flow, Step, Selector, Postcondition, replay
+from haejo.helper import HelperUnavailable
 from tests.test_transcript_receipt import Chat, receipt, send_step
 
 
@@ -143,11 +143,11 @@ class ReplayObservationFailureTests(unittest.TestCase):
                     self.assertEqual(result.log[-1]['error'], code)
 
     def test_cli_returns_failure_and_separates_confirmed_commit_from_reader_loss(self):
-        from tacto.cli import _run_flow
+        from haejo.cli import _run_flow
         chat = DisconnectedChat()
         rec = receipt(chat)
-        with patch('tacto.cli._make_driver', return_value=chat), \
-                patch('tacto.agent.Agent.commit_adapter_for', return_value=rec), \
+        with patch('haejo.cli._make_driver', return_value=chat), \
+                patch('haejo.agent.Agent.commit_adapter_for', return_value=rec), \
                 contextlib.redirect_stdout(io.StringIO()) as output:
             code = _run_flow(Flow('send', 'chat', [send_step()]), ['--yes', '--no-indicator'])
         self.assertEqual(code, 1)
@@ -157,7 +157,7 @@ class ReplayObservationFailureTests(unittest.TestCase):
         self.assertEqual(len(chat.calls), 1)
 
     def test_visual_call_failure_preserves_prior_receipt_and_appended_partial_event(self):
-        from tacto.commit_evidence import make_event
+        from haejo.commit_evidence import make_event
         chat = Chat()
         send = send_step()
         visual = Step('visual', params={'scope':'owned'}, intent_text='owned pixel',
@@ -167,8 +167,8 @@ class ReplayObservationFailureTests(unittest.TestCase):
             result.events.append(make_event({'name':'click_point'}, {'write_ephemeral'},
                                             target, state='unknown', obs_id='pixel-observation'))
             raise HelperUnavailable('PRIVATE_VISUAL_SENTINEL')
-        with patch('tacto.visual_replay.scope_problem', return_value=None), \
-                patch('tacto.visual_replay.run_step', side_effect=partial) as run:
+        with patch('haejo.visual_replay.scope_problem', return_value=None), \
+                patch('haejo.visual_replay.run_step', side_effect=partial) as run:
             result = replay(chat, Flow('send_then_visual', 'chat', [send, visual,
                             Step('read', safety=Envelope.minimal().contract_for({'read'}, 'entry'))]),
                             {0:issue_approval(send.binding, send.safety)},
@@ -186,8 +186,8 @@ class ReplayObservationFailureTests(unittest.TestCase):
         visual = Step('visual', params={'scope':'owned'}, intent_text='owned pixel',
                       safety=Envelope.minimal().contract_for({'write_ephemeral'}, 'entry'))
         for kind in (KeyboardInterrupt, SystemExit):
-            with patch('tacto.visual_replay.scope_problem', return_value=None), \
-                    patch('tacto.visual_replay.run_step', side_effect=kind), self.assertRaises(kind):
+            with patch('haejo.visual_replay.scope_problem', return_value=None), \
+                    patch('haejo.visual_replay.run_step', side_effect=kind), self.assertRaises(kind):
                 replay(Chat(), Flow('visual', 'chat', [visual]))
 
 

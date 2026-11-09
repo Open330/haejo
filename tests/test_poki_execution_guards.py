@@ -5,9 +5,9 @@ import tempfile
 from types import SimpleNamespace
 import unittest
 
-from tacto.promote import Candidate,CandidateStore,candidate_from,gate,route_key,to_flow
-from tacto.execution_summary import interruption_summary
-from tacto.flow import ReplayResult
+from haejo.promote import Candidate,CandidateStore,candidate_from,gate,route_key,to_flow
+from haejo.execution_summary import interruption_summary
+from haejo.flow import ReplayResult
 
 
 def candidate():

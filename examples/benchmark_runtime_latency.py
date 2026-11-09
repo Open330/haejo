@@ -1,7 +1,7 @@
 """Paired signed-runtime latency check in a disposable native app; no models.
 
-Example: python3 examples/benchmark_runtime_latency.py --baseline /path/to/tacto
-  --candidate /path/to/new/tacto --output /absolute/new/private-directory
+Example: python3 examples/benchmark_runtime_latency.py --baseline /path/to/haejo
+  --candidate /path/to/new/haejo --output /absolute/new/private-directory
 Both launchers must already have permission. This never installs or grants it.
 """
 import argparse
@@ -39,7 +39,7 @@ def manifest(launcher):
             'bytecode': {str(p.relative_to(runtime/'.venv')): hashlib.sha256(p.read_bytes()).hexdigest()
                          for p in sorted((runtime/'.venv').rglob('*.pyc'))},
             'launcher_cdhash': code_hash(launcher),
-            'helper_cdhash': code_hash(runtime/'helper/Tacto Helper.app'),
+            'helper_cdhash': code_hash(runtime/'helper/Haejo Helper.app'),
             'python_cdhash': code_hash(runtime/'.venv/bin/python')}
 
 
@@ -102,7 +102,7 @@ def main():
     expected = ['driver.py', 'flow.py', 'general.py', 'helper.py', 'overlay.py'] if args.launcher_optimized else ['driver.py', 'flow.py', 'general.py', 'helper.py']
     bytecode_equal = set(before['baseline']['bytecode']) == set(before['candidate']['bytecode'])
     for name, digest in before['baseline']['bytecode'].items():
-        changed_module = ('/site-packages/tacto/__pycache__/' in '/'+name
+        changed_module = ('/site-packages/haejo/__pycache__/' in '/'+name
                           and Path(name).name.split('.', 1)[0]+'.py' in expected)
         if not changed_module and before['candidate']['bytecode'].get(name) != digest:
             bytecode_equal = False
@@ -110,11 +110,11 @@ def main():
             or launcher_changed != args.launcher_optimized):
         write(base/'mismatch.json', {'manifests': before, 'differences': differences, 'native_equal': native_equal})
         raise ValueError('runtimes must match the declared Python changes and optional launcher change')
-    target = 'ai.callabo.tacto.latency.' + uuid.uuid4().hex[:8]
+    target = 'ai.callabo.haejo.latency.' + uuid.uuid4().hex[:8]
     app = base/'Latency Benchmark.app'; contents = app/'Contents'
     (contents/'MacOS').mkdir(parents=True)
     (contents/'Info.plist').write_bytes(plistlib.dumps({'CFBundleIdentifier': target,
-        'CFBundleExecutable': 'RepeatBenchmark', 'CFBundleName': 'Tacto Latency Benchmark',
+        'CFBundleExecutable': 'RepeatBenchmark', 'CFBundleName': 'Haejo Latency Benchmark',
         'CFBundlePackageType': 'APPL', 'LSUIElement': True}))
     fixture_source = ROOT/'tests/fixtures/NativeRepeatBenchmark.swift'
     subprocess.run(['swiftc', '-parse-as-library', str(fixture_source), '-o', str(contents/'MacOS/RepeatBenchmark')], check=True, capture_output=True)
@@ -148,7 +148,7 @@ def main():
         result = subprocess.run([str(launchers[arm]), *argv], stdin=subprocess.DEVNULL,
                                 capture_output=True, text=True, timeout=40)
         elapsed = time.monotonic()-began
-        helper = str(launchers[arm].parent.parent/'helper/Tacto Helper.app/Contents/MacOS/TactoHelper')
+        helper = str(launchers[arm].parent.parent/'helper/Haejo Helper.app/Contents/MacOS/HaejoHelper')
         processes = subprocess.check_output(['ps', '-axo', 'comm='], text=True).splitlines()
         if any(line.strip() == helper for line in processes):
             raise ValueError('owned helper remains after command cleanup')

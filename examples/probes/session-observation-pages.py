@@ -19,13 +19,13 @@ import time
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-TARGET = 'ai.callabo.tacto.observation-pages-fixture'
+TARGET = 'ai.callabo.haejo.observation-pages-fixture'
 
 
 def check(launcher):
     from AppKit import NSRunningApplication
-    from tacto.contract import Envelope
-    from tacto.flow import Flow, Step, Selector
+    from haejo.contract import Envelope
+    from haejo.flow import Flow, Step, Selector
     report = {'passed': False, 'flow_submissions': 0, 'model_calls_requested': 0,
               'launcher': str(launcher), 'launcher_sha256': hashlib.sha256(launcher.read_bytes()).hexdigest(),
               'scope': 'real signed CLI session; owned AppKit receiving oracle; no Save or external action',
@@ -35,14 +35,14 @@ def check(launcher):
     buffer = b''
     transcript = bytearray()
     try:
-        with tempfile.TemporaryDirectory(prefix='tacto-session-pages-') as folder:
+        with tempfile.TemporaryDirectory(prefix='haejo-session-pages-') as folder:
             base = Path(folder)
             app = base/'ObservationPages.app'
             binary = app/'Contents/MacOS/ObservationPages'
             binary.parent.mkdir(parents=True)
             (app/'Contents/Info.plist').write_bytes(plistlib.dumps({
                 'CFBundleIdentifier': TARGET, 'CFBundleExecutable': binary.name,
-                'CFBundleName': 'Tacto Observation Pages Fixture', 'CFBundlePackageType': 'APPL',
+                'CFBundleName': 'Haejo Observation Pages Fixture', 'CFBundlePackageType': 'APPL',
                 'LSUIElement': True}))
             subprocess.run(['xcrun', 'swiftc', '-parse-as-library',
                             str(ROOT/'tests/fixtures/NativeObservationPagesFixture.swift'), '-o', str(binary)],
@@ -89,26 +89,26 @@ def check(launcher):
                                     raise RuntimeError('live_cursor_exposed_to_author')
                                 latest = value
                                 report['observations'].append({
-                                    'target_present': 'tacto-pages-Item239' in value['tree'],
+                                    'target_present': 'haejo-pages-Item239' in value['tree'],
                                     'has_more': value.get('has_more_observation', False)})
                         if text.startswith('session_invalid_flow:'):
                             raise RuntimeError('authoring_command_rejected')
-                        if text.startswith('TACTO_SESSION_READY'):
+                        if text.startswith('HAEJO_SESSION_READY'):
                             if latest is None:
                                 raise RuntimeError('ready_without_new_observation')
                             return latest
                     raise TimeoutError('session_observation_timeout')
 
                 page = receive_ready()
-                report['initial_target_absent'] = 'tacto-pages-Item239' not in page['tree']
+                report['initial_target_absent'] = 'haejo-pages-Item239' not in page['tree']
                 for _ in range(8):
-                    if 'tacto-pages-Item239' in page['tree']:
+                    if 'haejo-pages-Item239' in page['tree']:
                         break
                     if not page.get('has_more_observation'):
                         raise RuntimeError('omitted_target_without_next_page')
                     os.write(master, b'{"observe_next":true}\n')
                     page = receive_ready()
-                if 'tacto-pages-Item239' not in page['tree']:
+                if 'haejo-pages-Item239' not in page['tree']:
                     raise RuntimeError('target_not_reached_within_page_limit')
                 safety = Envelope.minimal().contract_for({'write_ephemeral'}, 'Click Item239 once in the owned fixture')
                 flow = Flow('owned-page-click', TARGET,
@@ -130,7 +130,7 @@ def check(launcher):
                             break
                 report['exit_code'] = child.wait(timeout=max(.1, deadline-time.monotonic()))
                 report['final_oracle'] = json.loads(oracle.read_text())
-                report['guide_count'] = transcript.count(b'TACTO_FLOW_GUIDE')
+                report['guide_count'] = transcript.count(b'HAEJO_FLOW_GUIDE')
                 report['passed'] = (report['exit_code'] == 0 and report['initial_target_absent']
                     and report['guide_count'] == 1 and len(report['observations']) >= 4
                     and report['initial_oracle'] == {'count': 0, 'selected': ''}

@@ -43,7 +43,7 @@ def committed_sources(root=ROOT):
     commit=git('rev-parse','HEAD').decode().strip()
     names=git('ls-files','-z').decode().split('\0')
     selected=[name for name in names if name and (
-        name.startswith(('tacto/','helper/','launcher/','setup/','skill/','docs/'))
+        name.startswith(('haejo/','helper/','launcher/','setup/','skill/','docs/'))
         or name in ('SigningPolicy.swift','HelperModeProtocol.swift','RuntimeStatus.swift','signing.sh','pyproject.toml','uv.lock','README.md','README.ko.md'))]
     files={name:hashlib.sha256((root/name).read_bytes()).hexdigest()
            for name in selected if (root/name).is_file()}
@@ -124,8 +124,8 @@ def app_inventory(app):
 
 def baseline_identity(metadata):
     """Identify the selected baseline, without claiming its publication status."""
-    tag=metadata.get('TactoReleaseTag',metadata.get('release_tag'))
-    commit=metadata.get('TactoSourceCommit',metadata.get('workspace_commit'))
+    tag=metadata.get('HaejoReleaseTag',metadata.get('release_tag'))
+    commit=metadata.get('HaejoSourceCommit',metadata.get('workspace_commit'))
     if not isinstance(tag,str) or not re.fullmatch(r'v[0-9]+\.[0-9]+\.[0-9]+(?:-(?:preview|rc)\.[0-9]+)?',tag):
         tag=None
     if not isinstance(commit,str) or not re.fullmatch(r'(?:[0-9a-f]{40}|[0-9a-f]{64})',commit):
@@ -138,7 +138,7 @@ def read_baseline(path=None,*,initial_distribution=False):
         if path is not None:
             raise ValueError('initial distribution cannot also declare a baseline')
         return None
-    path=Path(path) if path is not None else Path('/Applications/Tacto.app')
+    path=Path(path) if path is not None else Path('/Applications/Haejo.app')
     if not path.exists():
         raise RuntimeError('previous release baseline required: pass --baseline <previous.app or SOURCE-MANIFEST.json>; '
                            'only the first distribution may use --initial-distribution')
@@ -214,7 +214,7 @@ def build(output,identity,tag,*,baseline=None,initial_distribution=False,removal
     # preview.build also copies the base Python installation, which can
     # contribute pip/setuptools not present in the venv. Compare prior-release
     # removals only against the complete packaged inventory below.
-    environment=dict(os.environ,TACTO_SIGN_IDENTITY=identity)
+    environment=dict(os.environ,HAEJO_SIGN_IDENTITY=identity)
     for script in ('helper/build.sh','helper/bundle.sh'):
         subprocess.run(['bash',str(ROOT/script)],cwd=ROOT,env=environment,check=True,capture_output=True)
     output=Path(output).absolute()
@@ -234,8 +234,8 @@ def build(output,identity,tag,*,baseline=None,initial_distribution=False,removal
     info=plistlib.loads(info_path.read_bytes())
     info.update(CFBundleShortVersionString=version,
                 CFBundleVersion=preview_number or subprocess.check_output(['git','rev-list','--count','HEAD'],cwd=ROOT,text=True).strip(),
-                TactoReleaseTag=tag,TactoBuildVariant=tag.split('-',1)[1] if preview_number else 'release',
-                TactoSourceCommit=before['workspace_commit'],TactoOnboardingSourceDigest=before['digest'])
+                HaejoReleaseTag=tag,HaejoBuildVariant=tag.split('-',1)[1] if preview_number else 'release',
+                HaejoSourceCommit=before['workspace_commit'],HaejoOnboardingSourceDigest=before['digest'])
     info_path.write_bytes(plistlib.dumps(info))
 
     def sign(path,identifier=None):
@@ -250,19 +250,19 @@ def build(output,identity,tag,*,baseline=None,initial_distribution=False,removal
     native=list(preview.native_files(runtime/'.venv'))
     for path in sorted(native,key=lambda p:(p.parent.name=='bin',str(p))):
         sign(path)
-    helper=runtime/'helper/Tacto Helper.app'
-    for path,identifier in ((helper/'Contents/MacOS/TactoHelper','ai.callabo.tacto.helper'),
-                            (helper,'ai.callabo.tacto.helper'),
-                            (runtime/'launcher/tacto','ai.callabo.tacto'),
-                            (output/'Contents/MacOS/TactoSetup','ai.callabo.tacto.setup.standalone.preview'),
-                            (output,'ai.callabo.tacto.setup.standalone.preview')):
+    helper=runtime/'helper/Haejo Helper.app'
+    for path,identifier in ((helper/'Contents/MacOS/HaejoHelper','ai.callabo.haejo.helper'),
+                            (helper,'ai.callabo.haejo.helper'),
+                            (runtime/'launcher/haejo','ai.callabo.haejo'),
+                            (output/'Contents/MacOS/HaejoSetup','ai.callabo.haejo.setup.standalone.preview'),
+                            (output,'ai.callabo.haejo.setup.standalone.preview')):
         sign(path,identifier)
     subprocess.run(['codesign','--verify','--deep','--strict',str(output)],check=True,capture_output=True)
     if before != committed_sources():
         raise RuntimeError('source tree changed during distribution build')
     site=next((runtime/'.venv/lib').glob('python*/site-packages'))
-    for path in (ROOT/'tacto').rglob('*.py'):
-        if path.read_bytes() != (site/'tacto'/path.relative_to(ROOT/'tacto')).read_bytes():
+    for path in (ROOT/'haejo').rglob('*.py'):
+        if path.read_bytes() != (site/'haejo'/path.relative_to(ROOT/'haejo')).read_bytes():
             raise RuntimeError('packaged Python source differs')
     all_native=list(preview.native_files(output))
     require_timestamps(all_native)
@@ -282,7 +282,7 @@ if __name__=='__main__':
     parser.add_argument('--identity',required=True)
     parser.add_argument('--tag',required=True)
     parser.add_argument('--report',type=Path,required=True)
-    parser.add_argument('--baseline',type=Path,help='previous release .app, inventory JSON or SOURCE-MANIFEST.json; default /Applications/Tacto.app')
+    parser.add_argument('--baseline',type=Path,help='previous release .app, inventory JSON or SOURCE-MANIFEST.json; default /Applications/Haejo.app')
     parser.add_argument('--initial-distribution',action='store_true',help='explicitly establish the first inventory without a previous release')
     parser.add_argument('--removal-allowlist',type=Path,help='JSON distributions/native_paths maps of exact removed names to reasons')
     args=parser.parse_args()

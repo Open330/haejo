@@ -49,7 +49,7 @@ class IOSCounterFixtureTests(unittest.TestCase):
     def test_reading_and_loading_page_never_increments(self):
         for _ in range(2):
             with urlopen(self.root, timeout=2) as response:
-                self.assertIn(b'tacto-counter-increment', response.read())
+                self.assertIn(b'haejo-counter-increment', response.read())
             self.assertEqual(0, self.state()['count'])
 
     def test_invalid_or_unknown_fixture_is_refused_without_increment(self):

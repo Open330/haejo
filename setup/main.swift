@@ -17,7 +17,7 @@ private let canvas = adaptive(NSColor(srgbRed: 246/255, green: 244/255, blue: 23
 
 private let ink = NSColor(srgbRed: 27/255, green: 33/255, blue: 28/255, alpha: 1)
 
-/// The coral primary button, drawn by Tacto rather than by AppKit's bezel.
+/// The coral primary button, drawn by Haejo rather than by AppKit's bezel.
 /// AppKit paints white text on a custom bezel colour (about 2.9:1 on coral) and
 /// drops the colour entirely while the window is inactive, e.g. while System
 /// Settings is in front. Ink on coral is 5.65:1 in every window state and theme.
@@ -220,18 +220,18 @@ final class AccessoryPanel: NSPanel {
         super.init(contentRect: NSRect(x: 0, y: 0, width: 300, height: 480),
                    styleMask: [.titled, .closable, .utilityWindow, .nonactivatingPanel],
                    backing: .buffered, defer: false)
-        title = "Tacto 권한 도우미"
+        title = "Haejo 권한 도우미"
         backgroundColor = canvas
         level = .floating; hidesOnDeactivate = false; isReleasedWhenClosed = false
         becomesKeyOnlyIfNeeded = true
-        standardWindowButton(.closeButton)?.setAccessibilityIdentifier("tacto.permission-guide.close")
+        standardWindowButton(.closeButton)?.setAccessibilityIdentifier("haejo.permission-guide.close")
         collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
         icon.helperURL = helper
         icon.image = NSWorkspace.shared.icon(forFile: helper.path)
         icon.imageScaling = .scaleProportionallyUpOrDown
         icon.widthAnchor.constraint(equalToConstant: 80).isActive = true
         icon.heightAnchor.constraint(equalToConstant: 80).isActive = true
-        icon.setAccessibilityLabel("Tacto 권한용 앱. 이 아이콘을 설정 창의 앱 목록으로 끌어다 놓으세요.")
+        icon.setAccessibilityLabel("Haejo 권한용 앱. 이 아이콘을 설정 창의 앱 목록으로 끌어다 놓으세요.")
         icon.toolTip = "이 아이콘을 누른 채 설정 창의 앱 목록으로 옮긴 뒤 놓으세요."
         name.alignment = .center
         let source = label("1. 이 앱 아이콘을 끌어오세요", size: 13, weight: .semibold, width: 268)
@@ -329,8 +329,8 @@ final class AccessoryPanel: NSPanel {
         icon.setAccessibilityLabel("\(permissionAppName(app)). 이 아이콘을 옆 시스템 설정 창의 앱 목록으로 끌어다 놓으세요.")
         name.stringValue = permissionAppName(app)
         identity.stringValue = permission == .control
-            ? "Tacto의 앱 조작 도우미입니다. 아래 앱 이름을 설정 목록에서 찾아 허용하세요."
-            : "이 Tacto 앱에 화면 기록을 허용합니다. 같은 앱이 있으면 스위치만 켜세요."
+            ? "Haejo의 앱 조작 도우미입니다. 아래 앱 이름을 설정 목록에서 찾아 허용하세요."
+            : "이 Haejo 앱에 화면 기록을 허용합니다. 같은 앱이 있으면 스위치만 켜세요."
         dropWhere.stringValue = permission == .screen
             ? "2. 옆의 ‘시스템 설정’ 창\n위쪽 ‘화면 및 시스템 오디오 기록’의 앱 목록 안에 놓으세요."
             : "2. 옆의 ‘시스템 설정’ 창\n‘손쉬운 사용 / Device Control and Data Access’의 앱 목록 안에 놓으세요."
@@ -378,9 +378,9 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var refreshButton: NSButton!
     var exampleButton: NSButton!
     var firstRequest: String {
-        let launcher = root?.appendingPathComponent("launcher/tacto").path ?? FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".local/bin/tacto").path
+        let launcher = root?.appendingPathComponent("launcher/haejo").path ?? FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".local/bin/haejo").path
         return """
-        Tacto의 첫 작업을 실행해주세요. 목표는 새 TextEdit 문서에 Hello, World!와 다음 줄 Tacto로 작성했습니다.를 입력하고 확인하는 것입니다.
+        Haejo의 첫 작업을 실행해주세요. 목표는 새 TextEdit 문서에 Hello, World!와 다음 줄 Haejo로 작성했습니다.를 입력하고 확인하는 것입니다.
         실행할 명령은 하나입니다:
         \(firstRunShellQuote(launcher)) first-run --helper --yes
         이 명령이 꺼진 TextEdit 실행, 새 문서 생성, 두 줄 입력, 새 관찰로 확인하고 TextEdit 결과를 앞으로 표시하는 것까지 처리합니다. 기존 문서를 수정하거나 저장 명령을 실행하지 않습니다. --yes는 이 고정된 첫 작업의 새 문서 입력을 승인합니다.
@@ -388,7 +388,7 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         1. 첫 시도는 별도 스킬·문서·예제 탐색 없이 위 명령을 바로 실행하세요. 실패하면 복구에 필요한 명령이나 Flow를 사용해 목표를 완료하세요.
         2. 도구가 실행 세션 ID를 반환하면 같은 세션에서 완료를 기다리세요. 명령을 다시 보내면 문서가 중복될 수 있으니 재실행하지 마세요.
         3. status=text_verified는 두 줄 입력 확인, foreground_verified=true는 결과 표시 확인입니다. 입력은 됐지만 결과가 뒤에 있다면 반환된 window_title로 TextEdit 창을 앞으로 가져오세요. persistent_commit_verified=false는 저장하지 않았다는 뜻이며 이 작업에 저장은 필요 없습니다. 완료 후 짧게 알리세요.
-        4. 실패하면 stage·error·recovery_steps를 확인하고 현재 TextEdit 상태를 관찰해 같은 작업을 계속 해결하세요. launch·observe·new_document·new_document_identity·authorize 단계는 텍스트 입력 전입니다. TextEdit을 앞으로 가져오거나 파일 선택 창의 ‘새 문서’ 버튼을 사용하고, 필요하면 첫 명령을 한 번 다시 실행하거나 Tacto Flow로 새 문서 생성과 입력을 완료하세요. 별도 확인을 받으려고 멈출 필요는 없습니다.
+        4. 실패하면 stage·error·recovery_steps를 확인하고 현재 TextEdit 상태를 관찰해 같은 작업을 계속 해결하세요. launch·observe·new_document·new_document_identity·authorize 단계는 텍스트 입력 전입니다. TextEdit을 앞으로 가져오거나 파일 선택 창의 ‘새 문서’ 버튼을 사용하고, 필요하면 첫 명령을 한 번 다시 실행하거나 Haejo Flow로 새 문서 생성과 입력을 완료하세요. 별도 확인을 받으려고 멈출 필요는 없습니다.
         5. write·verify 단계에서 실패했다면 반환된 window_title·window_id와 새 관찰로 해당 문서 내용을 확인하세요. 문구가 이미 들어갔다면 결과를 검증하고 앞으로 보여주고, 빠진 내용은 새로 만든 해당 문서에서 완성하세요. 로그인·OS 권한은 실제 오류가 그 문제를 명시할 때만 요청하세요. 복구 가능한 메뉴·창 오류를 사용자에게 떠넘기지 마세요.
         """
     }
@@ -417,7 +417,7 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var runtimeStop: NSMenuItem?
     var runtimeObserver: NSObjectProtocol?
     var runtimeTimer: Timer?
-    var runtimeRuns: [String:(TactoRuntimeStatus.Run, Date)] = [:]
+    var runtimeRuns: [String:(HaejoRuntimeStatus.Run, Date)] = [:]
     /// One row per live run, kept by run id so an open submenu survives refresh.
     var runtimeRunItems: [String:NSMenuItem] = [:]
     var connectButton: NSButton!
@@ -449,8 +449,8 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         // Require a writable installed copy before permission or skill setup.
         if (try? Bundle.main.bundleURL.resourceValues(forKeys: [.volumeIsReadOnlyKey]))?.volumeIsReadOnly == true {
             let alert = NSAlert()
-            alert.messageText = "먼저 Tacto를 Applications로 옮겨 주세요"
-            alert.informativeText = "설치 이미지 안에서는 설정을 진행하지 않습니다. Tacto.app을 Applications 폴더로 끌어다 놓은 뒤, 옮긴 앱을 다시 열어 주세요."
+            alert.messageText = "먼저 Haejo를 Applications로 옮겨 주세요"
+            alert.informativeText = "설치 이미지 안에서는 설정을 진행하지 않습니다. Haejo.app을 Applications 폴더로 끌어다 놓은 뒤, 옮긴 앱을 다시 열어 주세요."
             alert.addButton(withTitle: "Applications 폴더 열기")
             alert.addButton(withTitle: "닫기")
             if alert.runModal() == .alertFirstButtonReturn {
@@ -464,14 +464,14 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
               let resources = Bundle.main.resourceURL,
               let runtime = setupRuntimeRoot(object, resources: resources) else {
             let alert = NSAlert()
-            alert.messageText = "Tacto를 시작할 수 없어요"
-            alert.informativeText = "앱에 필요한 파일을 찾지 못했습니다. 설치 이미지에서 Tacto.app 전체를 Applications 폴더로 다시 옮긴 뒤 열어 주세요."
+            alert.messageText = "Haejo를 시작할 수 없어요"
+            alert.informativeText = "앱에 필요한 파일을 찾지 못했습니다. 설치 이미지에서 Haejo.app 전체를 Applications 폴더로 다시 옮긴 뒤 열어 주세요."
             alert.addButton(withTitle: "닫기"); alert.runModal()
             NSApp.terminate(nil); return
         }
         root = runtime
         bundledRuntime = object["bundledRoot"] == "runtime"
-        helper = root.appendingPathComponent("helper/Tacto Helper.app")
+        helper = root.appendingPathComponent("helper/Haejo Helper.app")
         refreshConnection()
         build()
         installMenus()
@@ -496,10 +496,10 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func build() {
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 720, height: 640),
                           styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
-        window.title = "Tacto"
+        window.title = "Haejo"
         window.delegate = self
         window.isReleasedWhenClosed = false
-        window.standardWindowButton(.closeButton)?.setAccessibilityIdentifier("tacto.close")
+        window.standardWindowButton(.closeButton)?.setAccessibilityIdentifier("haejo.close")
         window.titlebarAppearsTransparent = true
         window.backgroundColor = canvas
         panel = AccessoryPanel(helper: helper)
@@ -525,16 +525,16 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         window.contentMaxSize = NSSize(width: mainWidth, height: 2000)
         let logo = NSImageView()
         let assets = snapshotAssets ?? root.appendingPathComponent("docs/assets")
-        let asset = Bundle.main.url(forResource: "tacto-app", withExtension: "icns")
-            ?? (FileManager.default.fileExists(atPath: assets.appendingPathComponent("tacto-app.icns").path)
-                ? assets.appendingPathComponent("tacto-app.icns") : assets.appendingPathComponent("tacto-logo.svg"))
+        let asset = Bundle.main.url(forResource: "haejo-app", withExtension: "icns")
+            ?? (FileManager.default.fileExists(atPath: assets.appendingPathComponent("haejo-app.icns").path)
+                ? assets.appendingPathComponent("haejo-app.icns") : assets.appendingPathComponent("haejo-logo.svg"))
         logo.image = NSImage(contentsOf: asset)
         if let image = logo.image { NSApp.applicationIconImage = image }
         logo.imageScaling = .scaleProportionallyUpOrDown
         logo.widthAnchor.constraint(equalToConstant: 38).isActive = true
         logo.heightAnchor.constraint(equalToConstant: 38).isActive = true
-        logo.setAccessibilityLabel("Tacto 로고")
-        let brand = label("Tacto", size: 28, weight: .bold)
+        logo.setAccessibilityLabel("Haejo 로고")
+        let brand = label("Haejo", size: 28, weight: .bold)
         let spacer = NSView()
         let chip = SurfaceStack(views: [badgeIcon, badge])
         chip.orientation = .horizontal; chip.alignment = .centerY; chip.spacing = 5
@@ -553,7 +553,7 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         refreshButton.bezelStyle = .rounded; refreshButton.controlSize = .small
         permissionDetailsButton = NSButton(title: "상세 보기", target: self, action: #selector(togglePermissionDetails))
         permissionDetailsButton.bezelStyle = .rounded; permissionDetailsButton.controlSize = .small
-        permissionDetailsButton.setAccessibilityIdentifier("tacto.permission-details")
+        permissionDetailsButton.setAccessibilityIdentifier("haejo.permission-details")
         let permissionHeader = NSStackView(views: [permissionTitle, NSView(), permissionDetailsButton, refreshButton])
         permissionHeader.orientation = .horizontal; permissionHeader.alignment = .centerY
         permissionHeader.widthAnchor.constraint(equalToConstant: contentWidth).isActive = true
@@ -583,14 +583,14 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         stack.setCustomSpacing(12, after: connection)
         exampleButton = NSButton(title: "첫 요청 복사", target: self, action: #selector(copyFirstRequest))
         exampleButton.bezelStyle = .rounded
-        exampleButton.setAccessibilityIdentifier("tacto.copy-first-request")
+        exampleButton.setAccessibilityIdentifier("haejo.copy-first-request")
         let example = NSStackView(views: [label("3. 첫 작업", size: 15, weight: .semibold), NSView(), exampleButton])
         example.orientation = .horizontal; example.alignment = .centerY
         example.widthAnchor.constraint(equalToConstant: contentWidth).isActive = true
         agentPicker = NSPopUpButton(frame: .zero, pullsDown: false)
-        agentPicker.setAccessibilityIdentifier("tacto.first-run-agent")
+        agentPicker.setAccessibilityIdentifier("haejo.first-run-agent")
         startFirstRunButton = CoralButton(title: "첫 작업 시작", target: self, action: #selector(startFirstRun))
-        startFirstRunButton.setAccessibilityIdentifier("tacto.start-first-run")
+        startFirstRunButton.setAccessibilityIdentifier("haejo.start-first-run")
         let startRow = NSStackView(views: [agentPicker, startFirstRunButton, NSView()])
         startRow.orientation = .horizontal; startRow.alignment = .centerY; startRow.spacing = 10
         startRow.widthAnchor.constraint(equalToConstant: contentWidth - 32).isActive = true
@@ -605,7 +605,7 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         stack.addArrangedSubview(firstRun)
         let logs = NSButton(title: "실행 기록 보기", target: self, action: #selector(showAccessLogs))
         logs.bezelStyle = .rounded
-        logs.setAccessibilityIdentifier("tacto.access-logs")
+        logs.setAccessibilityIdentifier("haejo.access-logs")
         let footer = NSStackView(views: [label("창을 닫아도 메뉴 막대에서 다시 열 수 있어요.", size: 11, color: mutedText), NSView(), logs])
         footer.orientation = .horizontal; footer.alignment = .centerY
         footer.widthAnchor.constraint(equalToConstant: contentWidth).isActive = true
@@ -669,7 +669,7 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 connectionInfo.stringValue = "Claude Code · Codex 연결 완료"
             case .other:
                 connectButton.title = "이 버전으로 연결"
-                connectionInfo.stringValue = "다른 경로의 Tacto 명령·스킬이 연결되어 있어요. 이 앱의 연결로 바꿀 수 있습니다."
+                connectionInfo.stringValue = "다른 경로의 Haejo 명령·스킬이 연결되어 있어요. 이 앱의 연결로 바꿀 수 있습니다."
             case .missing:
                 connectButton.title = "에이전트에 연결"
                 connectionInfo.stringValue = "Claude Code · Codex에서 쓸 명령과 스킬을 연결하세요."
@@ -682,11 +682,11 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
             connectionInfo.stringValue = known ? "앱 조작 권한을 켜면 Claude Code · Codex에 연결할 수 있어요. 화면 캡처는 선택 사항입니다." : "먼저 ‘상태 새로고침’으로 권한을 확인해 주세요."
         }
         let scope = ProcessInfo.processInfo.environment
-        let custom = ["TACTO_BIN_DIR", "CLAUDE_CONFIG_DIR", "CODEX_HOME"].contains { !(scope[$0] ?? "").isEmpty }
+        let custom = ["HAEJO_BIN_DIR", "CLAUDE_CONFIG_DIR", "CODEX_HOME"].contains { !(scope[$0] ?? "").isEmpty }
         scopeInfo.isHidden = !(custom && (connection == .missing || connection == .other))
         connectButton.isHidden = connection == .current && !installing
-        statusMenuTitle?.title = "Tacto 설정 · " + badge.stringValue
-        statusItem?.button?.toolTip = "Tacto 설정 · " + badge.stringValue
+        statusMenuTitle?.title = "Haejo 설정 · " + badge.stringValue
+        statusItem?.button?.toolTip = "Haejo 설정 · " + badge.stringValue
         updateRuntimeMenu()
         activityCenter?.updateStatus(badge.stringValue)
         if let notice { status.stringValue = notice }
@@ -745,8 +745,8 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
             render(); return
         }
         let fm = FileManager.default
-        let directory = fm.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support/Tacto/First Run", isDirectory: true)
-        let command = directory.appendingPathComponent("tacto-first-run-\(UUID().uuidString).command")
+        let directory = fm.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support/Haejo/First Run", isDirectory: true)
+        let command = directory.appendingPathComponent("haejo-first-run-\(UUID().uuidString).command")
         do {
             try fm.createDirectory(at: directory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
             try Data(firstRunCommand(agent: agent, prompt: firstRequest, directory: directory).utf8).write(to: command, options: .withoutOverwriting)
@@ -802,7 +802,7 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
     @objc func turnOn(_ sender: NSButton) {
         guard let row = rows.first(where: { $0.action === sender }) else { return }
         guard FileManager.default.fileExists(atPath: helper.path) else {
-            notice = "권한용 앱을 찾지 못했어요. Tacto.app 전체를 Applications 폴더로 다시 옮긴 뒤 열어 주세요."; render(); return
+            notice = "권한용 앱을 찾지 못했어요. Haejo.app 전체를 Applications 폴더로 다시 옮긴 뒤 열어 주세요."; render(); return
         }
         let permission = row.permission
         notice = nil
@@ -904,18 +904,18 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func check() {
         guard !checkInFlight else { return }
         guard FileManager.default.fileExists(atPath: helper.path) else {
-            known = state.refresh(nil, expected: "ai.callabo.tacto.helper")
-            notice = "권한용 앱을 찾지 못했어요. Tacto.app 전체를 Applications 폴더로 다시 옮긴 뒤 열어 주세요."
+            known = state.refresh(nil, expected: "ai.callabo.haejo.helper")
+            notice = "권한용 앱을 찾지 못했어요. Haejo.app 전체를 Applications 폴더로 다시 옮긴 뒤 열어 주세요."
             render(); return
         }
         checkInFlight = true
         render()
-        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("tacto-setup-" + UUID().uuidString)
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("haejo-setup-" + UUID().uuidString)
         do { try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false,
                                                      attributes: [.posixPermissions: 0o700]) }
         catch {
-            checkInFlight = false; known = state.refresh(nil, expected: "ai.callabo.tacto.helper")
-            notice = "권한을 확인할 임시 파일을 만들지 못했어요. Mac의 저장 공간을 확인하고 Tacto를 다시 열어 주세요."
+            checkInFlight = false; known = state.refresh(nil, expected: "ai.callabo.haejo.helper")
+            notice = "권한을 확인할 임시 파일을 만들지 못했어요. Mac의 저장 공간을 확인하고 Haejo를 다시 열어 주세요."
             render(); return
         }
         reportDirectory = directory
@@ -939,8 +939,8 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         pollTimer?.invalidate(); pollTimer = nil
         try? FileManager.default.removeItem(at: directory); reportDirectory = nil
         checkInFlight = false
-        known = state.refresh(data, expected: "ai.callabo.tacto.helper")
-        notice = known ? nil : "권한 상태를 확인하지 못했어요. ‘상태 새로고침’을 눌러 다시 확인하세요. 계속 실패하면 Tacto를 닫고 다시 열어 주세요."
+        known = state.refresh(data, expected: "ai.callabo.haejo.helper")
+        notice = known ? nil : "권한 상태를 확인하지 못했어요. ‘상태 새로고침’을 눌러 다시 확인하세요. 계속 실패하면 Haejo를 닫고 다시 열어 주세요."
         if let watching = watch, state.granted(watching.permission) { endWatch(granted: true); return }
         render()
     }
@@ -972,7 +972,7 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
             DispatchQueue.main.async {
                 self.installing = false; self.refreshConnection()
                 self.message.stringValue = ok && self.connection == .current
-                    ? "연결했어요. Claude Code나 Codex에서 새 대화를 열고 ‘Tacto로 작업해 줘’라고 요청하세요."
+                    ? "연결했어요. Claude Code나 Codex에서 새 대화를 열고 ‘Haejo로 작업해 줘’라고 요청하세요."
                     : "연결을 끝내지 못했어요. 기존 설치 경로나 파일 충돌을 확인해주세요."
                 self.render()
             }
@@ -985,29 +985,29 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let main = NSMenu()
         let appItem = NSMenuItem(); main.addItem(appItem)
         let appMenu = NSMenu(); appItem.submenu = appMenu
-        appMenu.addItem(withTitle: "Tacto 정보", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        appMenu.addItem(withTitle: "Haejo 정보", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
         appMenu.addItem(.separator())
-        let open = appMenu.addItem(withTitle: "Tacto 열기", action: #selector(reopen), keyEquivalent: "0")
+        let open = appMenu.addItem(withTitle: "Haejo 열기", action: #selector(reopen), keyEquivalent: "0")
         open.target = self
         appMenu.addItem(.separator())
         let preferences = appMenu.addItem(withTitle: "설정…", action: #selector(showPreferences), keyEquivalent: ",")
         preferences.target = self
-        appMenu.addItem(withTitle: "Tacto 종료", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appMenu.addItem(withTitle: "Haejo 종료", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         let windowItem = NSMenuItem(); main.addItem(windowItem)
         let windowMenu = NSMenu(title: "윈도우"); windowItem.submenu = windowMenu
         let close = windowMenu.addItem(withTitle: "창 닫기", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
         close.target = nil
         NSApp.mainMenu = main
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        let template = Bundle.main.url(forResource: "tacto-menu-template", withExtension: "svg")
+        let template = Bundle.main.url(forResource: "haejo-menu-template", withExtension: "svg")
         item.button?.image = template.flatMap { NSImage(contentsOf: $0) }
-            ?? NSImage(systemSymbolName: "slider.horizontal.3", accessibilityDescription: "Tacto 설정")
+            ?? NSImage(systemSymbolName: "slider.horizontal.3", accessibilityDescription: "Haejo 설정")
         item.button?.image?.size = NSSize(width: 18, height: 18)
         item.button?.image?.isTemplate = true
-        item.button?.setAccessibilityLabel("Tacto 설정")
+        item.button?.setAccessibilityLabel("Haejo 설정")
         let menu = NSMenu()
         menu.autoenablesItems = false
-        statusMenuTitle = menu.addItem(withTitle: "Tacto 설정 · " + badge.stringValue, action: nil, keyEquivalent: "")
+        statusMenuTitle = menu.addItem(withTitle: "Haejo 설정 · " + badge.stringValue, action: nil, keyEquivalent: "")
         menu.addItem(.separator())
         statusMenuTitle?.isEnabled = false
         runtimeMenuTitle = menu.addItem(withTitle:"진행 중인 작업 없음", action:nil, keyEquivalent:"")
@@ -1015,7 +1015,7 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         runtimeStop = menu.addItem(withTitle:"현재 작업 중단", action:#selector(stopRuntime), keyEquivalent:"")
         runtimeStop?.target = self
         menu.addItem(.separator())
-        let show = menu.addItem(withTitle: "Tacto 열기", action: #selector(reopen), keyEquivalent: "")
+        let show = menu.addItem(withTitle: "Haejo 열기", action: #selector(reopen), keyEquivalent: "")
         show.target = self
         let refresh = menu.addItem(withTitle: "권한 다시 확인", action: #selector(refreshPermissions), keyEquivalent: "")
         refresh.target = self
@@ -1028,16 +1028,16 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let setup = menu.addItem(withTitle: "Mac 권한·에이전트", action: #selector(showSetup), keyEquivalent: "")
         setup.target = self
         menu.addItem(.separator())
-        menu.addItem(withTitle: "Tacto 종료", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
+        menu.addItem(withTitle: "Haejo 종료", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
         item.menu = menu; statusItem = item
         runtimeObserver = DistributedNotificationCenter.default().addObserver(
-            forName:TactoRuntimeStatus.status,object:nil,queue:.main) { [weak self] note in
-                guard let self, let info = note.userInfo, let run = TactoRuntimeStatus.Run(info) else { return }
+            forName:HaejoRuntimeStatus.status,object:nil,queue:.main) { [weak self] note in
+                guard let self, let info = note.userInfo, let run = HaejoRuntimeStatus.Run(info) else { return }
                 if run.active { self.runtimeRuns[run.id] = (run,Date()) }
                 else { self.runtimeRuns.removeValue(forKey:run.id) }
                 self.updateRuntimeMenu()
             }
-        DistributedNotificationCenter.default().postNotificationName(TactoRuntimeStatus.query,
+        DistributedNotificationCenter.default().postNotificationName(HaejoRuntimeStatus.query,
             object:nil,userInfo:nil,deliverImmediately:true)
         let timer = Timer(timeInterval:1,repeats:true) { [weak self] _ in self?.updateRuntimeMenu() }
         RunLoop.main.add(timer,forMode:.common)
@@ -1052,7 +1052,7 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         runtimeMenuTitle?.title = title
         runtimeStop?.isEnabled = runs.contains { !$0.stopped }
         runtimeStop?.title = runs.count > 1 ? "모든 작업 중단" : "현재 작업 중단"
-        statusItem?.button?.toolTip = runs.isEmpty ? "Tacto 설정 · " + badge.stringValue : title + " · Esc로 중단"
+        statusItem?.button?.toolTip = runs.isEmpty ? "Haejo 설정 · " + badge.stringValue : title + " · Esc로 중단"
         updateRuntimeRunItems()
     }
     /// Per-run rows under the global stop: app, helper-accepted window ID and
@@ -1085,16 +1085,16 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
     @objc func stopRuntimeRun(_ sender: NSMenuItem) {
         guard let id = sender.representedObject as? String, runtimeRuns[id] != nil else { return }
-        DistributedNotificationCenter.default().postNotificationName(TactoRuntimeStatus.stop,
+        DistributedNotificationCenter.default().postNotificationName(HaejoRuntimeStatus.stop,
             object:nil,userInfo:["id":id],deliverImmediately:true)
     }
     @objc func stopRuntime() {
         updateRuntimeMenu()
         // Pending workers may not have a helper run row yet.
-        DistributedNotificationCenter.default().postNotificationName(TactoRuntimeStatus.stopAll,
+        DistributedNotificationCenter.default().postNotificationName(HaejoRuntimeStatus.stopAll,
             object:nil,userInfo:["schema":1,"uid":getuid()],deliverImmediately:true)
         for id in runtimeRuns.keys {
-            DistributedNotificationCenter.default().postNotificationName(TactoRuntimeStatus.stop,
+            DistributedNotificationCenter.default().postNotificationName(HaejoRuntimeStatus.stop,
                 object:nil,userInfo:["id":id],deliverImmediately:true)
         }
     }
@@ -1115,7 +1115,7 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
     @objc func showFlows() { workspace().presentFlows() }
     func workspace() -> ActivityCenter {
         if let activityCenter { return activityCenter }
-        let center = ActivityCenter(flowPage: FlowLibraryPage(runner: FlowLibraryPage.launcherRunner(root?.appendingPathComponent("launcher/tacto"))))
+        let center = ActivityCenter(flowPage: FlowLibraryPage(runner: FlowLibraryPage.launcherRunner(root?.appendingPathComponent("launcher/haejo"))))
         center.onSetup = { [weak self] in self?.showSetup() }
         center.updateStatus(badge.stringValue)
         activityCenter = center
@@ -1155,12 +1155,12 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
             FileHandle.standardError.write(Data("Snapshot directory unavailable: \(error)\n".utf8))
             exit(1)
         }
-        helper = URL(fileURLWithPath: "/Applications/Tacto Helper.app")   // offscreen fixture only
+        helper = URL(fileURLWithPath: "/Applications/Haejo Helper.app")   // offscreen fixture only
         if let i = CommandLine.arguments.firstIndex(of: "--helper-fixture"), i + 1 < CommandLine.arguments.count {
             helper = URL(fileURLWithPath: CommandLine.arguments[i + 1])
         }
         bundledRuntime = CommandLine.arguments.contains("--standalone")
-        setupApp = URL(fileURLWithPath: "/Applications/Tacto.app")
+        setupApp = URL(fileURLWithPath: "/Applications/Haejo.app")
         if let i = CommandLine.arguments.firstIndex(of: "--setup-app-fixture"), i + 1 < CommandLine.arguments.count {
             setupApp = URL(fileURLWithPath: CommandLine.arguments[i + 1])
         }
@@ -1179,7 +1179,7 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         if let waiting { watch = PermissionWatch(permission: waiting, started: Date()) }
         if CommandLine.arguments.contains("--show-help") { panel.toggleHelp() }
         if CommandLine.arguments.contains("--check-failed") {
-            known = state.refresh(nil, expected: "ai.callabo.tacto.helper")
+            known = state.refresh(nil, expected: "ai.callabo.haejo.helper")
             notice = "권한 상태를 확인하지 못했어요. ‘상태 새로고침’을 눌러 다시 확인하세요."
         }
         render()

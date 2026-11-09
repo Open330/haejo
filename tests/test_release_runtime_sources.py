@@ -8,7 +8,7 @@ from examples import benchmark_runtime_latency, release_identity
 
 
 class RuntimeSourceTests(unittest.TestCase):
-    def package(self, root, name='tacto', version='python3.11', *, checkout=False):
+    def package(self, root, name='haejo', version='python3.11', *, checkout=False):
         package = root/name if checkout else root/'.venv/lib'/version/'site-packages'/name
         package.mkdir(parents=True)
         (package/'__init__.py').write_bytes(b'init')
@@ -21,7 +21,7 @@ class RuntimeSourceTests(unittest.TestCase):
             implementation = self.package(root)
             nested = implementation/'nested/module.py'
             nested.parent.mkdir(); nested.write_bytes(b'nested')
-            launcher = root/'launcher/tacto'
+            launcher = root/'launcher/haejo'
             launcher.parent.mkdir(); launcher.write_bytes(b'launcher')
             with patch.object(release_identity.subprocess, 'run') as codesign, \
                  patch.object(benchmark_runtime_latency, 'code_hash', return_value='test-codehash'):

@@ -6,9 +6,9 @@ import socket
 import subprocess
 import unittest
 from unittest.mock import patch
-from tacto.helper import InheritedHelperDriver, REQUIRED_CAPABILITIES, HelperUnavailable
-from tacto.helper_identity import HelperIdentityError, HelperProcessIdentity, parse_helper_identity, helper_instance_status
-from tacto.native_process_identity import ProcessIdentityError
+from haejo.helper import InheritedHelperDriver, REQUIRED_CAPABILITIES, HelperUnavailable
+from haejo.helper_identity import HelperIdentityError, HelperProcessIdentity, parse_helper_identity, helper_instance_status
+from haejo.native_process_identity import ProcessIdentityError
 
 
 class HelperIdentityTests(unittest.TestCase):
@@ -37,17 +37,17 @@ class HelperIdentityTests(unittest.TestCase):
         for snapshot,expected in (({'start_time':123.0,'zombie':False},'same_instance'),
                                   ({'start_time':123.0,'zombie':True},'zombie'),
                                   ({'start_time':124.0,'zombie':False},'replaced')):
-            with patch('tacto.helper_identity.process_snapshot',return_value=snapshot), patch('tacto.helper_identity.os.kill') as exists:
+            with patch('haejo.helper_identity.process_snapshot',return_value=snapshot), patch('haejo.helper_identity.os.kill') as exists:
                 self.assertEqual(helper_instance_status(identity),expected)
                 exists.assert_not_called()
         for effect,expected in ((None,'unobservable'),(PermissionError(),'unobservable'),
                                 (ProcessLookupError(),'exited')):
-            with patch('tacto.helper_identity.process_snapshot',side_effect=ProcessIdentityError('unavailable')), \
-                    patch('tacto.helper_identity.os.kill',side_effect=effect) as exists, \
-                    patch('tacto.helper_identity.subprocess.run',return_value=type('Reply',(),{'stdout':'9 S','returncode':0})()):
+            with patch('haejo.helper_identity.process_snapshot',side_effect=ProcessIdentityError('unavailable')), \
+                    patch('haejo.helper_identity.os.kill',side_effect=effect) as exists, \
+                    patch('haejo.helper_identity.subprocess.run',return_value=type('Reply',(),{'stdout':'9 S','returncode':0})()):
                 self.assertEqual(helper_instance_status(identity),expected)
                 exists.assert_called_once_with(9,0)
-        with patch('tacto.helper_identity.process_snapshot') as read, patch('tacto.helper_identity.os.kill') as exists:
+        with patch('haejo.helper_identity.process_snapshot') as read, patch('haejo.helper_identity.os.kill') as exists:
             self.assertEqual(helper_instance_status(HelperProcessIdentity(9,float('nan'))),'unobservable')
             read.assert_not_called(); exists.assert_not_called()
 
@@ -55,9 +55,9 @@ class HelperIdentityTests(unittest.TestCase):
         identity=HelperProcessIdentity(9,123.0)
         for output,code,expected in (('9 Z',0,'zombie'),('9 Zs',0,'zombie'),('10 Z',0,'unobservable'),
                                      ('9 S',0,'unobservable'),('',1,'unobservable'),('9 Z',1,'unobservable')):
-            with patch('tacto.helper_identity.process_snapshot',side_effect=ProcessIdentityError('unavailable')), \
-                    patch('tacto.helper_identity.os.kill'), \
-                    patch('tacto.helper_identity.subprocess.run',return_value=type('Reply',(),{'stdout':output,'returncode':code})()) as ps:
+            with patch('haejo.helper_identity.process_snapshot',side_effect=ProcessIdentityError('unavailable')), \
+                    patch('haejo.helper_identity.os.kill'), \
+                    patch('haejo.helper_identity.subprocess.run',return_value=type('Reply',(),{'stdout':output,'returncode':code})()) as ps:
                 self.assertEqual(helper_instance_status(identity),expected)
                 self.assertEqual(ps.call_args.args[0],['/bin/ps','-p','9','-o','pid=,stat='])
                 self.assertEqual(ps.call_args.kwargs['timeout'],.5)
@@ -65,13 +65,13 @@ class HelperIdentityTests(unittest.TestCase):
     def test_failed_or_oversized_fallback_never_claims_exit(self):
         identity=HelperProcessIdentity(9,123.0)
         for effect in (OSError(), subprocess.TimeoutExpired('ps',.5)):
-            with patch('tacto.helper_identity.process_snapshot',side_effect=ProcessIdentityError('unavailable')), \
-                    patch('tacto.helper_identity.os.kill'), \
-                    patch('tacto.helper_identity.subprocess.run',side_effect=effect):
+            with patch('haejo.helper_identity.process_snapshot',side_effect=ProcessIdentityError('unavailable')), \
+                    patch('haejo.helper_identity.os.kill'), \
+                    patch('haejo.helper_identity.subprocess.run',side_effect=effect):
                 self.assertEqual(helper_instance_status(identity),'unobservable')
-        with patch('tacto.helper_identity.process_snapshot',side_effect=ProcessIdentityError('unavailable')), \
-                patch('tacto.helper_identity.os.kill'), \
-                patch('tacto.helper_identity.subprocess.run',return_value=type('Reply',(),{'stdout':'9 Z'+' '*129,'returncode':0})()):
+        with patch('haejo.helper_identity.process_snapshot',side_effect=ProcessIdentityError('unavailable')), \
+                patch('haejo.helper_identity.os.kill'), \
+                patch('haejo.helper_identity.subprocess.run',return_value=type('Reply',(),{'stdout':'9 Z'+' '*129,'returncode':0})()):
             self.assertEqual(helper_instance_status(identity),'unobservable')
 
     def test_real_inherited_handshake_keeps_legacy_and_rejects_malformed_identity(self):
@@ -84,7 +84,7 @@ class HelperIdentityTests(unittest.TestCase):
                 try:
                     pong={'type':'pong','trusted':True,'capabilities':sorted(REQUIRED_CAPABILITIES),**metadata}
                     peer.sendall((json.dumps(pong)+'\n').encode())
-                    with patch.object(InheritedHelperDriver,'_shared',None), patch.dict(os.environ,{'TACTO_HELPER_FD':str(descriptor)}):
+                    with patch.object(InheritedHelperDriver,'_shared',None), patch.dict(os.environ,{'HAEJO_HELPER_FD':str(descriptor)}):
                         if valid:
                             driver=InheritedHelperDriver()
                             self.assertEqual(driver.helper_process_identity is None,not bool(metadata))

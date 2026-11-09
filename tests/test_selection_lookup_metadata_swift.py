@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 @unittest.skipUnless(sys.platform == 'darwin' and shutil.which('swift'), 'macOS Swift required')
 class SelectionLookupMetadataTests(unittest.TestCase):
     def test_label_batch_optional_fields_fallback_abort_and_deadline(self):
-        helper = (ROOT/'helper/TactoHelper.swift').read_text()
+        helper = (ROOT/'helper/HaejoHelper.swift').read_text()
         window = (ROOT/'helper/WindowInput.swift').read_text()
         def extract(source, prefix):
             part = source[source.index(prefix):]
@@ -89,7 +89,7 @@ print(String(data:try! JSONSerialization.data(withJSONObject:results),encoding:.
         self.assertEqual(1, rows['scalar_failure']['scalars'])
 
     def test_menu_ownership_never_treats_unreadable_or_truncated_tree_as_absence(self):
-        helper = (ROOT/'helper/TactoHelper.swift').read_text()
+        helper = (ROOT/'helper/HaejoHelper.swift').read_text()
         window = (ROOT/'helper/WindowInput.swift').read_text()
         def extract(source, prefix):
             part = source[source.index(prefix):]
@@ -157,7 +157,7 @@ print(String(data:try! JSONSerialization.data(withJSONObject:rows),encoding:.utf
         self.assertEqual(1, rows['abort']['copies'])
 
     def test_opening_metadata_refuses_unreadable_malformed_and_late_reads_before_action(self):
-        helper=(ROOT/'helper/TactoHelper.swift').read_text()
+        helper=(ROOT/'helper/HaejoHelper.swift').read_text()
         window=(ROOT/'helper/WindowInput.swift').read_text()
         def extract(source,prefix):
             part=source[source.index(prefix):]

@@ -3,18 +3,18 @@
 #
 # TCC identifies a client by code signature, and it lists it by bundle name. A
 # bare binary shows up in System Settings as whatever the executable is called;
-# a bundle shows up as "Tacto Helper" with its own identity, keeps its grant
+# a bundle shows up as "Haejo Helper" with its own identity, keeps its grant
 # across rebuilds of the same signature, and is what a user can reason about
 # when deciding whether to allow it.
 set -euo pipefail
 cd "$(dirname "$0")"
 . ../signing.sh
-STAGE=$(mktemp -d "./.tacto-helper-bundle.XXXXXX")
+STAGE=$(mktemp -d "./.haejo-helper-bundle.XXXXXX")
 trap 'rm -rf "$STAGE"' EXIT
-APP="$STAGE/Tacto Helper.app"
+APP="$STAGE/Haejo Helper.app"
 mkdir -p "$APP/Contents/MacOS"
 mkdir -p "$APP/Contents/Resources"
-cp ../docs/assets/tacto-app.icns "$APP/Contents/Resources/tacto-app.icns"
+cp ../docs/assets/haejo-app.icns "$APP/Contents/Resources/haejo-app.icns"
 
 cat > "$APP/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -22,11 +22,11 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
   "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>CFBundleName</key>            <string>Tacto Helper</string>
-  <key>CFBundleDisplayName</key>     <string>Tacto Helper</string>
-  <key>CFBundleIconFile</key>        <string>tacto-app.icns</string>
-  <key>CFBundleIdentifier</key>      <string>ai.callabo.tacto.helper</string>
-  <key>CFBundleExecutable</key>      <string>TactoHelper</string>
+  <key>CFBundleName</key>            <string>Haejo Helper</string>
+  <key>CFBundleDisplayName</key>     <string>Haejo Helper</string>
+  <key>CFBundleIconFile</key>        <string>haejo-app.icns</string>
+  <key>CFBundleIdentifier</key>      <string>ai.callabo.haejo.helper</string>
+  <key>CFBundleExecutable</key>      <string>HaejoHelper</string>
   <key>CFBundlePackageType</key>     <string>APPL</string>
   <key>CFBundleShortVersionString</key> <string>1.0.0</string>
   <key>CFBundleVersion</key>         <string>1</string>
@@ -34,20 +34,20 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
   <!-- Background only: the helper never shows in the Dock or takes focus. -->
   <key>LSUIElement</key>             <true/>
   <key>NSAccessibilityUsageDescription</key>
-  <string>Tacto가 사용자를 대신해 앱의 버튼을 누르고 화면을 읽으려면 필요합니다. 조작 중에는 해당 창에 표시가 나타나며 Esc로 즉시 멈출 수 있습니다.</string>
+  <string>Haejo가 사용자를 대신해 앱의 버튼을 누르고 화면을 읽으려면 필요합니다. 조작 중에는 해당 창에 표시가 나타나며 Esc로 즉시 멈출 수 있습니다.</string>
 </dict>
 </plist>
 PLIST
 
-cp tacto-helper "$APP/Contents/MacOS/TactoHelper"
+cp haejo-helper "$APP/Contents/MacOS/HaejoHelper"
 
-tacto_select_identity
+haejo_select_identity
 # Inner code first, then bundle; preserve the same team/identifier requirement.
-tacto_sign "$APP/Contents/MacOS/TactoHelper" "$TACTO_HELPER_ID"
-tacto_sign "$APP" "$TACTO_HELPER_ID"
+haejo_sign "$APP/Contents/MacOS/HaejoHelper" "$HAEJO_HELPER_ID"
+haejo_sign "$APP" "$HAEJO_HELPER_ID"
 codesign --verify --deep --strict "$APP"
-DEST="Tacto Helper.app"
-tacto_warn_team_change "$DEST" "$APP"
+DEST="Haejo Helper.app"
+haejo_warn_team_change "$DEST" "$APP"
 [ ! -L "$DEST" ] || { echo 'Refusing symlink bundle destination.' >&2; exit 1; }
 if [ -e "$DEST" ]; then mv "$DEST" "$STAGE/previous.app"; fi
 if ! mv "$APP" "$DEST"; then

@@ -29,7 +29,7 @@ AXPress and pointer fallback are different routes; this measurement does not
 establish the same failure for AXPress. The detailed [window input implementation record](../docs/native-window-input.md)
 is for diagnosing a preparation/receiving failure; it is not a prerequisite for ordinary clicks.
 
-**Is a menu command available right now?** `tacto menu-state <bundle-id> <Menu>
+**Is a menu command available right now?** `haejo menu-state <bundle-id> <Menu>
 <Item> --helper` reads it without pressing anything. A background app often
 reports items disabled that work in front (Save, New Folder) — that is the
 app's current state. Keep an already-dispatched preparation single-use.

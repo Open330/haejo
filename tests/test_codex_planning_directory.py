@@ -8,7 +8,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from tacto.codex_result import codex_result, _run_codex
+from haejo.codex_result import codex_result, _run_codex
 from tests.test_codex_result import events, stream
 
 
@@ -31,7 +31,7 @@ class PlanningDirectoryTests(unittest.TestCase):
                     self.assertEqual({'final.txt'},set(p.name for p in root.iterdir()))
                     output.write_text('{"done":true}')
                     return subprocess.CompletedProcess(argv,0,stream(events()),'')
-                with patch('tacto.codex_result._run_codex',side_effect=launch):
+                with patch('haejo.codex_result._run_codex',side_effect=launch):
                     result=codex_result('owned task',process_observations=[] if observed else None)
                 self.assertEqual('ok',result.status)
                 self.assertFalse(seen[0].exists())
@@ -45,7 +45,7 @@ class PlanningDirectoryTests(unittest.TestCase):
                     'out.write_text(\'{"done":true}\');print('+repr(stream(events()))+')')
             def launch(argv,prompt,timeout,**kwargs):
                 return _run_codex([sys.executable,'-c',source,*argv[1:]],prompt,timeout,**kwargs)
-            with patch('tacto.codex_result._run_codex',side_effect=launch):
+            with patch('haejo.codex_result._run_codex',side_effect=launch):
                 result=codex_result('owned literal $(not shell)')
             self.assertEqual('ok',result.status)
             actual=json.loads(marker.read_text())

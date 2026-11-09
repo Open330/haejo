@@ -101,20 +101,20 @@ class NavigationProbeReportTests(unittest.TestCase):
 
     def test_manifest_covers_runtime_artifacts_and_new_imported_sources(self):
         module=load();manifest=module.source_hashes(ROOT)
-        for path in ('launcher/tacto','helper/tacto-helper',
-                     'helper/Tacto Helper.app/Contents/MacOS/TactoHelper',
-                     'tacto/preparation_diagnostic.py','tacto/observation_state.py',
-                     'tacto/window_listing_diagnostic.py','examples/eval.py'):
+        for path in ('launcher/haejo','helper/haejo-helper',
+                     'helper/Haejo Helper.app/Contents/MacOS/HaejoHelper',
+                     'haejo/preparation_diagnostic.py','haejo/observation_state.py',
+                     'haejo/window_listing_diagnostic.py','examples/eval.py'):
             self.assertIn(path,manifest)
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory)
             for path in manifest:
                 target=root/path;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(b'fixture')
             before=module.source_hashes(root)
-            (root/'helper/tacto-helper').write_bytes(b'changed-runtime')
-            (root/'tacto/preparation_diagnostic.py').write_bytes(b'changed-python-runtime')
+            (root/'helper/haejo-helper').write_bytes(b'changed-runtime')
+            (root/'haejo/preparation_diagnostic.py').write_bytes(b'changed-python-runtime')
             after=module.source_hashes(root)
-            self.assertNotEqual(before['helper/tacto-helper'],after['helper/tacto-helper'])
-            self.assertNotEqual(before['tacto/preparation_diagnostic.py'],
-                                after['tacto/preparation_diagnostic.py'])
+            self.assertNotEqual(before['helper/haejo-helper'],after['helper/haejo-helper'])
+            self.assertNotEqual(before['haejo/preparation_diagnostic.py'],
+                                after['haejo/preparation_diagnostic.py'])
             self.assertEqual(set(before),set(after))

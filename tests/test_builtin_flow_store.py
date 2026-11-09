@@ -6,8 +6,8 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from tacto import store
-from tacto.flow import Flow
+from haejo import store
+from haejo.flow import Flow
 
 
 class BuiltinFlowStoreTests(unittest.TestCase):
@@ -15,12 +15,12 @@ class BuiltinFlowStoreTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
-        self.package = self.root / "installed/tacto"
+        self.package = self.root / "installed/haejo"
         self.builtins = self.package / "builtin_flows"
         self.builtins.mkdir(parents=True)
         self.original = Flow("sample", "builtin-target").to_json()
         (self.builtins / "sample.json").write_text(self.original)
-        self.user = self.root / "data/tacto/flows"
+        self.user = self.root / "data/haejo/flows"
         self.file_patch = patch.object(store, "__file__", str(self.package / "store.py"))
         self.env_patch = patch.dict(os.environ, {"XDG_DATA_HOME": str(self.root / "data")})
         self.file_patch.start()
@@ -29,7 +29,7 @@ class BuiltinFlowStoreTests(unittest.TestCase):
         self.addCleanup(self.env_patch.stop)
 
     def test_relocated_assets_read_and_save_only_to_user_directory(self):
-        relocated = self.root / "moved/tacto"
+        relocated = self.root / "moved/haejo"
         shutil.move(self.package, relocated)
         with patch.object(store, "__file__", str(relocated / "store.py")):
             library = store.FlowStore()

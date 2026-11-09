@@ -11,7 +11,7 @@ except ImportError:
 @unittest.skipUnless(AVAILABLE, "optional playwright dependency not installed")
 class BrowserContract(unittest.TestCase):
     def setUp(self):
-        from tacto.browser import BrowserDriver
+        from haejo.browser import BrowserDriver
         self.driver = BrowserDriver()
         self.addCleanup(self.driver.close)
 
@@ -31,14 +31,14 @@ class BrowserContract(unittest.TestCase):
         self.assertEqual(('target_changed','not_started'), (denied['error'],denied['effect']))
 
     def test_readonly_values_remain_readable_without_offering_or_dispatching_edits(self):
-        from tacto.general import candidates
+        from haejo.general import candidates
         d = self.driver
         d.goto("data:text/html,<input aria-label='immutable' value='fixed' readonly>"
                "<input aria-label='editable' value='free'>")
         obs = d.observe()
         fields = {c['label']: c for c in candidates(obs['tree']) if c['role'] == 'textbox'}
         self.assertIn('read', fields['immutable']['can'])
-        from tacto.flow import Selector
+        from haejo.flow import Selector
         self.assertEqual('fixed', Selector._attr(fields['immutable']['line'], 'Value'))
         self.assertNotIn('set_value', fields['immutable']['can'])
         self.assertIn('set_value', fields['editable']['can'])
@@ -74,8 +74,8 @@ class BrowserContract(unittest.TestCase):
         self.assertEqual(0, d._page.evaluate('window.edits || 0'))
 
     def test_readonly_marker_is_state_without_truncating_or_reclassifying_literal_text(self):
-        from tacto.flow import Selector
-        from tacto.general import candidates
+        from haejo.flow import Selector
+        from haejo.general import candidates
         d = self.driver
         d.goto("data:text/html,<input aria-label='immutable' value='literal [readonly] text [readonly]' readonly>"
                "<input aria-label='literal [readonly]' value='editable [readonly]'>")
@@ -125,11 +125,11 @@ class BrowserContract(unittest.TestCase):
         result = d.act(obs['obs_id'], 'page', {'name':'click', 'element_index':targets[1]}, expect={'role':'button','label':'Save'})
         self.assertEqual('acted', result['type'], result)
         self.assertEqual('second', d._page.evaluate('document.body.dataset.clicked'))
-        self.assertEqual([],d._page.evaluate("Object.getOwnPropertyNames(globalThis).filter(k => k.startsWith('__tacto_node_'))"))
+        self.assertEqual([],d._page.evaluate("Object.getOwnPropertyNames(globalThis).filter(k => k.startsWith('__haejo_node_'))"))
 
     def test_named_regions_keep_their_own_same_named_inputs(self):
-        from tacto.general import candidates
-        from tacto.flow import Selector
+        from haejo.general import candidates
+        from haejo.flow import Selector
         d = self.driver
         d.goto("data:text/html,<section aria-label='billing'><input aria-label='name'></section><section aria-label='shipping'><input aria-label='name'></section><button>Next</button>")
         obs = d.observe()
@@ -142,7 +142,7 @@ class BrowserContract(unittest.TestCase):
         self.assertEqual('',d._page.locator('section').nth(1).locator('input').input_value())
 
     def test_value_probe_and_tracing(self):
-        from tacto.trace import TracingDriver
+        from haejo.trace import TracingDriver
         d = self.driver
         d.goto("data:text/html,<input aria-label='name'>")
         traced = TracingDriver(d)
@@ -266,9 +266,9 @@ class BrowserContract(unittest.TestCase):
         self.assertIsNone(d._page.evaluate('document.body.dataset.clicked'))
 
     def test_full_flow_replay_with_trace_checks_input_value(self):
-        from tacto.contract import Resource, SafetyContract
-        from tacto.flow import Flow, Postcondition, Selector, Step, replay
-        from tacto.trace import TraceDriver, TracingDriver
+        from haejo.contract import Resource, SafetyContract
+        from haejo.flow import Flow, Postcondition, Selector, Step, replay
+        from haejo.trace import TraceDriver, TracingDriver
         d = self.driver
         d.goto("data:text/html,<input aria-label='name'>")
         selector = Selector(role='textbox', title='name')
@@ -283,7 +283,7 @@ class BrowserContract(unittest.TestCase):
         self.assertTrue(result.ok,result.log)
 
     def test_general_batch_reads_the_value_it_just_typed(self):
-        from tacto.general import run
+        from haejo.general import run
         d = self.driver
         d.goto("data:text/html,<input aria-label='name'>")
         def plan(goal, candidates, done):
@@ -402,8 +402,8 @@ class BrowserContract(unittest.TestCase):
                 self.assertEqual(0,d._page.evaluate('clicks'))
 
     def test_registered_upload_honors_modal_expectation_before_selection(self):
-        from tacto.browser_upload import BrowserUploadDriver, BrowserUploadFile, BrowserUploadScope
-        from tacto.flow import Selector
+        from haejo.browser_upload import BrowserUploadDriver, BrowserUploadFile, BrowserUploadScope
+        from haejo.flow import Selector
         d=self.driver
         d.goto("data:text/html,<dialog open aria-modal='true'>Owned modal</dialog><input id='file' type='file' aria-label='attachment'><script>let clicks=0;file.onclick=()=>clicks++</script>")
         selector=Selector(title='attachment')

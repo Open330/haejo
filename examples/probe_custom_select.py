@@ -28,12 +28,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--provider', choices=['codex', 'claude'], default='codex')
     args = parser.parse_args()
-    from tacto.ask import ask_here_paged
-    from tacto.browser import BrowserDriver
-    from tacto.general import run
+    from haejo.ask import ask_here_paged
+    from haejo.browser import BrowserDriver
+    from haejo.general import run
 
     def snapshot():
-        paths = sorted((ROOT / 'tacto').glob('*.py')) + [Path(__file__)]
+        paths = sorted((ROOT / 'haejo').glob('*.py')) + [Path(__file__)]
         return hashlib.sha256(b''.join(str(p.relative_to(ROOT)).encode() +
             hashlib.sha256(p.read_bytes()).digest() for p in paths)).hexdigest()
     before = snapshot()

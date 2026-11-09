@@ -9,8 +9,8 @@ import sys
 import tempfile
 from types import SimpleNamespace
 import unittest
-from tacto.helper import HelperDriver, InheritedHelperDriver
-from tacto.trace import Trace, TracingDriver, TraceDriver
+from haejo.helper import HelperDriver, InheritedHelperDriver
+from haejo.trace import Trace, TracingDriver, TraceDriver
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -65,7 +65,7 @@ class ExportChannelTests(unittest.TestCase):
 @unittest.skipUnless(sys.platform=='darwin' and shutil.which('swift'),'macOS Swift required')
 class ExportSwiftTests(unittest.TestCase):
     def test_launcher_requires_token_and_exact_read_only_fields(self):
-        source=(ROOT/'launcher/tacto.swift').read_text()
+        source=(ROOT/'launcher/haejo.swift').read_text()
         schema=source[source.index('let allowedTypes:'):source.index('// MARK: - Socket plumbing')]
         checks=r'''
 let root:[String:Any]=["type":"document_rtf_export","target":"com.apple.TextEdit","document_token":"token"]
@@ -79,7 +79,7 @@ for patch:[String:Any] in [["target":"foreign"],["document_token":true],["docume
 var absent=root;absent.removeValue(forKey:"document_token");requests.append(absent)
 print(String(data:try! JSONSerialization.data(withJSONObject:requests.map{vetted($0)==nil}),encoding:.utf8)!)
 '''
-        with tempfile.TemporaryDirectory(prefix='tacto-rtf-vet-') as directory:
+        with tempfile.TemporaryDirectory(prefix='haejo-rtf-vet-') as directory:
             script=Path(directory)/'main.swift'
             script.write_text('import Foundation\nimport CoreFoundation\nfunc modelTimeout(_ raw:Any?)->Double? {1}\n'+schema+checks)
             result=subprocess.run(['swift',str(script)],capture_output=True,text=True,timeout=30)
@@ -87,7 +87,7 @@ print(String(data:try! JSONSerialization.data(withJSONObject:requests.map{vetted
         self.assertEqual(json.loads(result.stdout),[True]+[False]*13)
 
     def test_actual_handler_export_stability_identity_budgets_and_timeout(self):
-        source=(ROOT/'helper/TactoHelper.swift').read_text()
+        source=(ROOT/'helper/HaejoHelper.swift').read_text()
         handler=source[source.index('func documentRTFExport('):source.index('func documentWindowForToken(')]
         harness=r'''
 import Foundation
@@ -160,7 +160,7 @@ for patch:[String:Any] in [["document_token":"unknown"],["document_token":true],
 }
 print("EXPORT_PASS")
 '''
-        with tempfile.TemporaryDirectory(prefix='tacto-rtf-export-') as directory:
+        with tempfile.TemporaryDirectory(prefix='haejo-rtf-export-') as directory:
             script=Path(directory)/'main.swift';script.write_text(harness+handler+checks)
             result=subprocess.run(['swift',str(script)],capture_output=True,text=True,timeout=40)
         self.assertEqual(result.returncode,0,result.stderr)

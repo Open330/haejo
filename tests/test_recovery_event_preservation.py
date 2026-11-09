@@ -2,9 +2,9 @@
 import unittest
 from unittest.mock import patch
 
-from tacto.contract import Envelope
-from tacto.flow import Flow, Step, Selector, Postcondition, Resolution, replay
-from tacto.helper import HelperUnavailable
+from haejo.contract import Envelope
+from haejo.flow import Flow, Step, Selector, Postcondition, Resolution, replay
+from haejo.helper import HelperUnavailable
 
 
 class DialogDriver:
@@ -100,14 +100,14 @@ class RecoveryEventTests(unittest.TestCase):
         self.assertTrue(any(e.get('error') == 'recovery_unverified' for e in result.log))
 
     def test_child_logs_are_bounded_redacted_and_not_parent_step_numbers(self):
-        from tacto.flow import ReplayResult, _run_fix
+        from haejo.flow import ReplayResult, _run_fix
         parent, child = ReplayResult(), ReplayResult()
         child.protect('PRIVATE_CHILD_VALUE')
         for i in range(70):
             child.record(status='ok',step=i,detail='PRIVATE_CHILD_VALUE')
         parent.preparation_diagnostics = [{'kept':True}] * 63
         child.preparation_diagnostics = [{'child':True}] * 4
-        with patch('tacto.flow.replay',return_value=child):
+        with patch('haejo.flow.replay',return_value=child):
             self.assertTrue(_run_fix(None,Flow('parent','owned',[]),'dismiss_dialog',None,
                                     result=parent,parent_step=8))
         self.assertEqual(len(parent.log),1)

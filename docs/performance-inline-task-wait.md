@@ -1,7 +1,7 @@
 # Inline task lifecycle and document polling
 
 The first UI command can create its audit group with `--task new --goal "..."`.
-Reuse the returned `TACTO_TASK` ID on later commands and put `--finish-task` on
+Reuse the returned `HAEJO_TASK` ID on later commands and put `--finish-task` on
 the final command. A single-command goal can combine these options. This removes
 the separate `task start` and `task end` agent/tool round trips while retaining
 the per-invocation journal. Manual lifecycle commands remain available.
@@ -53,7 +53,7 @@ all nine runs. Each condition ran three times, with order rotated across rounds.
 No task-specific conversation or Flow was reused.
 
 Requested model: `gpt-6.1-sol`, medium reasoning, Codex CLI 0.161.0, 180-second
-per-run timeout. Both Tacto conditions used Python 3.11, equal-length runtime
+per-run timeout. Both Haejo conditions used Python 3.11, equal-length runtime
 paths and identical signed rc29 native binaries; Python/skill changed from
 `a861027` to `8adc961`. Model/config hashes were stable across all cohorts.
 Sky used the host-selected bundled Computer Use skill and the same task/model
@@ -117,7 +117,7 @@ Flows. Peer review issues around these guide combinations were resolved, and
 
 Twelve new independent conversations ran the same Calculator → TextEdit task,
 including one replacement trio. The primary set has three matched trials per
-condition with rotated order. Both Tacto conditions already contain
+condition with rotated order. Both Haejo conditions already contain
 the prior inline task lifecycle and polling fixes; this measures only the next
 steps-authoring change (`8adc961` → `f57e455`). They use equal-length paths,
 Python 3.11 and identical signed rc29 native executables. Sky uses its bundled

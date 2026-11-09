@@ -6,14 +6,14 @@ for a continuous left-button stroke inside one observed window. It sends
 PID/window-addressed events and preserves the user's global cursor/foreground.
 
 ```sh
-tacto drag com.example.app --helper --window 'Observed title' --from 20 80 --to 220 80
+haejo drag com.example.app --helper --window 'Observed title' --from 20 80 --to 220 80
 ```
 
 Coordinates are window-relative points, including the titlebar. Optional
 `--via X Y` preserves each waypoint, `--duration` sets 0.1–2 seconds, and
 `--prepare` prepares a background AppKit window that ignores first-mouse input.
 The target is the app's focused window; the app may be in front or in the background.
-Use `tacto capture <bundle-id> --helper --window TITLE --output window.png`
+Use `haejo capture <bundle-id> --helper --window TITLE --output window.png`
 for a fresh private PNG and pixel-to-point scale factors. Multiply image pixel
 coordinates by those factors before dragging; Retina pixels differ from points.
 The default output stays compact; `--json` includes diagnostics and a fresh tree.

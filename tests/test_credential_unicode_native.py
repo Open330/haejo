@@ -16,7 +16,7 @@ from uuid import uuid4
 ROOT = Path(__file__).resolve().parents[1]
 
 
-@unittest.skipUnless(sys.platform == 'darwin' and os.environ.get('TACTO_RUN_NATIVE_CREDENTIAL_TESTS') == '1',
+@unittest.skipUnless(sys.platform == 'darwin' and os.environ.get('HAEJO_RUN_NATIVE_CREDENTIAL_TESTS') == '1',
                      'opt-in owned Safari Unicode credential receiving')
 class CredentialUnicodeNative(unittest.TestCase):
     def test_nfc_nfd_replacement_input_events_and_clipboard(self):
@@ -59,18 +59,18 @@ class CredentialUnicodeNative(unittest.TestCase):
         thread.start()
 
         def command(*args):
-            return subprocess.run([str(ROOT / 'launcher/tacto'), *args], capture_output=True,
-                                  text=True, timeout=40, env=dict(os.environ, TACTO_HELPER_MODE='warm'))
+            return subprocess.run([str(ROOT / 'launcher/haejo'), *args], capture_output=True,
+                                  text=True, timeout=40, env=dict(os.environ, HAEJO_HELPER_MODE='warm'))
 
         try:
-            values = ['Tacto-테스트🔐-47!', unicodedata.normalize('NFD', 'Tacto-테스트🔐-47!'),
+            values = ['Haejo-테스트🔐-47!', unicodedata.normalize('NFD', 'Haejo-테스트🔐-47!'),
                       'Accent-e\u0301-a\u0315\u0300-{\\}-47!',
                       'x' * 63 + '🔐' + 'e\u0301' * 100]
             for kind in ('password', 'text'):
                 for value in values:
                     with self.subTest(kind=kind, form='NFC' if unicodedata.is_normalized('NFC', value) else 'decomposed'):
                         server.expected = value
-                        server.title = 'Tacto owned Unicode ' + uuid4().hex
+                        server.title = 'Haejo owned Unicode ' + uuid4().hex
                         server.kind = kind
                         server.proof = {}
                         opened = command('open-url', f'http://127.0.0.1:{server.server_port}/?case={uuid4().hex}', '--helper')
@@ -106,8 +106,8 @@ class CredentialUnicodeNative(unittest.TestCase):
                             self.assertEqual(before, clipboard())
                             self.assertNotIn(value, result.stdout + result.stderr + trace.read_text())
                             if kind == 'password' and value == values[1]:
-                                from tacto.credential_grants import CredentialStore
-                                from tacto.credential_vault import KeychainVault
+                                from haejo.credential_grants import CredentialStore
+                                from haejo.credential_vault import KeychainVault
                                 name = 'owned-unicode-' + uuid4().hex
                                 store, vault = CredentialStore(), KeychainVault()
                                 try:
@@ -137,7 +137,7 @@ class CredentialUnicodeNative(unittest.TestCase):
             server.interrupt = True
             server.expected = values[-1]
             server.kind = 'password'
-            server.title = 'Tacto owned interrupted Unicode ' + uuid4().hex
+            server.title = 'Haejo owned interrupted Unicode ' + uuid4().hex
             server.proof = {}
             opened = command('open-url', f'http://127.0.0.1:{server.server_port}/?case={uuid4().hex}', '--helper')
             self.assertEqual(0, opened.returncode, opened.stdout + opened.stderr)

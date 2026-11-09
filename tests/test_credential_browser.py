@@ -6,8 +6,8 @@ import tempfile
 import threading
 import unittest
 from urllib.parse import parse_qs
-from tacto.credential_grants import CredentialStore
-from tacto.credential_runtime import run_login
+from haejo.credential_grants import CredentialStore
+from haejo.credential_runtime import run_login
 
 SECRET='owned-browser-fixture-password'
 try:
@@ -33,7 +33,7 @@ class Page(BaseHTTPRequestHandler):
 @unittest.skipUnless(AVAILABLE,'optional Playwright dependency not installed')
 class BrowserLogin(unittest.TestCase):
     def setUp(self):
-        from tacto.browser import BrowserDriver
+        from haejo.browser import BrowserDriver
         self.driver=BrowserDriver();self.addCleanup(self.driver.close)
         self.server=ThreadingHTTPServer(('127.0.0.1',0),Page);self.server.received=[]
         thread=threading.Thread(target=self.server.serve_forever,daemon=True);thread.start()
@@ -41,7 +41,7 @@ class BrowserLogin(unittest.TestCase):
         self.addCleanup(cleanup)
         self.url=f'http://127.0.0.1:{self.server.server_port}'
         self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup)
-        self.store=CredentialStore(Path(self.tmp.name)/'Tacto'/'Credentials');self.store.add_vault('local',{'kind':'keychain'})
+        self.store=CredentialStore(Path(self.tmp.name)/'Haejo'/'Credentials');self.store.add_vault('local',{'kind':'keychain'})
         self.plan={'target':'page','origin':self.url,'level':'login','fields':[
             {'name':'username','selector':{'role':'textbox','title':'Username'},'secret':{'vault':'local','item':'owned-user','field':'password'}},
             {'name':'password','selector':{'role':'textbox','title':'Password'},'secret':{'vault':'local','item':'owned-password','field':'password'}}],

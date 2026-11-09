@@ -206,7 +206,7 @@ AX 조회 자체의 오류도 구분한다. AttributeUnsupported/NoValue만 미�
 
 경로 3의 부작용: 창 준비 뒤 TextEdit은 다른 앱이 앞에 있는데도 `AXFrontmost=true`를 유지했다. 그동안 메뉴는 TextEdit의 key window 기준으로 활성화된다. 한 번은 시트를 닫고 소유 문서를 닫은 뒤에도 그 상태가 남아, 사용자 문서 창이 focused인 채 Save As가 enabled로 보였다. 창을 지정하지 않은 applicationDeactivated 이벤트로는 풀리지 않았다. 창을 지정한 applicationDeactivated 이벤트를 pid로 보내자 `AXFrontmost=false`로 돌아왔다(probe의 `deactivate`, 3/3). 직후 메뉴 enabled 표시는 다음 검증 전까지 남았다. helper의 `prepare_window`는 현재 이 되돌림을 하지 않는다.
 
-정리: 이번 시행에서 포커스를 옮기지 않고 Save As 시트를 연 경로는 3번(창 준비 → 메뉴 AXPress)뿐이다. 이후 signed helper의 `menu` act에 이 경로를 한정해 넣었다(아래 "배경 메뉴의 임시 창 준비"). 독립 실행되는 `prepare_window`의 동작은 바꾸지 않았다. `acted`나 이벤트 전달 응답은 증거로 쓰지 않는다. 시트가 같은 창에 실제로 생겼는지, receipt와 저장된 파일로 판정한다. 호출자는 필요할 때 `tacto activate … --window` 같은 명시적 전경 전환도 선택할 수 있다. 이때 발생하는 포커스 변화는 결과에 기록된다. 이번 시행에서는 macOS 27에서 `open -g`가 TextEdit을 앞으로 가져온 경우(같은 날 한 실행)도 있었다. 그래서 probe는 open 뒤 소유 전경 창이 한 번 앞을 가져간 다음부터 witness를 켠다.
+정리: 이번 시행에서 포커스를 옮기지 않고 Save As 시트를 연 경로는 3번(창 준비 → 메뉴 AXPress)뿐이다. 이후 signed helper의 `menu` act에 이 경로를 한정해 넣었다(아래 "배경 메뉴의 임시 창 준비"). 독립 실행되는 `prepare_window`의 동작은 바꾸지 않았다. `acted`나 이벤트 전달 응답은 증거로 쓰지 않는다. 시트가 같은 창에 실제로 생겼는지, receipt와 저장된 파일로 판정한다. 호출자는 필요할 때 `haejo activate … --window` 같은 명시적 전경 전환도 선택할 수 있다. 이때 발생하는 포커스 변화는 결과에 기록된다. 이번 시행에서는 macOS 27에서 `open -g`가 TextEdit을 앞으로 가져온 경우(같은 날 한 실행)도 있었다. 그래서 probe는 open 뒤 소유 전경 창이 한 번 앞을 가져간 다음부터 witness를 켠다.
 
 ### 배경 메뉴의 임시 창 준비 (signed helper, 2026-11-05)
 
@@ -268,7 +268,7 @@ AX 조회 자체의 오류도 구분한다. AttributeUnsupported/NoValue만 미�
     - 편집기가 닫히는지(`editor_closed`) 최대 1초 지켜보고 그다음 복구한다.
     - 입력 단계가 실패하면 명령 자체는 이미 실행된 것이므로 `effect: unknown`으로 반환하고 다시 시도하지 않는다.
   - 실측: `signed_finder_new_folder` 3/3. 원본은 `reviews/2026-11-06/finder-new-folder-*.json`이고 wrapper 기록은 `reviews/bg-menu-witness/finder-run{16,17,18}-report.json`이다.
-    - 같은 act로 New Folder와 정확한 이름 `tacto-renamed-<nonce>`가 입력됐다. 편집기는 496~962ms에 찾았고 Return 뒤 닫혔다.
+    - 같은 act로 New Folder와 정확한 이름 `haejo-renamed-<nonce>`가 입력됐다. 편집기는 496~962ms에 찾았고 Return 뒤 닫혔다.
     - FS 확인: 소유 폴더에 새 항목은 정확히 1개였고, 요청한 이름의 일반 디렉터리였다.
     - 복구 결과 `AXFrontmost=false`, 작업 구간 활성화 0, witness의 body·caret·keys 보존, eval 종료 코드 0이었다. 창은 닫고 폴더는 삭제했다.
     - 그 직전 1회는 준비 단계에서 `identity_changed`(`target_resolution`)로 이벤트 0개, `not_started`였다. 일시적이었고 재시도하지 않았다.
@@ -369,8 +369,8 @@ CLI replay는 검증된 진단을 `preparation-diagnostic: <JSON>` 줄로 출력
 ReplayResult의 별도 bounded 목록에64건까지 보존하므로 후속 postcondition
 timeout이 원래 준비 응답의 진단을 덮어쓰지 않는다. 진단만 보존된 거절을
 dispatch event로 바꾸지 않으며 결과 판정에 사용하지 않는다.
-`tacto.preparation_diagnostic`은 닫힌 field set/phase/reason과 숫자 범위를 검사한다.
-외부 문자열·bool counter·추가 필드는 버린다. 비교 runner는 completed Tacto
+`haejo.preparation_diagnostic`은 닫힌 field set/phase/reason과 숫자 범위를 검사한다.
+외부 문자열·bool counter·추가 필드는 버린다. 비교 runner는 completed Haejo
 command output의 marker만 수집하고 전체 output/줄/건수 상한을 적용한다.
 reported_preparation_diagnostics는 tool 보고이며 native provenance 인증이 아니다.
 
@@ -572,7 +572,7 @@ CLI marker는1024자·출력1MiB·최대64개로 제한한다. 이 카운터는 
 큰 트리의 소유 실기 평가:
 
 ```sh
-~/.local/bin/tacto eval signed_readiness_scale --report /absolute/new-report.json
+~/.local/bin/haejo eval signed_readiness_scale --report /absolute/new-report.json
 ```
 
 별도 signed launcher 프로세스에서만 실행한다. 앱 A는 작은 창이고 B에만
@@ -593,7 +593,7 @@ scoped_ax_operations를 단일 DFS의 노드당 비용으로 계산하지 않는
 Finder 읽기 비용의 진단 평가:
 
 ```sh
-~/.local/bin/tacto eval signed_finder_read_cost --report /absolute/new-report.json
+~/.local/bin/haejo eval signed_finder_read_cost --report /absolute/new-report.json
 ```
 
 `diagnostic.readiness_read_cost`를 제공하는 signed helper와 런처가 필요하다.
@@ -622,7 +622,7 @@ unsupported batch도0비용이나 단건과 동등한 지원으로 계산하지 
 읽기 전용 사전 점검 실험은 다음처럼 별도 프로세스에서 실행한다.
 
 ```sh
-~/.local/bin/tacto eval signed_finder_preflight --report /absolute/new-report.json
+~/.local/bin/haejo eval signed_finder_preflight --report /absolute/new-report.json
 ```
 
 Finder의 최신 Window를15초/20k/depth64로 읽으며 입력·활성화 API를 호출하지
@@ -644,7 +644,7 @@ Finder 시험 도구는 창 생성/닫힘 소유권을 입증하지 못한다. �
 소유 앱의 모달 표현을 읽기 전용으로 비교하는 진단:
 
 ```sh
-~/.local/bin/tacto eval signed_modality_inventory --report /absolute/new-report.json
+~/.local/bin/haejo eval signed_modality_inventory --report /absolute/new-report.json
 ```
 
 signed helper의 preflight 대상은 Finder와 예약된 modality fixture로 제한한다.
@@ -670,8 +670,8 @@ identity_or_abort/malformed/unavailable도 별도로 남긴다. 팝오버 열림
 사용자 창을 닫지 않는다. 실패한 unprepared 결과를 prepared 결과로 덮어쓰지 않는다.
 
 ```sh
-~/.local/bin/tacto eval signed_popover_receipt --report /absolute/new-unprepared.json
-~/.local/bin/tacto eval signed_popover_prepared_receipt --report /absolute/new-prepared.json
+~/.local/bin/haejo eval signed_popover_receipt --report /absolute/new-unprepared.json
+~/.local/bin/haejo eval signed_popover_prepared_receipt --report /absolute/new-prepared.json
 ```
 
 clear/transient/semitransient × A/B 창 × acceptsFirstMouse true/false의12개
@@ -710,7 +710,7 @@ AppKit 내부 활성화 알림1회와 전역 전경 보존은별도로 기록한
 관측으로 다음 단계를 계획하며, unknown을 코드만보고 재시도하지 않는다.
 
 ```sh
-~/.local/bin/tacto eval signed_popover_routing_refusal --report /absolute/new-diagnostic.json
+~/.local/bin/haejo eval signed_popover_routing_refusal --report /absolute/new-diagnostic.json
 ```
 
 이 진단은 소유 A가앱 내부 focused 창인 상태에서 B를요청한다. 팝오버3종과
@@ -800,14 +800,14 @@ destination. Use that menu only after verifying that the intended window is
 Safari's main window; bind subsequent fields to that window, not an unrelated
 window that happens to be in front. The native confirmation's success response
 is not a substitute for the receiving page check. If the menu reports
-`needs_foreground`, use `tacto activate com.apple.Safari --window "<unique title>"
+`needs_foreground`, use `haejo activate com.apple.Safari --window "<unique title>"
 --helper` only when the person requested activation or already consented, then
 verify the intended window before continuing.
 
 Safari address confirmation performs the bound navigation; it does not supply a
 remote-service commit receipt. When the host supplies no receipt of its own,
 replay witnesses the navigation with `NavigationReceipt`
-(`tacto/navigation_receipt.py`). Safari leaves a window's `AXDocument` empty
+(`haejo/navigation_receipt.py`). Safari leaves a window's `AXDocument` empty
 (measured 2026-10-21); the loaded page is the window's `AXWebArea`, whose
 `AXURL` the helper reports as `URL:` on a fully quoted WebArea line, so a page
 title cannot spell that field. The window is the one holding the pressed

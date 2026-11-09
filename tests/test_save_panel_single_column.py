@@ -116,7 +116,7 @@ print("SINGLE_COLUMN_PASS")
 @unittest.skipUnless(sys.platform == 'darwin' and shutil.which('xcrun'), 'macOS Swift required')
 class SingleColumnSavePanelTests(unittest.TestCase):
     def test_single_column_folder_from_entry_urls(self):
-        with tempfile.TemporaryDirectory(prefix='tacto-single-column-') as directory:
+        with tempfile.TemporaryDirectory(prefix='haejo-single-column-') as directory:
             source, binary = Path(directory) / 'main.swift', Path(directory) / 'check'
             source.write_text(HARNESS)
             built = subprocess.run(['xcrun', 'swiftc', '-warnings-as-errors', str(source),

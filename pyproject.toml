@@ -3,9 +3,9 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "tacto-runtime"
+name = "haejo-runtime"
 version = "1.0.0"
-description = "Tacto — reusable computer use for Claude, Codex and agent-authored flows"
+description = "Haejo — reusable computer use for Claude, Codex and agent-authored flows"
 license = { text = "MIT" }
 classifiers = [
     "License :: OSI Approved :: MIT License",
@@ -23,12 +23,12 @@ dependencies = [
     "pyobjc-framework-ApplicationServices>=10.0; sys_platform == 'darwin'",
     "pyobjc-framework-Quartz>=10.0; sys_platform == 'darwin'",
     "pyobjc-framework-Cocoa>=10.0; sys_platform == 'darwin'",
-    # Windows: UI Automation through COM (tacto/uia_backend.py).
+    # Windows: UI Automation through COM (haejo/uia_backend.py).
     "comtypes>=1.4,<2; sys_platform == 'win32'",
 ]
 
 [project.optional-dependencies]
-# Optional headless/programmatic web backend (tacto/browser.py). NOT needed for
+# Optional headless/programmatic web backend (haejo/browser.py). NOT needed for
 # computer use of the user's real browser, which the AX driver already handles.
 web = ["playwright>=1.40"]
 native-visual = ["pyobjc-framework-ScreenCaptureKit>=10.0; sys_platform == 'darwin'"]
@@ -39,12 +39,12 @@ native-visual = ["pyobjc-framework-ScreenCaptureKit>=10.0; sys_platform == 'darw
 dev = ["tiktoken>=0.14,<1"]
 
 [project.scripts]
-tacto = "tacto.cli:main"
+haejo = "haejo.cli:main"
 
 [tool.setuptools]
-packages = ["tacto"]
+packages = ["haejo"]
 # This wheel distributes portable Python modules. Signed native executables,
 # source-tree evaluation fixtures and mutable flow stores are not wheel data.
-# Native installation uses the source checkout's build.sh + launcher/tacto;
+# Native installation uses the source checkout's build.sh + launcher/haejo;
 # see docs/installation.md. Never copy a developer's signed binaries into wheels.
 include-package-data = false

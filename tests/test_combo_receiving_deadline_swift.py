@@ -70,7 +70,7 @@ print(String(data:try! JSONSerialization.data(withJSONObject:rows),encoding:.utf
         self.assertEqual(0,rows['nested_larger']['operations_before_restore'])
 
     def test_actual_dispatcher_late_value_checkpoint_abort_and_user_change_keep_attempted_two(self):
-        confirm=extract((ROOT/'helper/TactoHelper.swift').read_text(),'func confirmComboBoxSelectionTransition(')
+        confirm=extract((ROOT/'helper/HaejoHelper.swift').read_text(),'func confirmComboBoxSelectionTransition(')
         support=r'''
 import Foundation
 import AppKit

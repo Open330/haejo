@@ -9,14 +9,14 @@ import unittest
 from contextlib import redirect_stdout
 from unittest.mock import patch
 
-from tacto import task as tasks
-from tacto import cli
+from haejo import task as tasks
+from haejo import cli
 
 
 class TaskStoreTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
-        self.root = Path(self.tmp.name)/'Tacto'/'Tasks'
+        self.root = Path(self.tmp.name)/'Haejo'/'Tasks'
         self.patch = patch.object(tasks, 'tasks_root', lambda root=None: Path(root) if root else self.root)
         self.patch.start()
 
@@ -27,8 +27,8 @@ class TaskStoreTests(unittest.TestCase):
     def run_cli(self, *argv, env=None):
         out = io.StringIO()
         with patch.dict(os.environ, env or {}, clear=False), redirect_stdout(out):
-            if 'TACTO_TASK' not in (env or {}):
-                os.environ.pop('TACTO_TASK', None)
+            if 'HAEJO_TASK' not in (env or {}):
+                os.environ.pop('HAEJO_TASK', None)
             code = cli.main(list(argv))
         return code, out.getvalue()
 
@@ -62,7 +62,7 @@ class TaskStoreTests(unittest.TestCase):
 
     def test_two_independent_invocations_and_states(self):
         task_id = tasks.start('goal')['id']
-        first = tasks.bind(task_id, 'observe'); first.admit('tacto-x.jsonl')
+        first = tasks.bind(task_id, 'observe'); first.admit('haejo-x.jsonl')
         second = tasks.bind(task_id, 'run'); second.admit()
         first.finish(0)
         class Log:
@@ -74,7 +74,7 @@ class TaskStoreTests(unittest.TestCase):
         self.assertEqual({'ok': 1, 'failed': 1, 'in_flight': 1, 'uncertain': 0}, report['counts'])
         inv = report['invocations']
         self.assertEqual(['observe', 'run', 'run'], [i['command'] for i in inv])
-        self.assertEqual('tacto-x.jsonl', inv[0]['access_log'])
+        self.assertEqual('haejo-x.jsonl', inv[0]['access_log'])
         self.assertEqual((['com.apple.calculator'], 'target_missing', 'resolve'),
                          (inv[1]['targets'], inv[1]['error'], inv[1]['stage']))
 
@@ -132,12 +132,12 @@ class TaskStoreTests(unittest.TestCase):
     def test_bad_binding_refuses_before_any_screen_work(self):
         closed = tasks.start('goal')['id']; tasks.end(closed, 'done')
         cases = [(['observe', 'com.apple.calculator', '--task', 'nope'], {}, 'task_invalid'),
-                 (['observe', 'com.apple.calculator'], {'TACTO_TASK': 't-' + 'c' * 24}, 'task_unknown'),
+                 (['observe', 'com.apple.calculator'], {'HAEJO_TASK': 't-' + 'c' * 24}, 'task_unknown'),
                  (['observe', 'com.apple.calculator', '--task', closed], {}, 'task_closed'),
                  (['run', 'f.json', '--task'], {}, 'task_invalid')]
         for argv, env, code in cases:
             with patch.object(cli, '_main', side_effect=AssertionError('screen work started')), \
-                 patch('tacto.access_log.AccessLog', side_effect=AssertionError('logged before refusal')):
+                 patch('haejo.access_log.AccessLog', side_effect=AssertionError('logged before refusal')):
                 exit_code, out = self.run_cli(*argv, env=env)
             self.assertEqual(2, exit_code, argv)
             self.assertIn(code, out)
@@ -149,12 +149,12 @@ class TaskStoreTests(unittest.TestCase):
             seen['argv'] = argv; seen['task'] = tasks.current.get().task_id
             return 0
         with patch.object(cli, '_main', side_effect=fake_main), \
-             patch('tacto.access_log.log_directory', lambda: Path(self.tmp.name)/'Logs'):
-            code, _ = self.run_cli('observe', 'com.apple.calculator', '--task', mine, env={'TACTO_TASK': other})
+             patch('haejo.access_log.log_directory', lambda: Path(self.tmp.name)/'Logs'):
+            code, _ = self.run_cli('observe', 'com.apple.calculator', '--task', mine, env={'HAEJO_TASK': other})
         self.assertEqual((0, ['observe', 'com.apple.calculator'], mine), (code, seen['argv'], seen['task']))
         self.assertEqual(1, len(tasks.status(mine)['invocations']))
         self.assertEqual(0, len(tasks.status(other)['invocations']))
-        log = next((Path(self.tmp.name)/'Logs').glob('tacto-*.jsonl'))
+        log = next((Path(self.tmp.name)/'Logs').glob('haejo-*.jsonl'))
         start = json.loads(log.read_text().splitlines()[0])
         self.assertEqual(mine, start['task_id'])
         self.assertEqual(tasks.status(mine)['invocations'][0]['invocation'], start['invocation_id'])
@@ -163,9 +163,9 @@ class TaskStoreTests(unittest.TestCase):
     def test_exception_records_failed_end(self):
         task_id = tasks.start('goal')['id']
         with patch.object(cli, '_main', side_effect=RuntimeError('boom')), \
-             patch('tacto.access_log.log_directory', lambda: Path(self.tmp.name)/'Logs'):
+             patch('haejo.access_log.log_directory', lambda: Path(self.tmp.name)/'Logs'):
             with self.assertRaises(RuntimeError):
-                self.run_cli('run', 'x.json', env={'TACTO_TASK': task_id})
+                self.run_cli('run', 'x.json', env={'HAEJO_TASK': task_id})
         self.assertEqual(1, tasks.status(task_id)['counts']['failed'])
 
     def test_non_screen_commands(self):
@@ -173,7 +173,7 @@ class TaskStoreTests(unittest.TestCase):
         with patch.object(cli, '_main', return_value=0):
             code, out = self.run_cli('list', '--task', task_id)
             self.assertEqual(2, code); self.assertIn('task_not_applicable', out)
-            code, _ = self.run_cli('list', env={'TACTO_TASK': task_id})   # ambient env is ignored there
+            code, _ = self.run_cli('list', env={'HAEJO_TASK': task_id})   # ambient env is ignored there
             self.assertEqual(0, code)
         self.assertEqual([], tasks.status(task_id)['invocations'])
 
@@ -182,9 +182,9 @@ class TaskStoreTests(unittest.TestCase):
         task_id = json.loads(out)['task_id']
         code, out = self.run_cli('task', 'status')
         self.assertEqual(2, code); self.assertIn('never guesses', out)
-        code, out = self.run_cli('task', 'end', '--result', 'done', env={'TACTO_TASK': task_id})
+        code, out = self.run_cli('task', 'end', '--result', 'done', env={'HAEJO_TASK': task_id})
         self.assertEqual(0, code)
-        code, out = self.run_cli('task', 'status', '--json', env={'TACTO_TASK': task_id})
+        code, out = self.run_cli('task', 'status', '--json', env={'HAEJO_TASK': task_id})
         self.assertEqual((0, 'closed'), (code, json.loads(out)['state']))
         code, out = self.run_cli('task', 'list', '--all')
         self.assertIn(task_id, out)
@@ -192,10 +192,10 @@ class TaskStoreTests(unittest.TestCase):
     def test_help_token_as_argument_value_stays_bound(self):
         with patch.object(cli, '_main', side_effect=AssertionError('screen work started')):
             code, out = self.run_cli('activate', 'com.apple.TextEdit', '--window', 'help', '--helper',
-                                     env={'TACTO_TASK': 'invalid'})
+                                     env={'HAEJO_TASK': 'invalid'})
         self.assertEqual(2, code); self.assertIn('task_invalid', out)
         with patch.object(cli, '_main', return_value=0) as fake:
-            code, _ = self.run_cli('run', '--help', env={'TACTO_TASK': 'invalid'})
+            code, _ = self.run_cli('run', '--help', env={'HAEJO_TASK': 'invalid'})
         self.assertEqual(0, code); fake.assert_called_once()
 
     def test_parallel_children_get_validated_task(self):
@@ -203,12 +203,12 @@ class TaskStoreTests(unittest.TestCase):
         binding = tasks.bind(task_id, 'parallel')
         token = tasks.current.set(binding)
         try:
-            self.assertEqual({'TACTO_TASK': task_id, 'TACTO_TASK_PARENT': binding.invocation}, binding.child_env())
+            self.assertEqual({'HAEJO_TASK': task_id, 'HAEJO_TASK_PARENT': binding.invocation}, binding.child_env())
             child = tasks.bind(task_id, 'session', environ=binding.child_env())
             self.assertEqual(binding.invocation, child.parent)
         finally:
             tasks.current.reset(token)
-        self.assertIsNone(tasks.bind(task_id, 'session', environ={'TACTO_TASK_PARENT': '../x'}).parent)
+        self.assertIsNone(tasks.bind(task_id, 'session', environ={'HAEJO_TASK_PARENT': '../x'}).parent)
 
     # ------------------------------------------------------------ flows and steps
 
@@ -252,13 +252,13 @@ class TaskStoreTests(unittest.TestCase):
         self.assertEqual(tasks.MAX_FLOWS, len(tasks.status(task_id)['invocations'][0]['flows']))
 
     def test_replay_engine_and_cli_run_note_the_flow(self):
-        from tacto.flow import Flow
+        from haejo.flow import Flow
         task_id = tasks.start('goal')['id']
         path = Path(self.tmp.name)/'mine.json'
         path.write_text(Flow(name='typed_note', target='com.apple.TextEdit').to_json())
         seen = []
         def fake_run_flow(flow, argv, walked=False, **kw):
-            from tacto import flow as engine
+            from haejo import flow as engine
             class Nothing:
                 def __getattr__(self, name): raise AttributeError(name)
             try:
@@ -268,8 +268,8 @@ class TaskStoreTests(unittest.TestCase):
             seen.append(flow.name)
             return 0
         with patch.object(cli, '_run_flow', side_effect=fake_run_flow), \
-             patch('tacto.access_log.log_directory', lambda: Path(self.tmp.name)/'Logs'):
-            code, _ = self.run_cli('run', str(path), env={'TACTO_TASK': task_id})
+             patch('haejo.access_log.log_directory', lambda: Path(self.tmp.name)/'Logs'):
+            code, _ = self.run_cli('run', str(path), env={'HAEJO_TASK': task_id})
         import hashlib
         self.assertEqual((0, ['typed_note']), (code, seen))
         self.assertEqual([{'name': None, 'ref': hashlib.sha256(b'typed_note').hexdigest()[:12], 'source': 'file'}],
@@ -277,15 +277,15 @@ class TaskStoreTests(unittest.TestCase):
         # A flow refused at parameter binding never ran, so it is not noted.
         with patch.object(Flow, 'bind', side_effect=ValueError('missing')), \
              patch.object(cli, '_run_flow', side_effect=AssertionError('ran')), \
-             patch('tacto.access_log.log_directory', lambda: Path(self.tmp.name)/'Logs'):
-            code, _ = self.run_cli('run', str(path), '-p', 'n=1', env={'TACTO_TASK': task_id})
+             patch('haejo.access_log.log_directory', lambda: Path(self.tmp.name)/'Logs'):
+            code, _ = self.run_cli('run', str(path), '-p', 'n=1', env={'HAEJO_TASK': task_id})
         self.assertEqual(2, code)
         self.assertEqual([], tasks.status(task_id)['invocations'][1]['flows'])
         self.assertEqual(1, len(tasks.status(task_id)['invocations'][0]['flows']))
 
     def test_legacy_parallel_notes_flows_on_the_caller_thread(self):
-        from tacto import parallel
-        from tacto.flow import Flow
+        from haejo import parallel
+        from haejo.flow import Flow
         task_id = tasks.start('goal')['id']
         b = tasks.bind(task_id, 'parallel'); b.admit(); token = tasks.current.set(b)
         class FakeDriver:
@@ -303,8 +303,8 @@ class TaskStoreTests(unittest.TestCase):
     def test_status_steps_reads_only_the_matching_receipt(self):
         task_id = tasks.start('goal')['id']
         logs = Path(self.tmp.name)/'Logs'
-        with patch('tacto.access_log.log_directory', lambda: logs):
-            from tacto.access_log import AccessLog
+        with patch('haejo.access_log.log_directory', lambda: logs):
+            from haejo.access_log import AccessLog
             b = tasks.bind(task_id, 'observe')
             log = AccessLog('observe', root=logs, task=b)
             b.admit(log.path.name)
@@ -314,7 +314,7 @@ class TaskStoreTests(unittest.TestCase):
             log.finish(1); log.close(); b.finish(1, log)
             other = tasks.bind(task_id, 'run'); other.admit(log.path.name)   # names someone else's log
             other.finish(0)
-            gone = tasks.bind(task_id, 'run'); gone.admit('tacto-20260101T000000000000Z-' + 'a' * 32 + '.jsonl')
+            gone = tasks.bind(task_id, 'run'); gone.admit('haejo-20260101T000000000000Z-' + 'a' * 32 + '.jsonl')
             gone.finish(0)
             code, out = self.run_cli('task', 'status', task_id, '--steps', '--json')
             code2, text = self.run_cli('task', 'status', task_id, '--steps')
@@ -340,7 +340,7 @@ class LauncherEnvironmentTests(unittest.TestCase):
         # The launcher passes an allowlisted environment to Python; a task
         # binding that is not on it never reaches cli.main (found on rc.27).
         import re
-        source = (Path(__file__).resolve().parent.parent/'launcher/tacto.swift').read_text()
+        source = (Path(__file__).resolve().parent.parent/'launcher/haejo.swift').read_text()
         allowed = re.search(r'let allowedEnv = \[(.*?)\]', source, re.S).group(1)
-        for name in ('TACTO_TASK', 'TACTO_TASK_PARENT'):
+        for name in ('HAEJO_TASK', 'HAEJO_TASK_PARENT'):
             self.assertIn(f'"{name}"', allowed)

@@ -164,7 +164,7 @@ class TakingTheScreenIsOptIn(unittest.TestCase):
         # focus reads the same one. That also means a test which turns it on
         # leaves it on for the next, so it is restored here rather than left
         # for the next test to discover.
-        from tacto import evaluation
+        from haejo import evaluation
         was = evaluation.foreground_allowed()
         self.addCleanup(evaluation.allow_foreground, was)
         evaluation.allow_foreground(False)
@@ -279,7 +279,7 @@ class EverySwitchIsTheSameSwitch(unittest.TestCase):
     """
 
     def setUp(self):
-        from tacto import evaluation
+        from haejo import evaluation
         was = evaluation.foreground_allowed()
         self.addCleanup(evaluation.allow_foreground, was)
         evaluation.allow_foreground(False)
@@ -299,7 +299,7 @@ class EverySwitchIsTheSameSwitch(unittest.TestCase):
         flag, which is how the two drifted apart.
         """
         import re
-        roots = [ROOT / "examples", ROOT / "tests", ROOT / "tacto", ROOT / "helper"]
+        roots = [ROOT / "examples", ROOT / "tests", ROOT / "haejo", ROOT / "helper"]
         offenders = []
         for root in roots:
             for path in root.rglob("*.py"):
@@ -312,7 +312,7 @@ class EverySwitchIsTheSameSwitch(unittest.TestCase):
                          and not line.strip().startswith("#")]
                 if not takes:
                     continue
-                if path == ROOT / "tacto/app_launch.py":
+                if path == ROOT / "haejo/app_launch.py":
                     # The user-requested first-task result is deliberately
                     # presented after identity/text verification. It is not an
                     # evaluation activation. Keep this exception at one method.
@@ -344,7 +344,7 @@ class EverySwitchIsTheSameSwitch(unittest.TestCase):
         with `--foreground`, which has nothing to do with `_bring_forward`.
         Gating one and not the other left a run that believed it could not take
         the screen pulling the fixture in front of it — measured: frontmost
-        went Finder -> TACTO Select Fixture.
+        went Finder -> HAEJO Select Fixture.
         """
         text = (ROOT / "tests/test_helper_contract.py").read_text()
         launches = [line for line in text.splitlines()

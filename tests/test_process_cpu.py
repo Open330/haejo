@@ -8,16 +8,16 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from tacto.process_cpu import ProcessCpuSample,ProcessCpuError,cpu_delta_ns,sample_process_cpu,verify_cpu_clock
+from haejo.process_cpu import ProcessCpuSample,ProcessCpuError,cpu_delta_ns,sample_process_cpu,verify_cpu_clock
 
 
 class ProcessCpuTests(unittest.TestCase):
     def test_wrong_clock_domain_cannot_be_published_as_verified_cpu(self):
         a=ProcessCpuSample(7,100,0,0,125,3)
-        with patch('tacto.process_cpu.sample_process_cpu',side_effect=[a,replace(a,user_raw=1)]), \
+        with patch('haejo.process_cpu.sample_process_cpu',side_effect=[a,replace(a,user_raw=1)]), \
                 patch('resource.getrusage',side_effect=[SimpleNamespace(ru_utime=0,ru_stime=0),
                                                       SimpleNamespace(ru_utime=.05,ru_stime=0)]), \
-                patch('tacto.process_cpu.time.process_time',side_effect=[0,1]):
+                patch('haejo.process_cpu.time.process_time',side_effect=[0,1]):
             with self.assertRaisesRegex(ProcessCpuError,'cpu_clock_unverified'):verify_cpu_clock()
 
     def test_arm_timebase_and_identity_timebase_convert_without_float_loss(self):
@@ -35,7 +35,7 @@ class ProcessCpuTests(unittest.TestCase):
         with self.assertRaises(ProcessCpuError):cpu_delta_ns(a,{})
         with self.assertRaises(ProcessCpuError):replace(a,user_raw=True)
         for pid in (True,0,-1,2**31,'7'):
-            with patch('tacto.process_cpu._bindings') as bindings,self.assertRaises(ProcessCpuError):sample_process_cpu(pid)
+            with patch('haejo.process_cpu._bindings') as bindings,self.assertRaises(ProcessCpuError):sample_process_cpu(pid)
             bindings.assert_not_called()
 
     @unittest.skipUnless(sys.platform=='darwin','Darwin libproc required')

@@ -3,9 +3,9 @@ import json
 import unittest
 from unittest.mock import patch
 
-from tacto.ask import ask_here_paged, what_to_do_here
-from tacto.general import run
-from tacto.observation_paging import continuation_candidate
+from haejo.ask import ask_here_paged, what_to_do_here
+from haejo.general import run
+from haejo.observation_paging import continuation_candidate
 
 
 class PagedApp:
@@ -55,7 +55,7 @@ class GeneralObservationPagingTests(unittest.TestCase):
             self.assertEqual({'search_pages': True} if caps else {}, wait.call_args.kwargs)
 
     def test_trace_keeps_presence_search_option_and_rejects_changed_request(self):
-        from tacto.trace import TracingDriver, TraceDriver
+        from haejo.trace import TracingDriver, TraceDriver
         from unittest.mock import Mock
         app = Mock(capabilities={'observe.continuation_v1'})
         app.wait_until.return_value = {'type': 'observation', 'tree': 'owned result'}
@@ -68,7 +68,7 @@ class GeneralObservationPagingTests(unittest.TestCase):
         self.assertEqual('error', replay.wait_until('owned', lambda t: True)['type'])
 
     def test_recorded_continuation_can_be_replayed_offline_with_original_cursor(self):
-        from tacto.trace import TracingDriver, TraceDriver
+        from haejo.trace import TracingDriver, TraceDriver
         from unittest.mock import Mock
         app = Mock(capabilities={'observe.continuation_v1'})
         app.observe.side_effect = [
@@ -115,7 +115,7 @@ class GeneralObservationPagingTests(unittest.TestCase):
             self.assertIsNone(q.check({**good, **extra}))
         for label in ('', 'a\nb', 'x'*257, None, ['Item239']):
             self.assertIsNone(q.check({'find_in_observation': label}))
-        with patch('tacto.ask.reach_model', return_value=json.dumps(good)):
+        with patch('haejo.ask.reach_model', return_value=json.dumps(good)):
             result = ask_here_paged('find', [page])
         self.assertEqual('Item239', result['find_in_observation'])
 
@@ -196,7 +196,7 @@ class GeneralObservationPagingTests(unittest.TestCase):
 
     def test_token_paging_preserves_host_affordance(self):
         page = continuation_candidate({'next_observation_cursor': 'PRIVATE-cursor-value'})
-        with patch('tacto.ask.reach_model', return_value='{"actions":[{"pick":0,"do":"read"}]}'):
+        with patch('haejo.ask.reach_model', return_value='{"actions":[{"pick":0,"do":"read"}]}'):
             result = ask_here_paged('find', [page])
         self.assertEqual(page, result['actions'][0]['candidate'])
         self.assertNotIn('PRIVATE', repr(result))
@@ -206,9 +206,9 @@ class GeneralObservationPagingTests(unittest.TestCase):
             self.assertIsNone(continuation_candidate(obs))
 
     def test_observation_affordance_is_not_offered_as_a_commit_witness(self):
-        from tacto.general import _witness
+        from haejo.general import _witness
         page = continuation_candidate({'next_observation_cursor': 'private-cursor'})
-        with patch('tacto.general._probe') as probe, patch('tacto.general._probe_response') as read:
+        with patch('haejo.general._probe') as probe, patch('haejo.general._probe_response') as read:
             def ask(*args):
                 self.fail('A page request is not a readable recipient/body witness')
             self.assertIsNone(_witness(object(), {'obs_id': 'owned'}, 'owned', 'recipient', [page], ask, lambda _: None))

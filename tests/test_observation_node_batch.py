@@ -13,7 +13,7 @@ ROOT=Path(__file__).resolve().parents[1]
 @unittest.skipUnless(sys.platform=='darwin' and shutil.which('xcrun'),'macOS Swift required')
 class ObservationPacketTests(unittest.TestCase):
     def test_batch_and_scalar_walkers_render_same_tree_with_fewer_reads(self):
-        current=(ROOT/'helper/TactoHelper.swift').read_text()
+        current=(ROOT/'helper/HaejoHelper.swift').read_text()
         def segment(source,begin,end):return source[source.index(begin):source.index(end,source.index(begin))]
         common=segment(current,'let interactableRoles:','// MARK: - Session state')
         # Keep the scalar reference available in shallow/source exports and

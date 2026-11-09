@@ -6,9 +6,9 @@ import json
 import unittest
 from unittest.mock import patch
 
-from tacto.command_help import calculator_example
-from tacto.flow import Flow
-from tacto.runtime_timing import TimedDriver
+from haejo.command_help import calculator_example
+from haejo.flow import Flow
+from haejo.runtime_timing import TimedDriver
 from tests.test_flow_safety_defaults import Calculator
 
 
@@ -39,11 +39,11 @@ class RuntimeTimingTests(unittest.TestCase):
         self.assertNotIn('private', json.dumps(report))
 
     def test_cli_timing_keeps_result_and_default_has_no_timing_output(self):
-        from tacto import cli
+        from haejo import cli
         for timed in (False, True):
             app = Calculator()
-            with patch('tacto.cli._make_driver', return_value=app), \
-                 patch('tacto.cli._indicator_for', return_value=contextlib.nullcontext()), \
+            with patch('haejo.cli._make_driver', return_value=app), \
+                 patch('haejo.cli._indicator_for', return_value=contextlib.nullcontext()), \
                  contextlib.redirect_stdout(io.StringIO()) as output, \
                  contextlib.redirect_stderr(io.StringIO()) as errors:
                 flow = Flow.from_json(json.dumps(calculator_example()))
@@ -51,7 +51,7 @@ class RuntimeTimingTests(unittest.TestCase):
             self.assertEqual('408', app.value)
             self.assertIn('408', output.getvalue())
             if timed:
-                report = json.loads(errors.getvalue().removeprefix('TACTO_TIMINGS '))
+                report = json.loads(errors.getvalue().removeprefix('HAEJO_TIMINGS '))
                 self.assertEqual(6, report['calls']['act']['count'])
                 self.assertGreater(report['replay_seconds'], 0)
             else:

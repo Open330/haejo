@@ -3,7 +3,7 @@ import json
 import unittest
 from unittest import mock
 
-from tacto.open_url import open_url
+from haejo.open_url import open_url
 
 
 class Backend:
@@ -90,9 +90,9 @@ class OpenURLTests(unittest.TestCase):
         self.assertEqual(('application_not_installed', []), (r['error'], b.opened))
 
     def test_command_usage(self):
-        from tacto import cli
-        with mock.patch('tacto.session.sandboxed', return_value=False), mock.patch('builtins.print'), \
-             mock.patch('tacto.open_url.open_url') as opener:
+        from haejo import cli
+        with mock.patch('haejo.session.sandboxed', return_value=False), mock.patch('builtins.print'), \
+             mock.patch('haejo.open_url.open_url') as opener:
             for argv in (['open-url'], ['open-url', 'https://a.example/', 'https://b.example/'],
                          ['open-url', 'https://a.example/', '--browser']):
                 with self.subTest(argv=argv):

@@ -40,7 +40,7 @@ driver=Mock();driver.act.side_effect=lambda *a,**k:os._exit(19)
 def exit_worker(staged,*args,**kwargs):
  if sys.argv[4]=='dispatch':staged.act('o','com.apple.finder',{'name':'open_folder','path':str(folder)})
  os._exit(19)
-with patch.object(module,'background_precondition',return_value={'ready':True,'reason':'background_target'}),patch.object(module.tempfile,'mkdtemp',return_value=str(folder)),patch('tacto.agent.Agent') as agent,patch('tacto.input_audit_process.ProcessInputAudit',return_value=audit),patch('tacto.flow.replay',side_effect=exit_worker):
+with patch.object(module,'background_precondition',return_value={'ready':True,'reason':'background_target'}),patch.object(module.tempfile,'mkdtemp',return_value=str(folder)),patch('haejo.agent.Agent') as agent,patch('haejo.input_audit_process.ProcessInputAudit',return_value=audit),patch('haejo.flow.replay',side_effect=exit_worker):
  agent.return_value.authorize.return_value=({},[])
  module.main(driver,Path(sys.argv[3]))
 '''
@@ -90,8 +90,8 @@ with patch.object(module,'background_precondition',return_value={'ready':True,'r
                 return SimpleNamespace(ok=False,events=[],preparation_diagnostics=[])
             with patch.object(module,'background_precondition',return_value={'ready':True,'reason':'background_target'}), \
                     patch.object(module.tempfile,'mkdtemp',return_value=str(folder)), \
-                    patch('tacto.input_audit_process.ProcessInputAudit',return_value=audit), \
-                    patch('tacto.agent.Agent') as agent,patch('tacto.flow.replay',side_effect=replay):
+                    patch('haejo.input_audit_process.ProcessInputAudit',return_value=audit), \
+                    patch('haejo.agent.Agent') as agent,patch('haejo.flow.replay',side_effect=replay):
                 agent.return_value.authorize.return_value=({},[])
                 report=module.main(driver,output)
             self.assertTrue(folder.exists())
@@ -181,8 +181,8 @@ with patch.object(module,'background_precondition',return_value={'ready':True,'r
             output=Path(directory)/'report.json';folder=Path(directory)/'owned';folder.mkdir()
             with patch.object(module,'background_precondition',return_value={'ready':True,'reason':'background_target'}), \
                     patch.object(module.tempfile,'mkdtemp',return_value=str(folder)), \
-                    patch('tacto.input_audit_process.ProcessInputAudit',return_value=audit), \
-                    patch('tacto.agent.Agent') as agent,patch('tacto.flow.replay',side_effect=KeyboardInterrupt), \
+                    patch('haejo.input_audit_process.ProcessInputAudit',return_value=audit), \
+                    patch('haejo.agent.Agent') as agent,patch('haejo.flow.replay',side_effect=KeyboardInterrupt), \
                     self.assertRaises(KeyboardInterrupt):
                 agent.return_value.authorize.return_value=({},[])
                 module.main(Mock(),output)
@@ -200,7 +200,7 @@ with patch.object(module,'background_precondition',return_value={'ready':True,'r
         self.assertTrue(cases[0]['isolated'])
         report={'passed':False,'input_audit':{'value':'PRIVATE_AUDIT'}}
         with patch('runpy.run_path',return_value={'main':Mock(return_value=report)}), \
-                patch('tacto.helper.InheritedHelperDriver') as driver, \
+                patch('haejo.helper.InheritedHelperDriver') as driver, \
                 contextlib.redirect_stdout(io.StringIO()),self.assertRaises(AssertionError) as error:
             driver.available.return_value=True;module.scenario_signed_finder_preparation()
         self.assertNotIn('PRIVATE_AUDIT',str(error.exception))

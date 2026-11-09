@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class HelperClientTests(unittest.TestCase):
     def client(self, reply, caps=('evidence.save_panel', 'evidence.save_panel.commit_selector')):
-        from tacto.helper import HelperDriver
+        from haejo.helper import HelperDriver
         h = HelperDriver.__new__(HelperDriver)
         h.capabilities = set(caps)
         class Proc:
@@ -71,7 +71,7 @@ class SwiftTests(unittest.TestCase):
         return json.loads(result.stdout)
 
     def test_helper_routes_commit_button_to_its_window_without_observing(self):
-        source = (ROOT / 'helper/TactoHelper.swift').read_text()
+        source = (ROOT / 'helper/HaejoHelper.swift').read_text()
         function = source[source.index('func readSavePanelForCommit('):]
         function = function[:function.index('\n}\n') + 3]
         code = r'''
@@ -128,7 +128,7 @@ print(String(data: try! JSONSerialization.data(withJSONObject: out), encoding: .
         self.assertIn('"evidence.save_panel.commit_selector"', source)
 
     def test_launcher_validator(self):
-        source = (ROOT / 'launcher/tacto.swift').read_text()
+        source = (ROOT / 'launcher/haejo.swift').read_text()
         schema = source[source.index('let allowedTypes:'):source.index('// MARK: - Socket plumbing')]
         checks = r'''
 let base: [String: Any] = ["type":"save_panel","target":"com.apple.TextEdit","obs_id":"o1"]

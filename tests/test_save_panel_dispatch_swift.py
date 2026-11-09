@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 @unittest.skipUnless(sys.platform == 'darwin' and shutil.which('swift'), 'macOS Swift required')
 class SavePanelDispatchSwiftTests(unittest.TestCase):
     def test_actual_guard_bindings_single_use_and_uncertain_dispatch(self):
-        source = (ROOT / 'helper/TactoHelper.swift').read_text()
+        source = (ROOT / 'helper/HaejoHelper.swift').read_text()
         guard = source[source.index('func validateSavePanelDispatch('):source.index('func readSavePanel(')]
         click = source[source.index('    case "click":', source.index('func act(')):
                        source.index('    case "resize_window":', source.index('func act('))]
@@ -110,9 +110,9 @@ reset();advertisePress=false
 precondition(checked(nil)["input_route"] as? String == "window_bound_element_click");precondition(pointerCalls==1 && posts==0)
 print("SAVE_PANEL_DISPATCH_PASS")
 '''
-        with tempfile.TemporaryDirectory(prefix='tacto-save-dispatch-') as directory:
+        with tempfile.TemporaryDirectory(prefix='haejo-save-dispatch-') as directory:
             script = Path(directory) / 'main.swift'
-            script.write_text((ROOT / 'HelperModeProtocol.swift').read_text() + "\nfunc windowScopePointerRefusal() -> [String:Any]? { nil }\nfunc waitForResource(_ lease:TactoScopeLease,_ scope:String,deadline:Double? = nil) -> Bool { lease.take(scope) }\n" + prelude + guard + checked)
+            script.write_text((ROOT / 'HelperModeProtocol.swift').read_text() + "\nfunc windowScopePointerRefusal() -> [String:Any]? { nil }\nfunc waitForResource(_ lease:HaejoScopeLease,_ scope:String,deadline:Double? = nil) -> Bool { lease.take(scope) }\n" + prelude + guard + checked)
             result = subprocess.run(['swift', str(script)], capture_output=True, text=True, timeout=30)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout.strip(), 'SAVE_PANEL_DISPATCH_PASS')

@@ -410,9 +410,9 @@ def _scripted_where(world: World):
 
 
 def run_case(case: Case, use_model: bool = False):
-    from tacto.agent import Agent
-    from tacto.ask import ask, what_to_do_here, what_was_asked
-    from tacto.general import run as screen_run
+    from haejo.agent import Agent
+    from haejo.ask import ask, what_to_do_here, what_was_asked
+    from haejo.general import run as screen_run
 
     world = ENVIRONMENTS[case.env](World(env=case.env))
 
@@ -421,7 +421,7 @@ def run_case(case: Case, use_model: bool = False):
             return ask(q)
 
         def general(target, goal, confirm, env=None, need=None):
-            from tacto.ask import where_is
+            from haejo.ask import where_is
             def here(g, cands, done):
                 return ask(what_to_do_here(g, cands, done))
             return screen_run(world, target, goal, here, envelope=env,
@@ -441,21 +441,21 @@ def run_case(case: Case, use_model: bool = False):
 
     import tempfile
     from unittest.mock import patch
-    from tacto.store import FlowStore
-    from tacto.promote import CandidateStore
+    from haejo.store import FlowStore
+    from haejo.promote import CandidateStore
     # One app, and it is this world. Guessing which app a request is about is a
     # separate question from whether the task succeeds, so it is not measured
     # here and not allowed to fail the case either.
-    import tacto.agent as _A
-    real_guess = __import__("tacto.authoring", fromlist=["guess_target"]).guess_target
-    import tacto.authoring as _auth
+    import haejo.agent as _A
+    real_guess = __import__("haejo.authoring", fromlist=["guess_target"]).guess_target
+    import haejo.authoring as _auth
     _auth.guess_target = lambda intent, drv: "world.app"
     # Nobody is at the keyboard: an unanswered question is a no, which is what
     # a confirmation means when there is no one to give it.
     try:
-        with tempfile.TemporaryDirectory(prefix="tacto-corpus-") as scratch:
+        with tempfile.TemporaryDirectory(prefix="haejo-corpus-") as scratch:
             candidates = CandidateStore(scratch + "/candidates")
-            with patch("tacto.promote.CandidateStore", return_value=candidates):
+            with patch("haejo.promote.CandidateStore", return_value=candidates):
                 agent = Agent(driver=world, store=FlowStore(scratch + "/flows"),
                               interpret=interpret, general=general)
                 turn = agent.handle(case.utterance, ask=lambda _w: False)
@@ -471,7 +471,7 @@ def main() -> int:
     all_cases = cases()
     if limit:
         all_cases = all_cases[:limit]
-    print(f"Tacto 작업 성공률 — {len(all_cases)}건"
+    print(f"Haejo 작업 성공률 — {len(all_cases)}건"
           f"{' (실제 모델)' if use_model else ' (대역 판단자)'}")
     print("=" * 62)
     verdicts = []

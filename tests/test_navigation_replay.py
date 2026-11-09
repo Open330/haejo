@@ -1,8 +1,8 @@
 from dataclasses import replace
 import unittest
-from tacto.contract import Envelope, ContextBinding
-from tacto.flow import Flow, Step, Selector, Postcondition, Capture, replay, pin_params
-from tacto.protocol import window_key_reobservation
+from haejo.contract import Envelope, ContextBinding
+from haejo.flow import Flow, Step, Selector, Postcondition, Capture, replay, pin_params
+from haejo.protocol import window_key_reobservation
 
 
 class App:

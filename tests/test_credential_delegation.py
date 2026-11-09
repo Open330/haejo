@@ -6,9 +6,9 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
-from tacto.credential_grants import CredentialStore,normalize_plan,origin
-from tacto.credential_runtime import run_login,CredentialAuthorization
-from tacto.credential_vault import CredentialError,BitwardenVault,private_read
+from haejo.credential_grants import CredentialStore,normalize_plan,origin
+from haejo.credential_runtime import run_login,CredentialAuthorization
+from haejo.credential_vault import CredentialError,BitwardenVault,private_read
 
 SECRET='owned-credential-fixture-value'
 
@@ -41,7 +41,7 @@ class Vault:
 class Delegation(unittest.TestCase):
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup)
-        self.store=CredentialStore(Path(self.tmp.name)/'Tacto'/'Credentials');self.store.add_vault('local',{'kind':'keychain'})
+        self.store=CredentialStore(Path(self.tmp.name)/'Haejo'/'Credentials');self.store.add_vault('local',{'kind':'keychain'})
         self.store.grant('owned',plan());self.driver=Driver();self.vault=Vault()
     def run_login(self,**kw):return run_login(self.store,'owned',self.driver,vault_factory=lambda c:self.vault,**kw)
     def test_login_uses_vault_and_completes_without_handoff_or_prompt(self):
@@ -82,7 +82,7 @@ class Delegation(unittest.TestCase):
         p=plan();p['fields'][0]['secret']['value']=SECRET
         with self.assertRaises(CredentialError):normalize_plan(p)
     def test_no_blanket_allow_from_untrusted_json(self):
-        from tacto.contract import policy,SafetyContract,Resource,Destination
+        from haejo.contract import policy,SafetyContract,Resource,Destination
         c=SafetyContract(effects=['credential'],data_classes=['credential'],reversibility='reversible',resource=Resource(object_identity='password',scope='entry'),destination=Destination(kind='same_origin',identity='https://login.example.test'))
         self.assertEqual('confirm',policy(c,credential_authority={'level':'login'}).risk)
         self.assertEqual('preapproved',policy(c,credential_authority=CredentialAuthorization(plan(),'password')).risk)
@@ -97,21 +97,21 @@ class Delegation(unittest.TestCase):
     def test_already_signed_in_still_checks_scope(self):
         self.driver.signed=True;self.driver.origin_ok=False;r=self.run_login();self.assertFalse(r['ok']);self.assertFalse(self.vault.reads)
     def test_trace_transport_cannot_receive_credentials(self):
-        from tacto.trace import TracingDriver
+        from haejo.trace import TracingDriver
         d=TracingDriver(self.driver);r=run_login(self.store,'owned',d,vault_factory=lambda c:self.vault)
         self.assertEqual('credential_driver_upgrade_required',r['error']);self.assertFalse(self.vault.reads)
     def test_config_creation_requires_explicit_user_delegation(self):
-        from tacto.credential_cli import main
+        from haejo.credential_cli import main
         f=Path(self.tmp.name)/'plan.json';f.write_text(json.dumps(plan()))
         with contextlib.redirect_stdout(io.StringIO()):code=main(['grant','new',str(f)],driver_factory=lambda a:self.driver,store=self.store,confirm=lambda v:False)
         self.assertEqual(1,code);self.assertNotIn('new',self.store.grants())
     def test_invalid_cli_arguments_are_not_echoed(self):
-        from tacto.credential_cli import main
+        from haejo.credential_cli import main
         out=io.StringIO();err=io.StringIO()
         with contextlib.redirect_stdout(out),contextlib.redirect_stderr(err):code=main(['vault','local','--keychain',SECRET],driver_factory=None,store=self.store)
         self.assertNotEqual(0,code);self.assertNotIn(SECRET,out.getvalue()+err.getvalue())
     def test_list_exposes_matchable_scope_without_vault_item_or_values(self):
-        from tacto.credential_cli import main
+        from haejo.credential_cli import main
         out=io.StringIO()
         with contextlib.redirect_stdout(out):code=main(['list'],driver_factory=None,store=self.store)
         self.assertEqual(0,code);result=json.loads(out.getvalue())

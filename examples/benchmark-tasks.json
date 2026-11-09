@@ -1,13 +1,13 @@
 {
   "schema": 1,
   "systems": [
-    "tacto",
+    "haejo",
     "codex-computer-use"
   ],
   "tasks": [
     {
       "id": "input-next-read",
-      "goal": "Name 입력칸에 TACTO-2026을 입력하고 Next를 누른 다음, 새 화면의 Result 값을 읽어서 알려주세요.",
+      "goal": "Name 입력칸에 HAEJO-2026을 입력하고 Next를 누른 다음, 새 화면의 Result 값을 읽어서 알려주세요.",
       "time_budget_seconds": 180,
       "initial_conditions": {
         "environment": "disposable local browser page; no external navigation or accounts",
@@ -71,7 +71,7 @@
     },
     {
       "id": "save-readback",
-      "goal": "Enter TACTO-local-benchmark in Content. Save as note.txt in the prefilled location, then read readback aloud.",
+      "goal": "Enter HAEJO-local-benchmark in Content. Save as note.txt in the prefilled location, then read readback aloud.",
       "time_budget_seconds": 180,
       "initial_conditions": {
         "environment": "disposable local browser page; no external navigation or accounts",
@@ -95,7 +95,7 @@
     },
     {
       "id": "combined",
-      "goal": "Enter TACTO-local-benchmark in Content, choose Beta in Choice, scroll the panel using Scroll anchor to the bottom, then Save as note.txt in the prefilled location and read readback aloud.",
+      "goal": "Enter HAEJO-local-benchmark in Content, choose Beta in Choice, scroll the panel using Scroll anchor to the bottom, then Save as note.txt in the prefilled location and read readback aloud.",
       "time_budget_seconds": 180,
       "initial_conditions": {
         "environment": "disposable local browser page; no external navigation or accounts",

@@ -3,9 +3,9 @@ import json
 import unittest
 from unittest.mock import patch
 
-from tacto.ask import _open_select_order, ask_here_paged
+from haejo.ask import _open_select_order, ask_here_paged
 
-OWNER = 'tacto-fixture-choice'
+OWNER = 'haejo-fixture-choice'
 
 
 def screen(rows=60, visible=8):
@@ -36,11 +36,11 @@ def native_screen():
     candidates=screen()
     candidates[1].update(can=['read','scroll','press_key','select_custom_option'],
         navigation_keys=['Down','Left','Right','Tab','Up','shift+Tab'],
-        where='창: TACTO Native Select Fixture',line='  1 ComboBox  Value: Alpha, Identifier: '+OWNER)
+        where='창: HAEJO Native Select Fixture',line='  1 ComboBox  Value: Alpha, Identifier: '+OWNER)
     for row in candidates[3:]:
         row.update(can=['click','set_value','read','scroll','press_key','submit'],
             navigation_keys=['Down','Left','Right','Tab','Up','shift+Tab'],
-            match=row['label'],attr='Value',where='안: '+OWNER+' / 창: TACTO Native Select Fixture')
+            match=row['label'],attr='Value',where='안: '+OWNER+' / 창: HAEJO Native Select Fixture')
     return candidates
 
 
@@ -94,7 +94,7 @@ class OpenSelectPagingTests(unittest.TestCase):
                 ref=next(r['ref'] for r in refs if r.get('candidate_pick')==1)
                 return q.check({'read_context':{'ref':ref,'find':'Choice127'}})
             return q.check({'actions':[{'pick':3,'do':'scroll','direction':'down','pages':10}]})
-        with patch('tacto.ask.ask',side_effect=answer):
+        with patch('haejo.ask.ask',side_effect=answer):
             result=ask_here_paged('선택 메뉴에서 Choice127를 한 번 선택하고, 결과 표시의 값을 읽어 알려주세요.',
                 candidates,budget=2500,max_pages=8,
                 token_counter=lambda text:len(encoding.encode(text,disallowed_special=())))
@@ -114,7 +114,7 @@ class OpenSelectPagingTests(unittest.TestCase):
                 return q.check({'read_context':{'ref':ref,'find':f'Choice{128-len(prompts):03d}',
                                                'length':200}})
             return q.check({'actions':[{'pick':3,'do':'scroll','direction':'down','pages':10}]})
-        with patch('tacto.ask.ask',side_effect=answer):
+        with patch('haejo.ask.ask',side_effect=answer):
             result=ask_here_paged('choose Choice127',native_screen(),budget=2500,max_pages=8,
                 token_counter=lambda text:len(encoding.encode(text,disallowed_special=())))
         self.assertLessEqual(len(prompts),5)
@@ -144,7 +144,7 @@ class OpenSelectPagingTests(unittest.TestCase):
                                                     'direction': 'down', 'pages': 10}]}))
             return q.check({'actions': [{'pick': 3, 'do': 'scroll', 'direction': 'down',
                                          'pages': 10}]})
-        with patch('tacto.ask.ask', side_effect=answer):
+        with patch('haejo.ask.ask', side_effect=answer):
             result = ask_here_paged('choose Choice127', candidates, budget=2800, max_pages=8,
                                     token_counter=counter)
         self.assertEqual(2, len(prompts))
@@ -162,7 +162,7 @@ class OpenSelectPagingTests(unittest.TestCase):
             if '다음 페이지: 있음' in block:
                 return q.check({'done': False, 'actions': [], 'next_page': True})
             return q.check({'done': True, 'actions': []})
-        with patch('tacto.ask.ask', side_effect=answer):
+        with patch('haejo.ask.ask', side_effect=answer):
             ask_here_paged('look', candidates, budget=2000, max_pages=32, token_counter=counter)
         self.assertEqual(_open_select_order(candidates), shown)
         self.assertEqual(list(range(len(candidates))), sorted(shown))

@@ -6,8 +6,8 @@
 
 ```bash
 .venv/bin/python examples/eval.py --offline --preview
-.venv/bin/python examples/eval.py --offline --report /tmp/tacto-offline.json
-./launcher/tacto eval background_menu_refusal --report /tmp/tacto-menu.json
+.venv/bin/python examples/eval.py --offline --report /tmp/haejo-offline.json
+./launcher/haejo eval background_menu_refusal --report /tmp/haejo-menu.json
 ```
 
 마지막 명령은 소유한 배경 테스트 앱에서 메뉴 동작과 거절을 확인한다.
@@ -75,9 +75,9 @@ CI를 그대로 통과한다 — 그것이 이 규칙의 목적이다.
 [Stagehand evals](https://www.stagehand.dev/evals)는 정확도·속도·비용을 함께
 표시한다. [공식 평가 문서](https://github.com/browserbase/stagehand/tree/main/packages/evals)는
 실행 전 `--preview`, 과제 선택, 반복 시행, 여러 harness와 모델의 비교를 제공한다.
-Tacto에는 우선 실행 계획과 구조화된 결과를 적용했다.
+Haejo에는 우선 실행 계획과 구조화된 결과를 적용했다.
 
-Tacto의 현재 suite는 안전한 거절·계약·재생 회귀도 PASS로 센다. 따라서 이
+Haejo의 현재 suite는 안전한 거절·계약·재생 회귀도 PASS로 센다. 따라서 이
 통과율은 브라우저 작업 완료율이 아니며 Stagehand 순위와 직접 비교할 수 없다.
 시나리오마다 공유 앱·flow store 상태가 남아 있어, 반복 횟수나 병렬 실행을
 늘리는 기능은 추가하지 않았다. 비교 실험에는 과제별 독립 초기 상태,
@@ -86,7 +86,7 @@ Tacto의 현재 suite는 안전한 거절·계약·재생 회귀도 PASS로 센�
 ## 실제 소유 커밋 이후 클라이언트 응답 유실
 
 ```sh
-./launcher/tacto eval signed_commit_disconnect --report /tmp/tacto-commit-disconnect.json
+./launcher/haejo eval signed_commit_disconnect --report /tmp/haejo-commit-disconnect.json
 ```
 
 이 시나리오는 GUI/native가 필요한 isolated 검사이고 모델을 호출하지 않는다.
@@ -118,8 +118,8 @@ audit는 UNCHANGED_SAMPLED928표본/최대간격0.134197초였다. source subset
 
 ## 에이전트 수용 검사 — 스킬만 가진 에이전트로
 
-단위 테스트와 평가 스위트는 이 저장소 안에서 Tacto를 돌립니다. 그래서 에이전트가 실제로 겪은
-문제 — `tacto` 명령이 설치되지 않음, 샌드박스를 권한 문제로 오진, 잠긴 화면에서 원인을 추측 —
+단위 테스트와 평가 스위트는 이 저장소 안에서 Haejo를 돌립니다. 그래서 에이전트가 실제로 겪은
+문제 — `haejo` 명령이 설치되지 않음, 샌드박스를 권한 문제로 오진, 잠긴 화면에서 원인을 추측 —
 는 어느 쪽에서도 드러나지 않았습니다. `examples/agent_acceptance.py`는 기억도 저장소도 없는
 **새 에이전트 세션**을 `/tmp`에서 띄워 과제를 주고, 에이전트의 **최종 답**으로 판정합니다.
 
@@ -131,7 +131,7 @@ python examples/agent_acceptance.py --list           # 지금 상태에서 무�
 
 | 사례 | 확인하는 것 |
 |---|---|
-| `finds_tacto` | 현재 `tacto` 스킬·명령을 찾는다 |
+| `finds_haejo` | 현재 `haejo` 스킬·명령을 찾는다 |
 | `names_the_sandbox` (Codex) | 샌드박스를 샌드박스라고 말하고, 권한을 켜라고 하지 않는다 |
 | `names_the_lock` (잠긴 화면에서만) | 잠긴 화면을 잠긴 화면이라고 말한다 |
 | `does_a_task` (풀린 화면에서만) | 스스로 흐름을 써서 계산기로 12×12=144 를 확인한다 |
@@ -147,13 +147,13 @@ python examples/agent_acceptance.py --list           # 지금 상태에서 무�
 signed-launcher scenarios on the owned opaque canvas. They round-trip a Flow
 containing a named host scope, require a confirmed receiving event and A1/B0
 counters, retain metadata, and reject changed or inconclusive sampled input
-state. Run each separately (`./launcher/tacto eval flow_visual_fixed`). Fixed uses
+state. Run each separately (`./launcher/haejo eval flow_visual_fixed`). Fixed uses
 local color detection; the other two use the bounded image-provider relay.
 These Flow trials are a separate cohort from standalone/general image tests
 and do not establish actual-app or public-SDK parity.
 
 
-`./launcher/tacto eval signed_opaque_input` and `python_opaque_input` each run one
+`./launcher/haejo eval signed_opaque_input` and `python_opaque_input` each run one
 owned background canvas with no AX editable control. A host-authorized click
 selects its first responder; native window input then sends Right and three
 Unicode payloads (Korean/emoji, combining/ZWJ, and 64 UTF-16 units). Independent
@@ -164,7 +164,7 @@ concurrent typing, IME behavior, model autonomy or public-SDK parity.
 
 ### User-operated typing trial through the signed evaluator
 
-`tacto eval signed_concurrent_typing` defaults to SKIP with
+`haejo eval signed_concurrent_typing` defaults to SKIP with
 `human_participation_required`; it never generates foreground typing. The bare
 `examples/probes/concurrent-typing.py run` script cannot supply the signed channel
 and refuses an unsigned driver. Prepare the owned navigation fixture with its
@@ -176,7 +176,7 @@ Only after the person agrees to participate and manually opens/focuses the fresh
 witness, use the installed signed launcher in one isolated process:
 
 ```sh
-tacto eval signed_concurrent_typing --typing-directory /absolute/checkout/reviews/background-trial \
+haejo eval signed_concurrent_typing --typing-directory /absolute/checkout/reviews/background-trial \
   --typing-witness-report /absolute/checkout/reviews/witness-trial/build-report.json \
   --participant-confirmed
 ```
@@ -203,7 +203,7 @@ parity. Each model case uses the bounded image relay and retains call metadata.
 ### Product comparison provenance
 
 New `examples/product_comparison.py` results record version-2 manifests before
-setup and after oracle/cleanup. The explicit set includes Tacto Python sources,
+setup and after oracle/cleanup. The explicit set includes Haejo Python sources,
 helper Swift sources, both signed helper executable paths, launcher source and
 binary, skill, evaluation/probe sources, fixtures, flows and dependency lock.
 Missing fixed artifacts are recorded as null. This set is not a dependency
@@ -222,7 +222,7 @@ must not be interpreted as version-2 manifests.
 
 ### Signed helper lifecycle after client reply loss (2026-10-11)
 
-`tacto eval signed_commit_disconnect --report PATH` now checks optional helper
+`haejo eval signed_commit_disconnect --report PATH` now checks optional helper
 identity in the signed handshake. The launcher supplies audit PID/version on
 its authenticated helper connection; helper PID/start must agree. The probe
 independently checks exact bundle/executable and the same libproc start before
@@ -265,7 +265,7 @@ earlier source cohort remains separately scoped.
 
 The final related suite passed 61 tests in 18.001s with no skips or errors:
 `reviews/2026-10-11/recovery-events-final.log/.json`. The JSON records before/after
-hashes of `tacto/flow.py` and the eight named test modules, stable during this run;
+hashes of `haejo/flow.py` and the eight named test modules, stable during this run;
 it does not freeze all dependencies. Both artifacts were created with
 O_EXCL/0600. The intermediate 60-test pass remains in recovery-events-after.log
 and is not substituted for the final source run. No model or paid provider
@@ -273,7 +273,7 @@ request was made in this suite.
 
 ### Actual signed native twelve-stage modal recovery (2026-10-11)
 
-Run explicitly with `tacto eval signed_native_recovery --report PATH`. It is
+Run explicitly with `haejo eval signed_native_recovery --report PATH`. It is
 isolated/gui/native and skipped offline or in ordinary evaluator defaults.
 The owned AppKit fixture exposes a custom AXValue receiving view. Stage five
 opens an actual sheet; stage six ignores its first input while the sheet is
@@ -301,7 +301,7 @@ authoring retain the optional field; legacy substring absent remains supported.
 `signed-native-recovery-1791656889081644000.json` (40.958s) has Flow ok and the
 required receiving counts, but its audit is CHANGED with 618 samples, largest
 gap 2.987384s and eight missing samples. The overall native eval remains FAIL.
-No causality is attributed to Tacto from those changes. The final role-condition
+No causality is attributed to Haejo from those changes. The final role-condition
 cohort `signed-native-recovery-1791657130907825000.json` and
 `native-twelve-stage-recovery-eval-role-fixed.json` passed in 27.080s/exit zero:
 accepted12, blockedWrites1, Cancel1, stageSixRequests2, Other0 and fourteen
@@ -310,12 +310,12 @@ samples, largest gap 0.221371s, without numeric selection requirements or a
 proof of no intermediate change. Sources were stable and the owned child reaped.
 Artifacts are O_EXCL/0600 with explicit runtime source/binary subsets, not a
 dependency closure. These are separate source cohorts, not a success rate or
-fair Tacto–Sky comparison. The later authoring-path fix is separately unit tested.
+fair Haejo–Sky comparison. The later authoring-path fix is separately unit tested.
 
 After the authoring-path update, the full suite passed 1582 tests in 355.453s
 (two skipped, 1580 executed, exit zero). `native-recovery-full-regression.log`
 and `.json` preserve exclusive/private raw output and stable before/after
-hashes of the explicit Tacto/test/helper/binary/fixture/dependency-declaration
+hashes of the explicit Haejo/test/helper/binary/fixture/dependency-declaration
 subset. This is not a dependency closure. Failed development checks, including
 incorrect test selectors and a corrected authoring local-name error, are
 retained separately as captured tool-output summaries in
@@ -346,7 +346,7 @@ The twelve-stage oracle passed with fourteen Flow events. Audit is
 UNCHANGED_SAMPLED at 2352 samples (largest gap 0.129188s), selection not required.
 Sources were stable and the owned child reaped. Reports are private/exclusive
 with explicit source/binary subsets, not a dependency closure or a fair
-Tacto–Sky comparison. Failed baseline evidence remains separate.
+Haejo–Sky comparison. Failed baseline evidence remains separate.
 
 The final related suite passed 93 tests in 20.063s (one skipped):
 `modal-guard-final-regression.log/.json` retain O_EXCL/0600 output and stable
@@ -361,7 +361,7 @@ from the preceding source, not this update.
 설치된 signed launcher로 한 번에 한 isolated 시나리오를 실행한다.
 
 ```sh
-tacto eval native_select_combo_many_model_fixture --model-provider codex \
+haejo eval native_select_combo_many_model_fixture --model-provider codex \
   --report /absolute/private/new-report.json
 ```
 
@@ -379,7 +379,7 @@ claude도 --model-provider로 선택할 수 있고 접근 제한은0 scored SKIP
 ## scroll 수신 실패 뒤 중단 검증
 
 ```sh
-tacto eval native_select_scroll_receiving_failure_fixture \
+haejo eval native_select_scroll_receiving_failure_fixture \
   --report /absolute/private/new-report.json
 ```
 
@@ -395,7 +395,7 @@ probe.passed=false를 유지한다. 정상 작업 성공이나 model/backbone �
 
 ### Two-app signed recovery and saved-state checks
 
-`tacto eval signed_native_recovery_multi_app --report NEW.json` is an isolated
+`haejo eval signed_native_recovery_multi_app --report NEW.json` is an isolated
 GUI/native scenario. It runs the owned 24-stage AppKit workflow with three real
 sheet recoveries and interleaves three separately owned TextEdit saved-state
 checks after stages 8, 14, and 20. After each child, the host re-reads receiving
@@ -405,7 +405,7 @@ Offline mode skips this case. It uses no model and grants no durable resume
 or causal writer attribution. See the dated verification record for the actual
 run, independent counters, source subset, input audit, and remaining gaps.
 
-`tacto eval signed_native_recovery_multi_app_disconnect --report NEW.json` checks
+`haejo eval signed_native_recovery_multi_app_disconnect --report NEW.json` checks
 an expected stop after the first verified TextEdit Save and cleanup. The host
 shuts down only its own inherited socket; the next parent read fails and poisons
 that channel. Independent counters must stay at stage 8, with one child Save
@@ -414,7 +414,7 @@ replay and task oracle remain false. It does not reconnect, repeat the Save,
 restart a service, or certify automatic resume.
 
 
-`tacto eval signed_producer_worker_reconcile --report NEW.json` is an isolated
+`haejo eval signed_producer_worker_reconcile --report NEW.json` is an isolated
 native causal continuation case: a Save worker exits17 after host receipt,
 then a different signed worker uses the public reconciliation API and performs
 one new owned button operation. Existing restart refusal remains available as

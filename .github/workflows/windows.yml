@@ -4,12 +4,12 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
-      - "tacto/windows_driver.py"
-      - "tacto/uia_backend.py"
-      - "tacto/windows_control.py"
-      - "tacto/cli.py"
-      - "tacto/flow_session.py"
-      - "tacto/authoring.py"
+      - "haejo/windows_driver.py"
+      - "haejo/uia_backend.py"
+      - "haejo/windows_control.py"
+      - "haejo/cli.py"
+      - "haejo/flow_session.py"
+      - "haejo/authoring.py"
       - "tests/test_windows_*.py"
       - "pyproject.toml"
       - "uv.lock"
@@ -33,6 +33,6 @@ jobs:
         run: uv run python -B -m unittest tests.test_windows_driver tests.test_windows_cli tests.test_windows_session_input
       - name: Real UI Automation against owned app instances
         env:
-          TACTO_WINDOWS_LIVE: "1"
-          TACTO_WINDOWS_LIVE_REQUIRED: "1"
+          HAEJO_WINDOWS_LIVE: "1"
+          HAEJO_WINDOWS_LIVE_REQUIRED: "1"
         run: uv run python -B -m unittest -v tests.test_windows_live

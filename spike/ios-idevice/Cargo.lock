@@ -651,7 +651,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "tacto-ios-transport-probe"
+name = "haejo-ios-transport-probe"
 version = "0.1.0"
 dependencies = [
  "idevice",

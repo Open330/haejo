@@ -11,14 +11,14 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
 
-from tacto.parallel_run import parse_jobs, run_parallel_jobs, SessionReceipt, BatchControl
-from tacto.flow_session import run_session
+from haejo.parallel_run import parse_jobs, run_parallel_jobs, SessionReceipt, BatchControl
+from haejo.flow_session import run_session
 
 
 def manifest(count=2):
     return {'schema':1, 'jobs':[
         {'id':f'job-{i}', 'window_id':100+i, 'flow':{
-            'schema':2, 'name':f'flow-{i}', 'target':'ai.callabo.tacto.fixture', 'steps':[
+            'schema':2, 'name':f'flow-{i}', 'target':'ai.callabo.haejo.fixture', 'steps':[
                 {'action':'set_value', 'selector':{'identifier':'editor'}, 'params':{'value':f'private-{i}'},
                  'safety':{'effects':['write_ephemeral'],'reversibility':'reversible',
                            'resource':{'object_type':'fixture entry','scope':'entry'}},
@@ -41,10 +41,10 @@ class ValidationTests(unittest.TestCase):
             m=manifest();m['jobs'][0]['window_id']=window;cases.append(m)
         for field in ('id','window_id'):
             m=manifest();m['jobs'][1][field]=m['jobs'][0][field];cases.append(m)
-        m=manifest();m['jobs'][1]['window_id']=100;m['jobs'][1]['flow']['target']='AI.CALLABO.TACTO.FIXTURE';cases.append(m)
+        m=manifest();m['jobs'][1]['window_id']=100;m['jobs'][1]['flow']['target']='AI.CALLABO.HAEJO.FIXTURE';cases.append(m)
         m=manifest();del m['jobs'][1]['window_id'];cases.append(m)
         for m in cases:
-            with self.subTest(m=m),patch('tacto.parallel_run.subprocess.Popen') as launch:
+            with self.subTest(m=m),patch('haejo.parallel_run.subprocess.Popen') as launch:
                 with self.assertRaises(ValueError):run_parallel_jobs(m)
                 launch.assert_not_called()
 
@@ -94,12 +94,12 @@ class ReceiptTests(unittest.TestCase):
                 kwargs['_driver'].act('o','app',{'name':'set_value'})
                 kwargs['_result_observer'](SimpleNamespace(ok=True,log=[]))
                 return 0
-            with patch('tacto.flow_session._run_session',side_effect=session):
+            with patch('haejo.flow_session._run_session',side_effect=session):
                 code=run_session(['app','--helper','--receipt',str(path)],make_driver=lambda _:SimpleNamespace(
                     act=lambda *args:{'type':'acted'}),run_flow=replay,stdin=None,emit=received.append)
             self.assertEqual(0,code);self.assertTrue(json.loads(path.read_text())['ok'])
             self.assertEqual(0o600,path.stat().st_mode & 0o777)
-            with patch('tacto.flow_session._run_session') as run:
+            with patch('haejo.flow_session._run_session') as run:
                 self.assertEqual(2,run_session(['--receipt',str(path)],make_driver=None,run_flow=None,stdin=None,emit=received.append))
                 run.assert_not_called()
 
@@ -142,7 +142,7 @@ class CoordinatorTests(unittest.TestCase):
             def __exit__(self,*args):pass
             def pump(self):time.sleep(.005)
         self.control=Control()
-        self.patch_control=patch('tacto.parallel_run.BatchControl',return_value=self.control)
+        self.patch_control=patch('haejo.parallel_run.BatchControl',return_value=self.control)
         self.patch_control.start();self.addCleanup(self.patch_control.stop)
 
     def test_independent_processes_overlap_and_do_not_inherit_authority_or_values_in_results(self):
@@ -153,8 +153,8 @@ class CoordinatorTests(unittest.TestCase):
             script.write_text('''import json,sys,os
 flow=json.loads(sys.stdin.readline())
 path=sys.argv[sys.argv.index('--receipt')+1]
-assert 'TACTO_HELPER_FD' not in os.environ
-assert os.environ['TACTO_HELPER_MODE']=='warm'
+assert 'HAEJO_HELPER_FD' not in os.environ
+assert os.environ['HAEJO_HELPER_MODE']=='warm'
 with open(path,'w') as f:json.dump({'schema':1,'ok':True,'effect':'observed','error':None,'coordination_elapsed_ms':12,'helper_pid':os.getpid()},f)
 ''')
             def launch(command,**kwargs):
@@ -165,7 +165,7 @@ with open(path,'w') as f:json.dump({'schema':1,'ok':True,'effect':'observed','er
                     barrier.wait(timeout=3);return communicate(*args,**kw)
                 process.communicate=overlap
                 return process
-            with patch('tacto.parallel_run.subprocess.Popen',side_effect=launch),patch.dict(os.environ,{'TACTO_HELPER_FD':'999'}),patch('tacto.parallel_run.sys.platform','darwin'):
+            with patch('haejo.parallel_run.subprocess.Popen',side_effect=launch),patch.dict(os.environ,{'HAEJO_HELPER_FD':'999'}),patch('haejo.parallel_run.sys.platform','darwin'):
                 result=run_parallel_jobs(manifest(),on_event=events.append)
         self.assertTrue(result['ok'],result);self.assertEqual(2,len(commands))
         self.assertEqual(2,len({job['helper_pid'] for job in result['jobs']}))
@@ -176,7 +176,7 @@ with open(path,'w') as f:json.dump({'schema':1,'ok':True,'effect':'observed','er
     def test_timeout_kills_group_and_is_not_retried(self):
         process=Mock(pid=987654,stdin=Mock());process.poll.return_value=None
         process.communicate.side_effect=subprocess.TimeoutExpired('worker',1)
-        with patch('tacto.parallel_run.sys.platform','darwin'),patch('tacto.parallel_run.subprocess.Popen',return_value=process) as start,patch('tacto.parallel_run.os.killpg') as kill:
+        with patch('haejo.parallel_run.sys.platform','darwin'),patch('haejo.parallel_run.subprocess.Popen',return_value=process) as start,patch('haejo.parallel_run.os.killpg') as kill:
             result=run_parallel_jobs(manifest(1),timeout=1)
         self.assertFalse(result['ok']);self.assertEqual('unknown',result['jobs'][0]['effect'])
         self.assertEqual('parallel_timeout',result['jobs'][0]['error']);start.assert_called_once()
@@ -184,7 +184,7 @@ with open(path,'w') as f:json.dump({'schema':1,'ok':True,'effect':'observed','er
 
     def test_missing_receipt_cannot_become_success_from_exit_code(self):
         process=Mock(pid=987654,stdin=Mock(),returncode=0);process.poll.return_value=0
-        with patch('tacto.parallel_run.sys.platform','darwin'),patch('tacto.parallel_run.subprocess.Popen',return_value=process) as start:
+        with patch('haejo.parallel_run.sys.platform','darwin'),patch('haejo.parallel_run.subprocess.Popen',return_value=process) as start:
             result=run_parallel_jobs(manifest(1))
         self.assertFalse(result['ok']);self.assertEqual('parallel_receipt_unavailable',result['jobs'][0]['error'])
         start.assert_called_once()
@@ -203,7 +203,7 @@ with open(path,'w') as f:json.dump({'schema':1,'ok':True,'effect':'observed','er
                     Path(command[command.index('--receipt')+1]).write_text(json.dumps(raw))
                 process.communicate.side_effect=communicate
                 return process
-            with self.subTest(raw=raw),patch('tacto.parallel_run.sys.platform','darwin'),patch('tacto.parallel_run.subprocess.Popen',side_effect=launch) as start:
+            with self.subTest(raw=raw),patch('haejo.parallel_run.sys.platform','darwin'),patch('haejo.parallel_run.subprocess.Popen',side_effect=launch) as start:
                 result=run_parallel_jobs(manifest(1))
             self.assertEqual(error,result['jobs'][0]['error']);self.assertEqual(effect,result['jobs'][0]['effect'])
             start.assert_called_once()
@@ -212,7 +212,7 @@ with open(path,'w') as f:json.dump({'schema':1,'ok':True,'effect':'observed','er
         process=Mock(pid=987654,stdin=Mock());process.poll.return_value=None
         def event(row):
             if row['state']=='running':raise KeyboardInterrupt()
-        with patch('tacto.parallel_run.sys.platform','darwin'),patch('tacto.parallel_run.subprocess.Popen',return_value=process),patch('tacto.parallel_run.os.killpg') as kill:
+        with patch('haejo.parallel_run.sys.platform','darwin'),patch('haejo.parallel_run.subprocess.Popen',return_value=process),patch('haejo.parallel_run.os.killpg') as kill:
             with self.assertRaises(KeyboardInterrupt):run_parallel_jobs(manifest(1),on_event=event)
         kill.assert_called();process.wait.assert_called();process.communicate.assert_not_called()
 
@@ -225,18 +225,18 @@ with open(path,'w') as f:json.dump({'schema':1,'ok':True,'effect':'observed','er
         def pump():
             ready.wait(2);self.control.stopped=True
         self.control.pump=pump
-        with patch('tacto.parallel_run.sys.platform','darwin'),patch('tacto.parallel_run.subprocess.Popen',return_value=process),patch('tacto.parallel_run.os.killpg',side_effect=lambda *args:released.set()) as kill:
+        with patch('haejo.parallel_run.sys.platform','darwin'),patch('haejo.parallel_run.subprocess.Popen',return_value=process),patch('haejo.parallel_run.os.killpg',side_effect=lambda *args:released.set()) as kill:
             result=run_parallel_jobs(manifest(1))
         self.assertTrue(result['cancelled']);self.assertFalse(result['ok'])
         self.assertEqual('parallel_cancelled',result['jobs'][0]['error']);kill.assert_called()
 
     def test_cli_help_is_native_free_and_bad_manifest_starts_nothing(self):
-        from tacto.cli import main
+        from haejo.cli import main
         from contextlib import redirect_stdout
         with redirect_stdout(io.StringIO()) as output:
             self.assertEqual(0,main(['parallel','--help']))
         self.assertIn('manifest',output.getvalue())
-        with tempfile.TemporaryDirectory() as directory,redirect_stdout(io.StringIO()),patch('tacto.session.KeepAwake'),patch('tacto.parallel_run.subprocess.Popen') as start:
+        with tempfile.TemporaryDirectory() as directory,redirect_stdout(io.StringIO()),patch('haejo.session.KeepAwake'),patch('haejo.parallel_run.subprocess.Popen') as start:
             path=Path(directory)/'invalid.json';path.write_text('{')
             self.assertEqual(2,main(['parallel',str(path),'--helper']))
             start.assert_not_called()
@@ -245,34 +245,34 @@ with open(path,'w') as f:json.dump({'schema':1,'ok':True,'effect':'observed','er
 class ParallelTaskPropagationTests(unittest.TestCase):
     """Children of a task-bound `parallel` run join the same task."""
     def setUp(self):
-        from tacto import task as task_mod
+        from haejo import task as task_mod
         self.tmp = tempfile.TemporaryDirectory(); self.addCleanup(self.tmp.cleanup)
         root = Path(self.tmp.name)/'Tasks'
         p = patch.object(task_mod, 'tasks_root', lambda r=None: root); p.start(); self.addCleanup(p.stop)
 
     def test_parallel_executor_children_receive_task_env(self):
-        from tacto import task as task_mod
+        from haejo import task as task_mod
         from unittest.mock import Mock
-        from tacto.parallel_run import run_parallel_jobs
+        from haejo.parallel_run import run_parallel_jobs
         task_id = task_mod.start('goal')['id']
         binding = task_mod.bind(task_id, 'parallel')
         process = Mock(pid=987654, stdin=Mock(), returncode=1); process.poll.return_value = 1
         process.communicate.return_value = ('', '')
         token = task_mod.current.set(binding)
         try:
-            with patch('tacto.parallel_run.sys.platform', 'darwin'), \
-                 patch('tacto.parallel_run.subprocess.Popen', return_value=process) as start, \
-                 patch.dict(os.environ, {'TACTO_TASK': 't-' + 'f' * 24, 'TACTO_TASK_PARENT': 'raw'}):
+            with patch('haejo.parallel_run.sys.platform', 'darwin'), \
+                 patch('haejo.parallel_run.subprocess.Popen', return_value=process) as start, \
+                 patch.dict(os.environ, {'HAEJO_TASK': 't-' + 'f' * 24, 'HAEJO_TASK_PARENT': 'raw'}):
                 run_parallel_jobs(manifest(2))
         finally:
             task_mod.current.reset(token)
         self.assertEqual(2, start.call_count)
         for call in start.call_args_list:
             env = call.kwargs['env']
-            self.assertEqual((task_id, binding.invocation), (env.get('TACTO_TASK'), env.get('TACTO_TASK_PARENT')))
-        with patch('tacto.parallel_run.sys.platform', 'darwin'), \
-             patch('tacto.parallel_run.subprocess.Popen', return_value=process) as start, \
-             patch.dict(os.environ, {'TACTO_TASK': 't-' + 'f' * 24}):
+            self.assertEqual((task_id, binding.invocation), (env.get('HAEJO_TASK'), env.get('HAEJO_TASK_PARENT')))
+        with patch('haejo.parallel_run.sys.platform', 'darwin'), \
+             patch('haejo.parallel_run.subprocess.Popen', return_value=process) as start, \
+             patch.dict(os.environ, {'HAEJO_TASK': 't-' + 'f' * 24}):
             run_parallel_jobs(manifest(1))      # unbound parent: raw env is not forwarded
-        self.assertNotIn('TACTO_TASK', start.call_args.kwargs['env'])
+        self.assertNotIn('HAEJO_TASK', start.call_args.kwargs['env'])
 

@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 @unittest.skipUnless(shutil.which('swift'), 'Swift required')
 class ForegroundPreparationSwiftTests(unittest.TestCase):
     def test_editable_focus_elsewhere_refuses_and_unknown_focus_is_not_safe(self):
-        helper = (ROOT/'helper/TactoHelper.swift').read_text()
+        helper = (ROOT/'helper/HaejoHelper.swift').read_text()
         dispatch = (ROOT/'helper/WindowDispatch.swift').read_text()
         guard = helper[helper.index('/// Choosing another window of the frontmost app'):
                        helper.index('func prepareWindow(')]
@@ -62,7 +62,7 @@ rows["failed"] = run("failed") { focusError = .cannotComplete; focusValue = nil 
 rows["malformed"] = run("malformed") { focusValue = "x" as NSString }
 print(String(data: try! JSONSerialization.data(withJSONObject: rows), encoding: .utf8)!)
 '''
-        with tempfile.TemporaryDirectory(prefix='tacto-foreground-prepare-') as work:
+        with tempfile.TemporaryDirectory(prefix='haejo-foreground-prepare-') as work:
             path = Path(work)/'main.swift'
             path.write_text(script)
             run = subprocess.run(['swift', str(path)], capture_output=True, text=True, timeout=60)
@@ -76,7 +76,7 @@ print(String(data: try! JSONSerialization.data(withJSONObject: rows), encoding: 
             'malformed': 'user focus malformed'}, json.loads(run.stdout))
 
     def test_check_runs_before_the_first_foreground_write(self):
-        helper = (ROOT/'helper/TactoHelper.swift').read_text()
+        helper = (ROOT/'helper/HaejoHelper.swift').read_text()
         body = helper[helper.index('func prepareWindow('):]
         body = body[:body.index('\n}\n')]
         self.assertLess(body.index('foregroundPreparationIsDone(pid, element)'),

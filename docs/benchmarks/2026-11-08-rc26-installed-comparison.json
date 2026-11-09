@@ -1,5 +1,5 @@
 {
-  "scope": "installed rc26 Tacto vs Sky, three alternating fresh-context pairs; observational, not billing/strict product equivalence proof",
+  "scope": "installed rc26 Haejo vs Sky, three alternating fresh-context pairs; observational, not billing/strict product equivalence proof",
   "source_commit": "45963ce",
   "version": "v1.0.0-rc.26",
   "requested_model": "gpt-6.1-sol",
@@ -10,11 +10,11 @@
     "harness_exit": 2,
     "evidence_stable": true,
     "source_commit": "45963ce4e30478a12ae3af3e7e13e9874da306ff",
-    "profiling_request_same_for_both_Tacto_cohorts": true,
+    "profiling_request_same_for_both_Haejo_cohorts": true,
     "strict_equivalence_not_verified": true
   },
   "arms": {
-    "tacto": {
+    "haejo": {
       "runs": 3,
       "passed": 3,
       "seconds_median": 36.1,
@@ -42,7 +42,7 @@
   ],
   "rows": [
     {
-      "arm": "tacto",
+      "arm": "haejo",
       "rep": 0,
       "status": "passed",
       "seconds": 42.6,
@@ -175,7 +175,7 @@
       "foreground_activation_count": 0
     },
     {
-      "arm": "tacto",
+      "arm": "haejo",
       "rep": 1,
       "status": "passed",
       "seconds": 36.1,
@@ -232,7 +232,7 @@
       "foreground_activation_count": 0
     },
     {
-      "arm": "tacto",
+      "arm": "haejo",
       "rep": 2,
       "status": "passed",
       "seconds": 33.2,

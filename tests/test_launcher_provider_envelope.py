@@ -1,8 +1,8 @@
 import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock
-from tacto.helper import InheritedHelperDriver
-from tacto.provider_result import ProviderResult, parse_provider_result
+from haejo.helper import InheritedHelperDriver
+from haejo.provider_result import ProviderResult, parse_provider_result
 
 
 class LauncherProviderEnvelopeTests(unittest.TestCase):

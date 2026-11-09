@@ -17,13 +17,13 @@ import time
 from pathlib import Path
 
 
-def run(tacto, argv, mode, extra=None):
-    env = dict(os.environ, TACTO_HELPER_MODE=mode, **(extra or {}))
+def run(haejo, argv, mode, extra=None):
+    env = dict(os.environ, HAEJO_HELPER_MODE=mode, **(extra or {}))
     start = time.monotonic()
-    done = subprocess.run([tacto, *argv], env=env, capture_output=True, text=True, timeout=120)
+    done = subprocess.run([haejo, *argv], env=env, capture_output=True, text=True, timeout=120)
     report = {}
     for line in done.stderr.splitlines():
-        if line.startswith('{') and 'tacto_helper_mode' in line:
+        if line.startswith('{') and 'haejo_helper_mode' in line:
             try:report = json.loads(line)
             except ValueError:pass
     error, diagnostic = None, None
@@ -50,56 +50,56 @@ def alive(pid):
         return False
 
 
-def concurrency(tacto, mode, app, rounds=10):
+def concurrency(haejo, mode, app, rounds=10):
     out = []
     for _ in range(rounds):
         with concurrent.futures.ThreadPoolExecutor(2) as pool:
-            out.append(list(pool.map(lambda _: run(tacto, ['observe', app, '--helper', '--json'], mode), range(2))))
+            out.append(list(pool.map(lambda _: run(haejo, ['observe', app, '--helper', '--json'], mode), range(2))))
     return out
 
 
-def idle_exit(tacto, mode, seconds):
-    first = run(tacto, ['apps', '--helper'], mode, {'TACTO_HELPER_IDLE_SECONDS': str(seconds)})
+def idle_exit(haejo, mode, seconds):
+    first = run(haejo, ['apps', '--helper'], mode, {'HAEJO_HELPER_IDLE_SECONDS': str(seconds)})
     pid, start = first['helper_pid'], time.monotonic()
     while pid and alive(pid) and time.monotonic() - start < seconds + 60:
         time.sleep(0.5)
     return {'first': first, 'exited_after_s': round(time.monotonic() - start, 1) if pid and not alive(pid) else None}
 
 
-def kill_recovery(tacto, mode):
-    first = run(tacto, ['apps', '--helper'], mode)
+def kill_recovery(haejo, mode):
+    first = run(haejo, ['apps', '--helper'], mode)
     pid = first['helper_pid']
     if pid:os.kill(pid, signal.SIGKILL)
     time.sleep(0.5)
-    after = run(tacto, ['apps', '--helper'], mode)
+    after = run(haejo, ['apps', '--helper'], mode)
     return {'killed_pid': pid, 'after': after, 'new_helper': after['helper_pid'] not in (None, pid)}
 
 
-def grants(tacto, mode, app):
-    observed = run(tacto, ['observe', app, '--helper', '--json'], mode)
+def grants(haejo, mode, app):
+    observed = run(haejo, ['observe', app, '--helper', '--json'], mode)
     with tempfile.TemporaryDirectory() as folder:
         shot = Path(folder)/'w.png'
-        captured = run(tacto, ['capture', app, '--helper', '--output', str(shot)], mode)
+        captured = run(haejo, ['capture', app, '--helper', '--output', str(shot)], mode)
         captured['png_bytes'] = shot.stat().st_size if shot.exists() else 0
     return {'accessibility_observe': observed, 'screen_capture': captured}
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--tacto', required=True)
+    parser.add_argument('--haejo', required=True)
     parser.add_argument('--mode', required=True, choices=['warm', 'resident', 'per_command'])
     parser.add_argument('--app', default='com.apple.Safari')
     parser.add_argument('--idle-seconds', type=int, default=5)
     parser.add_argument('--skip-idle', action='store_true')
     parser.add_argument('--output', required=True)
     args = parser.parse_args()
-    from tacto.session import lock_state
+    from haejo.session import lock_state
     if lock_state().get('locked') is not False:
         raise SystemExit('screen_locked: nothing measured')
-    report = {'mode': args.mode, 'concurrency': concurrency(args.tacto, args.mode, args.app),
-              'kill_recovery': kill_recovery(args.tacto, args.mode), 'grants': grants(args.tacto, args.mode, args.app)}
+    report = {'mode': args.mode, 'concurrency': concurrency(args.haejo, args.mode, args.app),
+              'kill_recovery': kill_recovery(args.haejo, args.mode), 'grants': grants(args.haejo, args.mode, args.app)}
     if not args.skip_idle:
-        report['idle_exit'] = idle_exit(args.tacto, args.mode, args.idle_seconds)
+        report['idle_exit'] = idle_exit(args.haejo, args.mode, args.idle_seconds)
     Path(args.output).write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps(report)[:3000])
 

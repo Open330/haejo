@@ -46,7 +46,7 @@ print("BOUND_METADATA_PASS")
             run=subprocess.run(['swift',str(path)],capture_output=True,text=True,timeout=30)
         self.assertEqual(run.returncode,0,run.stderr)
         self.assertEqual(run.stdout.strip(),'BOUND_METADATA_PASS')
-        helper=(ROOT/'helper/TactoHelper.swift').read_text()
+        helper=(ROOT/'helper/HaejoHelper.swift').read_text()
         context=helper[helper.index('let observedBundle ='):helper.index('phase = "context"',helper.index('let observedBundle ='))]
         self.assertIn('nativeProcessStartIdentity(pid) == start',context)
         self.assertIn('latestElementGeneration == elementGeneration',context)

@@ -3,10 +3,10 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
-from tacto.flow import Flow,Step,Selector,Postcondition,Capture,replay
-from tacto.contract import SafetyContract
-from tacto.credential_runtime import run_login
-from tacto.credential_grants import CredentialStore
+from haejo.flow import Flow,Step,Selector,Postcondition,Capture,replay
+from haejo.contract import SafetyContract
+from haejo.credential_runtime import run_login
+from haejo.credential_grants import CredentialStore
 from test_credential_delegation import Driver,Vault,plan,SECRET
 
 class FlowDriver(Driver):
@@ -17,10 +17,10 @@ class FlowDriver(Driver):
 class CredentialFlow(unittest.TestCase):
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup)
-        self.store=CredentialStore(Path(self.tmp.name)/'Tacto'/'Credentials');self.store.add_vault('local',{'kind':'keychain'});self.store.grant('owned',plan())
+        self.store=CredentialStore(Path(self.tmp.name)/'Haejo'/'Credentials');self.store.add_vault('local',{'kind':'keychain'});self.store.grant('owned',plan())
         self.driver=FlowDriver();self.vault=Vault()
         original=run_login
-        self.patch=patch('tacto.credential_runtime.run_login',side_effect=lambda *a,**kw:original(*a,**kw,vault_factory=lambda c:self.vault));self.patch.start();self.addCleanup(self.patch.stop)
+        self.patch=patch('haejo.credential_runtime.run_login',side_effect=lambda *a,**kw:original(*a,**kw,vault_factory=lambda c:self.vault));self.patch.start();self.addCleanup(self.patch.stop)
     def flow(self):
         return Flow('with-login','com.apple.Safari',steps=[Step('authenticate',params={'grant':'owned'}),Step('read',selector=Selector(role='StaticText',title='Signed in'),safety=SafetyContract(effects=['read'],reversibility='reversible'))])
     def test_flow_logs_in_then_continues_and_reuses_authenticated_state(self):
@@ -83,7 +83,7 @@ class CredentialFlow(unittest.TestCase):
         r=run_login(self.store,'owned',self.driver,vault_factory=lambda c:self.vault)
         self.assertEqual('password',r['repair']['field']);self.assertFalse(r['repair']['submit_repeated']);self.assertFalse(self.vault.reads)
     def test_journal_reserves_credential_submit_without_secret_values(self):
-        from tacto.dispatch_journal import DurableDispatchDriver
+        from haejo.dispatch_journal import DurableDispatchDriver
         path=Path(self.tmp.name)/'journal'
         with DurableDispatchDriver(self.driver,path) as d:
             r=run_login(self.store,'owned',d,vault_factory=lambda c:self.vault);self.assertTrue(r['ok'],r)
@@ -100,7 +100,7 @@ class CredentialFlow(unittest.TestCase):
         self.assertEqual('credential_account_mismatch',r['error']);self.assertEqual(0,self.driver.submits);self.assertNotIn(SECRET,json.dumps(r))
     def test_review_digest_rejects_file_change_before_grant_save(self):
         import io,contextlib
-        from tacto.credential_cli import main
+        from haejo.credential_cli import main
         path=Path(self.tmp.name)/'plan.json';path.write_text(json.dumps(plan()))
         output=io.StringIO()
         with contextlib.redirect_stdout(output):code=main(['inspect',str(path)],driver_factory=None,store=self.store)
@@ -112,7 +112,7 @@ class CredentialFlow(unittest.TestCase):
         self.assertNotIn('reviewed',self.store.grants())
     def test_fill_downgrade_and_explicit_provider_metadata_listing(self):
         import io,contextlib
-        from tacto.credential_cli import main
+        from haejo.credential_cli import main
         path=Path(self.tmp.name)/'plan.json';path.write_text(json.dumps(plan()))
         with contextlib.redirect_stdout(io.StringIO()):code=main(['grant','fill',str(path),'--yes','--fill-only'],driver_factory=None,store=self.store)
         self.assertEqual(0,code);loaded,_=self.store.load('fill');self.assertEqual('fill',loaded['level']);self.assertNotIn('submit',loaded)

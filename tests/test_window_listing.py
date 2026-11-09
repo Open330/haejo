@@ -11,7 +11,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 class WindowListing(unittest.TestCase):
     def test_contained_dialog_without_close_is_not_a_badge(self):
-        from tacto import driver
+        from haejo import driver
         nodes = {
             'parent': {'AXRole': 'AXWindow', 'AXCloseButton': 'close'},
             'file_panel': {'AXRole': 'AXWindow', 'AXSubrole': 'AXDialog', 'AXTitle': 'Open'},
@@ -28,7 +28,7 @@ class WindowListing(unittest.TestCase):
             self.assertEqual(driver._real_windows(1), ['parent', 'file_panel', 'unknown_small', 'focused_badge_shape'])
 
     def test_missing_or_multiple_focus_does_not_hide_dialogs(self):
-        from tacto.cli import focused_window_view
+        from haejo.cli import focused_window_view
         tree = '0 Window  Title: Document\n  1 TextArea\n2 Window  Title: Open\n  3 Button  Title: Choose'
         self.assertEqual(focused_window_view(tree), tree)
         marked = tree.replace('Title: Document', 'Title: Document [focused]').replace('Title: Open', 'Title: Open [focused]')
@@ -38,7 +38,7 @@ class WindowListing(unittest.TestCase):
     def test_signed_filter_preserves_the_same_dialog_cases(self):
         # Compile the actual production filter with fake attribute reads. No AX,
         # helper connection, app launch, screen read or UI input is involved.
-        source = (ROOT / 'helper/TactoHelper.swift').read_text()
+        source = (ROOT / 'helper/HaejoHelper.swift').read_text()
         start = source.index('    return byRole.enumerated().filter', source.index('func realWindows('))
         end = source.index('\n}', start)
         body = source[start:end]

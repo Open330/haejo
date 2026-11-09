@@ -1,4 +1,4 @@
-"""The upgrade/rollback harness understands current Tacto layouts.
+"""The upgrade/rollback harness understands current Haejo layouts.
 
 Only pure helpers are exercised, on temporary homes; nothing installs, links
 real commands or touches the person's stores.
@@ -44,74 +44,74 @@ class UpgradeRollbackHarnessTests(unittest.TestCase):
                 link.unlink()
             link.symlink_to(harness.launcher_of(root))
         for agent in harness.AGENTS:
-            skill = self.home/agent/'skills/tacto'
+            skill = self.home/agent/'skills/haejo'
             skill.parent.mkdir(parents=True, exist_ok=True)
             if skill.is_symlink():
                 skill.unlink()
             skill.symlink_to(root/'skill')
 
     def test_each_runtime_uses_its_own_launcher_name(self):
-        old, new = runtime(self.base, 'tacto', 'old'), runtime(self.base, 'tacto', 'new')
-        self.assertEqual('tacto', harness.launcher_of(old).name)
-        self.assertEqual('tacto', harness.launcher_of(new).name)
+        old, new = runtime(self.base, 'haejo', 'old'), runtime(self.base, 'haejo', 'new')
+        self.assertEqual('haejo', harness.launcher_of(old).name)
+        self.assertEqual('haejo', harness.launcher_of(new).name)
         with self.assertRaises(ValueError):
             harness.launcher_of(self.base)
 
     def test_command_and_skills_must_follow_each_stage(self):
-        old, new = runtime(self.base, 'tacto', 'old'), runtime(self.base, 'tacto', 'new')
+        old, new = runtime(self.base, 'haejo', 'old'), runtime(self.base, 'haejo', 'new')
         self.install(old)
         self.assertTrue(harness.links_target(old, {}, self.home))
         self.assertFalse(harness.links_target(new, {}, self.home))
         self.install(new)
         self.assertTrue(harness.links_target(new, {}, self.home))
         # A stale command is caught even when both skills are current.
-        (self.home/'.local/bin/tacto').unlink()
-        (self.home/'.local/bin/tacto').symlink_to(harness.launcher_of(old))
+        (self.home/'.local/bin/haejo').unlink()
+        (self.home/'.local/bin/haejo').symlink_to(harness.launcher_of(old))
         self.assertFalse(harness.links_target(new, {}, self.home))
         watched = [str(p) for p in harness.links({}, self.home)]
         self.assertEqual(3, len(set(watched)))
-        self.assertIn(str(self.home/'.local/bin/tacto'), watched)
+        self.assertIn(str(self.home/'.local/bin/haejo'), watched)
 
     def test_bin_dir_follows_installer_precedence(self):
-        self.assertEqual(Path('/a'), harness.bin_dir({'TACTO_BIN_DIR': '/a'}, self.home))
-        self.assertEqual(Path('/b'), harness.bin_dir({'TACTO_BIN_DIR': '/b'}, self.home))
-        self.assertEqual(self.home/'.local/bin', harness.bin_dir({'TACTO_BIN_DIR': ''}, self.home))
+        self.assertEqual(Path('/a'), harness.bin_dir({'HAEJO_BIN_DIR': '/a'}, self.home))
+        self.assertEqual(Path('/b'), harness.bin_dir({'HAEJO_BIN_DIR': '/b'}, self.home))
+        self.assertEqual(self.home/'.local/bin', harness.bin_dir({'HAEJO_BIN_DIR': ''}, self.home))
 
     def test_probe_goes_to_the_canonical_store(self):
         store, refusal = harness.probe_store({}, self.home)
         self.assertIsNone(refusal)
-        self.assertEqual(self.home/'.local/share/tacto/flows', store)
+        self.assertEqual(self.home/'.local/share/haejo/flows', store)
         data = self.base/'xdg'
         store, _ = harness.probe_store({'XDG_DATA_HOME': str(data)}, self.home)
-        self.assertEqual(data/'tacto/flows', store)
+        self.assertEqual(data/'haejo/flows', store)
         # A relative XDG path is ignored, as the store itself does.
         store, _ = harness.probe_store({'XDG_DATA_HOME': 'relative'}, self.home)
-        self.assertEqual(self.home/'.local/share/tacto/flows', store)
+        self.assertEqual(self.home/'.local/share/haejo/flows', store)
 
     def test_existing_canonical_store_remains_usable(self):
-        canonical = self.home/'.local/share/tacto/flows'
+        canonical = self.home/'.local/share/haejo/flows'
         canonical.mkdir(parents=True)
         store, refusal = harness.probe_store({}, self.home)
-        self.assertEqual((self.home/'.local/share/tacto/flows', None), (store, refusal))
+        self.assertEqual((self.home/'.local/share/haejo/flows', None), (store, refusal))
         (canonical/'mine.json').write_text('{}')
         self.assertEqual((canonical, None), harness.probe_store({}, self.home))
         self.assertEqual('{}', (canonical/'mine.json').read_text())
 
     def test_manifest_watches_canonical_and_xdg_state(self):
-        for relative in ('.local/share/tacto/flows/a.json', '.local/share/tacto/flows/b.json',
-                         '.config/tacto/c', '.config/tacto/d'):
+        for relative in ('.local/share/haejo/flows/a.json', '.local/share/haejo/flows/b.json',
+                         '.config/haejo/c', '.config/haejo/d'):
             path = self.home/relative
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(relative)
         data = self.base/'xdg'
-        (data/'tacto/flows').mkdir(parents=True)
-        (data/'tacto/flows/e.json').write_text('e')
+        (data/'haejo/flows').mkdir(parents=True)
+        (data/'haejo/flows/e.json').write_text('e')
         seen = harness.manifest({'XDG_DATA_HOME': str(data)}, self.home)
         self.assertEqual(5, len(seen))
-        self.assertIn(str(data/'tacto/flows/e.json'), seen)
+        self.assertIn(str(data/'haejo/flows/e.json'), seen)
 
     def test_layout_check_requires_a_standalone_bundle(self):
-        self.assertTrue(harness.standalone_runtime(runtime(self.base, 'tacto')))
+        self.assertTrue(harness.standalone_runtime(runtime(self.base, 'haejo')))
         self.assertFalse(harness.standalone_runtime(self.base))
 
     def test_identity_records_actual_current_artifacts(self):
@@ -120,7 +120,7 @@ class UpgradeRollbackHarnessTests(unittest.TestCase):
         identity_spec=importlib.util.spec_from_file_location('release_identity', ROOT/'examples/release_identity.py')
         provenance=importlib.util.module_from_spec(identity_spec)
         identity_spec.loader.exec_module(provenance)
-        for name, helper in [('tacto', 'Tacto Helper.app')]:
+        for name, helper in [('haejo', 'Haejo Helper.app')]:
             root=runtime(self.base,name).resolve()
             package=root/'.venv/lib/python3.11/site-packages'/name
             package.mkdir(parents=True)

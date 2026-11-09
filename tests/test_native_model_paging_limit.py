@@ -12,7 +12,7 @@ except ImportError:  # discovered with tests/ as the top level
 class NativeModelPagingLimitTests(unittest.TestCase):
     def test_invalid_limit_refuses_before_native_lookup(self):
         for value in (False,0,-1,33,1.5,'8'):
-            with self.subTest(value=value), patch('tacto.driver.Driver') as driver, self.assertRaises(ValueError):
+            with self.subTest(value=value), patch('haejo.driver.Driver') as driver, self.assertRaises(ValueError):
                 probe.run_model_probe(Mock(),provider='codex',max_pages=value)
             driver.assert_not_called()
 
@@ -27,15 +27,15 @@ class NativeModelPagingLimitTests(unittest.TestCase):
             with self.subTest(limit=limit):
                 driver=Mock()
                 driver.observe.return_value={'type':'observation','tree':
-                    '0 StaticText  Value: Alpha, Identifier: tacto-fixture-result\n'
-                    '1 StaticText  Value: 0, Identifier: tacto-fixture-count'}
+                    '0 StaticText  Value: Alpha, Identifier: haejo-fixture-result\n'
+                    '1 StaticText  Value: 0, Identifier: haejo-fixture-count'}
                 def run(d,target,goal,planner,**kwargs):
                     planner(goal,[{'label':'owned','can':['read']}],[])
                     return SimpleNamespace(ok=False,why='test_without_dispatch',said=[],events=[],provider_calls=[])
-                with patch('tacto.driver.Driver') as reader,patch('tacto.driver.AXUIElementCreateApplication'), \
-                     patch('tacto.driver._attr',return_value=False), \
-                     patch('tacto.input_audit_process.ProcessInputAudit',return_value=Audit()), \
-                     patch('tacto.general.run',side_effect=run),patch('tacto.ask.ask_here_paged',return_value={'actions':[]}) as ask:
+                with patch('haejo.driver.Driver') as reader,patch('haejo.driver.AXUIElementCreateApplication'), \
+                     patch('haejo.driver._attr',return_value=False), \
+                     patch('haejo.input_audit_process.ProcessInputAudit',return_value=Audit()), \
+                     patch('haejo.general.run',side_effect=run),patch('haejo.ask.ask_here_paged',return_value={'actions':[]}) as ask:
                     reader.return_value._resolve.return_value=42
                     result=probe.run_model_probe(driver,provider='codex',**({} if limit is None else {'max_pages':limit}))
                 expected=8 if limit is None else limit
@@ -55,16 +55,16 @@ class NativeModelPagingLimitTests(unittest.TestCase):
         self._assert_failed_run_preserves_evidence(fail_inside_run=True)
 
     def _assert_failed_run_preserves_evidence(self, *, fail_inside_run):
-        from tacto.provider_observation import record_provider_result
-        from tacto.provider_result import ProviderResult
+        from haejo.provider_observation import record_provider_result
+        from haejo.provider_result import ProviderResult
         class Audit:
             def __enter__(self): return self
             def __exit__(self, *args): pass
             def report(self): return {'status': 'INCONCLUSIVE'}
         driver = Mock()
         initial = {'type':'observation','tree':
-            '0 StaticText  Value: Alpha, Identifier: tacto-fixture-result\n'
-            '1 StaticText  Value: 0, Identifier: tacto-fixture-count'}
+            '0 StaticText  Value: Alpha, Identifier: haejo-fixture-result\n'
+            '1 StaticText  Value: 0, Identifier: haejo-fixture-count'}
         driver.observe.side_effect = [initial, RuntimeError('disconnected')]
         events = [{'state':'dispatched'}]
         def run(*args, **kwargs):
@@ -76,11 +76,11 @@ class NativeModelPagingLimitTests(unittest.TestCase):
                 raise RuntimeError('interrupted-run')
             return SimpleNamespace(ok=False, why='deadline_exceeded', said=[],
                                    events=events, provider_calls=[])
-        with patch('tacto.driver.Driver') as reader, \
-             patch('tacto.driver.AXUIElementCreateApplication'), \
-             patch('tacto.driver._attr', return_value=False), \
-             patch('tacto.input_audit_process.ProcessInputAudit', return_value=Audit()), \
-             patch('tacto.general.run', side_effect=run):
+        with patch('haejo.driver.Driver') as reader, \
+             patch('haejo.driver.AXUIElementCreateApplication'), \
+             patch('haejo.driver._attr', return_value=False), \
+             patch('haejo.input_audit_process.ProcessInputAudit', return_value=Audit()), \
+             patch('haejo.general.run', side_effect=run):
             reader.return_value._resolve.return_value = 42
             result = probe.run_model_probe(driver, provider='codex')
         self.assertFalse(result['passed'])

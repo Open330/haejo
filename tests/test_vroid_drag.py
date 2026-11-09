@@ -2,13 +2,13 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
-from tacto.vroid_drag import main
+from haejo.vroid_drag import main
 
 TITLE="VRoid Studio 2.14.0 - Trial.vroid*"
 class VroidDragTests(unittest.TestCase):
     def test_ordered_waypoints_map_from_capture_and_dispatch_once(self):
         d=self.driver();cap=Mock();cap.viewport={"width":3000,"height":1800};cap.window_frame=(100,200,1500,900)
-        with tempfile.TemporaryDirectory() as root,patch("tacto.vroid_drag.capture_window",return_value=cap):
+        with tempfile.TemporaryDirectory() as root,patch("haejo.vroid_drag.capture_window",return_value=cap):
             main(self.args(Path(root)/"run")+["--via-pixels","1610","980","--via-pixels","1620","960"],d)
         self.assertEqual(1,d.act.call_count)
         self.assertEqual([{"x":805.0,"y":490.0},{"x":810.0,"y":480.0}],d.act.call_args.args[2]["via"])
@@ -29,7 +29,7 @@ class VroidDragTests(unittest.TestCase):
         return ["--helper","--yes","--title",TITLE,"--from-pixels","1600","1000","--to-pixels","1640","940","--output",str(output)]
     def test_actual_capture_pixels_map_to_points_and_partial_dispatch_is_not_retried(self):
         d=self.driver();cap=Mock();cap.viewport={"width":3000,"height":1800};cap.window_frame=(100,200,1500,900)
-        with tempfile.TemporaryDirectory() as root,patch("tacto.vroid_drag.capture_window",return_value=cap):
+        with tempfile.TemporaryDirectory() as root,patch("haejo.vroid_drag.capture_window",return_value=cap):
             self.assertEqual(1,main(self.args(Path(root)/"run"),d))
         self.assertEqual(1,d.act.call_count)
         payload=d.act.call_args.args[2]
@@ -59,6 +59,6 @@ class VroidDragTests(unittest.TestCase):
 
     def test_graph_rectangle_maps_without_expanding_canvas_default(self):
         d=self.driver();cap=Mock();cap.viewport={"width":3000,"height":1800};cap.window_frame=(0,0,1500,900)
-        with tempfile.TemporaryDirectory() as root,patch("tacto.vroid_drag.capture_window",return_value=cap):
+        with tempfile.TemporaryDirectory() as root,patch("haejo.vroid_drag.capture_window",return_value=cap):
             main(self.args(Path(root)/"run")+["--graph-bounds-pixels","2576","850","400","172"],d)
         self.assertEqual({"x":1288.0,"y":425.0,"width":200.0,"height":86.0},d.act.call_args.args[2]["graph_bounds"])

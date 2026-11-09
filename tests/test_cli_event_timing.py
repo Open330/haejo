@@ -2,8 +2,8 @@
 import json
 import sys
 import unittest
-from tacto.cli_event_timing import CLIEventTiming
-from tacto.codex_result import _run_codex
+from haejo.cli_event_timing import CLIEventTiming
+from haejo.codex_result import _run_codex
 
 
 class CLIEventTimingTests(unittest.TestCase):

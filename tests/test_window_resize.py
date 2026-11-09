@@ -2,7 +2,7 @@
 import contextlib
 import io
 import unittest
-from tacto.window_resize import main
+from haejo.window_resize import main
 
 
 class Driver:

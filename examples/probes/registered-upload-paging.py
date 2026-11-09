@@ -25,12 +25,12 @@ def main():
     if not 2 <= args.registrations <= 128 or args.budget <= 0 or not 1 <= args.max_pages <= 16:
         parser.error('registrations 2..128, positive budget, max-pages 1..16 required')
     import tiktoken
-    import tacto.ask
-    from tacto.outcome import verify
-    from tacto.provider_observation import summarize_provider_calls
+    import haejo.ask
+    from haejo.outcome import verify
+    from haejo.provider_observation import summarize_provider_calls
     from tests.test_delivery_receipt_integration import DeliveryReceiptIntegrationTests
     meter = tiktoken.get_encoding('o200k_base')
-    paths = list((ROOT / 'tacto').glob('*.py')) + [Path(__file__).resolve(),
+    paths = list((ROOT / 'haejo').glob('*.py')) + [Path(__file__).resolve(),
         ROOT / 'tests/test_delivery_receipt_integration.py',
         ROOT / 'examples/probes/token-budget-planning.py']
     def snapshot():
@@ -49,7 +49,7 @@ def main():
               'scope': 'live provider planning; owned HTTP receipt and trusted completion controller'}
     wanted_scope = 'upload_' + secrets.token_hex(8)
     report['wanted_scope'] = wanted_scope
-    original = tacto.ask.reach_model
+    original = haejo.ask.reach_model
     def bounded(prompt, *positional, **kwargs):
         count = len(meter.encode_ordinary(prompt))
         calls.append({'task_prompt_tokens': count, 'reference_chunk_in_prompt': '# 참조 내용' in prompt,
@@ -59,7 +59,7 @@ def main():
         return original(prompt, *positional, **kwargs)
     try:
         case.setUp()
-        with patch('tacto.ask.reach_model', side_effect=bounded):
+        with patch('haejo.ask.reach_model', side_effect=bounded):
             result = case.run_registered_upload(general=True, live_provider='codex',
                 paged=True, registration_count=args.registrations,
                 paging_budget=args.budget, max_pages=args.max_pages, wanted_scope=wanted_scope,

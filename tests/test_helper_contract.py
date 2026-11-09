@@ -1,6 +1,6 @@
 """The three drivers have to answer the same questions the same way.
 
-TACTO has three ways to reach a screen: the in-process `Driver`, the signed
+HAEJO has three ways to reach a screen: the in-process `Driver`, the signed
 helper over an inherited socket, and the same helper over its own socket. They
 are supposed to be one L2 protocol with different transports underneath.
 
@@ -28,11 +28,11 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from tacto.evaluation import foreground_allowed
+from haejo.evaluation import foreground_allowed
 
 CALC = "com.apple.calculator"
 
-# Nothing is imported from `tacto.driver` at module scope on purpose. It needs
+# Nothing is imported from `haejo.driver` at module scope on purpose. It needs
 # PyObjC, so a top-level import turns `unittest discover` into an import error
 # on any machine without it — a Linux box, or the browser-only venv — and an
 # import error is indistinguishable from a broken contract (peer finding).
@@ -40,10 +40,10 @@ CALC = "com.apple.calculator"
 
 def _drivers():
     """Every transport this machine can currently offer, with its name."""
-    from tacto.driver import Driver
+    from haejo.driver import Driver
     out = [("in-process", Driver())]
     try:
-        from tacto.helper import InheritedHelperDriver
+        from haejo.helper import InheritedHelperDriver
         if InheritedHelperDriver.available():
             out.append(("inherited-helper", InheritedHelperDriver()))
     except Exception as e:                       # pragma: no cover - env only
@@ -52,7 +52,7 @@ def _drivers():
 
 
 def _candidates(tree):
-    from tacto.general import candidates
+    from haejo.general import candidates
     return candidates(tree)
 
 
@@ -322,7 +322,7 @@ def _refused_keys_move_nothing(d):
 
     Nothing leaves this machine and no file is saved.
     """
-    from tacto.driver import Driver, _attr
+    from haejo.driver import Driver, _attr
     from ApplicationServices import AXUIElementCreateApplication
 
     probe = Driver()
@@ -410,7 +410,7 @@ def _view_popup(d):
     something the surface honestly cannot give.
     """
     from ApplicationServices import AXUIElementCreateApplication
-    from tacto.driver import Driver, _attr
+    from haejo.driver import Driver, _attr
     probe = Driver()
     pid = probe._resolve(FINDER, launch=False)
     if pid is None:
@@ -437,7 +437,7 @@ def _view_popup(d):
     skip("이 Finder 창에는 보기 팝업이 없습니다")
 
 
-SELECT_FIXTURE = "ai.callabo.tacto.select-fixture"
+SELECT_FIXTURE = "ai.callabo.haejo.select-fixture"
 _FIXTURE = {}          # built once per process, torn down by its own timeout
 
 
@@ -461,7 +461,7 @@ def _select_fixture(d, lifetime=180):
     """
     import subprocess
     import time
-    from tacto.driver import Driver
+    from haejo.driver import Driver
 
     probe = Driver()
     pid = _FIXTURE.get("pid")
@@ -485,16 +485,16 @@ def _select_fixture(d, lifetime=180):
 
     # Kept for the life of the process, not a `with` block: the fixture has to
     # outlive the build and both checks, and it ends itself on --timeout.
-    work = _FIXTURE.get("dir") or tempfile.mkdtemp(prefix="tacto-select-fixture-")
+    work = _FIXTURE.get("dir") or tempfile.mkdtemp(prefix="haejo-select-fixture-")
     _FIXTURE["dir"] = work
-    app = pathlib.Path(work) / "TACTO Select Fixture.app"
+    app = pathlib.Path(work) / "HAEJO Select Fixture.app"
     executable = app / "Contents/MacOS/NativeSelectFixture"
     if not executable.is_file():
         executable.parent.mkdir(parents=True, exist_ok=True)
         (app / "Contents/Info.plist").write_bytes(plistlib.dumps({
             "CFBundleIdentifier": SELECT_FIXTURE,
             "CFBundleExecutable": executable.name,
-            "CFBundleName": "TACTO Select Fixture",
+            "CFBundleName": "HAEJO Select Fixture",
             "CFBundlePackageType": "APPL",
             "CFBundleVersion": "1",
         }))
@@ -547,7 +547,7 @@ def _select_fixture(d, lifetime=180):
         # `-g`: LaunchServices activates what it opens unless told not to,
         # so dropping `--foreground` from the fixture was not enough — the
         # launch itself took the screen. Measured by the focus witness during a
-        # default run: ['ai.callabo.tacto.select-fixture', 'com.apple.finder'],
+        # default run: ['ai.callabo.haejo.select-fixture', 'com.apple.finder'],
         # with Finder frontmost at both ends. In foreground mode the fixture
         # still comes forward, because `--foreground` makes it activate itself.
         ["open", "-g", "-n", "-a", str(app), "--args",
@@ -569,7 +569,7 @@ def _select_fixture(d, lifetime=180):
     while time.monotonic() < deadline:
         probe._pump()
         pid = probe._resolve(SELECT_FIXTURE, launch=False)
-        if pid is not None and _fixture_label(pid, "tacto-fixture-result") is not None:
+        if pid is not None and _fixture_label(pid, "haejo-fixture-result") is not None:
             _FIXTURE["pid"] = pid
             if not _bring_forward(SELECT_FIXTURE, probe):
                 skip("픽스처를 앞으로 가져오지 못했습니다 — "
@@ -605,7 +605,7 @@ def _fixture_popup(d):
     if obs is None or obs.get("type") != "observation":
         skip(f"픽스처를 관측할 수 없습니다: {obs.get('error') if obs else 'none'}")
     for line in obs["tree"].splitlines():
-        if "PopUpButton" in line and "tacto-fixture-choice" in line:
+        if "PopUpButton" in line and "haejo-fixture-choice" in line:
             return obs, int(line.strip().split()[0]), pid
     skip("픽스처에 choice 팝업이 없습니다")
 
@@ -617,7 +617,7 @@ def _fixture_label(pid, identifier):
     cannot come from it.
     """
     from ApplicationServices import AXUIElementCreateApplication
-    from tacto.driver import _attr
+    from haejo.driver import _attr
     found = []
 
     def walk(node, depth=0):
@@ -642,7 +642,7 @@ def _discard_fixture():
     thing that must not happen here. It was measured on this kind of control:
     an automatic cancel left it unable to post a menu ever again, every later
     `AXShowMenu` returning kAXErrorSuccess with nothing on screen. The driver
-    refuses to do it and says why (`refuse_after_opening` in tacto/driver.py),
+    refuses to do it and says why (`refuse_after_opening` in haejo/driver.py),
     and a harness that does it anyway hands the NEXT transport a control that
     cannot open — which is exactly how these checks first passed in-process
     and failed for the helper, in the same run.
@@ -683,7 +683,7 @@ def _the_only_view_popup(pid):
     """The view popup of Finder's single window, walked here rather than
     borrowed from a driver's cache. Returns None if it is not unique."""
     from ApplicationServices import AXUIElementCreateApplication
-    from tacto.driver import _attr
+    from haejo.driver import _attr
     found = []
 
     def walk(node, depth=0):
@@ -718,11 +718,11 @@ def _select_option_round_trip(d):
     the label is the fact.
     """
     obs, idx, pid = _fixture_popup(d)
-    start = _fixture_label(pid, "tacto-fixture-result")
+    start = _fixture_label(pid, "haejo-fixture-result")
     if start not in ("Alpha", "Beta"):
         skip(f"픽스처가 예상 상태가 아닙니다: {start!r}")
     other = "Beta" if start == "Alpha" else "Alpha"
-    before = _fixture_label(pid, "tacto-fixture-count")
+    before = _fixture_label(pid, "haejo-fixture-count")
     try:
         r = d.act(obs["obs_id"], SELECT_FIXTURE,
                   {"name": "select_option", "element_index": idx,
@@ -732,9 +732,9 @@ def _select_option_round_trip(d):
         # The app's own callback ran. Not the driver's word for it: this label
         # is written by the control's action, so it moves only if a real
         # selection happened.
-        landed = _fixture_label(pid, "tacto-fixture-result")
+        landed = _fixture_label(pid, "haejo-fixture-result")
         assert landed == other, f"고른 것이 반영되지 않았습니다: {landed!r}"
-        after = _fixture_label(pid, "tacto-fixture-count")
+        after = _fixture_label(pid, "haejo-fixture-count")
         assert after != before, (
             f"값은 바뀌었는데 선택 콜백이 돌지 않았습니다 "
             f"({before!r} -> {after!r}) — 값을 직접 써넣은 것입니다")
@@ -750,7 +750,7 @@ def _select_option_round_trip(d):
         d.act(obs2["obs_id"], SELECT_FIXTURE,
               {"name": "select_option", "element_index": idx2,
                "option_label": start})
-        back = _fixture_label(pid, "tacto-fixture-result")
+        back = _fixture_label(pid, "haejo-fixture-result")
         assert back == start, f"원래 값으로 못 되돌렸습니다: {start!r} -> {back!r}"
     finally:
         _discard_fixture()
@@ -759,7 +759,7 @@ def _select_option_round_trip(d):
 @check("없는 선택지·모호한 값은 거절하고 무엇이 있는지 말한다")
 def _select_option_refusals(d):
     obs, idx, pid = _fixture_popup(d)
-    before = _fixture_label(pid, "tacto-fixture-result")
+    before = _fixture_label(pid, "haejo-fixture-result")
     missing = d.act(obs["obs_id"], SELECT_FIXTURE,
                     {"name": "select_option", "element_index": idx,
                      "option_label": "이런 선택지는 없습니다"})
@@ -792,7 +792,7 @@ def _select_option_refusals(d):
     assert clash.get("effect") == "not_started", clash
 
     # And that claim is checked against the world, not taken from the reply.
-    after = _fixture_label(pid, "tacto-fixture-result")
+    after = _fixture_label(pid, "haejo-fixture-result")
     _discard_fixture()
     assert after == before, (
         f"거절했다면서 값이 {before!r} 에서 {after!r} 로 바뀌었습니다")
@@ -809,11 +809,11 @@ def _select_option_disabled(d):
     forever.
     """
     obs, idx, pid = _fixture_popup(d)
-    before = _fixture_label(pid, "tacto-fixture-result")
+    before = _fixture_label(pid, "haejo-fixture-result")
     r = d.act(obs["obs_id"], SELECT_FIXTURE,
               {"name": "select_option", "element_index": idx,
                "option_label": "Disabled"})
-    after = _fixture_label(pid, "tacto-fixture-result")
+    after = _fixture_label(pid, "haejo-fixture-result")
     _discard_fixture()
     assert r["type"] == "error", f"비활성 선택지가 통과함: {r}"
     assert r.get("option_selected") is False, r
@@ -898,8 +898,8 @@ def _no_borrowed_confirmation(_d):
 
     Source-only: the walk is driven by a fake hierarchy, no screen involved.
     """
-    import tacto.driver as D
-    from tacto.driver import Driver
+    import haejo.driver as D
+    from haejo.driver import Driver
 
     class Node:
         def __init__(self, role=None, ident=None, value=None, kids=()):
@@ -1106,12 +1106,12 @@ def _capability_lists_agree(_d):
     import re
     import ast
     root = pathlib.Path(__file__).resolve().parents[1]
-    driver = ast.parse((root / "tacto" / "driver.py").read_text())
+    driver = ast.parse((root / "haejo" / "driver.py").read_text())
     cls = next(node for node in driver.body if isinstance(node, ast.ClassDef) and node.name == "Driver")
     caps = next(node.value for node in cls.body if isinstance(node, ast.Assign)
                 and any(isinstance(t, ast.Name) and t.id == "capabilities" for t in node.targets))
     native = set(ast.literal_eval(caps.args[0]))
-    swift = root / "helper" / "TactoHelper.swift"
+    swift = root / "helper" / "HaejoHelper.swift"
     text = swift.read_text(encoding="utf-8")
     block = text.split("let helperCapabilities: [String] = [", 1)[1].split("]", 1)[0]
     # Comments are prose, not data. A comment that quoted a capability name to
@@ -1128,7 +1128,7 @@ def _capabilities_are_declared(d):
     caps = getattr(d, "capabilities", None)
     if caps is None:
         return                      # the in-process driver IS the capability
-    from tacto.helper import REQUIRED_CAPABILITIES
+    from haejo.helper import REQUIRED_CAPABILITIES
     # That set is what the helper CLIENT puts on the wire, so it is a demand on
     # transports, not on a driver that is called directly. Asking it of the
     # in-process driver made it answer for a message nothing ever sends it.
@@ -1146,7 +1146,7 @@ def live_reason() -> str:
     Calculator or no visible screen says so instead of erroring.
     """
     try:
-        from tacto.driver import Driver
+        from haejo.driver import Driver
     except Exception as e:
         return f"접근성 드라이버를 불러올 수 없습니다 ({type(e).__name__})"
     d = Driver()
@@ -1191,7 +1191,7 @@ def run_all(report=print) -> int:
 
 # `unittest discover` picks this up, and it must not drive somebody's computer
 # for having run the unit tests. It clicks a real Calculator key, so it stays
-# opt-in: TACTO_CONTRACT_LIVE=1, or run this file directly (peer request).
+# opt-in: HAEJO_CONTRACT_LIVE=1, or run this file directly (peer request).
 import unittest                                                  # noqa: E402
 
 
@@ -1220,8 +1220,8 @@ class CapabilityContract(unittest.TestCase):
 
 
 class HelperContract(unittest.TestCase):
-    @unittest.skipUnless(os.environ.get("TACTO_CONTRACT_LIVE") == "1",
-                         "실제 화면을 조작하므로 TACTO_CONTRACT_LIVE=1 일 때만 실행")
+    @unittest.skipUnless(os.environ.get("HAEJO_CONTRACT_LIVE") == "1",
+                         "실제 화면을 조작하므로 HAEJO_CONTRACT_LIVE=1 일 때만 실행")
     def test_every_transport_agrees(self):
         why = live_reason()
         if why:

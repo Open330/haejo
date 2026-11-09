@@ -1,6 +1,6 @@
 # Windows support (experimental)
 
-Tacto on Windows drives applications through **UI Automation** (UIA), the
+Haejo on Windows drives applications through **UI Automation** (UIA), the
 Windows accessibility API. The flow engine, recipes, consent rules and the
 `observe`/`act` protocol are the same as on macOS; only the driver differs.
 
@@ -8,7 +8,7 @@ Windows accessibility API. The flow engine, recipes, consent rules and the
 
 Experimental. The driver logic is unit-tested on every platform against a fake
 UIA tree. Real UIA behaviour is covered by opt-in live tests
-(`TACTO_WINDOWS_LIVE=1`, see the `windows` workflow) that use only instances
+(`HAEJO_WINDOWS_LIVE=1`, see the `windows` workflow) that use only instances
 they start: Notepad (set a value, read it back, front-window mark; open the
 File menu, Save as, detect the dialog as modal, cancel it), Calculator
 (a packaged app through its frame host), an owned message box (modal
@@ -42,7 +42,7 @@ with an interactive logon instead.
 - Consent (`confirm`, `preapproved`, `handoff`) is gated exactly as on macOS.
 - **Esc stops a run.** The key is polled (no hook, no permission); after it
   is pressed nothing more is dispatched and waits end with `aborted_by_user`.
-  A small "Tacto 조작 중 — Esc로 중지" notice sits at the top right. It is a
+  A small "Haejo 조작 중 — Esc로 중지" notice sits at the top right. It is a
   plain non-activating Win32 popup, so it never takes focus, even briefly,
   and it is drawn at the display's own scale;
   `--no-indicator` hides it. If the notice cannot be drawn
@@ -85,18 +85,18 @@ refused; use `pid:N`. Recipes bind to the identity `win:<executable>`.
 
 ## Permissions
 
-UI Automation needs no permission grant, so Tacto asks for nothing and adds
+UI Automation needs no permission grant, so Haejo asks for nothing and adds
 no confirmation of its own beyond the per-step consent every platform uses.
-There is also no separate permission holder: the Python process running Tacto
+There is also no separate permission holder: the Python process running Haejo
 can automate any app at the same integrity level, exactly as the person who
-started it can. Private files Tacto writes use the user profile's default
+started it can. Private files Haejo writes use the user profile's default
 access rights.
 
 ## Not available on Windows yet
 
 - The signed helper and `--helper` (refused on Windows), menus (`menu`),
   document receipts, visual (screenshot) reads and window preparation.
-  `tacto doctor`, `launch`, `first-run`, `capture`, `drag`, onboarding and
+  `haejo doctor`, `launch`, `first-run`, `capture`, `drag`, onboarding and
   the setup app are macOS-only.
 - Applications running elevated (as administrator) cannot be automated from a
   non-elevated process (Windows UIPI).
@@ -105,10 +105,10 @@ access rights.
 
 ```
 uv sync
-uv run tacto observe notepad
+uv run haejo observe notepad
 ```
 
-`comtypes` is installed only on Windows. `tacto session` and `tacto batch`
+`comtypes` is installed only on Windows. `haejo session` and `haejo batch`
 run without `--helper` there and read their input lines through a background
 reader, since `select()` on Windows accepts only sockets. The skill installer is a bash script; on Windows copy `skill/` to the
-agent's skills folder (for Claude Code, `%USERPROFILE%\.claude\skills\tacto`).
+agent's skills folder (for Claude Code, `%USERPROFILE%\.claude\skills\haejo`).

@@ -10,7 +10,7 @@ final class SingleColumnDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         let window = NSWindow(contentRect: NSRect(x: 120, y: 120, width: 640, height: 220),
                               styleMask: [.titled, .closable], backing: .buffered, defer: false)
-        window.title = "TACTO Owned Save Single Column Fixture"
+        window.title = "HAEJO Owned Save Single Column Fixture"
         window.isReleasedWhenClosed = false
         self.window = window
         window.orderBack(nil)

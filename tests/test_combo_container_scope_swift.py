@@ -10,7 +10,7 @@ ROOT=Path(__file__).resolve().parents[1]
 @unittest.skipUnless(shutil.which('swift'),'Swift required')
 class ComboContainerScopeSwiftTests(unittest.TestCase):
     def test_container_anchor_popup_identity_and_original_value_share_deadline_and_abort(self):
-        helper=(ROOT/'helper/TactoHelper.swift').read_text()
+        helper=(ROOT/'helper/HaejoHelper.swift').read_text()
         window=(ROOT/'helper/WindowInput.swift').read_text()
         def extract(text,prefix):
             part=text[text.index(prefix):]

@@ -3,15 +3,15 @@ import json,os,plistlib,subprocess,sys,tempfile,time,unittest
 from pathlib import Path
 from uuid import uuid4
 ROOT=Path(__file__).resolve().parents[1]
-LAUNCHER=ROOT/'launcher/tacto'
-@unittest.skipUnless(sys.platform=='darwin' and os.environ.get('TACTO_RUN_NATIVE_CREDENTIAL_TESTS')=='1','opt-in signed secure-field receiving test')
+LAUNCHER=ROOT/'launcher/haejo'
+@unittest.skipUnless(sys.platform=='darwin' and os.environ.get('HAEJO_RUN_NATIVE_CREDENTIAL_TESTS')=='1','opt-in signed secure-field receiving test')
 class ApprovedCredentialsNative(unittest.TestCase):
     def test_approved_password_and_confirmation_reach_secure_fields(self):
-        with tempfile.TemporaryDirectory(prefix='tacto-credentials-') as directory:
+        with tempfile.TemporaryDirectory(prefix='haejo-credentials-') as directory:
             base=Path(directory);app=base/'OwnedCredentials.app';binary=app/'Contents/MacOS/OwnedCredentials';binary.parent.mkdir(parents=True)
             subprocess.run(['swiftc',str(ROOT/'tests/fixtures/NativeCredentialFixture.swift'),'-o',str(binary)],check=True,capture_output=True)
-            target='ai.callabo.tacto.credentialfixture'
-            (app/'Contents/Info.plist').write_bytes(plistlib.dumps({'CFBundleIdentifier':target,'CFBundleExecutable':'OwnedCredentials','CFBundleName':'Tacto Credential Fixture','CFBundlePackageType':'APPL','LSUIElement':True}))
+            target='ai.callabo.haejo.credentialfixture'
+            (app/'Contents/Info.plist').write_bytes(plistlib.dumps({'CFBundleIdentifier':target,'CFBundleExecutable':'OwnedCredentials','CFBundleName':'Haejo Credential Fixture','CFBundlePackageType':'APPL','LSUIElement':True}))
             subprocess.run(['codesign','--force','--sign','-',str(app)],check=True,capture_output=True)
             state=base/'received.json';process=subprocess.Popen([str(binary),str(state)],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
             try:
@@ -23,7 +23,7 @@ class ApprovedCredentialsNative(unittest.TestCase):
                 steps=[{'action':'set_value','selector':{'identifier':field},'params':{'value':secret},'safety':safety,'unverified_ok':True} for field in ('password','confirm-password')]
                 steps.append({'action':'click','selector':{'identifier':'check-fields'},'safety':safety,'unverified_ok':True})
                 flow=base/'flow.json';flow.write_text(json.dumps({'name':'owned credential input','target':target,'steps':steps}))
-                env=dict(os.environ,TACTO_HELPER_MODE='warm')
+                env=dict(os.environ,HAEJO_HELPER_MODE='warm')
                 out=subprocess.run([str(LAUNCHER),'run',str(flow),'--helper','--yes','--trace',str(base/'trace.json')],env=env,capture_output=True,text=True,timeout=30)
                 self.assertEqual(0,out.returncode,out.stdout+out.stderr)
                 deadline=time.monotonic()+3
@@ -45,12 +45,12 @@ class ApprovedCredentialsNative(unittest.TestCase):
                 if self.path.startswith('/proof'):
                     self.server.matched=True;self.send_response(204);self.end_headers();return
                 self.send_response(200);self.send_header('Content-Type','text/html');self.end_headers()
-                self.wfile.write(b'''<title>Tacto owned approval credential fixture</title><input type="password" aria-label="Owned password" id="p"><input type="password" aria-label="Owned confirmation" id="c"><input aria-label="Owned ordinary field"><script>setInterval(()=>{if(p.value==='owned-Synthetic-47!'&&c.value==='owned-Synthetic-47!')fetch('/proof?both=matched')},100)</script>'''.replace(b'Tacto owned approval credential fixture',self.server.fixture_title.encode()))
-        server=ThreadingHTTPServer(('127.0.0.1',0),Page);server.matched=False;server.fixture_title='Tacto owned approval credential fixture '+uuid4().hex
+                self.wfile.write(b'''<title>Haejo owned approval credential fixture</title><input type="password" aria-label="Owned password" id="p"><input type="password" aria-label="Owned confirmation" id="c"><input aria-label="Owned ordinary field"><script>setInterval(()=>{if(p.value==='owned-Synthetic-47!'&&c.value==='owned-Synthetic-47!')fetch('/proof?both=matched')},100)</script>'''.replace(b'Haejo owned approval credential fixture',self.server.fixture_title.encode()))
+        server=ThreadingHTTPServer(('127.0.0.1',0),Page);server.matched=False;server.fixture_title='Haejo owned approval credential fixture '+uuid4().hex
         thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
         def command(*args):
             return subprocess.run([str(LAUNCHER),*args],capture_output=True,text=True,
-                env=dict(os.environ,TACTO_HELPER_MODE='warm'),timeout=40)
+                env=dict(os.environ,HAEJO_HELPER_MODE='warm'),timeout=40)
         try:
             opened=command('open-url',f'http://127.0.0.1:{server.server_port}','--browser','com.apple.Safari','--helper')
             self.assertEqual(0,opened.returncode,opened.stdout+opened.stderr)

@@ -15,7 +15,7 @@ TARGET='com.apple.finder'
 
 def background_precondition(*, target=TARGET, frontmost=None, lookup=None):
     """Read-only benchmark gate; not an input authorization or atomic witness."""
-    from tacto.native_frontmost import frontmost_pid
+    from haejo.native_frontmost import frontmost_pid
     frontmost = frontmost or frontmost_pid
     if lookup is None:
         from AppKit import NSRunningApplication
@@ -88,7 +88,7 @@ class StageDriver:
         try:result=method(*args,**kwargs)
         except BaseException as error:
             self.record(stage,'error',error_class=type(error).__name__);raise
-        from tacto.preparation_diagnostic import preparation_diagnostic
+        from haejo.preparation_diagnostic import preparation_diagnostic
         values={'response_type':result.get('type') if result.get('type') in ('observation','acted','error','readiness_preflight') else 'other'}
         # Persist closed diagnostic codes, never arbitrary UI/error detail.
         allowed_errors={'no_window_content','indicator_unavailable','window_list_unavailable',
@@ -111,7 +111,7 @@ class StageDriver:
                     'preflight_window_owner_unavailable','preflight_window_role_unavailable',
                     'preflight_deadline','preflight_nodes','preflight_unavailable'):
                 values['reason']=result['reason']
-        from tacto.window_listing_diagnostic import window_listing_diagnostic
+        from haejo.window_listing_diagnostic import window_listing_diagnostic
         listing=window_listing_diagnostic(result.get('window_listing_diagnostic'))
         if listing is not None:values['window_listing_diagnostic']=listing
         if stage=='observe':
@@ -160,9 +160,9 @@ def main(driver,output,*,preflight=False):
     descriptor=os.open(output,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
     try:journal_descriptor=os.open(journal_path,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
     except BaseException:os.close(descriptor);raise
-    paths=list((root/'tacto').glob('*.py'))+list((root/'helper').glob('*.swift'))+[
+    paths=list((root/'haejo').glob('*.py'))+list((root/'helper').glob('*.swift'))+[
         Path(__file__).resolve(),root/'examples/eval.py',root/'examples/probes/finder-preparation-diagnostic.py',
-        root/'launcher/tacto',root/'helper/tacto-helper',root/'helper/Tacto Helper.app/Contents/MacOS/TactoHelper']
+        root/'launcher/haejo',root/'helper/haejo-helper',root/'helper/Haejo Helper.app/Contents/MacOS/HaejoHelper']
     def manifest():return {str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(paths)}
     report={'passed':False,'task_result_ok':None,'model_requests':0,'all_dependencies_frozen':False,'stage_journal':str(journal_path),'preflight_requested':preflight}
     before=None;interrupted=None;audit=None;timer=None;expired=threading.Event()
@@ -173,7 +173,7 @@ def main(driver,output,*,preflight=False):
             if not stages.check_background():
                 report['precondition_status']='not_run'
                 return report
-            created=Path(tempfile.mkdtemp(prefix='tacto-finder-staged-',dir=Path.home()/'Library/Caches'))
+            created=Path(tempfile.mkdtemp(prefix='haejo-finder-staged-',dir=Path.home()/'Library/Caches'))
             # Normalize the parent without following a replaced fixture leaf.
             folder=created.parent.resolve()/created.name
             identity=folder.lstat();report['owned_directory']=str(folder);report['cleanup']='left_as_is'
@@ -184,8 +184,8 @@ def main(driver,output,*,preflight=False):
                           directory_inode=ownership['inode'],directory_uid=ownership['uid'],
                           authorizes_input=False,window_ownership_verified=False)
             flow=runpy.run_path(str(root/'examples/probes/finder-preparation-diagnostic.py'))['preparation_flow'](str(folder))
-            from tacto.agent import Agent
-            from tacto.flow import replay
+            from haejo.agent import Agent
+            from haejo.flow import replay
             approvals,blocked=Agent(driver=stages).authorize(flow,ask=lambda _:True)
             if blocked:raise RuntimeError('owned_flow_blocked')
             def expire():
@@ -194,7 +194,7 @@ def main(driver,output,*,preflight=False):
                 try:driver._sock.shutdown(socket.SHUT_RDWR)
                 except (OSError,AttributeError):pass
             timer=threading.Timer(90,expire);timer.daemon=True;timer.start()
-            from tacto.input_audit_process import ProcessInputAudit
+            from haejo.input_audit_process import ProcessInputAudit
             audit=ProcessInputAudit(interval=.005,startup_timeout=10,stop_timeout=3)
             with audit:result=replay(stages,flow,approvals=approvals,budget=0)
             report.update(passed=result.ok,task_result_ok=result.ok,event_states=[e.get('state') for e in result.events],

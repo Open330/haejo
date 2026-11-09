@@ -4,11 +4,11 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from tacto.artifact_receipt import ArtifactReceiptError, FreshFileReceipt
-from tacto.commit_evidence import CommitEvidence, make_event
-from tacto.delivery_receipt import DeliveredMessageReceipt, InboxDelivery, PendingDelivery
-from tacto.existing_file_receipt import ExistingTextFileReceipt, SAVE_PATH
-from tacto.producer_file_receipt import ProducerFileReceipt, ProducerObservation
+from haejo.artifact_receipt import ArtifactReceiptError, FreshFileReceipt
+from haejo.commit_evidence import CommitEvidence, make_event
+from haejo.delivery_receipt import DeliveredMessageReceipt, InboxDelivery, PendingDelivery
+from haejo.existing_file_receipt import ExistingTextFileReceipt, SAVE_PATH
+from haejo.producer_file_receipt import ProducerFileReceipt, ProducerObservation
 
 
 class ReceiptClockTests(unittest.TestCase):
@@ -31,7 +31,7 @@ class ReceiptClockTests(unittest.TestCase):
                     receipt.after_commit(event,{'type':'acted'},context)
 
     def test_replay_exposes_only_the_closed_clock_refusal_code(self):
-        from tacto.flow import _receipt_public_codes
+        from haejo.flow import _receipt_public_codes
         self.assertIn('invalid_receipt_clock',_receipt_public_codes())
         self.assertNotIn('PRIVATE_CLOCK_SENTINEL',_receipt_public_codes())
 

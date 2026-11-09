@@ -1,8 +1,8 @@
 """A screen question carries instructions only for what that screen offers."""
 import unittest
 
-from tacto.ask import _HERE, here_instructions, what_to_do_here
-from tacto.general import candidates
+from haejo.ask import _HERE, here_instructions, what_to_do_here
+from haejo.general import candidates
 
 KEYPAD = """0 Window Title: Calculator
   1 Group Identifier: CalculatorKeypadView

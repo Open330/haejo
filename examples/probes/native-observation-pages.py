@@ -16,24 +16,24 @@ import time
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-TARGET = 'ai.callabo.tacto.observation-pages-fixture'
+TARGET = 'ai.callabo.haejo.observation-pages-fixture'
 
 
 def run_probe(driver, *, provider='fixed', budget=4000):
     from unittest.mock import patch
     from AppKit import NSRunningApplication
-    from tacto.ask import ask_here_paged
-    import tacto.ask as ask_module
-    from tacto.general import run
-    from tacto.input_audit_process import ProcessInputAudit
-    from tacto.provider_observation import summarize_provider_calls
+    from haejo.ask import ask_here_paged
+    import haejo.ask as ask_module
+    from haejo.general import run
+    from haejo.input_audit_process import ProcessInputAudit
+    from haejo.provider_observation import summarize_provider_calls
     import tiktoken
 
     counter = tiktoken.get_encoding('o200k_base').encode_ordinary
-    sources = [*ROOT.glob('tacto/*.py'), *ROOT.glob('helper/*.swift'),
+    sources = [*ROOT.glob('haejo/*.py'), *ROOT.glob('helper/*.swift'),
                Path(__file__), ROOT/'tests/fixtures/NativeObservationPagesFixture.swift',
-               ROOT/'examples/eval.py', ROOT/'launcher/tacto.swift', ROOT/'launcher/tacto',
-               ROOT/'helper/Tacto Helper.app/Contents/MacOS/TactoHelper']
+               ROOT/'examples/eval.py', ROOT/'launcher/haejo.swift', ROOT/'launcher/haejo',
+               ROOT/'helper/Haejo Helper.app/Contents/MacOS/HaejoHelper']
     hashes = lambda: {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest()
                        for p in sources if p.is_file()}
     report = {'passed': False, 'evaluation_kind': 'fixed_owned_appkit' if provider == 'fixed' else 'live_model_owned_appkit',
@@ -59,7 +59,7 @@ def run_probe(driver, *, provider='fixed', budget=4000):
             'continued': kwargs.get('continuation') is not None,
             'lookup': kwargs.get('reveal'),
             'has_next': bool(value.get('next_observation_cursor')),
-            'target_present': 'tacto-pages-Item239' in value.get('tree', ''),
+            'target_present': 'haejo-pages-Item239' in value.get('tree', ''),
             'truncated': value.get('truncated')})
         return value
     def act(*args, **kwargs):
@@ -81,14 +81,14 @@ def run_probe(driver, *, provider='fixed', budget=4000):
     started = time.monotonic()
     report['source_before'] = hashes()
     try:
-        with tempfile.TemporaryDirectory(prefix='tacto-observation-pages-') as folder:
+        with tempfile.TemporaryDirectory(prefix='haejo-observation-pages-') as folder:
             base = Path(folder)
             app = base/'ObservationPages.app'
             binary = app/'Contents/MacOS/ObservationPages'
             binary.parent.mkdir(parents=True)
             (app/'Contents/Info.plist').write_bytes(plistlib.dumps({
                 'CFBundleIdentifier': TARGET, 'CFBundleExecutable': binary.name,
-                'CFBundleName': 'Tacto Observation Pages Fixture', 'CFBundlePackageType': 'APPL',
+                'CFBundleName': 'Haejo Observation Pages Fixture', 'CFBundlePackageType': 'APPL',
                 'LSUIElement': True}))
             subprocess.run(['xcrun', 'swiftc', '-parse-as-library',
                             str(ROOT/'tests/fixtures/NativeObservationPagesFixture.swift'),
@@ -111,7 +111,7 @@ def run_probe(driver, *, provider='fixed', budget=4000):
                 def plan(goal, cands, history):
                     if provider == 'fixed':
                         selected = json.loads(oracle.read_text())
-                        desired = 'tacto-pages-result' if selected['count'] else 'tacto-pages-Item239'
+                        desired = 'haejo-pages-result' if selected['count'] else 'haejo-pages-Item239'
                         found = next((c for c in cands if c.get('match') == desired or desired in c.get('line', '')), None)
                         if found:
                             answer = {'actions': [{'candidate': found, 'do': 'read' if selected['count'] else 'click'}],
@@ -184,10 +184,10 @@ def main():
     descriptor = os.open(args.output, os.O_WRONLY|os.O_CREAT|os.O_EXCL, 0o600)
     with os.fdopen(descriptor, 'w') as stream:
         try:
-            from tacto.driver import Driver
-            from tacto.helper import InheritedHelperDriver
+            from haejo.driver import Driver
+            from haejo.helper import InheritedHelperDriver
             if args.transport == 'helper' and not InheritedHelperDriver.available():
-                raise RuntimeError('Use launcher/tacto eval native_observation_pages_fixed for the signed path')
+                raise RuntimeError('Use launcher/haejo eval native_observation_pages_fixed for the signed path')
             driver = Driver() if args.transport == 'direct' else InheritedHelperDriver()
             try:
                 report = run_probe(driver, provider=args.provider, budget=args.budget)

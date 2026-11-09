@@ -29,19 +29,19 @@ def runtime_evidence(launcher):
     if not entry.is_file() or not os.access(entry,os.X_OK) or entry.parent.name!='launcher':
         raise ValueError('launcher must be a runtime/launcher executable')
     runtime=entry.parent.parent
-    packages=list((runtime/'.venv/lib').glob('python*/site-packages/tacto'))
-    if len(packages)>1:raise ValueError('selected runtime has multiple tacto packages')
-    package=packages[0] if packages else runtime/'tacto'
+    packages=list((runtime/'.venv/lib').glob('python*/site-packages/haejo'))
+    if len(packages)>1:raise ValueError('selected runtime has multiple haejo packages')
+    package=packages[0] if packages else runtime/'haejo'
     if not (package/'__init__.py').is_file():
-        raise ValueError('selected runtime has no unambiguous tacto package')
-    helper=runtime/'helper/Tacto Helper.app/Contents/MacOS/TactoHelper'
+        raise ValueError('selected runtime has no unambiguous haejo package')
+    helper=runtime/'helper/Haejo Helper.app/Contents/MacOS/HaejoHelper'
     if not helper.is_file():
-        raise ValueError('selected runtime helper requires a Tacto Helper.app layout (Preview2 or compatible)')
+        raise ValueError('selected runtime helper requires a Haejo Helper.app layout (Preview2 or compatible)')
     skill=runtime/'skill/SKILL.md'
     python=runtime/'.venv/bin/python'
     paths=[entry,helper,skill,python,*sorted(package.rglob('*.py')),
            *sorted((runtime/'skill/references').glob('*.md'))]
-    compatibility=package.with_name('tacto')
+    compatibility=package.with_name('haejo')
     if compatibility.is_dir():paths += sorted(compatibility.rglob('*.py'))
     files={str(path.relative_to(runtime)):hashlib.sha256(path.read_bytes()).hexdigest()
            for path in paths}
@@ -61,11 +61,11 @@ def agent_evidence(executable):
 def runtime_aliases(runtime):
     """Alias alignment is environment evidence, not proof of agent execution."""
     expected=Path(runtime['resolved_launcher'])
-    aliases={'PATH/tacto':shutil.which('tacto'),
-             'local/tacto':str(Path.home()/'.local/bin/tacto')}
+    aliases={'PATH/haejo':shutil.which('haejo'),
+             'local/haejo':str(Path.home()/'.local/bin/haejo')}
     paths={key:str(Path(path).resolve()) if path and Path(path).exists() else None
            for key,path in aliases.items()}
-    skill=Path.home()/'.codex/skills/tacto/SKILL.md'
+    skill=Path.home()/'.codex/skills/haejo/SKILL.md'
     paths['codex_skill']=str(skill.resolve()) if skill.exists() else None
     matched=all(path==str(expected) for key,path in paths.items() if key!='codex_skill')
     matched=matched and paths['codex_skill']==str(Path(runtime['skill']).resolve())
@@ -111,10 +111,10 @@ def guide_runtime_compatibility(runtime, guide):
             for command,flags in required_flags.items())):
         raise ValueError('unsupported guide command flags')
     probe=r'''import importlib.util,json,re
-spec=importlib.util.find_spec('tacto.command_help')
+spec=importlib.util.find_spec('haejo.command_help')
 if spec is None: print(json.dumps({'supported':[]}))
 else:
- from tacto.command_help import command_help
+ from haejo.command_help import command_help
  help_text={c:command_help(c,['--help']) for c in COMMANDS}
  print(json.dumps({'supported':[c for c,h in help_text.items() if isinstance(h,str)],
                    'flags':{c:sorted(set(re.findall(r'(?<![\w-])--[a-z][a-z0-9-]*',h))) for c,h in help_text.items() if isinstance(h,str)}}))

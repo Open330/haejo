@@ -1,10 +1,10 @@
 """Pure dispatch/contract regressions; no native apps or model calls."""
 import unittest
-from tacto import safety
-from tacto.contract import Resource, SafetyContract, ContextBinding, issue_approval
-from tacto.flow import Flow, Step, Selector, replay
-from tacto.general import run
-from tacto.library import textedit_write_note, textedit_emphasize
+from haejo import safety
+from haejo.contract import Resource, SafetyContract, ContextBinding, issue_approval
+from haejo.flow import Flow, Step, Selector, replay
+from haejo.general import run
+from haejo.library import textedit_write_note, textedit_emphasize
 
 TARGET='com.apple.TextEdit'
 BODY='1 TextArea Identifier: First Text View, Value: hello'
@@ -30,7 +30,7 @@ class AutosaveEffectsTests(unittest.TestCase):
         self.assertEqual({'credential'},safety.effects_of({'name':'set_value'},'1 TextArea Title: password',target=TARGET)[0])
 
     def test_edit_keys_are_persistent_but_navigation_is_exempt(self):
-        from tacto.protocol import NAVIGATION_KEYS
+        from haejo.protocol import NAVIGATION_KEYS
         for key in ('cmd+v','cmd+x','cmd+z','cmd+shift+z','delete','cmd+backspace',
                     'cmd+b','cmd+i','cmd+u','Return','a','shift+A'):
             self.assertEqual({'write_persistent'},safety.effects_of({'name':'press_key','key':key},target=TARGET)[0],key)
@@ -74,8 +74,8 @@ class AutosaveEffectsTests(unittest.TestCase):
         self.assertEqual('unverified',result.log[-1]['status'])
 
     def test_promote_keeps_document_persistence(self):
-        from tacto.promote import Candidate,to_flow
-        from tacto.contract import Envelope
+        from haejo.promote import Candidate,to_flow
+        from haejo.contract import Envelope
         c=Candidate(goal='edit',target=TARGET,envelope=Envelope(
             quote='edit document',allows=frozenset({'write_persistent'}),scope='item',reversibility='recoverable'),
             actions=[dict(do='set_value',role='TextArea',attr='Identifier',match='First Text View',

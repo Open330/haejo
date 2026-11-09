@@ -2,9 +2,9 @@ import copy
 import unittest
 from unittest.mock import Mock
 
-from tacto.contract import Envelope
-from tacto.flow import Flow, Postcondition, Selector, Step, replay
-from tacto.window_absence import reobserve_closed_window
+from haejo.contract import Envelope
+from haejo.flow import Flow, Postcondition, Selector, Step, replay
+from haejo.window_absence import reobserve_closed_window
 from tests.test_runtime_contract import App
 
 
@@ -118,7 +118,7 @@ class WindowAbsenceTests(unittest.TestCase):
                                                    Postcondition(absent_role='Window'), unavailable()))
 
     def test_replay_closes_once_and_trace_replays_without_repeating_input(self):
-        from tacto.trace import TracingDriver, TraceDriver, Trace
+        from haejo.trace import TracingDriver, TraceDriver, Trace
         step = Step('click', Selector(identifier='close'),
                     safety=Envelope.minimal().contract_for({'write_ephemeral'}, 'entry'),
                     postcondition=Postcondition(absent_role='Window'))

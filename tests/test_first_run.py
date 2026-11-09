@@ -3,7 +3,7 @@ import json
 import re
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
-from tacto.first_run import run_first_task, TEXT
+from haejo.first_run import run_first_task, TEXT
 
 
 OLD = '0 Window  Title: "Keep.txt", Document: "/owned/Keep.txt"\n  1 TextArea  Value: ORIGINAL, Identifier: First Text View\n'
@@ -20,10 +20,10 @@ def observation(tree, **kw):
 
 class FirstRunTests(unittest.TestCase):
     def setUp(self):
-        presenter = patch('tacto.first_run.present_app', return_value=dict(foreground_verified=False, error='test_not_presented'))
+        presenter = patch('haejo.first_run.present_app', return_value=dict(foreground_verified=False, error='test_not_presented'))
         self.presenter = presenter.start()
         self.addCleanup(presenter.stop)
-        activation = patch('tacto.first_run.activate_app', return_value=dict(foreground_verified=False))
+        activation = patch('haejo.first_run.activate_app', return_value=dict(foreground_verified=False))
         self.activation = activation.start()
         self.addCleanup(activation.stop)
 
@@ -36,7 +36,7 @@ class FirstRunTests(unittest.TestCase):
         self.assertEqual(4, driver.observe.call_count)
 
     def test_old_preference_cannot_suppress_first_result(self):
-        from tacto.access_log import current
+        from haejo.access_log import current
         token = current.set(SimpleNamespace(preferences={"present_first_result":False}))
         try:
             self.presenter.return_value = dict(foreground_verified=True)
@@ -73,7 +73,7 @@ class FirstRunTests(unittest.TestCase):
                                   detail='missing_typed_host_commit_evidence')])
         execute = Mock(side_effect=[SimpleNamespace(ok=create_ok, log=[]), write])
         launch = Mock(return_value={'type': 'app_launch', 'status': 'launched'})
-        with patch("tacto.first_run.time.sleep"):
+        with patch("haejo.first_run.time.sleep"):
             result = run_first_task(driver, launch=launch, execute=execute)
         return result, driver, execute
 
@@ -103,7 +103,7 @@ class FirstRunTests(unittest.TestCase):
         driver.observe.side_effect = [observation(OLD), observation(OLD), observation(OLD),
                                       observation(OLD+NEW), observation(OLD+DONE)]
         execute = Mock(return_value=SimpleNamespace(ok=True, log=[]))
-        with patch("tacto.first_run.time.sleep") as sleep:
+        with patch("haejo.first_run.time.sleep") as sleep:
             result = run_first_task(driver, launch=lambda _: dict(type='app_launch'), execute=execute)
         self.assertEqual('text_verified', result['status'])
         self.assertEqual(2, execute.call_count)
@@ -172,7 +172,7 @@ class FirstRunTests(unittest.TestCase):
         driver.observe.side_effect = reads
         execute = Mock(side_effect=creation)
         activate = activate or Mock(return_value=dict(foreground_verified=True))
-        with patch('tacto.first_run.time.sleep'):
+        with patch('haejo.first_run.time.sleep'):
             result = run_first_task(driver, launch=lambda _:dict(type='app_launch'),
                                     execute=execute, activate=activate)
         return result, execute, activate
@@ -336,7 +336,7 @@ class FirstRunTests(unittest.TestCase):
 
 class WindowIdentityTransportTests(unittest.TestCase):
     def driver(self):
-        from tacto.helper import HelperDriver
+        from haejo.helper import HelperDriver
         driver=HelperDriver.__new__(HelperDriver)
         driver._last_action_at=0
         driver.capabilities={'observe.window_identity'}

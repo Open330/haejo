@@ -18,26 +18,26 @@ class StandalonePreviewTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             folder = Path(folder)
             source = folder/'project'; source.mkdir()
-            (source/'tacto').mkdir()
-            (source/'tacto/__init__.py').write_text('')
+            (source/'haejo').mkdir()
+            (source/'haejo/__init__.py').write_text('')
             (source/'pyproject.toml').write_text('''[build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 [project]
-name = "tacto-runtime"
+name = "haejo-runtime"
 version = "0.1.0"
 readme = "README.md"
 [project.scripts]
-tacto = "tacto.cli:main"
+haejo = "haejo.cli:main"
 [tool.setuptools]
-packages = ["tacto"]
+packages = ["haejo"]
 ''')
-            (source/'README.md').write_text('Current Tacto documentation')
+            (source/'README.md').write_text('Current Haejo documentation')
             runtime = folder/'runtime'
             site = runtime/'.venv/lib/python3.11/site-packages'; site.mkdir(parents=True)
-            stale = site/'tacto_runtime-0.1.0.dist-info'; stale.mkdir()
-            (stale/'METADATA').write_text('Name: tacto-runtime\n\nOutdated local documentation')
-            (stale/'entry_points.txt').write_text('[console_scripts]\nretired-command = tacto.cli:main\ntacto = tacto.cli:main\n')
+            stale = site/'haejo_runtime-0.1.0.dist-info'; stale.mkdir()
+            (stale/'METADATA').write_text('Name: haejo-runtime\n\nOutdated local documentation')
+            (stale/'entry_points.txt').write_text('[console_scripts]\nretired-command = haejo.cli:main\nhaejo = haejo.cli:main\n')
             retired = site/'nlc-0.1.0.dist-info'; retired.mkdir()
             (retired/'METADATA').write_text('Name: nlc\n\nRetired project distribution')
             (retired/'entry_points.txt').write_text('[console_scripts]\nnlc = nlc.cli:main\n')
@@ -45,23 +45,23 @@ packages = ["tacto"]
             (foreign/'METADATA').write_text('Name: foreign-pkg\n\nForeign distribution')
             (foreign/'entry_points.txt').write_text('[console_scripts]\nthird-party = foreign.cli:main\n')
             bin_dir = runtime/'.venv/bin'; bin_dir.mkdir()
-            for name in ('retired-command', 'nlc', 'tacto', 'third-party'):
+            for name in ('retired-command', 'nlc', 'haejo', 'third-party'):
                 (bin_dir/name).write_text('wrapper')
             work = folder/'work'; work.mkdir()
             with patch.object(builder, 'ROOT', source):
                 builder.refresh_distribution_metadata(runtime, work)
-            self.assertIn('Current Tacto documentation', (stale/'METADATA').read_text())
+            self.assertIn('Current Haejo documentation', (stale/'METADATA').read_text())
             self.assertNotIn('retired-command', (stale/'entry_points.txt').read_text())
-            self.assertEqual('tacto\n', (stale/'top_level.txt').read_text())
+            self.assertEqual('haejo\n', (stale/'top_level.txt').read_text())
             self.assertFalse((bin_dir/'retired-command').exists())
             self.assertFalse(retired.exists())
             self.assertFalse((bin_dir/'nlc').exists())
-            self.assertFalse((bin_dir/'tacto').exists())
+            self.assertFalse((bin_dir/'haejo').exists())
             self.assertEqual('wrapper', (bin_dir/'third-party').read_text())
             self.assertEqual('Name: foreign-pkg\n\nForeign distribution', (foreign/'METADATA').read_text())
 
     def test_copy_excludes_editable_paths_caches_and_direct_url_metadata(self):
-        names=['__editable__.tacto.pth','__editable___finder.py','x.pth','direct_url.json','__pycache__','module.py','license.txt']
+        names=['__editable__.haejo.pth','__editable___finder.py','x.pth','direct_url.json','__pycache__','module.py','license.txt']
         kept=set(names)-set(builder.ignored('/owned',names))
         self.assertEqual({'module.py','license.txt'},kept)
 
@@ -73,7 +73,7 @@ packages = ["tacto"]
             untouched=lib/'ordinary.py';untouched.write_text("value='/private-builder/python'")
             self.assertEqual(1,builder.normalize_python_metadata(runtime,Path('/private-builder/python')))
             data={};exec(metadata.read_text(),data)
-            self.assertEqual({'prefix':'/opt/tacto-runtime','flag':'keep'},data['build_time_vars'])
+            self.assertEqual({'prefix':'/opt/haejo-runtime','flag':'keep'},data['build_time_vars'])
             self.assertIn('/private-builder/python',untouched.read_text())
             with self.assertRaisesRegex(RuntimeError,'private_build_path_in_bundle'):
                 builder.require_private_paths_absent(runtime,('/private-builder',))
@@ -83,7 +83,7 @@ packages = ["tacto"]
     @unittest.skipUnless(sys.platform=='darwin','macOS Swift GUI compiler required')
     def test_actual_gui_binary_has_no_local_home_or_checkout_path(self):
         with tempfile.TemporaryDirectory() as folder:
-            work=Path(folder);binary=work/'TactoSetup'
+            work=Path(folder);binary=work/'HaejoSetup'
             builder.compile_setup(binary,work)
             data=binary.read_bytes()
             self.assertNotIn(str(Path.home()).encode(),data)
@@ -92,15 +92,15 @@ packages = ["tacto"]
     def test_import_origin_requires_existing_files_inside_bundle(self):
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder)/'runtime';root.mkdir();module=root/'module.py';module.write_text('')
-            helper=root/'helper/Tacto Helper.app/Contents/MacOS/TactoHelper'
+            helper=root/'helper/Haejo Helper.app/Contents/MacOS/HaejoHelper'
             helper.parent.mkdir(parents=True);helper.write_text('native fixture')
-            def receipt(tacto=module, native=helper):
-                return {'tacto':str(tacto),'prefix':str(root),'helper':str(native)}
+            def receipt(haejo=module, native=helper):
+                return {'haejo':str(haejo),'prefix':str(root),'helper':str(native)}
             self.assertTrue(builder.bundled_import_valid(receipt(),root))
             outside=Path(folder)/'outside.py';outside.write_text('')
             self.assertFalse(builder.bundled_import_valid(receipt(outside),root))
             self.assertFalse(builder.bundled_import_valid(receipt(native=outside),root))
-            self.assertFalse(builder.bundled_import_valid({'tacto':str(module),'prefix':str(root)},root))
+            self.assertFalse(builder.bundled_import_valid({'haejo':str(module),'prefix':str(root)},root))
             module.unlink();module.symlink_to(outside)
             self.assertFalse(builder.bundled_import_valid(receipt(),root))
             self.assertFalse(builder.bundled_import_valid(receipt(root/'missing'),root))

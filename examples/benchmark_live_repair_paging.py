@@ -8,16 +8,16 @@ import sys
 import time
 
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT))
-from tacto.auto_repair import AutoRepair, choose_candidate
-from tacto.cli import _run_flow
-from tacto.flow_batch import BatchDriver
-from tacto.provider_observation import summarize_provider_calls
+from haejo.auto_repair import AutoRepair, choose_candidate
+from haejo.cli import _run_flow
+from haejo.flow_batch import BatchDriver
+from haejo.provider_observation import summarize_provider_calls
 from tests.test_auto_repair import recipe
 from tests.test_repair_candidate_paging import ManyControls
 
 
 def source_manifest():
-    paths=list((ROOT/'tacto').glob('*.py'))+[Path(__file__).resolve(),
+    paths=list((ROOT/'haejo').glob('*.py'))+[Path(__file__).resolve(),
         ROOT/'tests/test_auto_repair.py',ROOT/'tests/test_repair_candidate_paging.py',
         ROOT/'tests/test_flow_batch.py',ROOT/'tests/test_flow_safety_defaults.py',ROOT/'tests/test_runtime_contract.py']
     return {str(p.relative_to(ROOT)):hashlib.sha256(p.read_bytes()).hexdigest() for p in paths}

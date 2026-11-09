@@ -20,13 +20,13 @@ class SignedElementReportTests(unittest.TestCase):
         driver = SimpleNamespace(capabilities=[])
         audit = SimpleNamespace(report=lambda: {'status':'NOT_STARTED'})
         for probe in ('signed-element-click.py', 'signed-commit-disconnect.py', 'signed-native-recovery.py', 'native-opaque-point.py'):
-            with self.subTest(probe=probe), tempfile.TemporaryDirectory(prefix='tacto-private-report-') as work:
+            with self.subTest(probe=probe), tempfile.TemporaryDirectory(prefix='haejo-private-report-') as work:
                 main = runpy.run_path(str(root / 'examples/probes' / probe))['main']
                 def invoke(path):
                     return main(driver, path) if probe != 'native-opaque-point.py' else main(path)
                 path = Path(work) / 'report.json'
-                with patch('tacto.driver.Driver._resolve', side_effect=KeyboardInterrupt), \
-                     patch('tacto.input_audit_process.ProcessInputAudit', return_value=audit):
+                with patch('haejo.driver.Driver._resolve', side_effect=KeyboardInterrupt), \
+                     patch('haejo.input_audit_process.ProcessInputAudit', return_value=audit):
                     with self.assertRaises(KeyboardInterrupt):
                         invoke(path)
                     original = path.read_bytes()

@@ -4,8 +4,8 @@ from pathlib import Path
 from uuid import uuid4
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 ROOT=Path(__file__).resolve().parents[1]
-LAUNCHER=ROOT/'launcher/tacto'
-@unittest.skipUnless(sys.platform=='darwin' and os.environ.get('TACTO_RUN_NATIVE_CREDENTIAL_TESTS')=='1','opt-in native controlled credential paste')
+LAUNCHER=ROOT/'launcher/haejo'
+@unittest.skipUnless(sys.platform=='darwin' and os.environ.get('HAEJO_RUN_NATIVE_CREDENTIAL_TESTS')=='1','opt-in native controlled credential paste')
 class CredentialPasteNative(unittest.TestCase):
  def test_paste_updates_controlled_state_and_restores_all_clipboard_formats(self):
   from AppKit import NSPasteboard
@@ -18,9 +18,9 @@ class CredentialPasteNative(unittest.TestCase):
      from urllib.parse import urlparse,parse_qs
      self.server.proof=parse_qs(urlparse(self.path).query);self.send_response(204);self.end_headers();return
     self.send_response(200);self.send_header('Content-Type','text/html');self.end_headers()
-    self.wfile.write(b'''<title>Tacto owned controlled password</title><input type="password" aria-label="Owned password" id="p"><script>let state='',inputs=0;p.addEventListener('input',()=>{state=p.value;inputs++});setInterval(()=>fetch('/proof?dom='+String(p.value==='owned-Synthetic-47!')+'&state='+String(state==='owned-Synthetic-47!')+'&inputs='+inputs),100)</script>'''.replace(b'Tacto owned controlled password',self.server.fixture_title.encode()))
-  server=ThreadingHTTPServer(('127.0.0.1',0),Page);server.proof={};server.fixture_title='Tacto owned controlled password '+uuid4().hex;thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
-  def command(*args):return subprocess.run([str(LAUNCHER),*args],capture_output=True,text=True,timeout=40,env=dict(os.environ,TACTO_HELPER_MODE='warm'))
+    self.wfile.write(b'''<title>Haejo owned controlled password</title><input type="password" aria-label="Owned password" id="p"><script>let state='',inputs=0;p.addEventListener('input',()=>{state=p.value;inputs++});setInterval(()=>fetch('/proof?dom='+String(p.value==='owned-Synthetic-47!')+'&state='+String(state==='owned-Synthetic-47!')+'&inputs='+inputs),100)</script>'''.replace(b'Haejo owned controlled password',self.server.fixture_title.encode()))
+  server=ThreadingHTTPServer(('127.0.0.1',0),Page);server.proof={};server.fixture_title='Haejo owned controlled password '+uuid4().hex;thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
+  def command(*args):return subprocess.run([str(LAUNCHER),*args],capture_output=True,text=True,timeout=40,env=dict(os.environ,HAEJO_HELPER_MODE='warm'))
   try:
    opened=command('open-url',f'http://127.0.0.1:{server.server_port}','--browser','com.apple.Safari','--helper')
    self.assertEqual(0,opened.returncode,opened.stdout+opened.stderr)
@@ -38,8 +38,8 @@ class CredentialPasteNative(unittest.TestCase):
     self.assertTrue(before==clipboard(),'Clipboard item/type bytes were not preserved')
     self.assertNotIn('owned-Synthetic-47!',r.stdout+r.stderr+trace.read_text())
     # The same route must work without exposing a Vault value to the agent.
-    from tacto.credential_grants import CredentialStore
-    from tacto.credential_vault import KeychainVault
+    from haejo.credential_grants import CredentialStore
+    from haejo.credential_vault import KeychainVault
     import uuid
     name='owned-paste-'+uuid.uuid4().hex;store=CredentialStore();vault=KeychainVault()
     try:

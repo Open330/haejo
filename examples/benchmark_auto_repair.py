@@ -7,7 +7,7 @@ import sys
 import uuid
 
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT))
-from tacto.flow import Flow
+from haejo.flow import Flow
 from examples.benchmark_batch import BatchClient, manifest
 from examples.benchmark_grouped_checks import variants
 from examples.repeat_benchmark import Fixture, build, jobs, write
@@ -21,7 +21,7 @@ def sources():
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--source',required=True);parser.add_argument('--output',required=True)
     args=parser.parse_args();base=Path(args.output).resolve();base.mkdir(mode=0o700)
-    target='ai.callabo.tacto.repeatbench.'+uuid.uuid4().hex[:8]
+    target='ai.callabo.haejo.repeatbench.'+uuid.uuid4().hex[:8]
     fixture=Fixture(base/'fixture',build(base,target));client=None;rows=[]
     recipe=variants(Flow.from_json(Path(args.source).read_text()),target)['grouped_checks']
     template=base/'template.json';template.write_text(recipe.to_json(compact=True));template.chmod(0o600)
@@ -38,8 +38,8 @@ def main():
             if row['exit']!=0 or not row['oracle']['passed'] or not row['oracle']['single_commit'] or row['oracle']['active']:
                 raise ValueError('automatic recovery job failed')
         ending=client.finish();lines=list(client.lines);startup=client.startup_seconds;client.close();client=None
-        providers=[json.loads(line.removeprefix('TACTO_AUTO_REPAIR_PROVIDER ')) for line in lines if line.startswith('TACTO_AUTO_REPAIR_PROVIDER ')]
-        resumes=[json.loads(line.removeprefix('TACTO_AUTO_REPAIR_RESUME ')) for line in lines if line.startswith('TACTO_AUTO_REPAIR_RESUME ')]
+        providers=[json.loads(line.removeprefix('HAEJO_AUTO_REPAIR_PROVIDER ')) for line in lines if line.startswith('HAEJO_AUTO_REPAIR_PROVIDER ')]
+        resumes=[json.loads(line.removeprefix('HAEJO_AUTO_REPAIR_RESUME ')) for line in lines if line.startswith('HAEJO_AUTO_REPAIR_RESUME ')]
         # Completion ambiguity must stop before the next queued task, with no model retry.
         negative=Flow.from_json(template.read_text());negative.steps[-1].postcondition.all_of[0].equals='not-done'
         path=base/'negative.json';path.write_text(negative.to_json(compact=True));path.chmod(0o600)
@@ -49,7 +49,7 @@ def main():
         client=BatchClient(path,directory,maximum=2,auto_repair=True)
         request=(json.dumps({'params':params})+'\n').encode()
         client.process.stdin.write(request*2);client.process.stdin.flush()
-        failure=client.marker('TACTO_BATCH_RESULT ');stopped=client.finish();state=fixture.state()
+        failure=client.marker('HAEJO_BATCH_RESULT ');stopped=client.finish();state=fixture.state()
         neg_pass=(failure['exit']==1 and failure['model_requests']==0 and stopped['completed']==0
                   and state['phase']=='done' and len([c for c in state['commits'] if c['job']==job['job']])==1)
         client.close();client=None

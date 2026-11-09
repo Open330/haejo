@@ -24,10 +24,10 @@ class AgentTimelineTests(unittest.TestCase):
         marker={'replay_seconds':2,'run_flow_seconds':3,'PRIVATE':'SECRET',
             'calls':{'act':{'seconds':1,'count':2,'exceptions':0,'text':'SECRET'},
                      'SECRET':{'seconds':9}}}
-        output='PRIVATE AX\nTACTO_TIMINGS '+json.dumps(marker)
+        output='PRIVATE AX\nHAEJO_TIMINGS '+json.dumps(marker)
         stream=json.dumps({'type':'item.completed','item':{'aggregated_output':output}})
         result=AgentTimeline(0,clock=lambda:0).finish(5,stream)
-        self.assertEqual(1,result['tacto_timings'][0]['values']['calls']['act']['seconds'])
+        self.assertEqual(1,result['haejo_timings'][0]['values']['calls']['act']['seconds'])
         self.assertNotIn('SECRET',repr(result));self.assertNotIn('PRIVATE',repr(result))
         self.assertEqual({},numeric_timings({'replay_seconds':float('nan'),'session_done_seconds':True}))
 
@@ -44,10 +44,10 @@ class AgentTimelineTests(unittest.TestCase):
         self.assertEqual([],result['events']);self.assertEqual(3,result['dropped_records'])
 
     def test_numeric_marker_records_are_bounded(self):
-        output='\n'.join(['TACTO_TIMINGS {"replay_seconds":1}']*1005)
+        output='\n'.join(['HAEJO_TIMINGS {"replay_seconds":1}']*1005)
         stream=json.dumps({'type':'item.completed','item':{'aggregated_output':output}})
         result=AgentTimeline(0,clock=lambda:0).finish(3,stream)
-        self.assertEqual(1000,len(result['tacto_timings']))
+        self.assertEqual(1000,len(result['haejo_timings']))
         self.assertEqual(5,result['timing_records_dropped'])
 
 if __name__=='__main__':unittest.main()

@@ -2,8 +2,8 @@
 import json
 import unittest
 
-from tacto.flow import Flow
-from tacto.library import builders
+from haejo.flow import Flow
+from haejo.library import builders
 
 SAFETY = {"effects": ["write_ephemeral"], "resource": {"object_type": "entry", "scope": "entry"},
           "reversibility": "reversible"}

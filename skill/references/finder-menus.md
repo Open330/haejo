@@ -6,7 +6,7 @@ postcondition on the window, e.g. `{"field": {"role": "Window", "title":
 "<folder name>"}, "attribute": "Title", "equals": "<folder name>"}`, then
 read `statusBarText` with `"in_focused_window": true` for the item count.
 Prefer this over Go > Go to Folder…: that menu brings Finder to the front
-(Tacto reports the app observed in front and stops sending after that step).
+(Haejo reports the app observed in front and stops sending after that step).
 
 For Finder, use `Return` with `--helper` in the Go to Folder sheet's path field
 (`"identifier": "PathTextField"` inside the `GoToWindow` sheet), to confirm a
