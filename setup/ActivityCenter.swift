@@ -66,6 +66,7 @@ struct ActivityRecord: Equatable {
     var presentationSkipped = false
     var modelCalls: Int?
     var taskID: String?
+    var invocationID: String?
     var complete: Bool { exitCode != nil && !command.isEmpty }
     var failed: Bool { exitCode.map { $0 != 0 } ?? false }
     var status: String { !complete ? "완료 확인 없음" : failed ? "실패" : "완료" }
@@ -87,8 +88,16 @@ struct ActivityRecord: Equatable {
 struct ActivityTask: Equatable {
     let id: String
     var goal = ""
+    var detail = ""                       // agent-written description of the user's request
     var open = true
     var result: String?
+    var notes: [ActivityNote] = []        // `tacto task note` / `task end --note`
+    var reasons: [String: String] = [:]   // invocation id -> `--why`
+}
+
+struct ActivityNote: Equatable {
+    let at: Date
+    let text: String
 }
 
 /// One history row: every call made for one task, or a single call made outside any task.
@@ -217,6 +226,8 @@ final class ActivityStore {
                 record.command = row["command"] as? String ?? ""
                 if let id = row["task_id"] as? String, id.utf8.count == 26, id.hasPrefix("t-"),
                    id.utf8.dropFirst(2).allSatisfy({ (0x30...0x39).contains($0) || (0x61...0x66).contains($0) }) { record.taskID = id }
+                if let id = row["invocation_id"] as? String, id.utf8.count == 32,
+                   id.utf8.allSatisfy({ (0x30...0x39).contains($0) || (0x61...0x66).contains($0) }) { record.invocationID = id }
                 if let date = row["at"] as? String, let parsed = formatter.date(from:date) { record.started = parsed }
             case "command_end": record.exitCode = activityInteger(row["exit_code"])
             case "log_truncated": record.truncated = true
@@ -254,10 +265,33 @@ final class ActivityStore {
               let object = try? JSONSerialization.jsonObject(with:data) as? [String:Any],
               activityInteger(object["schema"]) == 1, object["id"] as? String == id else { return nil }
         var task = ActivityTask(id:id)
-        task.goal = String((object["goal"] as? String ?? "").prefix(300))
+        task.goal = String((object["goal"] as? String ?? "").prefix(1000))
+        task.detail = String((object["detail"] as? String ?? "").prefix(4000))
         task.open = object["state"] as? String != "closed"
         task.result = object["result"] as? String
+        (task.notes, task.reasons) = taskEvents(directory.appendingPathComponent("events.jsonl"))
         return task
+    }
+    private var eventCache: [URL: (Date, Int, [ActivityNote], [String: String])] = [:]
+    /// Decision notes and per-call reasons from a task's events.jsonl, re-read only when it changes.
+    func taskEvents(_ url: URL) -> ([ActivityNote], [String: String]) {
+        guard let a = try? FileManager.default.attributesOfItem(atPath:url.path),
+              let size = a[.size] as? Int, let modified = a[.modificationDate] as? Date else { return ([], [:]) }
+        if let c = eventCache[url], c.0 == modified, c.1 == size { return (c.2, c.3) }
+        guard let data = try? readPrivate(url, limit:8*1024*1024), let text = String(data:data, encoding:.utf8) else { return ([], [:]) }
+        let formatter = ISO8601DateFormatter(); formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        var notes: [ActivityNote] = [], reasons: [String: String] = [:]
+        for line in text.split(separator:"\n") where line.contains("\"note\"") || line.contains("\"why\"") {
+            guard let row = try? JSONSerialization.jsonObject(with:Data(line.utf8)) as? [String:Any] else { continue }
+            if row["event"] as? String == "note", let note = row["text"] as? String,
+               let at = (row["at"] as? String).flatMap(formatter.date) {
+                notes.append(ActivityNote(at:at, text:String(note.prefix(1000))))
+            } else if row["event"] as? String == "invocation_start", let id = row["invocation"] as? String, let why = row["why"] as? String {
+                reasons[id] = String(why.prefix(500))
+            }
+        }
+        eventCache[url] = (modified, size, notes, reasons)
+        return (notes, reasons)
     }
     /// Calls grouped by the task they were made for, newest activity first.
     func groups() throws -> [ActivityGroup] {
@@ -567,7 +601,7 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
         let query = search.stringValue.trimmingCharacters(in:.whitespacesAndNewlines)
         filtered = allRecords.filter { r in
             (filter.selectedSegment != 1 || r.failed) && (filter.selectedSegment != 2 || !r.complete)
-            && (query.isEmpty || ([r.title, r.status] + r.records.flatMap { [$0.title, $0.appName] }).joined(separator:" ").localizedCaseInsensitiveContains(query))
+            && (query.isEmpty || ([r.title, r.status, r.task?.detail ?? ""] + r.records.flatMap { [$0.title, $0.appName] }).joined(separator:" ").localizedCaseInsensitiveContains(query))
         }
         let failed = allRecords.filter { $0.failed }.count
         let calls = allRecords.reduce(0) { $0 + $1.records.count }
@@ -632,16 +666,38 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
         detail.addArrangedSubview(activityLabel("작업 · \(g.status) · 호출 \(g.records.count)회" + (failures > 0 ? " (실패 \(failures))" : ""),13,.medium))
         detail.addArrangedSubview(activityLabel("\(dateFormatter.string(from:g.started)) – \(dateFormatter.string(from:g.latest)) · \(g.appNames)",12,secondary:true))
         if let id = g.taskID { detail.addArrangedSubview(activityLabel(id,11,secondary:true)) }
+        if let task = g.task, !task.detail.isEmpty {
+            detail.addArrangedSubview(activityLabel("요청 설명",12,.semibold))
+            detail.addArrangedSubview(activityLabel(task.detail,13))
+        }
         // Newest first and bounded, so a long task stays readable and the 2-second refresh stays cheap.
         let shown = g.records.prefix(ActivityCenter.taskCallLimit)
         if g.records.count > shown.count { detail.addArrangedSubview(activityLabel("최근 \(shown.count)회를 최신순으로 표시합니다 (전체 \(g.records.count)회).",12,secondary:true)) }
         else if g.records.count > 1 { detail.addArrangedSubview(activityLabel("최신순으로 표시합니다.",12,secondary:true)) }
+        // Decision notes interleave by time with the calls shown; older notes past the window are omitted with them.
+        let oldestShown = shown.last?.started ?? .distantPast
+        var notes = (g.task?.notes ?? []).filter { g.records.count <= shown.count || $0.at >= oldestShown }.sorted { $0.at > $1.at }
+        func addNotes(after date: Date?) {
+            while let note = notes.first, date.map({ note.at >= $0 }) ?? true {
+                notes.removeFirst()
+                let icon = NSImageView(image:NSImage(systemSymbolName:"text.bubble",accessibilityDescription:"판단") ?? NSImage())
+                icon.contentTintColor = .controlAccentColor
+                icon.widthAnchor.constraint(equalToConstant:18).isActive = true
+                icon.heightAnchor.constraint(equalToConstant:18).isActive = true
+                let texts = column([activityLabel("판단 · " + note.text,13,.medium),activityLabel(dateFormatter.string(from:note.at),11,secondary:true)],spacing:4)
+                let divider = NSBox(); divider.boxType = .separator; detail.addArrangedSubview(divider)
+                let row = NSStackView(views:[icon,texts]); row.alignment = .top; row.spacing = 12
+                detail.addArrangedSubview(row)
+            }
+        }
         for (offset, r) in shown.enumerated() {
+            addNotes(after:r.started)
             let index = g.records.count - 1 - offset
             let divider = NSBox(); divider.boxType = .separator; detail.addArrangedSubview(divider)
             let head = activityLabel("\(index+1). \(r.title) · \(r.appName) · \(r.status)",14,.semibold)
             if r.failed { head.textColor = .systemRed }
             detail.addArrangedSubview(head)
+            if let id = r.invocationID, let why = g.task?.reasons[id] { detail.addArrangedSubview(activityLabel("이유 · " + why,12,.medium)) }
             var metrics = dateFormatter.string(from:r.started) + String(format:" · %.2f초 · 동작 %d회",r.elapsed/1000,r.steps.filter { $0.operation == "act" }.count)
             if let calls = r.modelCalls { metrics += " · 모델 호출 \(calls)회" }
             detail.addArrangedSubview(activityLabel(metrics,11,secondary:true))
@@ -649,6 +705,7 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
             if r.truncated || r.damaged { detail.addArrangedSubview(activityLabel(r.truncated ? "용량 제한으로 일부 접근 기록이 생략됐습니다." : "일부 기록이 손상되어 읽을 수 없습니다.",12,secondary:true)) }
             addSteps(r, limit:ActivityCenter.taskStepLimit)
         }
+        addNotes(after:nil)
     }
     static let taskCallLimit = 30
     static let taskStepLimit = 6

@@ -28,6 +28,12 @@ _CODE = re.compile(r'^[a-z][a-z0-9_]{0,80}$')
 _BUNDLE = re.compile(r'^[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$')
 RESULTS = ('done', 'failed', 'abandoned')
 MAX_GOAL = 1000
+# Agent-written prose: the task's description, a one-line reason on a call
+# (`--why`) and decision notes (`task note`). They stay in this private task
+# directory; access receipts remain content-free.
+MAX_DETAIL = 4000
+MAX_WHY = 500
+MAX_NOTE = 1000
 MAX_EVENTS_BYTES = 8 * 1024 * 1024
 MAX_TASK_JSON = 64 * 1024
 # Only names of kept recipes (built-in or saved in the library) are copied: a
@@ -176,12 +182,26 @@ def _tail_byte(path):
 
 # ---------------------------------------------------------------- lifecycle
 
-def start(goal, *, root=None):
+def _prose(text, limit, code, *, multiline):
+    """Validate agent-written prose. Returns the stripped text or None when absent."""
+    if text is None:
+        return None
+    if not isinstance(text, str) or not text.strip():
+        raise TaskRefused(code, 'Give non-empty text.')
+    text = text.strip()
+    allowed = '\t\n' if multiline else '\t'
+    if len(text) > limit or any((ord(c) < 32 and c not in allowed) or ord(c) == 127 for c in text):
+        raise TaskRefused(code, f"Use {'text' if multiline else 'one line'} of at most {limit} characters.")
+    return text
+
+
+def start(goal, *, detail=None, root=None):
     if not isinstance(goal, str) or not goal.strip():
         raise TaskRefused('task_goal_required', 'Describe the user\'s final goal in one sentence: tacto task start "<goal>".')
     goal = goal.strip()
     if len(goal) > MAX_GOAL or any(ord(c) < 32 and c not in '\t' for c in goal):
         raise TaskRefused('task_goal_invalid', f'Use one line of at most {MAX_GOAL} characters.')
+    detail = _prose(detail, MAX_DETAIL, 'task_detail_invalid', multiline=True)
     base = _private_dir(tasks_root(root), create=True)
     for _ in range(4):
         task_id = 't-' + uuid.uuid4().hex[:24]
@@ -193,6 +213,8 @@ def start(goal, *, root=None):
         _private_dir(directory, create=True)
         meta = {'schema': 1, 'id': task_id, 'goal': goal, 'state': 'open',
                 'created_at': _now(), 'closed_at': None, 'result': None}
+        if detail:
+            meta['detail'] = detail
         with _locked(directory):
             _write_meta(directory, meta)
             _append(directory, {'event': 'task_start', 'pid': os.getpid()})
@@ -200,9 +222,26 @@ def start(goal, *, root=None):
     raise OSError('task_id_exhausted')
 
 
-def end(task_id, result, *, root=None, completion_scope=None):
+def note(task_id, text, *, root=None):
+    """Record one agent decision on an open task."""
+    text = _prose(text, MAX_NOTE, 'task_note_invalid', multiline=True)
+    if text is None:
+        raise TaskRefused('task_note_invalid', 'Give the decision text: tacto task note "<decision>".')
+    directory = _task_dir(task_id, root)
+    if not directory.exists():
+        raise TaskRefused('task_unknown', 'No such task on this computer.')
+    with _locked(_private_dir(directory, create=False)):
+        meta = _load_meta(directory)
+        if meta['state'] != 'open':
+            raise TaskRefused('task_closed', f"Task already ended ({meta.get('result')}).")
+        _append(directory, {'event': 'note', 'text': text, 'pid': os.getpid()})
+    return meta
+
+
+def end(task_id, result, *, root=None, completion_scope=None, summary=None):
     if result not in RESULTS:
         raise TaskRefused('task_result_invalid', 'Use --result done, failed or abandoned.')
+    summary = _prose(summary, MAX_NOTE, 'task_note_invalid', multiline=True)
     directory = _task_dir(task_id, root)
     if not directory.exists():
         raise TaskRefused('task_unknown', 'No such task on this computer.')
@@ -213,6 +252,8 @@ def end(task_id, result, *, root=None, completion_scope=None):
         meta.update(state='closed', closed_at=_now(), result=result)
         if completion_scope in ('command', 'visible_document_text', 'failed_invocation'):
             meta['completion_scope'] = completion_scope
+        if summary:
+            _append(directory, {'event': 'note', 'text': summary, 'pid': os.getpid()})
         _write_meta(directory, meta)
         _append(directory, {'event': 'task_end', 'result': result, 'completion_scope': meta.get('completion_scope'), 'pid': os.getpid()})
     return meta
@@ -240,7 +281,7 @@ def status(task_id, *, root=None):
         raise TaskRefused('task_unknown', 'No such task on this computer.')
     _private_dir(directory, create=False)
     meta = _load_meta(directory)
-    invocations, order, damaged = {}, [], 0
+    invocations, order, damaged, notes = {}, [], 0, []
     try:
         raw = _read_regular(directory/'events.jsonl', MAX_EVENTS_BYTES)
     except FileNotFoundError:
@@ -260,8 +301,11 @@ def status(task_id, *, root=None):
         if row.get('event') == 'invocation_start' and isinstance(inv, str) and inv not in invocations:
             invocations[inv] = {k: row.get(k) for k in ('invocation', 'command', 'pid', 'parent', 'access_log')}
             invocations[inv].update(started_at=row.get('at'), ended_at=None, exit_code=None, elapsed_ms=None,
-                                    targets=[], error=None, stage=None, state=None, flows=[])
+                                    targets=[], error=None, stage=None, state=None, flows=[],
+                                    why=row['why'][:MAX_WHY] if isinstance(row.get('why'), str) else None)
             order.append(inv)
+        elif row.get('event') == 'note' and isinstance(row.get('text'), str):
+            notes.append({'at': row.get('at') if isinstance(row.get('at'), str) else None, 'text': row['text'][:MAX_NOTE]})
         elif row.get('event') == 'invocation_flow' and isinstance(inv, str) and inv in invocations:
             flows = invocations[inv]['flows']
             name = row.get('name') if isinstance(row.get('name'), str) and _FLOW_NAME.fullmatch(row['name']) else None
@@ -282,11 +326,12 @@ def status(task_id, *, root=None):
             # A missing end is never success and never permission to resend input.
             item['state'] = 'in_flight' if _alive(item['pid']) else 'uncertain'
         counts[item['state']] += 1
-    return {'type': 'task', 'task_id': meta['id'], 'goal': meta['goal'], 'state': meta['state'],
+    detail = meta.get('detail') if isinstance(meta.get('detail'), str) else None
+    return {'type': 'task', 'task_id': meta['id'], 'goal': meta['goal'], 'detail': detail, 'state': meta['state'],
             'result': meta.get('result'), 'completion_scope': meta.get('completion_scope'),
             'created_at': meta.get('created_at'), 'closed_at': meta.get('closed_at'),
             'counts': counts, 'damaged_records': damaged,
-            'invocations': [invocations[i] for i in order]}
+            'invocations': [invocations[i] for i in order], 'notes': notes}
 
 
 def list_tasks(*, include_closed=False, limit=50, root=None):
@@ -324,6 +369,7 @@ class Binding:
         self.created_inline = False
         self.json_output = False
         self.visible_document_verified = False
+        self.why = None
 
     def admit(self, access_log_name=None):
         _private_dir(self.directory, create=False)
@@ -337,6 +383,8 @@ class Binding:
                 row['parent'] = self.parent
             if access_log_name:
                 row['access_log'] = access_log_name
+            if self.why:
+                row['why'] = self.why
             _append(self.directory, row)
             self.admitted = True
 
@@ -448,6 +496,32 @@ def note_visible_document_result(report):
         binding.visible_document_verified = True
 
 
+def inline_prose(args):
+    """Strip `--detail` and `--why` (agent prose for the task record)."""
+    rest, found = [], {}
+    i = 0
+    while i < len(args):
+        value = args[i]
+        if value == '--':
+            rest.extend(args[i:])
+            break
+        name = next((n for n in ('detail', 'why') if value == '--' + n or value.startswith(f'--{n}=')), None)
+        if name is None:
+            rest.append(value); i += 1
+            continue
+        if name in found:
+            raise TaskRefused(f'task_{name}_invalid', f'Use --{name} once.')
+        if value == '--' + name:
+            if i + 1 >= len(args) or args[i + 1].startswith('--'):
+                raise TaskRefused(f'task_{name}_invalid', f'--{name} takes one text argument.')
+            found[name] = args[i + 1]; i += 2
+        else:
+            found[name] = value.split('=', 1)[1]; i += 1
+    detail = _prose(found.get('detail'), MAX_DETAIL, 'task_detail_invalid', multiline=True)
+    why = _prose(found.get('why'), MAX_WHY, 'task_why_invalid', multiline=False)
+    return rest, detail, why
+
+
 def inline_options(args):
     """Strip local lifecycle options before command parsing or any UI work."""
     rest, goal, finish = [], None, False
@@ -534,10 +608,11 @@ def bind(task_id, command, *, root=None, environ=None):
 
 # ---------------------------------------------------------------- CLI
 
-USAGE = ('usage: tacto task start "<goal>" [--json]\n'
+USAGE = ('usage: tacto task start "<goal>" [--detail "<description>"] [--json]\n'
+         '       tacto task note [<task-id>] "<decision>" [--json]\n'
          '       tacto task status [<task-id>] [--steps] [--json]\n'
          '       tacto task list [--all] [--json]\n'
-         '       tacto task end [<task-id>] --result done|failed|abandoned [--json]')
+         '       tacto task end [<task-id>] --result done|failed|abandoned [--note "<summary>"] [--json]')
 
 
 def _emit_refusal(exc, as_json):
@@ -569,15 +644,24 @@ def main(args, *, root=None):
     sub, rest = args[0], args[1:]
     try:
         if sub == 'start':
-            if len(rest) != 1:
+            rest, detail, why = inline_prose(rest)
+            if len(rest) != 1 or rest[0].startswith('--') or why is not None:
                 print(USAGE); return 2
-            meta = start(rest[0], root=root)
+            meta = start(rest[0], detail=detail, root=root)
             if as_json:
                 print(json.dumps({'type': 'task', 'task_id': meta['id'], 'state': 'open'}, ensure_ascii=False))
             else:
                 print(f"TACTO_TASK {meta['id']}")
                 print(f"Prefix every tacto command for this goal: TACTO_TASK={meta['id']} tacto …  "
                       f"(or add --task {meta['id']}). Finish with: tacto task end {meta['id']} --result done|failed|abandoned")
+            return 0
+        if sub == 'note':
+            if not rest or any(a.startswith('--') for a in rest) or len(rest) > 2:
+                print(USAGE); return 2
+            task_id = _resolve_id(rest[:-1])
+            note(task_id, rest[-1], root=root)
+            print(json.dumps({'type': 'task_note', 'task_id': task_id, 'recorded': True}) if as_json
+                  else f'note recorded on {task_id}')
             return 0
         if sub == 'status':
             steps = '--steps' in rest
@@ -604,13 +688,20 @@ def main(args, *, root=None):
                     print(f"{row['id']}  {row['state']}{tail}  {row['created_at']}  {row['goal']}")
             return 0
         if sub == 'end':
+            summary = None
+            if '--note' in rest:
+                k = rest.index('--note')
+                if rest.count('--note') != 1 or k + 1 >= len(rest):
+                    print(USAGE); return 2
+                summary = rest[k + 1]
+                rest = rest[:k] + rest[k + 2:]
             if '--result' not in rest:
                 print(USAGE); return 2
             i = rest.index('--result')
             if i + 1 >= len(rest) or rest.count('--result') != 1:
                 print(USAGE); return 2
             result = rest[i + 1]
-            meta = end(_resolve_id(rest[:i] + rest[i + 2:]), result, root=root)
+            meta = end(_resolve_id(rest[:i] + rest[i + 2:]), result, root=root, summary=summary)
             report = status(meta['id'], root=root)
             if as_json:
                 print(json.dumps({'type': 'task', 'task_id': meta['id'], 'state': 'closed', 'result': result,
@@ -634,10 +725,21 @@ def main(args, *, root=None):
 def _format_status(report):
     c = report['counts']
     head = [f"task {report['task_id']}  {report['state']}" + (f" ({report['result']})" if report['result'] else ''),
-            f"goal: {report['goal']}",
-            f"invocations: {len(report['invocations'])}  ok {c['ok']}  failed {c['failed']}  "
-            f"in_flight {c['in_flight']}  uncertain {c['uncertain']}"]
+            f"goal: {report['goal']}"]
+    if report.get('detail'):
+        head.extend('detail: ' + line if k == 0 else '        ' + line
+                    for k, line in enumerate(report['detail'].splitlines()))
+    head.append(f"invocations: {len(report['invocations'])}  ok {c['ok']}  failed {c['failed']}  "
+                f"in_flight {c['in_flight']}  uncertain {c['uncertain']}")
+    pending = list(report.get('notes') or [])
+    def flush_notes(before):
+        while pending and (before is None or (pending[0]['at'] or '') <= (before or '')):
+            item = pending.pop(0)
+            lines = item['text'].splitlines() or ['']
+            head.append(f"   note {item['at'] or '-'} {lines[0]}")
+            head.extend('        ' + line for line in lines[1:])
     for n, item in enumerate(report['invocations'], 1):
+        flush_notes(item['started_at'])
         targets = ','.join(item['targets']) if item['targets'] else '-'
         result = {'ok': 'ok', 'failed': f"exit {item['exit_code']}"}.get(item['state'], item['state'])
         reason = f" {item['error']}" + (f"/{item['stage']}" if item['stage'] else '') if item['error'] else ''
@@ -646,6 +748,8 @@ def _format_status(report):
         flows = ''.join(f" flow={f['name'] or ('#' + f['ref'] if f.get('ref') else '(unnamed)')}[{f['source']}]"
                         for f in item.get('flows') or [])
         head.append(f"  {n:>3} {item['started_at']} {item['command']}{child}{flows} {targets} {result}{reason}{ms}")
+        if item.get('why'):
+            head.append(f"        why: {item['why']}")
         steps = item.get('steps')
         if steps is not None:
             if not steps.get('available'):
@@ -658,6 +762,7 @@ def _format_status(report):
                 head.append(f"        {k:>3} +{step.get('elapsed_ms', '?')}ms {what} {step.get('target', '-')} {tail}".rstrip())
             if steps.get('truncated'):
                 head.append('        (step receipt truncated)')
+    flush_notes(None)
     if c['uncertain']:
         head.append('uncertain = no end record and the process is gone: inspect the target before retrying.')
     if report['damaged_records']:
@@ -703,4 +808,6 @@ def invocation_steps(item):
 
 GUIDE = ('A task groups every Tacto call made for one user goal. Start it first,\n'
          'run every tacto command for the goal with TACTO_TASK=<id> (or --task <id>),\n'
-         'then end it. It holds no helper, lease or approval between calls.')
+         'then end it. It holds no helper, lease or approval between calls.\n'
+         '--detail describes the task; --why "<reason>" on any bound command and\n'
+         '`tacto task note "<decision>"` record the agent\'s decisions in the task.')

@@ -128,3 +128,47 @@ class InlineTaskTests(unittest.TestCase):
         self.assertEqual('failed',report['result'])
         self.assertIsNotNone(report['invocations'][0]['ended_at'])
         self.assertEqual('failed',report['invocations'][0]['state'])
+
+
+class TaskProseTests(unittest.TestCase):
+    """Goal description, per-call reasons and decision notes stay in the task record."""
+    setUp=fixture.TaskStoreTests.setUp
+    tearDown=fixture.TaskStoreTests.tearDown
+    run_cli=fixture.TaskStoreTests.run_cli
+    setup_log=InlineTaskTests.setup_log
+    task_id=InlineTaskTests.task_id
+    def test_detail_why_and_notes_are_recorded_in_order(self):
+        self.setup_log()
+        with patch.object(cli,'_main',return_value=0) as operation:
+            code,out=self.run_cli('observe','com.apple.Safari','--task','new','--goal','교육 수강',
+                                  '--detail','사용자 요청: 법정필수교육 3과목 수강\n진도율 100% 확인','--why','현재 화면 확인')
+            task_id=self.task_id(out)
+            self.assertEqual(0,code);operation.assert_called_once_with(['observe','com.apple.Safari'])
+        self.assertEqual((0,f'note recorded on {task_id}\n'),self.run_cli('task','note','팝업이 떠서 닫기로 결정',env={'TACTO_TASK':task_id}))
+        with patch.object(cli,'_main',return_value=0):
+            self.run_cli('observe','com.apple.Safari','--why=닫힘 확인',env={'TACTO_TASK':task_id})
+        self.assertEqual(0,self.run_cli('task','end',task_id,'--result','done','--note','3과목 완료')[0])
+        report=tasks.status(task_id)
+        self.assertEqual('사용자 요청: 법정필수교육 3과목 수강\n진도율 100% 확인',report['detail'])
+        self.assertEqual(['현재 화면 확인','닫힘 확인'],[i['why'] for i in report['invocations']])
+        self.assertEqual(['팝업이 떠서 닫기로 결정','3과목 완료'],[n['text'] for n in report['notes']])
+        text=self.run_cli('task','status',task_id)[1]
+        lines=text.splitlines()
+        self.assertIn('detail: 사용자 요청: 법정필수교육 3과목 수강',lines)
+        self.assertTrue(text.index('why: 현재 화면 확인')<text.index('팝업이 떠서')<text.index('why: 닫힘 확인')<text.index('3과목 완료'),text)
+    def test_prose_validation_and_scope(self):
+        self.setup_log()
+        meta=tasks.start('goal')
+        for bad in ('','  ','x'*1001,'a\x00b'):
+            with self.assertRaises(tasks.TaskRefused):tasks.note(meta['id'],bad)
+        with self.assertRaises(tasks.TaskRefused):tasks.start('goal',detail='x'*4001)
+        with patch.object(cli,'_main',return_value=0) as operation:
+            code,out=self.run_cli('observe','app','--why','reason')   # no task to record it in
+            self.assertEqual(2,code);self.assertIn('task_required',out);operation.assert_not_called()
+            code,out=self.run_cli('observe','app','--why','two\nlines',env={'TACTO_TASK':meta['id']})
+            self.assertEqual(2,code);self.assertIn('task_why_invalid',out)
+            code,out=self.run_cli('list','--why','x')
+            self.assertEqual(2,code);self.assertIn('task_not_applicable',out)
+        tasks.end(meta['id'],'done')
+        with self.assertRaises(tasks.TaskRefused) as cm:tasks.note(meta['id'],'late')
+        self.assertEqual('task_closed',cm.exception.code)

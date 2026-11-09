@@ -17,12 +17,17 @@ class ActivityCenterTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             folder=Path(folder); product=folder/'Tacto'; logs=product/'Logs'; logs.mkdir(parents=True)
             tid='t-'+'a'*24; ended='t-'+'b'*24; missing='t-'+'c'*24
-            for task_id, meta in ((tid, dict(state='open',result=None,goal='수강 진행')), (ended, dict(state='closed',result='failed',goal='끝난 작업'))):
+            for task_id, meta in ((tid, dict(state='open',result=None,goal='수강 진행',detail='사용자 요청: 법정교육 3과목 수강')), (ended, dict(state='closed',result='failed',goal='끝난 작업'))):
                 d=product/'Tasks'/task_id; d.mkdir(parents=True)
                 (d/'task.json').write_text(json.dumps(dict(schema=1,id=task_id,created_at='x',closed_at=None,**meta)))
+            (product/'Tasks'/tid/'events.jsonl').write_text(''.join(json.dumps(r,ensure_ascii=False)+'\n' for r in (
+                dict(schema=1,event='invocation_start',invocation='e'*32,why='진도 화면 확인',at='2026-11-09T02:12:00.000000+00:00'),
+                dict(schema=1,event='note',text='팝업을 닫기로 결정',at='2026-11-09T02:13:00.000000+00:00'),
+                dict(schema=1,event='note',text='오래된 판단',at='2026-11-09T01:00:00.000000+00:00'))))
             def write(index, minute, task_id=None, exit_code=0, command='session'):
                 start=dict(schema=1,event='command_start',command=command,at=f'2026-11-09T02:{minute:02d}:00.000000+00:00',elapsed_ms=0)
                 if task_id: start['task_id']=task_id
+                if index==2: start['invocation_id']='e'*32
                 rows=[start,dict(schema=1,event='access_start',operation='observe',target='com.apple.Safari',elapsed_ms=5),
                       dict(schema=1,event='access_end',operation='observe',target='com.apple.Safari',type='observation',elapsed_ms=9),
                       dict(schema=1,event='command_end',exit_code=exit_code,elapsed_ms=10)]
@@ -50,6 +55,12 @@ assert(center.filtered.count==5 && center.filtered[0].key==open.key)
 assert(center.summary.stringValue.hasPrefix("최근 7개 실행 · 작업 3개"), center.summary.stringValue)
 let texts=center.detail.arrangedSubviews.compactMap{($0 as? NSTextField)?.stringValue}
 assert(texts.contains("수강 진행") && texts.contains{$0.hasPrefix("1. 연속 작업")} && texts.contains{$0.hasPrefix("3. 연속 작업")}, "\(texts)")
+assert(texts.contains("요청 설명") && texts.contains("사용자 요청: 법정교육 3과목 수강") && texts.contains("이유 · 진도 화면 확인"), "\(texts)")
+let notes=center.detail.arrangedSubviews.compactMap{($0 as? NSStackView)?.arrangedSubviews.last as? NSStackView}.compactMap{($0.arrangedSubviews.first as? NSTextField)?.stringValue}.filter{$0.hasPrefix("판단 · ")}
+assert(notes==["판단 · 팝업을 닫기로 결정","판단 · 오래된 판단"], "\(notes)")
+let flat=center.detail.arrangedSubviews.map{v -> String in (v as? NSTextField)?.stringValue ?? ((v as? NSStackView)?.arrangedSubviews.last as? NSStackView).flatMap{($0.arrangedSubviews.first as? NSTextField)?.stringValue} ?? ""}
+let i3=flat.firstIndex{$0.hasPrefix("3.")}!, iNote=flat.firstIndex(of:"판단 · 팝업을 닫기로 결정")!, i2=flat.firstIndex{$0.hasPrefix("2.")}!
+assert(i3 < iNote && iNote < i2, "note between call 3 and call 2: \(flat)")
 let heads=texts.filter{$0.first?.isNumber == true}
 assert(heads.first!.hasPrefix("3.") && heads.last!.hasPrefix("1."), "newest first: \(heads)")
 var many=open; many.records=(0..<45).map{_ in open.records[0]}

@@ -20,7 +20,10 @@ belongs to that provider; do not route around it through Tacto.
 
 ## One task per goal
 
-On the first UI command add `--task new --goal "<goal>"`. Keep the ID from
+On the first UI command add `--task new --goal "<goal>" --detail "<the user's request in their words>"`.
+Give each UI command `--why "<one-line reason for this call>"`, and record a
+decision that changes the plan with `tacto task note <id> "<decision and reason>"`;
+these appear in the Tacto app's history next to the calls. Keep the ID from
 `TACTO_TASK {"id":"t-…"}` and add `--task <id>` to subsequent UI commands
 (each tool call is a fresh shell). Add `--finish-task` to the final UI command;
 for a single-command goal combine all three options. No separate start/end

@@ -1756,8 +1756,9 @@ def _task_binding(arguments):
     created = None
     try:
         clean, goal, finish = tasks.inline_options(arguments[1:])
+        clean, detail, why = tasks.inline_prose(clean)
         if tasks.current.get() is not None:
-            if goal is not None or finish:
+            if goal is not None or finish or detail is not None or why is not None:
                 raise tasks.TaskRefused('task_nested_lifecycle', 'Use lifecycle options on the outer command.')
             _, _, rest = tasks.split_binding(clean, environ={})
             return None, [command, *rest], None
@@ -1768,21 +1769,24 @@ def _task_binding(arguments):
         if command_help(command, rest) is not None:
             return None, [command, *rest], None
         if command not in COMMANDS and command not in TASK_BINDABLE:
-            if explicit or goal is not None or finish:
+            if explicit or goal is not None or finish or detail is not None or why is not None:
                 raise tasks.TaskRefused('task_not_applicable', f'{command or "this command"} does not touch the screen; run it without task options.')
             return None, [command, *rest], None
         if task_id == 'new':
-            created = tasks.start(goal)
+            created = tasks.start(goal, detail=detail)
             task_id = created['id']
-        elif goal is not None:
-            raise tasks.TaskRefused('task_goal_invalid', 'Use --goal only with --task new or TACTO_TASK=new.')
+        elif goal is not None or detail is not None:
+            raise tasks.TaskRefused('task_goal_invalid', 'Use --goal/--detail only with --task new or TACTO_TASK=new.')
         if task_id is None:
             if finish:
                 raise tasks.TaskRefused('task_required', '--finish-task requires a task ID.')
+            if why is not None:
+                raise tasks.TaskRefused('task_required', '--why records a reason in a task; add --task <id>.')
             return None, list(arguments), None
         binding = tasks.bind(task_id, command, **({'environ': {}} if created else {}))
         binding.created_inline = created is not None
         binding.finish_requested = finish
+        binding.why = why
         binding.json_output = '--json' in rest
         return binding, [command, *rest], None
     except (tasks.TaskRefused, OSError) as exc:

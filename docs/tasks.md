@@ -27,10 +27,18 @@ it with a declared result. Agent usage: [skill reference](../skill/references/ta
 - Records are content-free like [access receipts](access-logging.md): command,
   invocation UUID, pid, parent invocation (for child invocations), access-receipt
   filename, target bundle IDs, exit code, closed error/stage codes, elapsed
-  time, and the flows each invocation ran. The goal sentence is the only free text and stays in `task.json`.
+  time, and the flows each invocation ran. Free text written by the agent stays
+  in the task directory only: the goal sentence and optional `detail`
+  (`task.json`), a one-line `why` on an `invocation_start` record (`--why`), and
+  `note` records (`tacto task note`, `task end --note`). Access receipts stay
+  content-free. Limits: goal 1000, detail 4000 (multi-line), why 500 (one line),
+  note 1000 characters; control characters other than tab/newline are refused.
 - The Tacto app's **실행 기록** tab groups access receipts by their
   `command_start.task_id`: one row per task (goal, 진행 중/완료/실패/중단, call
-  count, apps), whose detail lists every call in order with its steps. Calls made
+  count, apps), whose detail shows the request description, then the latest 30
+  calls newest first with their `--why` reason and steps, interleaved by time with
+  decision notes (`판단 · …`). The reason is matched via the receipt's
+  `command_start.invocation_id`. Calls made
   outside a task stay one row each. A receipt whose task directory is gone shows
   as `작업 t-…` with "기록만 있음".
   Task records are written whenever a call is bound, independent of the access
