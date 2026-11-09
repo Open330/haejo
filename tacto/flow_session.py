@@ -202,6 +202,49 @@ def prepare_session_flow(flow, target):
 
 
 def run_session(args, *, make_driver, run_flow, stdin, emit):
+    """Optionally publish a private, content-free receipt for a coordinator."""
+    args = list(args)
+    if '--receipt' not in args:
+        return _run_session(args, make_driver=make_driver, run_flow=run_flow, stdin=stdin, emit=emit)
+    i = args.index('--receipt')
+    if (args.count('--receipt') != 1 or i+1 >= len(args)
+            or '\0' in args[i+1] or not os.path.isabs(args[i+1]) or os.path.lexists(args[i+1])
+            or not os.path.isdir(os.path.dirname(args[i+1]))):
+        emit('session_receipt: use one absolute new path in an existing directory'); return 2
+    path = args[i+1]; del args[i:i+2]
+    from .parallel_run import SessionReceipt
+    from .storage import write_private
+    receipt = SessionReceipt()
+    def driver_factory(flags):
+        return receipt.wrap(make_driver(flags))
+    def replay_flow(*positional, **kwargs):
+        previous = kwargs.get('_result_observer')
+        def observed(result):
+            receipt.replayed = result
+            if previous is not None:
+                previous(result)
+        return run_flow(*positional, **dict(kwargs, _result_observer=observed))
+    try:
+        code = _run_session(args, make_driver=driver_factory, run_flow=replay_flow, stdin=stdin, emit=emit)
+    except BaseException as exc:
+        from .helper import HelperLeaseRefused, HelperUnavailable
+        if isinstance(exc, HelperLeaseRefused):
+            receipt.note(exc.result())
+        elif isinstance(exc, HelperUnavailable):
+            receipt.error = 'helper_unavailable'
+        try:
+            write_private(path, json.dumps(receipt.summary(1)), overwrite=False)
+        except OSError:
+            pass
+        raise
+    try:
+        write_private(path, json.dumps(receipt.summary(code)), overwrite=False)
+    except OSError:
+        emit('session_receipt_write_failed: inspect the task before replaying'); return 1
+    return code
+
+
+def _run_session(args, *, make_driver, run_flow, stdin, emit):
     args = list(args)
     # Windows has no signed helper: the session drives UI Automation in this
     # process, so --helper is refused there and required on macOS.

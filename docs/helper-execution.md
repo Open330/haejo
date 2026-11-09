@@ -153,3 +153,11 @@ clipboard. All bounded event pairs are constructed before selection changes;
 each event rechecks focus, origin, foreground, cancellation and deadline.
 The response identifies `native_unicode`. It uses the same receiving-observation
 contract as native paste, and uncertain partial input is not automatically retried.
+
+The development `parallel` command starts at most four signed launcher/session
+processes with independent helper channels. It passes live window scopes outside
+the Flow and reuses the existing AX-only window contract. It never shares the
+coordinator's inherited descriptor. Private session receipts separate checked
+replay success, explicit refusal, and unknown effects; timeout/cancellation
+terminates the launcher/Python process group without resending input.
+See [parallel execution](parallel-execution.md) for manifest syntax and limits.

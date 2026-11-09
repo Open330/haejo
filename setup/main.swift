@@ -418,6 +418,8 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var runtimeObserver: NSObjectProtocol?
     var runtimeTimer: Timer?
     var runtimeRuns: [String:(TactoRuntimeStatus.Run, Date)] = [:]
+    /// One row per live run, kept by run id so an open submenu survives refresh.
+    var runtimeRunItems: [String:NSMenuItem] = [:]
     var connectButton: NSButton!
     var watch: PermissionWatch?
     var watchTimer: Timer?
@@ -1049,10 +1051,48 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let title = runs.isEmpty ? "진행 중인 작업 없음" : (runs.allSatisfy { $0.stopped } ? "중단됨 · " : "작업 중 · ") + names
         runtimeMenuTitle?.title = title
         runtimeStop?.isEnabled = runs.contains { !$0.stopped }
+        runtimeStop?.title = runs.count > 1 ? "모든 작업 중단" : "현재 작업 중단"
         statusItem?.button?.toolTip = runs.isEmpty ? "Tacto 설정 · " + badge.stringValue : title + " · Esc로 중단"
+        updateRuntimeRunItems()
+    }
+    /// Per-run rows under the global stop: app, helper-accepted window ID and
+    /// the helper's own current state, each with a stop for that run alone.
+    func updateRuntimeRunItems() {
+        let live = Set(runtimeRuns.keys)
+        for (id,item) in runtimeRunItems where !live.contains(id) {
+            item.menu?.removeItem(item); runtimeRunItems.removeValue(forKey:id)
+        }
+        guard let stop = runtimeStop, let menu = stop.menu else { return }
+        let ordered = runtimeRuns.values.map { $0.0 }.sorted { ($0.target,$0.windowID ?? 0,$0.id) < ($1.target,$1.windowID ?? 0,$1.id) }
+        var at = menu.index(of:stop) + 1
+        for run in ordered {
+            let item: NSMenuItem
+            if let existing = runtimeRunItems[run.id] { item = existing } else {
+                item = NSMenuItem(title:"",action:nil,keyEquivalent:"")
+                item.indentationLevel = 1
+                let sub = NSMenu(); sub.autoenablesItems = false
+                let one = sub.addItem(withTitle:"이 작업 중단",action:#selector(stopRuntimeRun(_:)),keyEquivalent:"")
+                one.target = self; one.representedObject = run.id
+                item.submenu = sub
+                runtimeRunItems[run.id] = item
+            }
+            if item.title != run.summary { item.title = run.summary }
+            item.submenu?.items.first?.isEnabled = !run.stopped
+            if item.menu == nil { menu.insertItem(item,at:at) }
+            else if menu.index(of:item) != at { menu.removeItem(item); menu.insertItem(item,at:at) }
+            at += 1
+        }
+    }
+    @objc func stopRuntimeRun(_ sender: NSMenuItem) {
+        guard let id = sender.representedObject as? String, runtimeRuns[id] != nil else { return }
+        DistributedNotificationCenter.default().postNotificationName(TactoRuntimeStatus.stop,
+            object:nil,userInfo:["id":id],deliverImmediately:true)
     }
     @objc func stopRuntime() {
         updateRuntimeMenu()
+        // Pending workers may not have a helper run row yet.
+        DistributedNotificationCenter.default().postNotificationName(TactoRuntimeStatus.stopAll,
+            object:nil,userInfo:["schema":1,"uid":getuid()],deliverImmediately:true)
         for id in runtimeRuns.keys {
             DistributedNotificationCenter.default().postNotificationName(TactoRuntimeStatus.stop,
                 object:nil,userInfo:["id":id],deliverImmediately:true)

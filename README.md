@@ -336,3 +336,8 @@ rc.13 supports `tacto windows <bundle-id> --helper` for compact
 window IDs, then `tacto session <bundle-id> --window-id ID --helper --guide` for
 independent AX work in different windows of the same app. App-wide operations
 stay exclusive. See [helper execution](docs/helper-execution.md).
+
+The development checkout also provides `tacto parallel jobs.json --helper
+--json`: one to four checked AX window jobs, each with an independent signed
+session and a content-free result receipt. The Tacto menu distinguishes live
+runs and offers individual stop controls. [Usage and limits](docs/parallel-execution.md).

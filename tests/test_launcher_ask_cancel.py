@@ -400,8 +400,10 @@ class StopWiringSourceTests(unittest.TestCase):
         body = source[source.index('func watchForAbort()'):]
         body = body[:body.index('\n}\n')]
         note = body.index('abortState.note(at: ev.timestamp)')
-        publish = body.index('if abortState.isStopped && RuntimePublisher.shared.active { RuntimePublisher.shared.publish() }')
-        self.assertLess(note, publish)
+        guard = body.index('if abortState.isStopped && RuntimePublisher.shared.active {')
+        publish = body.index('RuntimePublisher.shared.publish()', guard)
+        self.assertLess(note, guard)
+        self.assertLess(publish, body.index('TactoRuntimeStatus.stopAll', guard))
         menu = source[source.index('@objc func stopNow(_ sender: Any?)'):]
         self.assertIn('RuntimePublisher.shared.publish()', menu[:menu.index('\n    }\n')])
 
