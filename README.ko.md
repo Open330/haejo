@@ -25,7 +25,9 @@
 
 ## 실제 앱에서 이런 일을 맡깁니다
 
-[![실제 Wikipedia 화면에서 검색·이동하는 Haejo 실행](docs/assets/haejo-wikipedia-demo.gif)](sites/haejo/dist/assets/demos/browser-wikipedia.mp4)
+[![37초로 보는 Haejo: 한 번 맡기고, 저장한 Flow를 모델 호출 없이 다시 실행하고, 바뀐 단계만 수리합니다](docs/assets/haejo-film-poster.ko.jpg)](https://open330.github.io/tacto/#film)
+
+**37초로 보는 Haejo.** 계산기에 한 번 맡기고, 저장한 Flow를 모델 호출 없이 다시 실행하고, 바뀐 단계만 에이전트가 고칩니다. 앱 화면은 모두 실제입니다. 계산기 화면은 Haejo가 단계마다 찍었고, 수리 장면은 실제 Claude 호출 1회, 웹 장면은 Haejo의 브라우저 실행 녹화입니다. [사이트에서 보기](https://open330.github.io/tacto/#film) · [MP4](sites/haejo/dist/assets/film/haejo-film.ko.mp4)
 
 **실제 앱·웹사이트 8개와 공개 테스트 2개, 총 10개 상황의 실행 영상**을 제공합니다.
 위 GIF는 실제 실행 영상의 미리보기입니다. 클릭하면 원본 MP4를 볼 수 있습니다.
@@ -33,13 +35,13 @@ GitHub의 접근성 설정에서 애니메이션 자동재생을 끄면 정지 �
 
 | 앱·사이트 | 맡긴 작업과 확인한 결과 | 실제 영상 |
 | :--- | :--- | :--- |
-| TextEdit | 워크숍 메모 입력 후 별도 저장 검증으로 디스크·문서 내용 일치 확인 | [약 10초](sites/haejo/dist/assets/demos/native-textedit.mp4) |
-| Finder | 파일 종류 정렬 → 이름 오름차순 정렬, 파일 5개 확인 | [약 8초](sites/haejo/dist/assets/demos/native-finder.mp4) |
-| Google 번역 | 영어 합성 예문 입력 → 한국어 출력 별도 확인 | [약 7초](sites/haejo/dist/assets/demos/browser-translate.mp4) |
-| GitHub | 열린 버그만 필터링하고 댓글 많은 순서로 조회 | [약 9초](sites/haejo/dist/assets/demos/browser-github.mp4) |
-| UnitConverters.net | 3.5 m → 11.482939633 ft, 별도 계산식과 대조 | [약 9초](sites/haejo/dist/assets/demos/browser-units.mp4) |
-| Markdown Live Preview | 기존 예제 앞부분을 계획으로 수정, 제목·목록·굵은 글씨 확인 | [약 18초](sites/haejo/dist/assets/demos/browser-markdown.mp4) |
-| Wikipedia | Seoul 검색 후 History 항목 도착 | [약 14초](sites/haejo/dist/assets/demos/browser-wikipedia.mp4) |
+| TextEdit | 워크숍 메모 입력 후 별도 저장 검증으로 디스크·문서 내용 일치 확인 | [약 28초](sites/haejo/dist/assets/demos/native-textedit.mp4) |
+| Finder | 파일 종류 정렬 → 이름 오름차순 정렬, 파일 5개 확인 | [약 22초](sites/haejo/dist/assets/demos/native-finder.mp4) |
+| Google 번역 | 영어 합성 예문 입력 → 한국어 출력 별도 확인 | [약 8초](sites/haejo/dist/assets/demos/browser-translate.mp4) |
+| GitHub | 열린 버그만 필터링하고 댓글 많은 순서로 조회 | [약 20초](sites/haejo/dist/assets/demos/browser-github.mp4) |
+| UnitConverters.net | 3.5 m → 11.482939633 ft, 별도 계산식과 대조 | [약 11초](sites/haejo/dist/assets/demos/browser-units.mp4) |
+| Markdown Live Preview | 기존 예제 앞부분을 계획으로 수정, 제목·목록·굵은 글씨 확인 | [약 9초](sites/haejo/dist/assets/demos/browser-markdown.mp4) |
+| Wikipedia | Seoul 검색 후 History 항목 도착 | [약 19초](sites/haejo/dist/assets/demos/browser-wikipedia.mp4) |
 | Mac 계산기 | 같은 Flow에 다른 입력값을 넣어 15·12 확인 | [약 14초](sites/haejo/dist/assets/demos/calculator-guided.mp4) |
 
 <a href="sites/haejo/dist/assets/demos/native-textedit.mp4"><img src="sites/haejo/dist/assets/demos/native-textedit-poster.png" alt="실제 TextEdit 문서 입력과 저장 상태 확인" width="48%"></a>
@@ -61,13 +63,13 @@ Markdown은 나머지 예제가 남는 부분 수정입니다. 모든 사례가 
 
 [![Haejo가 자체 macOS 테스트 앱에서 실제로 입력·계산·검토한 결과](sites/haejo/dist/assets/demos/workflow-guided-poster.png)](sites/haejo/dist/assets/demos/workflow-guided.mp4)
 
-**실제 앱 창 촬영에 조작 위치를 보여주는 안내 포인터를 추가했습니다.** 자체 macOS 테스트 앱에서 같은 11단계 Flow를
-다른 입력값으로 5회 재생했습니다. 결과 89·34·62·79·108과 작업별 완료 1회를 확인했습니다.
+**실제 앱 창 촬영에 조작 위치를 보여주는 안내 포인터를 추가했습니다.** 자체 macOS 테스트 앱에서 같은 11단계 Flow를 한 단계씩
+다른 입력값으로 5회 재생했습니다. 결과 37·46·70·27·48과 작업별 완료 1회를 확인했습니다.
 
-[반복 작업 영상 · 약 17초](sites/haejo/dist/assets/demos/workflow-guided.mp4) ·
+[반복 작업 영상 · 약 21초](sites/haejo/dist/assets/demos/workflow-guided.mp4) ·
 [실제 계산기 영상 · 약 14초](sites/haejo/dist/assets/demos/calculator-guided.mp4) ·
 [계산기 원본 스크린샷](sites/haejo/dist/assets/demos/calculator-result.png) ·
-[촬영 조건과 한계](docs/haejo-recorded-demos-2026-10-15.md)
+[촬영 조건과 한계](docs/haejo-film-2026-11-10.md)
 
 포인터·클릭 효과는 설명용으로 추가했으며 실제 시스템 커서 이동 기록이 아닙니다.
 [반복 작업 원본](sites/haejo/dist/assets/demos/workflow-replay.mp4) · [계산기 원본](sites/haejo/dist/assets/demos/calculator.mp4)도 제공합니다.
@@ -81,7 +83,7 @@ Markdown은 나머지 예제가 남는 부분 수정입니다. 모든 사례가 
 실패하거나 완료를 확인하지 못한 실행을 골라 단계별 타임라인을 확인하세요.
 로그 폴더를 찾아갈 필요가 없습니다.
 
-![실제 접근 기록 여러 개와 선택한 TextEdit 작업의 동작·결과·시간을 함께 보여주는 앱 미리보기](sites/haejo/dist/assets/haejo-activity.png)
+![실제 접근 기록 여러 개와 선택한 Finder 작업의 동작·결과·시간을 함께 보여주는 앱 미리보기](sites/haejo/dist/assets/haejo-activity.png)
 
 기록은 이 Mac에 저장됩니다. 설정에서 자동 저장과 보관 기간(7·30·90일)을
 선택할 수 있습니다. 화면 내용·입력값·프롬프트와 에이전트의 내부 추론은

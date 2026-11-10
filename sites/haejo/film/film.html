@@ -1,0 +1,213 @@
+<!doctype html>
+<!-- Haejo showcase film, B tone ("해줘 트레일러"). One 1920x1080 stage; every
+     frame is a pure function of t: renderAt(t) positions plates and captions.
+     Plates are real: Calculator window captures, the Haejo activity window,
+     and browser recordings made by Haejo Flow replay. render.py steps t. -->
+<html lang="ko"><head><meta charset="utf-8"><title>Haejo film</title>
+<style>
+:root{--ink:#1c1b1a;--paper:#fffaf6;--orange:#e8590c;--orange-2:#ff8a3d;--term:#17181b;--green:#2f9e44;--line:rgba(28,27,26,.12);
+--sans:"Apple SD Gothic Neo","Pretendard","Helvetica Neue",sans-serif;--mono:"SF Mono",Menlo,monospace}
+*{box-sizing:border-box}html,body{margin:0;background:#000}
+#stage{position:relative;width:1920px;height:1080px;overflow:hidden;font-family:var(--sans);color:var(--ink);
+background:radial-gradient(1200px 800px at 85% 10%,#ffe0c9 0,rgba(255,224,201,0) 70%),radial-gradient(900px 700px at 0% 100%,#ffd2b3 0,rgba(255,210,179,0) 70%),var(--paper)}
+.layer{position:absolute;inset:0;opacity:0;will-change:transform,opacity}
+.card{position:absolute;border-radius:22px;box-shadow:0 30px 80px rgba(60,30,10,.18),0 4px 14px rgba(60,30,10,.10)}
+.term{background:var(--term);color:#ece8e1;font:30px/1.55 var(--mono);padding:34px 40px;overflow:hidden}
+.term .bar{display:flex;gap:10px;margin-bottom:22px}.term .bar i{width:14px;height:14px;border-radius:50%;background:#3a3b40}
+.term .ln{white-space:pre;opacity:0}.term .dim{color:#8d8a85}.term .ok{color:#7ee2a0}.term .warn{color:#ff9b5c}.term .acc{color:#ffb27a}
+.term .caret{display:inline-block;width:16px;height:32px;background:#ece8e1;vertical-align:-5px;margin-left:4px}
+.calc{position:absolute;border-radius:22px;overflow:hidden;box-shadow:0 30px 80px rgba(20,10,0,.28)}
+.calc img{display:block;width:100%;height:100%;position:absolute;inset:0;opacity:0}
+.mark{position:absolute;z-index:3;border:5px solid var(--orange);border-radius:50%;opacity:0}
+.sticker{position:absolute;left:120px;top:96px;background:var(--orange);color:#fff;font:800 64px/1 var(--sans);padding:20px 34px 22px;border-radius:18px;
+letter-spacing:-.02em;box-shadow:0 14px 30px rgba(232,89,12,.35);transform-origin:0 50%;white-space:nowrap}
+.title{position:absolute;left:150px;top:330px;font:800 128px/1.12 var(--sans);letter-spacing:-.045em}
+.title span{display:inline-block;opacity:0;margin-right:.24em}
+.title .em{color:var(--orange)}
+.badge{position:absolute;font:700 28px var(--sans);padding:12px 22px;border-radius:999px;background:#fff;box-shadow:0 8px 24px rgba(60,30,10,.12);display:flex;gap:12px;align-items:center}
+.badge i{width:14px;height:14px;border-radius:50%;background:var(--orange)}
+.nodes{position:absolute;left:110px;right:110px;top:520px;height:300px}
+.node{position:absolute;top:0;width:262px;height:270px;background:#fff;border-radius:22px;border:2px solid var(--line);padding:26px 24px;opacity:0;
+box-shadow:0 18px 40px rgba(60,30,10,.10)}
+.node .k{font:700 22px var(--mono);color:#9a948c}.node .n{font:800 31px/1.22 var(--sans);margin-top:12px;letter-spacing:-.02em}
+.node .v{position:absolute;left:24px;bottom:22px;font:700 54px var(--mono);color:var(--orange)}
+.node.lit{border-color:var(--orange);box-shadow:0 0 0 6px rgba(232,89,12,.18),0 18px 40px rgba(60,30,10,.12)}
+.node.bad{border-color:#d9480f;background:#fff1e8}
+.edge{position:absolute;top:133px;height:5px;background:#e6ddd4;border-radius:3px;transform-origin:0 50%}
+.flowname{position:absolute;left:110px;top:300px;font:800 60px var(--mono);letter-spacing:-.02em}
+.flowname small{display:block;font:600 28px var(--sans);color:#8a837b;margin-top:10px;letter-spacing:0}
+.big0{position:absolute;font:800 300px/1 var(--mono);letter-spacing:-.06em;color:var(--ink)}
+.big0 small{display:block;font:700 40px var(--sans);letter-spacing:0;color:#7c746b;margin-top:6px}
+.stat{position:absolute;font:700 34px var(--sans);color:#5c554e}
+.stat b{color:var(--orange);font-family:var(--mono)}
+.web{position:absolute;left:300px;top:225px;width:1320px;height:825px;border-radius:20px;overflow:hidden;background:#fff;box-shadow:0 30px 80px rgba(60,30,10,.22)}
+.web video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0}
+.webtag{position:absolute;right:28px;bottom:26px;background:rgba(28,27,26,.85);color:#fff;font:700 30px var(--sans);padding:10px 20px;border-radius:12px}
+.win{position:absolute;left:330px;top:235px;width:1260px;height:832px;border-radius:20px;overflow:hidden;background:#fff;box-shadow:0 30px 90px rgba(60,30,10,.25)}
+.win img{position:absolute;left:0;top:0;width:100%;transform-origin:78% 45%}
+.end{display:grid;place-items:center;text-align:center}
+.end .logo{display:flex;align-items:center;gap:30px;justify-content:center;font:800 150px/1 var(--sans);letter-spacing:-.05em}
+.end .logo img{width:150px;height:150px}
+.end .tag{font:800 64px/1.25 var(--sans);letter-spacing:-.03em;margin-top:44px}
+.end .chips{display:flex;gap:16px;justify-content:center;margin-top:44px}
+.end .chips span{font:700 30px var(--sans);padding:12px 24px;border-radius:999px;border:2px solid var(--line);background:#fff}
+.end .url{font:700 34px var(--mono);color:var(--orange);margin-top:30px}
+</style></head><body>
+<div id="stage">
+  <div class="layer" id="L-title"><div class="title" id="title"></div></div>
+
+  <div class="layer" id="L-ask">
+    <div class="card term" id="ask-term" style="left:120px;top:330px;width:1010px;height:420px"><div class="bar"><i></i><i></i><i></i></div><div id="ask-lines"></div></div>
+    <div class="badge" id="ask-badge" style="left:820px;top:280px"><i></i><span data-t="model_on"></span></div>
+    <div class="calc" id="calc-ask" style="left:1270px;top:150px;width:460px;height:816px"></div>
+  </div>
+
+  <div class="layer" id="L-flow">
+    <div class="flowname">calculator-reusable<small data-t="flow_sub"></small></div>
+    <div class="nodes" id="nodes"></div>
+  </div>
+
+  <div class="layer" id="L-replay">
+    <div class="card term" id="rep-term" style="left:120px;top:250px;width:1030px;height:230px;font-size:30px"><div id="rep-lines"></div></div>
+    <div class="big0" id="big0" style="left:150px;top:520px">0<small data-t="model_calls"></small></div>
+    <div class="stat" id="rep-stat" style="left:640px;top:760px"></div>
+    <div class="calc" id="calc-rep" style="left:1270px;top:150px;width:460px;height:816px"></div>
+  </div>
+
+  <div class="layer" id="L-repair">
+    <div class="card term" id="fix-term" style="left:120px;top:330px;width:1050px;height:400px;font-size:29px"><div id="fix-lines"></div></div>
+    <div class="calc" id="calc-fix" style="left:1270px;top:150px;width:460px;height:816px"><div class="mark" id="fix-mark"></div></div>
+  </div>
+
+  <div class="layer" id="L-web"><div class="web" id="web"><div class="webtag" id="webtag"></div></div></div>
+
+  <div class="layer" id="L-log"><div class="win"><img id="log-img" alt=""></div></div>
+
+  <div class="layer end" id="L-end"><div>
+    <div class="logo"><img id="logo" alt="">Haejo</div>
+    <div class="tag" data-t="end_tag"></div>
+    <div class="chips"><span data-t="chip_mac"></span><span>Claude Code</span><span>Codex</span></div>
+    <div class="url" id="end-url"></div>
+  </div></div>
+
+  <div class="sticker" id="sticker"></div>
+</div>
+<script>
+const Q=new URLSearchParams(location.search);const LANG=Q.get('lang')||'ko';
+const PLATES=Q.get('plates')||'plates';const ASSETS=Q.get('assets')||'../dist/assets';
+const RUNS=JSON.parse(Q.get('runs')||'{}');const END_URL=Q.get('url')||'';
+const TEXT={ko:{
+ title:[['에이전트는',''],['매번',''],['\n',''],['처음부터','em'],['생각합니다.','']],
+ ask:'한 번 말하면', flow:'Flow로 저장', replay:'다시 해줘.', repair:'바뀐 곳만 고쳐요', web:'웹에서도 똑같이', log:'한 일은 전부 기록',
+ model_on:'모델 사용', model_calls:'모델 호출', flow_sub:'6단계 · 다음부터 같은 절차',
+ prompt:'계산기로 7 더하기 8 해줘',
+ ask_lines:[['dim','● Haejo  계산기 화면 확인'],['dim','● 단계 작성  지우기 → 7 → + → 8 → ='],['ok','✓ 결과 15  ·  결과 확인됨'],['acc','↳ Flow 저장: calculator-reusable']],
+ rep_cmd:'$ haejo run calculator-reusable \\\n    -p left=3 -p right=9', rep_done:'done — 결과: 12', rep_stat:s=>`재생 <b>${s}초</b> · 6단계`,
+ fix_lines:n=>[['dim','$ haejo run calculator-reusable --auto-repair claude'],['warn',"✗ 3단계  'Plus' 버튼을 찾지 못했어요"],['acc',`● Claude  이 단계만 수리 · 1회 · ${n}초`],['dim','● 남은 3단계 이어서 재생'],['ok','done — 결과: 12']],
+ steps:[['01','기존 입력 지우기','AC'],['02','초기값 확인','0'],['03','첫 번째 수','{L}'],['04','더하기','+'],['05','두 번째 수','{R}'],['06','결과 확인','{=}']],
+ end_tag:'Claude·Codex에게 Mac 앱을 맡기세요.', chip_mac:'macOS 앱 · 웹',
+ webtags:['GitHub · 이슈 필터','Wikipedia · 문서 이동','Google 번역','Markdown 편집']},
+en:{
+ title:[['Your',''],['agent',''],['starts',''],['\n',''],['from scratch','em'],['every time.','']],
+ ask:'Ask once.', flow:'Saved as a Flow.', replay:'Again.', repair:'Fixes only what changed.', web:'The web, too.', log:'Every action, on the record.',
+ model_on:'Model in use', model_calls:'model calls', flow_sub:'6 steps · same procedure next time',
+ prompt:'Use Calculator to add 7 and 8',
+ ask_lines:[['dim','● Haejo  reading Calculator'],['dim','● Writing steps  clear → 7 → + → 8 → ='],['ok','✓ Result 15  ·  verified'],['acc','↳ Saved Flow: calculator-reusable']],
+ rep_cmd:'$ haejo run calculator-reusable \\\n    -p left=3 -p right=9', rep_done:'done — result: 12', rep_stat:s=>`replay <b>${s}s</b> · 6 steps`,
+ fix_lines:n=>[['dim','$ haejo run calculator-reusable --auto-repair claude'],['warn',"✗ step 3  couldn't find the 'Plus' button"],['acc',`● Claude  repairs this step · 1 call · ${n}s`],['dim','● resuming the remaining 3 steps'],['ok','done — result: 12']],
+ steps:[['01','Clear input','AC'],['02','Check zero','0'],['03','First number','{L}'],['04','Add','+'],['05','Second number','{R}'],['06','Verify result','{=}']],
+ end_tag:'Ask Haejo to use your apps.', chip_mac:'macOS apps · Web',
+ webtags:['GitHub · issue filter','Wikipedia · page link','Google Translate','Markdown editor']}}[LANG];
+document.documentElement.lang=LANG;
+document.querySelectorAll('[data-t]').forEach(e=>e.textContent=TEXT[e.dataset.t]);
+document.getElementById('end-url').textContent=END_URL;
+const replaySeconds=(RUNS.replay_seconds||1.39).toFixed(2), repairSeconds=(RUNS.repair_seconds||4.8).toFixed(1);
+
+// Timeline (seconds). Cuts overlap by X for the 0.28 s punch-in transition.
+const X=.28, S={title:[0,2.4],ask:[2.4,8],flow:[8,13.6],replay:[13.6,20],repair:[20,24.6],web:[24.6,29.4],log:[29.4,33.4],end:[33.4,37]};
+const DURATION=37;
+const clamp=(v,a=0,b=1)=>Math.min(b,Math.max(a,v));
+const ease=p=>p<.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2;
+const spring=p=>{p=clamp(p);return 1-Math.cos(p*Math.PI*2.2)*Math.exp(-6*p)};
+const seg=(t,a,b)=>clamp((t-a)/(b-a));
+function sceneEnv(t,[a,b]){ // opacity and punch scale for a scene window
+  const i=seg(t,a-X/2,a+X/2), o=1-seg(t,b-X/2,b+X/2);
+  return {o:Math.min(i,o), s:1+.06*(1-ease(i))-.03*(1-ease(o)), on:t>=a-X/2&&t<b+X/2};
+}
+
+// Build DOM pieces.
+const $=id=>document.getElementById(id);
+const title=$('title');TEXT.title.forEach(([w,c])=>{if(w==='\n'){title.appendChild(document.createElement('br'));return}const s=document.createElement('span');s.textContent=w;if(c)s.className=c;title.appendChild(s)});
+function lines(el,rows){el.innerHTML='';return rows.map(([c,txt])=>{const d=document.createElement('div');d.className='ln '+c;d.textContent=txt;el.appendChild(d);return d})}
+const promptLine=document.createElement('div');promptLine.className='ln';promptLine.style.opacity=1;$('ask-lines').appendChild(promptLine);
+const askRows=TEXT.ask_lines.map(([c,txt])=>{const d=document.createElement('div');d.className='ln '+c;d.textContent=txt;$('ask-lines').appendChild(d);return d});
+const repRows=lines($('rep-lines'),[['',TEXT.rep_cmd],['ok',TEXT.rep_done]]);
+const fixRows=lines($('fix-lines'),TEXT.fix_lines(repairSeconds));
+function calcImages(id,dir){const box=$(id);return Array.from({length:7},(_,i)=>{const im=new Image();im.src=`${PLATES}/${dir}/${String(i).padStart(2,'0')}.png`;box.appendChild(im);return im})}
+const calcAsk=calcImages('calc-ask','calc-first'),calcRep=calcImages('calc-rep','calc-second'),calcFix=calcImages('calc-fix','calc-second');
+const showFrame=(imgs,k)=>imgs.forEach((im,i)=>im.style.opacity=i===k?1:0);
+const nodes=TEXT.steps.map(([k,n,v],i)=>{const d=document.createElement('div');d.className='node';d.style.left=(i*288)+'px';
+  d.innerHTML=`<div class="k">${k}</div><div class="n">${n}</div><div class="v"></div>`;d.dataset.v=v;$('nodes').appendChild(d);
+  if(i<5){const e=document.createElement('div');e.className='edge';e.style.left=(i*288+262)+'px';e.style.width='26px';$('nodes').appendChild(e);d.edge=e}return d});
+const setNodeValues=(L,R,eq)=>nodes.forEach(n=>n.querySelector('.v').textContent=n.dataset.v.replace('{L}',L).replace('{R}',R).replace('{=}',eq));
+const webClips=[['browser-github',1.6],['browser-wikipedia',5.5],['browser-translate',1.2],['browser-markdown',4.5]].map(([n,start])=>{const v=document.createElement('video');v.src=`${ASSETS}/demos/${n}.mp4`;v.muted=true;v.preload='auto';$('web').insertBefore(v,$('webtag'));return {v,start}});
+$('log-img').src=`${PLATES}/activity.png`;$('logo').src=`${ASSETS}/favicon.svg`;
+
+function seek(v,time){return new Promise(r=>{if(Math.abs(v.currentTime-time)<1/120){r();return}v.addEventListener('seeked',()=>r(),{once:true});v.currentTime=time})}
+window.ready=Promise.all([...[...document.images].map(im=>im.decode().catch(()=>{})),...webClips.map(({v})=>new Promise(r=>{if(v.readyState>=2)r();else v.addEventListener('loadeddata',r,{once:true})}))]);
+
+window.renderAt=async function(t){
+  const pending=[];
+  const layer=(id,win)=>{const e=sceneEnv(t,win),el=$(id);el.style.opacity=e.o;el.style.transform=`scale(${e.s})`;el.style.visibility=e.on?'visible':'hidden';return e};
+  // Sticker per scene: springs in at scene start.
+  const key=['ask','flow','replay','repair','web','log'].find(k=>t>=S[k][0]&&t<S[k][1]);
+  const st=$('sticker');
+  if(key){const p=seg(t,S[key][0]+.05,S[key][0]+.55);st.textContent=TEXT[key];st.style.opacity=clamp(p*3)*(1-seg(t,S[key][1]-.15,S[key][1]));st.style.transform=`rotate(-2.5deg) scale(${.6+.4*spring(p)})`}else st.style.opacity=0;
+
+  // 1 Title: words spring in one by one.
+  layer('L-title',S.title);
+  [...title.querySelectorAll('span')].forEach((s,i)=>{const p=seg(t,.15+i*.16,.55+i*.16);s.style.opacity=clamp(p*2.5);s.style.transform=`translateY(${(1-spring(p))*60}px)`});
+
+  // 2 Ask once: prompt types, agent lines arrive, Calculator steps through real states.
+  layer('L-ask',S.ask);
+  const typed=Math.floor(TEXT.prompt.length*seg(t,2.7,4.0));
+  promptLine.innerHTML='<span class="acc">&gt;</span> '+TEXT.prompt.slice(0,typed)+(t<4.3&&Math.floor(t*2.5)%2===0?'<span class="caret"></span>':'');
+  askRows.forEach((r,i)=>{const p=seg(t,[4.4,4.9,7.3,7.6][i],[4.4,4.9,7.3,7.6][i]+.25);r.style.opacity=p;r.style.transform=`translateX(${(1-ease(p))*24}px)`});
+  const badgeOn=t>=4.8&&t<7.4;$('ask-badge').style.opacity=badgeOn?.75+.25*Math.sin(t*9):0;
+  showFrame(calcAsk,t<4.9?0:Math.min(6,1+Math.floor((t-4.9)/.42)));
+
+  // 3 Flow: nodes appear and connect; values from the first run.
+  const ef=layer('L-flow',S.flow);setNodeValues('7','8','15');
+  nodes.forEach((n,i)=>{const p=seg(t,8.35+i*.38,8.75+i*.38);n.style.opacity=clamp(p*2);n.style.transform=`translateY(${(1-spring(p))*70}px)`;n.classList.toggle('lit',t>11.2&&t<13.6);n.classList.remove('bad');
+    if(n.edge){const q=seg(t,8.7+i*.38,9.0+i*.38);n.edge.style.transform=`scaleX(${q})`;n.edge.style.background=t>11.2?'var(--orange)':'#e6ddd4'}});
+
+  // 4 Replay: real command, real Calculator states for 3+9, zero model calls.
+  layer('L-replay',S.replay);
+  repRows[0].style.opacity=seg(t,13.9,14.1);repRows[1].style.opacity=seg(t,17.0,17.2);
+  showFrame(calcRep,t<14.4?0:Math.min(6,1+Math.floor((t-14.4)/.4)));
+  const z=seg(t,17.1,17.6);$('big0').style.opacity=z;$('big0').style.transform=`scale(${.7+.3*spring(z)})`;$('big0').style.transformOrigin='0 60%';
+  $('rep-stat').innerHTML=TEXT.rep_stat(replaySeconds);$('rep-stat').style.opacity=seg(t,17.8,18.1);
+
+  // 5 Repair: step 3 misses its button, one model call fixes only that step.
+  layer('L-repair',S.repair);
+  fixRows.forEach((r,i)=>{const at=[20.2,20.7,21.6,22.5,23.5][i];r.style.opacity=seg(t,at,at+.2)});
+  showFrame(calcFix,t<22.6?3:Math.min(6,4+Math.floor((t-22.6)/.4)));
+  const mk=$('fix-mark');Object.assign(mk.style,{left:'350px',top:'598px',width:'88px',height:'88px'});
+  mk.style.opacity=t>20.7&&t<23.0?1:0;mk.style.borderColor=t<21.6?'#e8590c':'#2f9e44';mk.style.transform=`scale(${1+.08*Math.sin(t*10)})`;
+
+  // 6 Web: four real Haejo browser recordings, 1.2 s each.
+  const ew=layer('L-web',S.web);
+  const slot=Math.min(3,Math.floor((t-S.web[0])/1.2));
+  webClips.forEach((c,i)=>{const on=ew.on&&i===slot;c.v.style.opacity=on?1:0;
+    if(on){const local=t-S.web[0]-i*1.2;pending.push(seek(c.v,c.start+local*1.4));c.v.style.transform=`scale(${1.04-.04*ease(clamp(local/.35))})`}});
+  $('webtag').textContent=TEXT.webtags[Math.max(0,slot)];
+
+  // 7 Activity: the real Haejo window, camera drifts toward the step timeline.
+  layer('L-log',S.log);
+  const lp=ease(seg(t,29.6,33.2));$('log-img').style.transform=`scale(${1+.07*lp}) translateY(${-14*lp}px)`;
+
+  // 8 End card.
+  const ee=layer('L-end',S.end);
+  await Promise.all(pending);
+};
+</script></body></html>

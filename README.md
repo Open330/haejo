@@ -23,21 +23,21 @@ It saves the steps as a reusable **Flow**, so next time it runs with new inputs 
 
 ## See it work in real apps
 
-[![Haejo searches Wikipedia and follows a page link in a real browser](docs/assets/haejo-wikipedia-demo.gif)](sites/haejo/dist/assets/demos/browser-wikipedia.mp4)
+[![Haejo in 37 seconds: ask once, replay the saved Flow with zero model calls, repair only the step that changed](docs/assets/haejo-film-poster.en.jpg)](https://open330.github.io/tacto/en/#film)
 
-An animated preview from an actual recorded run. Click for the full MP4. GitHub's accessibility settings can disable animated-image autoplay.
+**Haejo in 37 seconds.** Ask once in Calculator, replay the saved Flow with zero model calls, and let the agent repair only the step that changed. Every app screen is real: Haejo captured the Calculator window at each step, the repair scene is one real Claude call, and the web shots are Haejo's own browser recordings. [Watch on the site](https://open330.github.io/tacto/en/#film) · [MP4](sites/haejo/dist/assets/film/haejo-film.en.mp4)
 
 **Ten recorded scenarios: eight real apps or websites, plus two public test environments.**
 
 | App or site | Task and observed result | Recording |
 | :--- | :--- | :--- |
-| TextEdit | Write workshop notes; separately verify saved disk contents against the document | [10 sec](sites/haejo/dist/assets/demos/native-textedit.mp4) |
-| Finder | Sort five files by kind, then by name | [8 sec](sites/haejo/dist/assets/demos/native-finder.mp4) |
-| Google Translate | Enter a synthetic English example; separately check Korean output | [7 sec](sites/haejo/dist/assets/demos/browser-translate.mp4) |
-| GitHub | Filter open bugs and sort by comment count | [9 sec](sites/haejo/dist/assets/demos/browser-github.mp4) |
-| UnitConverters.net | Convert 3.5 m to 11.482939633 ft; compare with a separate calculation | [9 sec](sites/haejo/dist/assets/demos/browser-units.mp4) |
-| Markdown Live Preview | Edit the opening section; check heading, list, and bold text | [18 sec](sites/haejo/dist/assets/demos/browser-markdown.mp4) |
-| Wikipedia | Search Seoul and navigate to History | [14 sec](sites/haejo/dist/assets/demos/browser-wikipedia.mp4) |
+| TextEdit | Write workshop notes; separately verify saved disk contents against the document | [28 sec](sites/haejo/dist/assets/demos/native-textedit.mp4) |
+| Finder | Sort five files by kind, then by name | [22 sec](sites/haejo/dist/assets/demos/native-finder.mp4) |
+| Google Translate | Enter a synthetic English example; separately check Korean output | [8 sec](sites/haejo/dist/assets/demos/browser-translate.mp4) |
+| GitHub | Filter open bugs and sort by comment count | [20 sec](sites/haejo/dist/assets/demos/browser-github.mp4) |
+| UnitConverters.net | Convert 3.5 m to 11.482939633 ft; compare with a separate calculation | [11 sec](sites/haejo/dist/assets/demos/browser-units.mp4) |
+| Markdown Live Preview | Edit the opening section; check heading, list, and bold text | [9 sec](sites/haejo/dist/assets/demos/browser-markdown.mp4) |
+| Wikipedia | Search Seoul and navigate to History | [19 sec](sites/haejo/dist/assets/demos/browser-wikipedia.mp4) |
 | Mac Calculator | Replay the same Flow with different inputs; verify 15 and 12 | [14 sec](sites/haejo/dist/assets/demos/calculator-guided.mp4) |
 
 <a href="sites/haejo/dist/assets/demos/native-textedit.mp4"><img src="sites/haejo/dist/assets/demos/native-textedit-poster.png" alt="Actual TextEdit document editing and save verification" width="48%"></a>
@@ -70,7 +70,7 @@ made through Haejo: the target app, operation, outcome and elapsed time. Search
 runs, filter failures or unconfirmed completion, and follow each operation in a
 timeline without opening a log directory.
 
-![Haejo preview with multiple actual access records and the selected TextEdit timeline](sites/haejo/dist/assets/haejo-activity.png)
+![Haejo preview with multiple actual access records and the selected Finder timeline](sites/haejo/dist/assets/haejo-activity.png)
 
 Records stay on this Mac. Settings control automatic logging and 7/30/90-day
 retention. Screen content, input values, prompts and internal agent reasoning
@@ -113,9 +113,9 @@ Native execution uses the existing Haejo menu bar icon for task status and **현
 
 [![Recorded execution of repeated workflows in the Haejo macOS test app](sites/haejo/dist/assets/demos/workflow-guided-poster.png)](sites/haejo/dist/assets/demos/workflow-guided.mp4)
 
-The same 11-step Flow ran five times with different inputs in our own macOS test app, producing 89, 34, 62, 79, and 108, with one completion per job. Pointers and click effects were added for explanation; they are not recordings of system cursor movement.
+The same 11-step Flow ran five times, one step at a time, with different inputs in our own macOS test app, producing 37, 46, 70, 27, and 48, with one completion per job. Pointers and click effects were added for explanation; they are not recordings of system cursor movement.
 
-[17-second walkthrough](sites/haejo/dist/assets/demos/workflow-guided.mp4) · [Unannotated recording](sites/haejo/dist/assets/demos/workflow-replay.mp4) · [Capture conditions](docs/haejo-recorded-demos-2026-10-15.md)
+[21-second walkthrough](sites/haejo/dist/assets/demos/workflow-guided.mp4) · [Unannotated recording](sites/haejo/dist/assets/demos/workflow-replay.mp4) · [Capture conditions](docs/haejo-film-2026-11-10.md)
 
 A separate development test completed ten jobs with zero replay-time model calls. Another repaired two changed buttons in one job using two model calls. These are dedicated test-app results, not a reliability guarantee for every business app. [Complex scenarios](docs/haejo-complex-scenarios-2026-10-14.md) · [TextEdit comparison](docs/benchmark-records.md#정확한-textedit-저장-상태의-실제-비교).
 

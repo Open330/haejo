@@ -46,7 +46,7 @@
         ></a
       >
       <nav aria-label="주요 메뉴">
-        <a href="#app">실행 기록</a><a href="#evidence">성능 비교</a
+        <a href="#film">영상</a><a href="#app">실행 기록</a><a href="#evidence">성능 비교</a
         ><a href="#start"
           >시작하기
           <svg
@@ -93,15 +93,15 @@
           <p class="platform-note">macOS · Apple Silicon · 로컬 실행</p>
           <a class="activity-promise" href="#app">에이전트가 한 일, 접근 기록으로 확인하세요 <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><use href="assets/ui-icons.svg#arrow-down"></use></svg></a>
         </div>
-        <figure class="hero-film">
-          <div class="film-heading"><span class="film-dot"></span><span>HAEJO IN ACTION</span><span>GitHub / Browser</span></div>
-          <video controls playsinline preload="none" poster="assets/demos/browser-github-poster.png" width="1280" height="800" aria-label="Haejo 실제 실행: GitHub 버그 검색과 정렬">
-            <source src="assets/demos/browser-github.mp4" type="video/mp4" />
-            <track kind="captions" src="assets/demos/browser-github.ko.vtt" srclang="ko" label="한국어" default />
-            <a href="assets/demos/browser-github.mp4">실행 영상 다운로드</a>
+        <figure class="hero-film" id="film">
+          <div class="film-heading"><span class="film-dot"></span><span>HAEJO FILM</span><span>37초</span></div>
+          <video controls playsinline preload="none" poster="assets/film/haejo-film.ko.poster.jpg" width="1920" height="1080" aria-label="Haejo 37초 소개 영상: 계산기로 한 번 맡기고, 저장한 Flow로 모델 호출 없이 다시 실행하고, 바뀐 단계만 수리합니다">
+            <source src="assets/film/haejo-film.ko.webm" type="video/webm" />
+            <source src="assets/film/haejo-film.ko.mp4" type="video/mp4" />
+            <a href="assets/film/haejo-film.ko.mp4">영상 다운로드</a>
           </video>
-          <figcaption><div><strong>“열린 버그를 댓글 많은 순으로 보여줘.”</strong><span>실제 GitHub에서 검색 · 필터 · 정렬</span></div><span class="film-evidence">실제 실행 녹화</span></figcaption>
-          <p class="film-note">별도 Chromium에서 촬영 · 설명용 안내 포인터 포함</p>
+          <figcaption><div><strong>한 번 말하면, 다음엔 모델 호출 없이.</strong><span>계산기 · 웹 · 실행 기록까지 실제 화면으로</span></div><span class="film-evidence">실제 화면</span></figcaption>
+          <p class="film-note">앱 화면은 Haejo가 단계마다 찍은 실제 캡처 · 수리 장면은 실제 Claude 호출 1회</p>
         </figure>
       </section>
       <section class="principles wrap" aria-label="Haejo의 작동 방식">
@@ -112,7 +112,7 @@
       </section>
       <section class="app-showcase wrap" id="app">
         <div class="app-showcase-copy"><div class="section-label">SEE WHAT YOUR AGENT DID</div><h2>에이전트가 한 일,<br />직접 확인하세요.</h2><p>어떤 앱에 접근하고, 어떤 동작을 했는지.<br />Haejo를 통한 접근 내역을 앱 안의 타임라인으로 확인하세요.</p><ul><li>접근한 앱과 단계별 동작·결과·시간</li><li>실패하거나 완료를 확인하지 못한 실행 찾기</li><li>기록 저장 여부와 7·30·90일 보관 설정</li></ul><span class="app-local-note">기록은 이 Mac에 저장됩니다. 화면 내용·입력값·프롬프트와 에이전트 내부 추론은 포함하지 않습니다.</span></div>
-        <figure><a class="app-image-link" href="assets/haejo-activity.png" target="_blank" rel="noopener" aria-label="접근 기록 앱 화면 크게 보기"><img src="assets/haejo-activity.png" width="2120" height="1400" loading="lazy" decoding="async" alt="실제 저장된 접근 기록 38개를 불러온 Haejo 앱 미리보기. 여러 실행 목록과 선택한 TextEdit 작업의 동작·결과·시간을 함께 보여줍니다." /></a><figcaption><a href="assets/haejo-activity.png" target="_blank" rel="noopener">크게 보기</a> · 실제 접근 기록 38개 · 앱 미리보기</figcaption></figure>
+        <figure><a class="app-image-link" href="assets/haejo-activity.png" target="_blank" rel="noopener" aria-label="접근 기록 앱 화면 크게 보기"><img src="assets/haejo-activity.png" width="2120" height="1400" loading="lazy" decoding="async" alt="실제 저장된 접근 기록 67개를 불러온 Haejo 앱 미리보기. 계산기·TextEdit·Finder 실행 목록과 선택한 Finder 작업의 동작·결과·시간을 함께 보여줍니다." /></a><figcaption><a href="assets/haejo-activity.png" target="_blank" rel="noopener">크게 보기</a> · 실제 접근 기록 67개 · 앱 미리보기</figcaption></figure>
       </section>
       <section class="intro wrap" id="how">
         <div class="section-label">REUSABLE FLOW</div>
@@ -669,7 +669,7 @@ uv sync
                 <a href="assets/demos/native-textedit.mp4">영상 다운로드</a>
               </video>
               <p class="recording-caption">
-                약 10초 · Mac 창 캡처 · 안내 포인터 포함
+                약 28초 · Mac 창 캡처 · 안내 포인터 포함
               </p>
 <p class="case-result">문서와 디스크 내용 일치</p>
               <details class="case-details"><summary>동작과 검증 범위</summary>
@@ -729,7 +729,7 @@ uv sync
                 <a href="assets/demos/native-finder.mp4">영상 다운로드</a>
               </video>
               <p class="recording-caption">
-                약 8초 · Mac 창 캡처 · 안내 포인터 포함
+                약 22초 · Mac 창 캡처 · 안내 포인터 포함
               </p>
 <p class="case-result">종류 정렬 → 이름 정렬 · 5개 파일</p>
               <details class="case-details"><summary>동작과 검증 범위</summary>
@@ -796,7 +796,7 @@ uv sync
                 <a href="assets/demos/browser-translate.mp4">영상 다운로드</a>
               </video>
               <p class="recording-caption">
-                약 7초 · 별도 Chromium · 안내 포인터 포함
+                약 8초 · 별도 Chromium · 안내 포인터 포함
               </p>
 <p class="case-result">영어 입력 · 한국어 결과 표시</p>
               <details class="case-details"><summary>동작과 검증 범위</summary>
@@ -860,7 +860,7 @@ uv sync
                 <a href="assets/demos/browser-github.mp4">영상 다운로드</a>
               </video>
               <p class="recording-caption">
-                약 9초 · 별도 Chromium · 안내 포인터 포함
+                약 20초 · 별도 Chromium · 안내 포인터 포함
               </p>
 <p class="case-result">열린 버그 필터 · 댓글순 정렬</p>
               <details class="case-details"><summary>동작과 검증 범위</summary>
@@ -924,7 +924,7 @@ uv sync
                 <a href="assets/demos/browser-units.mp4">영상 다운로드</a>
               </video>
               <p class="recording-caption">
-                약 9초 · 별도 Chromium · 안내 포인터 포함
+                약 11초 · 별도 Chromium · 안내 포인터 포함
               </p>
 <p class="case-result">3.5 m → 11.482939633 ft</p>
               <details class="case-details"><summary>동작과 검증 범위</summary>
@@ -989,7 +989,7 @@ uv sync
                 <a href="assets/demos/browser-markdown.mp4">영상 다운로드</a>
               </video>
               <p class="recording-caption">
-                약 18초 · 별도 Chromium · 안내 포인터 포함
+                약 9초 · 별도 Chromium · 안내 포인터 포함
               </p>
 <p class="case-result">제목·목록·굵은 글씨 렌더링</p>
               <details class="case-details"><summary>동작과 검증 범위</summary>
@@ -1054,7 +1054,7 @@ uv sync
                 <a href="assets/demos/browser-wikipedia.mp4">영상 다운로드</a>
               </video>
               <p class="recording-caption">
-                약 14초 · 별도 Chromium · 안내 포인터 포함
+                약 19초 · 별도 Chromium · 안내 포인터 포함
               </p>
 <p class="case-result">서울 문서 검색 · History 이동</p>
               <details class="case-details"><summary>동작과 검증 범위</summary>
@@ -1176,7 +1176,7 @@ uv sync
                 <a href="assets/demos/browser-shopping.mp4">영상 다운로드</a>
               </video>
               <p class="recording-caption">
-                약 9초 · 별도 Chromium · 안내 포인터 포함
+                약 12초 · 별도 Chromium · 안내 포인터 포함
               </p>
 <p class="case-result">도서 상세 · 가상 가격·재고</p>
               <details class="case-details"><summary>동작과 검증 범위</summary>
@@ -1238,7 +1238,7 @@ uv sync
                 <a href="assets/demos/browser-form.mp4">영상 다운로드</a>
               </video>
               <p class="recording-caption">
-                약 13초 · 별도 Chromium · 안내 포인터 포함
+                약 16초 · 별도 Chromium · 안내 포인터 포함
               </p>
 <p class="case-result">텍스트·날짜·옵션 4개 확인</p>
               <details class="case-details"><summary>동작과 검증 범위</summary>
@@ -1326,14 +1326,14 @@ uv sync
               >
             </video>
             <p class="recording-caption">
-              약 17초 · 실제 창 캡처 + 안내 포인터 · 속도 변경 없이 시간순 재생
+              약 21초 · 단계마다 찍은 실제 창 캡처 + 안내 포인터
             </p>
             <blockquote>
               “이 다섯 건을 같은 순서로 입력하고, 계산 결과를 확인해줘.”
             </blockquote>
             <p>
               필드 입력, 조건 선택, 검토, 계산, 결과 대조, 완료 확인까지
-              11단계를 재생했습니다. 결과는 89·34·62·79·108이며 각 작업의 완료
+              11단계를 한 단계씩 재생했습니다. 결과는 37·46·70·27·48이며 각 작업의 완료
               기록이 한 번씩 남았는지 별도로 확인했습니다.
             </p>
             <p class="recording-caption">
