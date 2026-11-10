@@ -1,7 +1,7 @@
 # Parallel window execution
 
-The development checkout provides `haejo parallel` for one to four independent
-macOS window jobs. Each job runs through its own signed launcher and helper
+`haejo parallel` (in the release and the development checkout) runs one to four
+independent macOS window jobs. Each job runs through its own signed launcher and helper
 connection. It reuses window ownership, fresh AX observations, contract checks,
 and postcondition verification. The coordinator never shares an inherited
 helper descriptor or calls the legacy in-process `Driver`.
