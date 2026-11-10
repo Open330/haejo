@@ -3503,6 +3503,16 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
                     res.record(status="ok", step=i, action=step.action, resolver=trace, risk=risk,
                                verified="target_terminated", target_terminated=True)
                     continue
+                if (obs.get("error") == "window_scope_lost" and obs.get("reason") == "window_closed"
+                        and r.get("type") == "acted" and step.action == "click"
+                        and getattr(step.selector, "subrole", None) == "AXCloseButton"
+                        and i == len(flow.steps) - 1 and not step.captures and step.expect is None):
+                    # The pinned window's own close button closed it: the state
+                    # this step asked for. Reported as failed, the next item of
+                    # a repeated popup task would be retried on a closed window.
+                    res.record(status="ok", step=i, action=step.action, resolver=trace, risk=risk,
+                               verified="window_closed")
+                    continue
                 if (obs.get("error") == "no_window_content" and r.get("type") == "acted"
                         and step.action == "close_menu" and r.get("menus_open") == 0
                         and not step.captures and step.expect is None):

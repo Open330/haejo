@@ -309,5 +309,40 @@ class ReuseHint(unittest.TestCase):
         self.assertNotIn('haejo batch', session_guide('com.apple.calculator'))
 
 
+class ClosingTheOwnWindow(unittest.TestCase):
+    def replay(self, steps, after):
+        from haejo.flow import replay
+        flow = Flow.from_json(json.dumps({'schema': 2, 'name': 't', 'target': 'com.apple.Safari', 'steps': steps}))
+        class App:
+            capabilities = set()
+            acted = None
+            def observe(self, target, mode='tree_full', **kwargs):
+                if self.acted:
+                    return after
+                return {'type': 'observation', 'obs_id': 'o',
+                        'tree': '0 Window  Title: "Player" [focused]\n  1 Button  Subrole: AXCloseButton'}
+            def act(self, obs, target, action, **kwargs):
+                self.acted = action
+                return {'type': 'acted', 'action': action['name'], 'obs_id': obs}
+            def wait_until(self, target, predicate, **kwargs):
+                return self.observe(target)
+        return replay(App(), flow)
+
+    SAFETY = {'effects': ['write_ephemeral'], 'reversibility': 'reversible',
+              'resource': {'object_type': 'window', 'scope': 'item'}}
+
+    def test_close_button_closing_the_pinned_window_is_done(self):
+        close = {'action': 'click', 'selector': {'role': 'Button', 'subrole': 'AXCloseButton'}, 'safety': self.SAFETY}
+        closed = {'type': 'error', 'error': 'window_scope_lost', 'reason': 'window_closed', 'effect': 'not_started'}
+        result = self.replay([close], closed)
+        self.assertTrue(result.ok, result.log)
+        self.assertEqual('window_closed', result.log[0]['verified'])
+        for after in ({**closed, 'reason': 'not_on_active_space'}, {**closed, 'reason': 'screen_locked'}):
+            with self.subTest(reason=after['reason']):
+                self.assertFalse(self.replay([close], after).ok)
+        other = {'action': 'click', 'selector': {'role': 'Button', 'title': 'Next'}, 'safety': self.SAFETY}
+        self.assertFalse(self.replay([other], closed).ok)
+
+
 if __name__ == '__main__':
     unittest.main()
