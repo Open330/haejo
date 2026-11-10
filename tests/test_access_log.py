@@ -71,6 +71,26 @@ class AccessLogTests(unittest.TestCase):
             self.assertEqual('command_end', events[-1]['event'])
             self.assertEqual('KEEP', sentinel.read_text())
 
+    def test_a_file_pruned_by_another_run_does_not_cost_this_receipt(self):
+        """Two runs at the cap prune the same oldest file; the slower one still logs."""
+        from haejo import access_log
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)/'Haejo/Logs'; root.mkdir(parents=True)
+            with patch('haejo.access_log.MAX_FILES', 2):
+                for _ in range(2):
+                    AccessLog('observe', root=root).close()
+                real = access_log._files
+                def raced(directory):
+                    rows = real(directory)
+                    for path, _ in rows: path.unlink()  # the other run got there first
+                    return rows
+                stderr = io.StringIO()
+                with patch('haejo.access_log._files', raced), contextlib.redirect_stderr(stderr):
+                    log = AccessLog('observe', root=root)
+                self.assertIsNotNone(log.path); self.assertTrue(log.path.exists())
+                self.assertEqual('', stderr.getvalue())
+                log.close()
+
     def test_main_covers_connection_failure_and_resets_scope_without_stdout_noise(self):
         from haejo import cli
         from haejo.helper import HelperUnavailable

@@ -64,7 +64,10 @@ def _files(root):
         raise OSError('unsafe_access_log_directory')
     for p in root.iterdir():
         if _NAMES.fullmatch(p.name):
-            info = p.lstat()
+            try:
+                info = p.lstat()
+            except FileNotFoundError:
+                continue  # another Haejo process pruned it meanwhile
             if stat.S_ISREG(info.st_mode) and (not hasattr(os, 'getuid') or info.st_uid == os.getuid()):
                 found.append((p, info))
     return sorted(found, key=lambda row: row[1].st_mtime, reverse=True)
@@ -99,7 +102,9 @@ class AccessLog:
                 total += info.st_size
                 count += 1
                 if count >= MAX_FILES or total > MAX_TOTAL - MAX_FILE or time.time() - info.st_mtime > self.preferences['retention_days'] * 86400:
-                    p.unlink()
+                    # Concurrent runs prune the same oldest files; a file already
+                    # gone must not cost this run its own receipt.
+                    p.unlink(missing_ok=True)
             name = 'haejo-' + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ-') + uuid.uuid4().hex + '.jsonl'
             flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, 'O_NOFOLLOW', 0)
             self.fd = os.open(root/name, flags, 0o600)
