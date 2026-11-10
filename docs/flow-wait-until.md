@@ -52,6 +52,8 @@ that remains false through its active timeout records
 Other observation failures record `wait_observation_failed` with the backend's
 diagnostic. Unreadable observations are never tested as empty trees. A wait can
 remain paused beyond 7200 wall-clock seconds; the limit applies to active time.
+Paused time itself is capped at 6 hours in total; past that the step ends with
+`wait_paused_too_long` and the last pause `reason`.
 
 An existing session can pause during replay. Opening a new interactive session
 still performs its normal first observation before accepting the Flow, so it

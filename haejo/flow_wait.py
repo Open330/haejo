@@ -53,6 +53,11 @@ def step_problem(step):
     return None
 
 
+# A pause is not counted against timeout_s, but it is not unbounded either: an
+# off-screen diagnosis can also mean the window was ordered out for good.
+MAX_PAUSED_S = 6 * 3600
+
+
 def platform_pause_reason(target):
     """Cheap local availability check before an AX tree read on macOS.
 
@@ -133,6 +138,9 @@ def run_step(driver, target, step, index, result):
             reason = observation_pause_reason(observation)
         account(time.monotonic(), reason)
         previous_reason = reason
+        if reason and paused >= MAX_PAUSED_S:
+            record(status='error', error='wait_paused_too_long', reason=reason)
+            return None
         if reason is None:
             if observation.get('type') == 'observation':
                 if active <= step.timeout_s and step.until.check(observation['tree']):
