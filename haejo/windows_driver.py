@@ -424,6 +424,27 @@ class WindowsDriver:
             raise NotStarted("target changed since observation")
         return element, props
 
+    def _dropdown_button(self, obs, element, props):
+        """The one invokable button a combo box holds as its own child.
+
+        The system combo box proxy gives its parts no runtime id, so the
+        button is trusted as a direct child of the combo box just verified,
+        in the same process; the list items it shows do carry ids and are
+        checked as usual.
+        """
+        if props.get("control_type") != "ComboBox":
+            return None
+        buttons = [child for child in self._backend.children(element)
+                   for child_props in (self._backend.props(child),)
+                   if child_props.get("control_type") == "Button"
+                   and "invoke" in (child_props.get("patterns") or set())
+                   and child_props.get("pid") == obs.pid]
+        return buttons[0] if len(buttons) == 1 else None
+
+    def _list_shown(self, element):
+        return any(props.get("control_type") == "List" and not props.get("offscreen")
+                   for props in map(self._backend.props, self._backend.children(element)))
+
     def _owned(self, obs, element, what):
         props = self._backend.props(element)
         if props.get("pid") != obs.pid or props.get("runtime_id") is None:
@@ -485,12 +506,21 @@ class WindowsDriver:
                 raise NotStarted("option_label_required")
             if "value" in action and action.get("value") != label:
                 raise NotStarted("native_option_value_mismatch")
+            opener = None
             if "expand_collapse" not in patterns:
-                raise NotStarted("not a selectable list")
+                # A .NET Framework WinForms combo box (legacy accessibility,
+                # common in line-of-business apps) offers only Value; its own
+                # drop-down button opens the list (jiun-home, 2026-11-10).
+                opener = self._dropdown_button(obs, element, props)
+                if opener is None:
+                    raise NotStarted("not a selectable list")
             _checkpoint(False)
             # Opening the list is already input to the app, so from here a
             # refusal is reported with an unknown effect, never not_started.
-            backend.expand(element)
+            if opener is None:
+                backend.expand(element)
+            else:
+                backend.invoke(opener)
             try:
                 # One cached read per option: each is a cross-process call.
                 options = [(option, props) for option in backend.descendants(element)
@@ -510,6 +540,9 @@ class WindowsDriver:
                     raise RuntimeError("option cannot be selected") from exc
             finally:
                 # Cleanup, not a new action: put back the list this step opened.
-                backend.collapse(element)
+                if opener is None:
+                    backend.collapse(element)
+                elif self._list_shown(element):
+                    backend.invoke(opener)
             return {"input_route": "uia_selection_item"}
         raise NotStarted(f"unsupported action {name!r} on Windows")

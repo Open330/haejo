@@ -749,6 +749,10 @@ def _dispatch(cmd, rest):
     if cmd not in ('do', 'run', 'replay', 'web-upload'):
         print('--journal-dir is supported only for do/run/replay/web-upload')
         return 2
+    if sys.platform == 'win32':
+        # The journal pins its directory by POSIX descriptor and owner id.
+        print('--journal-dir is macOS-only; see docs/windows.md')
+        return 2
     with ExitStack() as stack:
         token = _execution_journal.set((directory, stack))
         try:
@@ -1455,8 +1459,12 @@ def _dispatch_command(cmd, rest):
         from .authoring import author as _author
         from .store import FlowStore as _FS
         print(f"  🧠 '{intent}' 를 배우는 중… (엔진: {provider or 'auto'})")
-        flow = _author(intent, _make_driver(rest), provider=provider or "auto", narrate=print,
-                       verify=verify, rounds=rounds)
+        try:
+            flow = _author(intent, _make_driver(rest), provider=provider or "auto", narrate=print,
+                           verify=verify, rounds=rounds)
+        except RuntimeError as exc:
+            print(f"compile_failed: {exc}")
+            return 1
         if out:
             from .storage import write_private
             path = write_private(out, flow.to_json())
@@ -1810,13 +1818,31 @@ def _task_binding(arguments):
             except (OSError, tasks.TaskRefused):
                 pass
         code = exc.code if isinstance(exc, tasks.TaskRefused) else 'task_storage_unavailable'
-        detail = exc.detail if isinstance(exc, tasks.TaskRefused) else 'Could not record this task; no UI input was sent.'
+        from .private_fs import access_repair_hint
+        detail = exc.detail if isinstance(exc, tasks.TaskRefused) else 'Could not record this task; no UI input was sent.' + access_repair_hint(exc)
         print(json.dumps({'type':'error','error':code,'effect':'not_started','detail':detail},
                          ensure_ascii=False) if '--json' in arguments else f'{code}: {detail}')
         return None, list(arguments), 2
 
 
+def _utf8_streams():
+    """Windows pipes and files default to the ANSI code page (cp949 on Korean
+    Windows): a window title holding an emoji raised UnicodeEncodeError, and
+    agents read the JSON in an encoding they did not expect. Haejo's streams
+    are UTF-8 everywhere; a console already is."""
+    if sys.platform != "win32":
+        return
+    for stream in (sys.stdin, sys.stdout, sys.stderr):
+        encoding = (getattr(stream, "encoding", None) or "").lower().replace("-", "").replace("_", "")
+        if encoding != "utf8" and hasattr(stream, "reconfigure"):
+            try:
+                stream.reconfigure(encoding="utf-8")
+            except (ValueError, OSError):
+                pass
+
+
 def main(argv=None):
+    _utf8_streams()
     from .access_log import current, AccessLog, COMMANDS
     from . import task as tasks
     arguments = list(sys.argv[1:] if argv is None else argv)
@@ -1837,9 +1863,11 @@ def main(argv=None):
                 log.task_result({'status': 'failed', 'error': exc.code, 'stage': 'task'})
                 log.finish(2); log.close()
             return 2
-        except OSError:
+        except OSError as exc:
+            from .private_fs import access_repair_hint
             binding.close_unadmitted_inline()
-            print('task_storage_unavailable: the task could not record this call; nothing was sent to the screen.')
+            print('task_storage_unavailable: the task could not record this call; nothing was sent to the screen.'
+                  + access_repair_hint(exc))
             if log is not None:
                 log.task_result({'status': 'failed', 'error': 'task_storage_unavailable', 'stage': 'task'})
                 log.finish(2); log.close()

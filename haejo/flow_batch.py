@@ -135,7 +135,7 @@ def run_batch(args, *, make_driver, run_flow, stdin, emit, load_recipe=None):
         # A saved name repeats the recipe `haejo replay <name>` runs, so going
         # from one replay to many needs no exported file. A path stays a path.
         is_name = load_recipe is not None and os.sep not in files[0] and not files[0].endswith('.json')
-        recipe=load_recipe(files[0]) if is_name else Flow.from_json(Path(files[0]).read_text())
+        recipe=load_recipe(files[0]) if is_name else Flow.from_json(Path(files[0]).read_text(encoding='utf-8'))
     except (OSError,ValueError,TypeError,KeyError,RecursionError) as exc:
         emit('invalid_flow: '+feedback(exc));return 2
     if recipe.target.startswith('ios:'):

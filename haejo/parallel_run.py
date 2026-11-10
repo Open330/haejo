@@ -282,7 +282,7 @@ def run_parallel_jobs(manifest, *, timeout=60, on_event=None):
                 event(job, 'running')
                 process.communicate(job.flow_json + '\n', timeout=timeout)
                 if receipt.is_file() and receipt.stat().st_size <= 4096:
-                    raw = json.loads(receipt.read_text())
+                    raw = json.loads(receipt.read_text(encoding='utf-8'))
                     if (type(raw) is dict and set(raw) == {'schema','ok','effect','error','coordination_elapsed_ms','helper_pid'}
                             and type(raw['schema']) is int and raw['schema'] == 1
                             and type(raw['ok']) is bool and raw['ok'] == (process.returncode == 0)

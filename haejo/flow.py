@@ -1233,7 +1233,7 @@ class Flow:
             if s['action'] == 'secondary_action' and isinstance(payload.get('action'), str):
                 # The tree prints "Secondary Actions: ShowMenu" while the helper
                 # takes "AXShowMenu"; copying what was observed must work.
-                from .driver import SECONDARY_ACTIONS
+                from .protocol import SECONDARY_ACTIONS
                 name = payload['action']
                 if not name.startswith('AX') and 'AX' + name in SECONDARY_ACTIONS:
                     payload = {**payload, 'action': 'AX' + name}
@@ -1537,6 +1537,11 @@ def intent_pattern(template: str, params: dict):
             default = str(params.get(part, ""))
             value = r"[0-9]+(?:\.[0-9]+)?" if re.fullmatch(r"[0-9.]+", default) else r".+?"
             out.append(f"(?P<{part}>{value})")
+        elif part and not part.strip() and 0 < i < len(parts) - 1:
+            # Only a space between two inputs: it is their boundary. Optional,
+            # it let the first input stop after one character ("장보고 포도"
+            # read as name "장", fruit "보고 포도").
+            out.append(r"\s+")
         else:
             out.append(r"\s*".join(re.escape(w) for w in part.split()) if part.strip() else "")
             if part[:1].isspace():

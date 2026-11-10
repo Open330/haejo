@@ -333,6 +333,40 @@ class WindowsDriverTests(unittest.TestCase):
         mismatch = self.act(self.observe(), "select_option", element_index=index, option_label="ANSI", value="x")
         self.assertEqual("not_started", mismatch["effect"])
 
+    def test_legacy_combo_box_opens_through_its_own_drop_down_button(self):
+        """.NET Framework WinForms combo boxes offer only Value; the list
+        appears once their drop-down button is invoked."""
+        opener = Element("Button", "Open", patterns={"invoke"})
+        opener.props["runtime_id"] = None  # the system combo box proxy gives its parts none
+        legacy = Element("ComboBox", "Fruit", automation_id="fruit", value="Apple", readonly=False,
+                         patterns={"value"}, children=[Element("Text", "Fruit", patterns={"value"}), opener])
+        items = Element("List", "Fruit", children=[Element("ListItem", label, patterns={"selection_item"})
+                                                   for label in ("Apple", "Grape")])
+        backend = self.backend
+
+        def invoke(element):
+            backend._record("invoke", element)
+            if element is opener:  # the list shows while open, as in the real control
+                if items in legacy.kids:
+                    legacy.kids.remove(items)
+                else:
+                    legacy.kids.insert(0, items)
+                    items.parent = legacy
+        backend.invoke = invoke
+        self.window.kids[0].kids.append(legacy)
+        legacy.parent = self.window.kids[0]
+        obs = self.observe()
+        result = self.act(obs, "select_option", element_index=self.index(obs, identifier="fruit"), option_label="Grape")
+        self.assertEqual("acted", result["type"], result)
+        self.assertEqual([("invoke", "Open"), ("select", "Grape"), ("invoke", "Open")], backend.calls)
+        self.assertNotIn(items, legacy.kids)
+        # Without a single drop-down button of its own it is still refused untouched.
+        legacy.kids.append(Element("Button", "Other", patterns={"invoke"}))
+        backend.calls.clear()
+        refused = self.act(self.observe(), "select_option", element_index=self.index(self.observe(), identifier="fruit"),
+                           option_label="Grape")
+        self.assertEqual(("not_started", []), (refused["effect"], backend.calls))
+
     def test_scroll_finds_container_and_bounds_pages(self):
         obs = self.observe()
         index = self.index(obs, title="Save")

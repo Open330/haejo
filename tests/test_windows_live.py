@@ -326,6 +326,56 @@ class WindowsPackagedAppLiveTests(unittest.TestCase):
         print(f"\n  calculator build: {build}", file=sys.stderr)
 
 
+LEGACY_FORM = r"""
+using System.Windows.Forms;
+public class HaejoLegacyCombo : Form {
+  public HaejoLegacyCombo() {
+    Text = "haejo legacy combo";
+    var combo = new ComboBox { Name = "fruitBox", DropDownStyle = ComboBoxStyle.DropDownList, AccessibleName = "Fruit" };
+    combo.Items.AddRange(new object[] { "Apple", "Pear", "Grape" }); combo.SelectedIndex = 0;
+    Controls.Add(combo);
+    var t = new Timer { Interval = 60000 }; t.Tick += (s, e) => Close(); t.Start();
+  }
+  [System.STAThread] public static void Main() { Application.Run(new HaejoLegacyCombo()); }
+}
+"""
+
+
+@unittest.skipUnless(LIVE, "real UI Automation runs only with HAEJO_WINDOWS_LIVE=1 on Windows")
+class WindowsLegacyComboLiveTests(unittest.TestCase):
+    """A .NET Framework WinForms combo box offers only Value; the option is
+    selected through its own drop-down button (jiun-home, 2026-11-10)."""
+
+    def test_option_is_selected_and_the_list_closed_again(self):
+        import tempfile
+        from haejo.windows_driver import WindowsDriver
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        source, exe = Path(folder.name) / "combo.cs", Path(folder.name) / "HaejoLegacyCombo.exe"
+        source.write_text(LEGACY_FORM, encoding="utf-8")
+        built = subprocess.run(["powershell.exe", "-NoProfile", "-Command",
+                                f"Add-Type -Path '{source}' -ReferencedAssemblies System.Windows.Forms "
+                                f"-OutputAssembly '{exe}' -OutputType WindowsApplication"],
+                               capture_output=True, text=True, timeout=120)
+        if not exe.exists():
+            self.skipTest("no .NET Framework compiler here: " + built.stderr[-300:])
+        child = subprocess.Popen([str(exe)])
+        self.addCleanup(lambda: (child.kill(), child.wait()))
+        driver = WindowsDriver()
+        target = f"pid:{child.pid}"
+        obs = driver.wait_until(target, lambda tree: "fruitBox" in tree, timeout_ms=15000)
+        self.assertEqual("observation", obs["type"], obs)
+        line = re.search(r"^\s*(\d+) \w+\s+.*Identifier: fruitBox\b.*$", obs["tree"], re.M)
+        self.assertIsNotNone(line, obs["tree"])
+        result = driver.act(obs["obs_id"], target, {"name": "select_option", "element_index": int(line.group(1)),
+                                                    "option_label": "Grape"})
+        self.assertEqual("acted", result["type"], result)
+        after = driver.wait_until(target, lambda tree: re.search(r"Value: Grape, Identifier: fruitBox", tree),
+                                  timeout_ms=5000)
+        self.assertEqual("observation", after["type"], after.get("last_obs", after).get("tree"))
+        self.assertNotIn("ListItem", after["tree"])  # the list this step opened is closed again
+
+
 @unittest.skipUnless(LIVE, "real UI Automation runs only with HAEJO_WINDOWS_LIVE=1 on Windows")
 class WindowsModalAndNoticeLiveTests(unittest.TestCase):
     def test_owned_message_box_is_seen_as_modal(self):

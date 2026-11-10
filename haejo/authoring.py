@@ -358,6 +358,10 @@ def _remembered_unavailable(key: tuple) -> str | None:
     return seen[0]
 
 
+MODEL_UNAVAILABLE_ON_WINDOWS = ("model providers are macOS-only for now; on Windows run saved flows "
+                                "(replay, run, batch, or a saved flow's sentence with do); see docs/windows.md")
+
+
 def _ask_model(prompt: str, provider: str = "auto", timeout: int = 420,
                expect_json: bool = False, *, _metadata: dict | None = None) -> str:
     """Reach a model for the one token-spending step.
@@ -374,6 +378,11 @@ def _ask_model(prompt: str, provider: str = "auto", timeout: int = 420,
     is not an answer to a question that asked for JSON, whatever the exit code
     said. Errors report attempt types, never raw model output.
     """
+    if os.name == "nt":
+        # Provider processes are owned through POSIX process groups and child
+        # reaping (provider_io), so none can be started here; say so once
+        # instead of trying, and failing, every provider in turn.
+        raise RuntimeError(MODEL_UNAVAILABLE_ON_WINDOWS)
     order = PROVIDER_ORDER if provider in ("auto", None) else (provider,)
     tried = []
     attempts = []
