@@ -15,8 +15,8 @@ job limit ends the batch. The default limit is10 jobs and idle deadline90s;
 Each job binds the immutable template and runs the ordinary replay engine with
 fresh observations, authorization and completion checks. Each successful result
 is separate; it does not authorize the next task. Requests cannot change the
-Flow, target, contracts or checks. Interactive approval is not accepted. Model selection is disabled unless
-`--auto-repair codex` or `--auto-repair claude` is explicitly enabled. Use run for document scope, approval, judgment or a dispatch journal.
+Flow, target, contracts or checks. `--yes` carries the user's approval of these rows to every job's confirmation steps; without it, a confirmation step stops that job. Model selection is disabled unless
+`--auto-repair codex` or `--auto-repair claude` is explicitly enabled. Use run for document scope, judgment or a dispatch journal.
 
 A Flow with `"window": {"url": "...", "title": "...", "newest": true}` (saved by
 `session --window-match ... --save`) runs each job in the window that selector

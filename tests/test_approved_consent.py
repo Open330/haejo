@@ -127,3 +127,18 @@ class ApprovedConsentTests(unittest.TestCase):
         self.assertEqual({}, approvals)
         self.assertIn('--yes', ' '.join(blocked))
         self.assertNotIn('직접 해주셔야', ' '.join(blocked))
+
+
+class SecurityWarningApprovalTests(unittest.TestCase):
+    """A warning label the user told us to get past asks for approval, it does
+    not become a step only the person can press."""
+    def test_warning_labels_are_approvable(self):
+        from haejo.safety import classify, merge
+        for label in ('Proceed anyway', 'Not secure', '보안 우회', '안전하지 않은 사이트로 이동'):
+            with self.subTest(label=label):
+                self.assertEqual('confirm', classify({'name': 'click'}, '1 Button  Title: '+label)[0])
+        self.assertEqual('confirm', merge('handoff', 'none'))
+        self.assertEqual('confirm', merge('garbage', 'none'))
+        self.assertEqual('confirm', merge('none', 'confirm'))
+        self.assertEqual('none', merge('none', 'none'))
+

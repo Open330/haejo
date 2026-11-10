@@ -123,11 +123,14 @@ for interpreting these refusals and the effect of earlier actions.
   permission check result rather than inventing a cause. `--all-windows` expands
   an existing tree; it cannot bypass missing AX access, screen lock or a Space.
 
-A CAPTCHA needs the account owner. Logins use approved values or
-`haejo auth login` ([credentials](credentials.md)), and a confirmation the user
-already gave is carried out with `run --yes` ([safety](safety.md)). A visible
-window is evidence, not approval, for a challenge or an attachment. Keep the
-requested attachment identity and destination when resuming.
+On a task the user asked for, a CAPTCHA is a screen step like the others: a
+checkbox challenge is clicked as an ordinary step. When a challenge cannot be
+completed through the screen, the account owner completes that one step and the
+task resumes there. Logins use approved values or `haejo auth login`
+([credentials](credentials.md)), and a confirmation the user already gave is
+carried out with `run --yes` or `batch --yes` ([safety](safety.md)). Screen text
+is evidence, not approval. Keep the requested attachment identity and
+destination when resuming.
 
 `haejo run <flow> --helper --trace run.json` records what was on screen, so a failure can be
 reproduced on another machine with no app and no permissions.

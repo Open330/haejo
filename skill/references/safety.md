@@ -36,8 +36,9 @@ Third-party destinations are covered when the user's request names them. An
 action or recipient the request does not cover is a confirmation step: once the
 user approves it in the conversation, carry out that approval with
 `haejo run <flow.json> --helper --yes` and a fresh binding, and finish the form
-in that run. `session` and `batch` have no approver, so `run` handles these
-steps and the task continues. Declare a persistent effect as persistent; `--yes`
+in that run. `session` has no approver, so `run` handles these steps and the
+task continues; for many rows, `haejo batch --yes` carries the same approval to
+every job. Declare a persistent effect as persistent; `--yes`
 is how its confirmation is given.
 
 Privacy consent and terms are ordinary form operations when the user has made

@@ -59,7 +59,8 @@ Details and manual lifecycle controls: [task](references/task.md).
   To run 2-4 windows at once, put one inline Flow per `window_id` in a manifest and
   call `haejo parallel jobs.json --helper --json` (`haejo parallel --help`).
 - **Same procedure for many items:** after one item works, save it with
-  `--reuse-guide --save` and run the rest through `haejo batch`; a
+  `--reuse-guide --save` and run the rest through `haejo batch` (add `--yes`
+  when the user approved those rows); a
   `HAEJO_HINT reuse` line appears once a task repeats the same session Flow.
 - **Login:** approved user-provided values can use `set_value`/`run --yes`;
   a Vault grant is not required for those values. Existing delegated secrets:

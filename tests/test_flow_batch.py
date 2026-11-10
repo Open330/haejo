@@ -156,13 +156,22 @@ class BatchTests(unittest.TestCase):
         report=json.loads(next(m.removeprefix('HAEJO_BATCH_RESULT ') for m in messages if m.startswith('HAEJO_BATCH_RESULT ')))
         self.assertEqual(1,code);self.assertEqual(3,report['failed_step'])
     def test_invalid_limits_and_target_or_model_changes_refuse_before_connection(self):
-        for args in (['--max-jobs','0'],['--max-jobs','1001'],['--idle-timeout','0'],['--yes'],['--document','/tmp/doc']):
+        for args in (['--max-jobs','0'],['--max-jobs','1001'],['--idle-timeout','0'],['--document','/tmp/doc']):
             code,app,make,msg=self.execute('',args=args)
             self.assertEqual(2,code);make.assert_not_called()
         doc=calculator_example();doc['target']='{{app}}'
         code,app,make,msg=self.execute('',doc=doc);self.assertEqual(2,code);make.assert_not_called()
         doc=calculator_example();doc['steps']=[{'action':'decide','params':{'into':'choice','question':'Which?','choices':['a','b']}}]
         code,app,make,msg=self.execute('',doc=doc);self.assertEqual(2,code);make.assert_not_called()
+    def test_yes_carries_the_users_approval_to_every_job(self):
+        seen=[]
+        def runner(flow,args,_driver,_confirm,_result_observer=None):
+            seen.append((_confirm('send the form'),'--yes' in args));return 0
+        code,app,make,msg=self.execute('{"params":{}}\n'*3,args=['--yes'],runner=Mock(side_effect=runner))
+        self.assertEqual(0,code);self.assertEqual([(True,True)]*3,seen)
+        code,app,make,msg=self.execute('',args=['--yes','--yes'])
+        self.assertEqual(2,code);make.assert_not_called()
+
     def test_foreground_latch_is_kept_across_jobs(self):
         def runner(flow,args,_driver,_confirm,_result_observer=None):
             self.assertFalse(_confirm('approve'))

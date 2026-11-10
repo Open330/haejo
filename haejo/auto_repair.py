@@ -116,7 +116,8 @@ class AutoRepair:
             continuation_args=({'_replay_seed':resume_seed,'_replay_secrets':resume_secrets,
                                 '_replay_sensitive_names':resume_sensitive_names}
                                if resume_seed is not None else {})
-            code=run_flow(segment,flags,_driver=driver,_confirm=lambda description:False,
+            approved='--yes' in flags
+            code=run_flow(segment,flags,_driver=driver,_confirm=lambda description:approved,
                           _on_result=capture_result,**continuation_args)
             if code==0:
                 return code,working

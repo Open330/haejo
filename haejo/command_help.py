@@ -172,11 +172,12 @@ def command_help(command, args):
         )
     if command == "batch":
         return (
-            'usage: haejo batch <flow.json> --helper [--max-jobs 1..1000] [--idle-timeout 1..600] [--timings] [--repair-packet /absolute/new.json] [--auto-repair codex|claude] [--max-repairs 1..10] [--repair-timeout 1..120]\n'
+            'usage: haejo batch <flow.json> --helper [--yes] [--max-jobs 1..1000] [--idle-timeout 1..600] [--timings] [--repair-packet /absolute/new.json] [--auto-repair codex|claude] [--max-repairs 1..10] [--repair-timeout 1..120]\n'
             'Wait for HAEJO_BATCH_READY; send one {"params":{"name":"value"}} JSON line per job.\n'
             'Pipe known JSONL rows once; for dependent jobs wait for each HAEJO_BATCH_RESULT.\n'
             'One template/connection; fresh checks per job. --auto-repair codex|claude enables bounded selector repair.\n'
-            'EOF ends it; default ten jobs, 90s idle. No approval or unknown-effect retry.'
+            '--yes carries the user\'s approval to confirmation steps in every job.\n'
+            'EOF ends it; default ten jobs, 90s idle. An unknown effect is not retried; inspect it.'
         )
     if command == "observe":
         return (

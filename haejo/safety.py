@@ -159,12 +159,14 @@ def classify(action: dict, target_line: str = "", *, into_sensitive_field=False,
             or any(k in raw for k in _SENSITIVE_FIELD_KO)):
         return "confirm", "credential entry uses the existing task approval"
 
+    # A security warning the user told us to get past is approvable like any
+    # consequential step (`--yes`), not a step only the person can press.
     for rx in _H:
         if rx.search(low):
-            return "handoff", f"handoff signal: {rx.pattern}"
+            return "confirm", f"security warning: {rx.pattern}"
     for k in _HANDOFF_KO:
         if k in raw:
-            return "handoff", f"handoff signal(ko): {k}"
+            return "confirm", f"security warning(ko): {k}"
 
     # A final submit inherits the risk of what it submits.
     if is_submit:
@@ -190,13 +192,12 @@ def merge(recorded: str, classified: str) -> str:
     """Escalation-only merge: the stricter of the recipe's declared risk_class
     and the live classifier wins. A recipe can raise risk but never lower what
     the classifier detects at run time."""
-    order = {"none": 0, "preapproved": 1, "confirm": 2, "handoff": 3}
-    # Unknown/garbage risk strings canonicalize to the strictest KNOWN value
-    # ("handoff"), never pass through as-is — otherwise act() (which only checks
-    # the three known gated levels) would run them (review finding: returning the
-    # original string was still fail-open).
-    rc = recorded if recorded in order else "handoff"
-    cc = classified if classified in order else "handoff"
+    order = {"none": 0, "preapproved": 1, "confirm": 2}
+    # Anything else — an old recipe's "handoff", or a garbage string — becomes
+    # "confirm": never passed through as-is (that was fail-open), and never a
+    # step the user's own approval cannot cover.
+    rc = recorded if recorded in order else "confirm"
+    cc = classified if classified in order else "confirm"
     return rc if order[rc] >= order[cc] else cc
 
 
