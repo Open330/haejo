@@ -184,8 +184,10 @@ def resolve_window(driver, target, selector, *, wait=None, sleep=time.sleep, clo
         locked = reply.get('reason') in PAUSE_REASONS
         # An unlisted window has no title or URL, so it may not be the one
         # wanted: wait for another Space for a shorter time than for a lock.
-        elsewhere = any(isinstance(r, dict) and r.get('reason') == 'not_on_active_space'
-                        for r in reply.get('unlisted', ()))
+        # Only when the app lists no window here at all: one unrelated window
+        # on another Space must not hold a run for half an hour.
+        elsewhere = not rows and any(isinstance(r, dict) and r.get('reason') == 'not_on_active_space'
+                                     for r in reply.get('unlisted', ()))
         limit = MAX_PAUSE_SECONDS if locked else OTHER_SPACE_PAUSE_SECONDS if elsewhere else 0
         if patient and limit and paused < limit:
             pause_started, pause_limit = polled, limit

@@ -260,7 +260,9 @@ func serverWindows(_ pid:pid_t) -> [UInt32:Bool] {
     let namesReadable=rows.contains { !$0.2.isEmpty }
     var found:[UInt32:Bool]=[:]
     for (id,onScreen,name,rect) in rows {
-        if namesReadable ? name.isEmpty : (rect.width<160 || rect.height<120) { continue }
+        // Without screen recording no window has a name; a 215x131 untitled
+        // Safari surface then passed a 160x120 floor (rc.38, 2026-11-10).
+        if namesReadable ? name.isEmpty : (rect.width<320 || rect.height<200) { continue }
         found[id]=onScreen
     }
     return found
@@ -318,9 +320,17 @@ func windowPageURL(_ window:AXUIElement) -> String? {
         if str(node,kAXRoleAttribute as String)=="AXWebArea" {
             if let url=cleaned((attr(node,"AXURL") as? URL)?.absoluteString ?? str(node,"AXURL")) { return url }
         }
-        if addressURL==nil, depth<=2,
+        if addressURL==nil, depth<=4,
            str(node,kAXIdentifierAttribute as String)?.hasPrefix("WEB_BROWSER_ADDRESS_AND_SEARCH_FIELD")==true {
-            addressURL=cleaned(str(node,kAXHelpAttribute as String))
+            // The address field shows the full URL in AXHelp while it is a
+            // static label, and only host+path in AXValue as a text field
+            // (no scheme; the window identifier says IsSecure=true|false).
+            if let full=cleaned(str(node,kAXHelpAttribute as String)) {
+                addressURL=full
+            } else if let shown=str(node,kAXValueAttribute as String), !shown.isEmpty, !shown.contains(" ") {
+                let secure=str(window,kAXIdentifierAttribute as String)?.contains("IsSecure=true")==true
+                addressURL=cleaned(shown.contains("://") ? shown : (secure ? "https://" : "http://")+shown)
+            }
         }
         guard depth<12,let children=attr(node,kAXChildrenAttribute as String) as? [AXUIElement] else { continue }
         for child in children.prefix(64) { queue.append((child,depth+1)) }

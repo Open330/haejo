@@ -129,6 +129,20 @@ class UrlMatching(unittest.TestCase):
         self.assertEqual('window_match_none', resolve_window(impatient, 'x', {'url': 'player.example.com'},
                          sleep=lambda s: None, clock=lambda: next(ticks))[1]['error'])
 
+    def test_another_space_holds_a_patient_run_only_when_nothing_is_listed(self):
+        away = {'window_id': 9, 'reason': 'not_on_active_space'}
+        busy = {'type': 'windows', 'windows': [HOME], 'unlisted': [away]}
+        ticks = iter(range(0, 1000, 6))
+        sleeps = []
+        self.assertEqual('window_match_none', resolve_window(Windows(busy), 'x', {'url': 'player.example.com'},
+                         sleep=sleeps.append, clock=lambda: next(ticks), patient=True)[1]['error'])
+        self.assertNotIn(10.0, sleeps)
+        empty = {'type': 'windows', 'windows': [], 'unlisted': [away]}
+        sleeps = []
+        self.assertEqual((22691, None), resolve_window(Windows(empty, [PLAYER]), 'x', {'url': 'player.example.com'},
+                                                       sleep=sleeps.append, clock=lambda: 0, patient=True))
+        self.assertEqual([10.0], sleeps)
+
     def test_paused_time_is_measured_including_slow_listings(self):
         now = [0.0]
         locked = {'type': 'windows', 'windows': [], 'reason': 'screen_locked'}
