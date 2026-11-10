@@ -657,10 +657,8 @@ class Agent:
     def pin_window(self, flow: Flow):
         """A window-bound procedure never runs app-wide: pin the window its
         selector names, or return the refusal. None when nothing to pin."""
-        if not flow.window or getattr(self.driver, '_window_scope', None) is not None:
-            return None
-        from .window_scope import bind_window
-        return bind_window(self.driver, flow.target, flow.window, patient=_leads_with_wait(flow))
+        from .window_scope import pin_for_flow
+        return pin_for_flow(self.driver, flow, patient=_leads_with_wait(flow))
 
     def authorize(self, flow: Flow, ask: Callable[[str], bool] | None = None
                   ) -> tuple[dict, list[str]]:

@@ -189,9 +189,9 @@ def prepare_session_flow(flow, target, window=None):
         elif flow.window != window:
             raise FlowFieldError('session_window_mismatch', 'window',
                                  'Use the same selector as this session\'s --window-match, or omit "window".')
-    elif flow.window is not None and window is None:
+    elif flow.window is not None:
         raise FlowFieldError('session_window_mismatch', 'window',
-                             'This session is app-wide; start it with --window-match matching "window", or omit it.')
+                             'Start this session with --window-match matching "window", or omit it.')
     if any(step.action in ('decide', 'visual') for step in every_step(flow.steps)):
         raise FlowFieldError('session_requires_deterministic_flow', 'steps', 'Use deterministic steps here; use run for model judgment.')
     template = flow.to_json(compact=True)

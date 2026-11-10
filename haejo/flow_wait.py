@@ -106,6 +106,7 @@ def run_step(driver, target, step, index, result):
     started = checkpoint = time.monotonic()
     active = paused = 0.0
     previous_reason = None
+    previous_pause = None
     pauses = {}
     polls = 0
 
@@ -137,9 +138,10 @@ def run_step(driver, target, step, index, result):
             polls += 1
             reason = observation_pause_reason(observation)
         account(time.monotonic(), reason)
+        previous_pause = previous_reason or reason or previous_pause
         previous_reason = reason
-        if reason and paused >= MAX_PAUSED_S:
-            record(status='error', error='wait_paused_too_long', reason=reason)
+        if paused >= MAX_PAUSED_S:
+            record(status='error', error='wait_paused_too_long', reason=reason or previous_pause)
             return None
         if reason is None:
             if observation.get('type') == 'observation':

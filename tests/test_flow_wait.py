@@ -187,6 +187,14 @@ class WaitReplayTests(unittest.TestCase):
         self.assertEqual(('wait_paused_too_long', 'window_offscreen'), (result.log[-1]['error'], result.log[-1]['reason']))
         self.assertGreaterEqual(result.log[-1]['paused_seconds'], 100)
 
+    def test_the_pause_cap_also_applies_on_the_resume_poll(self):
+        driver = Driver([observation('finished')])
+        reasons = iter(['screen_locked', 'screen_locked', None])
+        with clocked(pause=lambda target: next(reasons)), patch.object(flow_wait, 'MAX_PAUSED_S', 20):
+            result = replay(driver, Flow.from_json(json.dumps(document(timeout_s=60, poll_s=15))))
+        self.assertFalse(result.ok)
+        self.assertEqual(('wait_paused_too_long', 'screen_locked'), (result.log[-1]['error'], result.log[-1]['reason']))
+
     def test_pause_does_not_turn_unreadable_or_missing_state_into_success(self):
         driver = Driver([{'type': 'error', 'reason': 'screen_locked', 'error': 'no_window_content'},
                          {'type': 'error', 'error': 'target_not_found'}])

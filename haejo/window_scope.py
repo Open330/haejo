@@ -31,7 +31,7 @@ def selector_problem(value):
             return f'window.{key} must be a non-empty literal substring'
     if 'url' in value:
         try:
-            host = _url_parts(value['url'])[1]
+            host = _url_parts(value['url'])[1]   # also validates the port
         except ValueError:
             host = ''
         if not host or '.' not in host and host != 'localhost':
@@ -93,11 +93,15 @@ def take_window_arg(args):
     return args, value
 
 
+DEFAULT_PORTS = {'http': 80, 'https': 443}
+
+
 def _url_parts(text):
-    """(scheme or None, host, path) for `https://host/path`, `host/path` or `host`."""
+    """(scheme or None, host, port or None, path) for `https://host:port/path`,
+    `host/path` or `host`. Raises ValueError for a malformed port."""
     text = text.strip()
     parts = urlsplit(text if '://' in text else '//' + text)
-    return (parts.scheme.lower() or None), (parts.hostname or '').lower(), parts.path
+    return (parts.scheme.lower() or None), (parts.hostname or '').lower(), parts.port, parts.path
 
 
 def url_matches(pattern, url):
@@ -106,12 +110,19 @@ def url_matches(pattern, url):
     scheme, when given, must be equal; path is a case-sensitive prefix."""
     if not isinstance(url, str):
         return False
-    want_scheme, want_host, want_path = _url_parts(pattern)
+    want_scheme, want_host, want_port, want_path = _url_parts(pattern)
     have = urlsplit(url)
     host = (have.hostname or '').lower()
     if not want_host or not (host == want_host or host.endswith('.' + want_host)):
         return False
-    if want_scheme and have.scheme.lower() != want_scheme:
+    scheme = have.scheme.lower()
+    if want_scheme and scheme != want_scheme:
+        return False
+    try:
+        port = have.port or DEFAULT_PORTS.get(scheme)
+    except ValueError:
+        return False
+    if want_port is not None and port != want_port:
         return False
     return not want_path or want_path == '/' or have.path.startswith(want_path)
 
@@ -140,15 +151,18 @@ def resolve_window(driver, target, selector, *, wait=None, sleep=time.sleep, clo
     window is on another Space; that time does not use up `wait`.
     """
     paused = 0.0
+    pause_started = None
     listing = getattr(driver, 'windows', None)
     if listing is None or 'observe.window_list' not in getattr(driver, 'capabilities', ()):
         return None, {'type': 'error', 'error': 'window_list_unavailable', 'effect': 'not_started'}
     deadline = clock() + (MATCH_WAIT_SECONDS if wait is None else wait)
     while True:
+        polled = clock()
         reply = listing(target)
-        if not isinstance(reply, dict) or reply.get('type') != 'windows':
-            return None, reply if isinstance(reply, dict) else {
-                'type': 'error', 'error': 'window_list_unavailable', 'effect': 'not_started'}
+        if not isinstance(reply, dict):
+            return None, {'type': 'error', 'error': 'window_list_unavailable', 'effect': 'not_started'}
+        if reply.get('type') != 'windows' and not (patient and reply.get('reason') in PAUSE_REASONS):
+            return None, reply
         rows = [r for r in reply.get('windows', []) if isinstance(r, dict) and type(r.get('window_id')) is int]
         found = [r for r in rows if _matches(r, selector)]
         if found and (len(found) == 1 or selector.get('newest')):
@@ -163,11 +177,19 @@ def resolve_window(driver, target, selector, *, wait=None, sleep=time.sleep, clo
         elsewhere = any(isinstance(r, dict) and r.get('reason') == 'not_on_active_space'
                         for r in reply.get('unlisted', ()))
         limit = MAX_PAUSE_SECONDS if locked else OTHER_SPACE_PAUSE_SECONDS if elsewhere else 0
-        if patient and paused < limit:
+        # Paused time is measured, from the poll that saw the pause until the
+        # next poll, and extends the deadline by exactly that much.
+        if pause_started is not None:
+            spent = polled - pause_started
+            paused += spent
+            deadline += spent
+            pause_started = None
+        if patient and limit and paused < limit:
+            pause_started = polled
             sleep(PAUSE_POLL_SECONDS)
-            paused += PAUSE_POLL_SECONDS
-            deadline += PAUSE_POLL_SECONDS
             continue
+        if reply.get('type') != 'windows':
+            return None, reply
         if clock() >= deadline:
             error = {'type': 'error', 'error': 'window_match_none', 'effect': 'not_started',
                      'selector': selector, 'listed': [_candidate(r) for r in rows][:16]}
@@ -193,4 +215,25 @@ def bind_window(driver, target, window, *, patient=False):
     if bind is None:
         return {'type': 'error', 'error': 'window_scope_unavailable', 'effect': 'not_started'}
     result = bind(target, window_id)
-    return None if result.get('type') == 'window_scope' else result
+    if result.get('type') != 'window_scope':
+        return result
+    # What chose this pin: a later Flow may reuse it only for the same selector.
+    try:
+        driver._window_selector = (target, dict(window)) if isinstance(window, dict) else None
+    except AttributeError:
+        pass
+    return None
+
+
+def pin_for_flow(driver, flow, *, patient=False):
+    """Pin `driver` to the window `flow.window` names, or keep a pin that the
+    same selector made. None on success, else the refusal."""
+    if not flow.window:
+        return None
+    pinned = getattr(driver, '_window_scope', None)
+    if pinned is not None:
+        if getattr(driver, '_window_selector', None) == (flow.target, flow.window):
+            return None
+        return {'type': 'error', 'error': 'window_scope_conflict', 'effect': 'not_started',
+                'detail': 'this connection is pinned to a window chosen for a different selector; start a new command for this Flow'}
+    return bind_window(driver, flow.target, flow.window, patient=patient)
