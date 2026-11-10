@@ -369,6 +369,14 @@ class WindowsLegacyComboLiveTests(unittest.TestCase):
         self.assertIsNotNone(line, obs["tree"])
         result = driver.act(obs["obs_id"], target, {"name": "select_option", "element_index": int(line.group(1)),
                                                     "option_label": "Grape"})
+        if result["type"] != "acted":
+            # What the runner's combo box looks like, for whoever reads the log.
+            backend = driver._backend
+            for window in backend.top_windows(child.pid):
+                for element in [window, *backend.descendants(window)]:
+                    props = backend.props(element)
+                    print("  ", props["control_type"], repr(props["name"]), props["automation_id"],
+                          sorted(props["patterns"]), props["runtime_id"] is not None, file=sys.stderr)
         self.assertEqual("acted", result["type"], result)
         after = driver.wait_until(target, lambda tree: re.search(r"Value: Grape, Identifier: fruitBox", tree),
                                   timeout_ms=5000)
