@@ -38,11 +38,11 @@ def step_problem(step):
     problem = _check_problem(step.until)
     if problem:
         return problem
-    if (type(step.timeout_s) not in (int, float) or not math.isfinite(step.timeout_s)
-            or not 0 < step.timeout_s <= MAX_TIMEOUT_S):
+    if (type(step.timeout_s) not in (int, float) or not 0 < step.timeout_s <= MAX_TIMEOUT_S
+            or not math.isfinite(step.timeout_s)):
         return 'wait_until.timeout_s must be finite, positive and at most 7200'
     if step.poll_s is not None and (type(step.poll_s) not in (int, float)
-            or not math.isfinite(step.poll_s) or not 1 <= step.poll_s <= 60):
+            or not 1 <= step.poll_s <= 60 or not math.isfinite(step.poll_s)):
         return 'wait_until.poll_s must be finite and from 1 to 60'
     if (step.selector is not None or step.params or step.binding is not None
             or step.postcondition is not None or step.expect is not None

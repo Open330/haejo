@@ -78,8 +78,8 @@ class WaitSchemaTests(unittest.TestCase):
             self.assertTrue(result.ok, result.log)
 
     def test_bad_waits_refuse_before_observing(self):
-        bad = [{'timeout_s': value} for value in (None, True, 0, -1, 7201, float('nan'), float('inf'), '30')]
-        bad += [{'poll_s': value} for value in (True, 0, .5, 61, float('inf'), '10')]
+        bad = [{'timeout_s': value} for value in (None, True, 0, -1, 7201, 10**400, float('nan'), float('inf'), '30')]
+        bad += [{'poll_s': value} for value in (True, 0, .5, 61, 10**400, float('inf'), '10')]
         bad += [{'until': value} for value in (None, {}, [], {'field': {'role': 'Button'}},
                  {'equals': 3}, {'exist': True}, {'exists': False, 'field': {'role': 'Button'}},
                  {'exists': True}, {'all_of': [{}]})]
