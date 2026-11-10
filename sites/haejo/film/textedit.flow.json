@@ -1,0 +1,4 @@
+{"name":"textedit-workshop-notes","target":"com.apple.TextEdit","schema":2,"params":{"notes":"Workshop preparation\n\nDate: Nov 21, 2026\nTime: 10:00-12:00\n\nAgenda\n1. Welcome and introductions\n2. Hands-on session\n3. Questions and next steps\n\nBring a notebook and confirm the room.\n"},"steps":[
+ {"action":"set_value","selector":{"role":"TextArea","identifier":"First Text View"},"params":{"value":"{{notes}}"},
+  "postcondition":{"field":{"role":"TextArea","identifier":"First Text View"},"attribute":"Value","equals":"{{notes}}"},
+  "safety":{"effects":["write_persistent"],"data_classes":["none"],"resource":{"object_type":"owned TextEdit document","scope":"item"},"destination":{"kind":"same_app"},"reversibility":"reversible","evidence":[],"unknowns":[]}}]}

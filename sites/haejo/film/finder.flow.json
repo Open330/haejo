@@ -1,0 +1,7 @@
+{"name":"finder-sort","target":"com.apple.finder","schema":2,"steps":[
+ {"action":"click","selector":{"role":"Button","identifier":"kind","in_focused_window":true},
+  "postcondition":{"field":{"role":"Button","identifier":"kind","in_focused_window":true},"attribute":"Value","contains":"SortDirection"},
+  "safety":{"effects":["write_ephemeral"],"data_classes":["none"],"resource":{"object_type":"Finder list view","scope":"collection"},"destination":{"kind":"same_app"},"reversibility":"reversible","evidence":[],"unknowns":[]}},
+ {"action":"click","selector":{"role":"Button","identifier":"name","in_focused_window":true},
+  "postcondition":{"field":{"role":"Button","identifier":"name","in_focused_window":true},"attribute":"Value","contains":"SortDirection"},
+  "safety":{"effects":["write_ephemeral"],"data_classes":["none"],"resource":{"object_type":"Finder list view","scope":"collection"},"destination":{"kind":"same_app"},"reversibility":"reversible","evidence":[],"unknowns":[]}}]}

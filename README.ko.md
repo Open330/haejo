@@ -19,13 +19,15 @@
 
 </div>
 
-> **Tacto에서 이름을 바꿨습니다 (2026-11-09).** v1.0.0-rc.13까지의 출시 후보는 Tacto(`Tacto.app`, `tacto` 명령)로 배포됐습니다. 다음 릴리스부터 Haejo로 배포합니다. [업그레이드할 때 바뀌는 점](docs/haejo-branding.md)
+> **Tacto에서 이름을 바꿨습니다 (2026-11-09).** v1.0.0-rc.13까지의 출시 후보는 Tacto(`Tacto.app`, `tacto` 명령)로 배포됐고, v1.0.0-rc.39가 Haejo로 나온 첫 릴리스입니다. [업그레이드할 때 바뀌는 점](docs/haejo-branding.md)
 
 <br>
 
 ## 실제 앱에서 이런 일을 맡깁니다
 
-[![실제 Wikipedia 화면에서 검색·이동하는 Haejo 실행](docs/assets/haejo-wikipedia-demo.gif)](sites/haejo/dist/assets/demos/browser-wikipedia.mp4)
+[![40초로 보는 Haejo: 법인카드 8건을 데모 사내 경비 시스템에 입력하고, 실행 기록으로 확인하고, 다음 달엔 저장한 Flow로 다시 입력합니다](docs/assets/haejo-film-poster.ko.jpg)](https://open330.github.io/tacto/#film)
+
+**40초로 보는 Haejo.** API도 없는 사내 경비 시스템에 법인카드 영수증 8건 입력, "해줘". Haejo가 칸마다 바로 입력하고, 모든 호출은 목표·이유와 함께 실행 기록에 남습니다. 한 일을 Flow로 저장하면 다음 달 6건은 모델 호출 없이 다시 입력합니다. 경비 시스템은 데모 화면이고, Safari·TextEdit 화면은 모두 Haejo 호출마다 찍은 실제 캡처입니다. [사이트에서 보기](https://open330.github.io/tacto/#film) · [MP4](sites/haejo/dist/assets/film/haejo-film.ko.mp4)
 
 **실제 앱·웹사이트 8개와 공개 테스트 2개, 총 10개 상황의 실행 영상**을 제공합니다.
 위 GIF는 실제 실행 영상의 미리보기입니다. 클릭하면 원본 MP4를 볼 수 있습니다.
@@ -33,13 +35,13 @@ GitHub의 접근성 설정에서 애니메이션 자동재생을 끄면 정지 �
 
 | 앱·사이트 | 맡긴 작업과 확인한 결과 | 실제 영상 |
 | :--- | :--- | :--- |
-| TextEdit | 워크숍 메모 입력 후 별도 저장 검증으로 디스크·문서 내용 일치 확인 | [약 10초](sites/haejo/dist/assets/demos/native-textedit.mp4) |
-| Finder | 파일 종류 정렬 → 이름 오름차순 정렬, 파일 5개 확인 | [약 8초](sites/haejo/dist/assets/demos/native-finder.mp4) |
-| Google 번역 | 영어 합성 예문 입력 → 한국어 출력 별도 확인 | [약 7초](sites/haejo/dist/assets/demos/browser-translate.mp4) |
-| GitHub | 열린 버그만 필터링하고 댓글 많은 순서로 조회 | [약 9초](sites/haejo/dist/assets/demos/browser-github.mp4) |
-| UnitConverters.net | 3.5 m → 11.482939633 ft, 별도 계산식과 대조 | [약 9초](sites/haejo/dist/assets/demos/browser-units.mp4) |
-| Markdown Live Preview | 기존 예제 앞부분을 계획으로 수정, 제목·목록·굵은 글씨 확인 | [약 18초](sites/haejo/dist/assets/demos/browser-markdown.mp4) |
-| Wikipedia | Seoul 검색 후 History 항목 도착 | [약 14초](sites/haejo/dist/assets/demos/browser-wikipedia.mp4) |
+| TextEdit | 워크숍 메모 입력 후 별도 저장 검증으로 디스크·문서 내용 일치 확인 | [약 28초](sites/haejo/dist/assets/demos/native-textedit.mp4) |
+| Finder | 파일 종류 정렬 → 이름 오름차순 정렬, 파일 5개 확인 | [약 22초](sites/haejo/dist/assets/demos/native-finder.mp4) |
+| Google 번역 | 영어 합성 예문 입력 → 한국어 출력 별도 확인 | [약 8초](sites/haejo/dist/assets/demos/browser-translate.mp4) |
+| GitHub | 열린 버그만 필터링하고 댓글 많은 순서로 조회 | [약 20초](sites/haejo/dist/assets/demos/browser-github.mp4) |
+| UnitConverters.net | 3.5 m → 11.482939633 ft, 별도 계산식과 대조 | [약 11초](sites/haejo/dist/assets/demos/browser-units.mp4) |
+| Markdown Live Preview | 기존 예제 앞부분을 계획으로 수정, 제목·목록·굵은 글씨 확인 | [약 9초](sites/haejo/dist/assets/demos/browser-markdown.mp4) |
+| Wikipedia | Seoul 검색 후 History 항목 도착 | [약 19초](sites/haejo/dist/assets/demos/browser-wikipedia.mp4) |
 | Mac 계산기 | 같은 Flow에 다른 입력값을 넣어 15·12 확인 | [약 14초](sites/haejo/dist/assets/demos/calculator-guided.mp4) |
 
 <a href="sites/haejo/dist/assets/demos/native-textedit.mp4"><img src="sites/haejo/dist/assets/demos/native-textedit-poster.png" alt="실제 TextEdit 문서 입력과 저장 상태 확인" width="48%"></a>
@@ -61,13 +63,13 @@ Markdown은 나머지 예제가 남는 부분 수정입니다. 모든 사례가 
 
 [![Haejo가 자체 macOS 테스트 앱에서 실제로 입력·계산·검토한 결과](sites/haejo/dist/assets/demos/workflow-guided-poster.png)](sites/haejo/dist/assets/demos/workflow-guided.mp4)
 
-**실제 앱 창 촬영에 조작 위치를 보여주는 안내 포인터를 추가했습니다.** 자체 macOS 테스트 앱에서 같은 11단계 Flow를
-다른 입력값으로 5회 재생했습니다. 결과 89·34·62·79·108과 작업별 완료 1회를 확인했습니다.
+**실제 앱 창 촬영에 조작 위치를 보여주는 안내 포인터를 추가했습니다.** 자체 macOS 테스트 앱에서 같은 11단계 Flow를 한 단계씩
+다른 입력값으로 5회 재생했습니다. 결과 37·46·70·27·48과 작업별 완료 1회를 확인했습니다.
 
-[반복 작업 영상 · 약 17초](sites/haejo/dist/assets/demos/workflow-guided.mp4) ·
+[반복 작업 영상 · 약 21초](sites/haejo/dist/assets/demos/workflow-guided.mp4) ·
 [실제 계산기 영상 · 약 14초](sites/haejo/dist/assets/demos/calculator-guided.mp4) ·
 [계산기 원본 스크린샷](sites/haejo/dist/assets/demos/calculator-result.png) ·
-[촬영 조건과 한계](docs/haejo-recorded-demos-2026-10-15.md)
+[촬영 조건과 한계](docs/haejo-film-2026-11-10.md)
 
 포인터·클릭 효과는 설명용으로 추가했으며 실제 시스템 커서 이동 기록이 아닙니다.
 [반복 작업 원본](sites/haejo/dist/assets/demos/workflow-replay.mp4) · [계산기 원본](sites/haejo/dist/assets/demos/calculator.mp4)도 제공합니다.
@@ -81,7 +83,7 @@ Markdown은 나머지 예제가 남는 부분 수정입니다. 모든 사례가 
 실패하거나 완료를 확인하지 못한 실행을 골라 단계별 타임라인을 확인하세요.
 로그 폴더를 찾아갈 필요가 없습니다.
 
-![실제 접근 기록 여러 개와 선택한 TextEdit 작업의 동작·결과·시간을 함께 보여주는 앱 미리보기](sites/haejo/dist/assets/haejo-activity.png)
+![실제 접근 기록 여러 개와 선택한 Finder 작업의 동작·결과·시간을 함께 보여주는 앱 미리보기](sites/haejo/dist/assets/haejo-activity.png)
 
 기록은 이 Mac에 저장됩니다. 설정에서 자동 저장과 보관 기간(7·30·90일)을
 선택할 수 있습니다. 화면 내용·입력값·프롬프트와 에이전트의 내부 추론은
@@ -165,35 +167,26 @@ Haejo는 실행할 때 대상을 새 관찰에서 찾고 결과 조건을 검사
 
 ## 첫 작업 시작하기
 
-**macOS용 1.0.0-rc.13 정식 출시 후보**입니다.
-README는 한국어·영어로 제공하며, 앱 온보딩과 상세 가이드는 현재 주로 한국어입니다.
+**macOS용 1.0.0-rc.39 정식 출시 후보**입니다. Haejo 이름으로 나온 첫 릴리스입니다.
 
-공개 배포본은 Apple Silicon용 **Haejo.app과 DMG의 Developer ID 서명·Apple 공증·Gatekeeper 검사**를 거쳐 제공합니다.
-[Release 페이지](https://github.com/Open330/tacto/releases)에서 배포 상태와 첨부 파일을 확인하세요.
-[Haejo 출시 후보 다운로드](https://github.com/Open330/tacto/releases/tag/v1.0.0-rc.13) · Apple Silicon · macOS 27.0.1 · 출시 후보(정식 안정 버전 아님).
+1. [공증된 DMG 다운로드](https://github.com/Open330/tacto/releases/download/v1.0.0-rc.39/Haejo-1.0.0-rc.39-arm64.dmg) ([릴리스 안내와 검증 결과](https://github.com/Open330/tacto/releases/tag/v1.0.0-rc.39))
+2. DMG를 열어 `Haejo.app`을 `Applications`로 끌어다 놓고, `Applications`에서 Haejo를 엽니다.
+3. **1. Mac 권한**에서 **설정 열기**를 눌러 앱 조작을 **Haejo Helper**에 허용합니다(화면 기록은 **Haejo**에, 선택).
+4. **2. 에이전트 연결**에서 Claude Code나 Codex를 연결합니다. `haejo` 명령과 스킬이 연결됩니다.
+5. **3. 첫 작업**을 누르면 새 Claude Code·Codex 대화가 TextEdit 환영 메모를 만들고 확인합니다. 언제든 `~/.local/bin/haejo doctor`로 상태를 확인할 수 있습니다.
 
-1.0.0-rc.13은 승인한 비밀번호 입력의 강제 사람 전환과 별도 Vault 등록 요구를 제거합니다. 비밀값을 에이전트에 노출하지 않는 선택형 Vault 로그인은 유지합니다. 같은 앱의 독립 AX 창도 명시적 창 범위로 병렬 처리하고, 같은 창·앱 전체·입력 자원 충돌은 전송 전에 대기합니다. 취소한 요청은 나중에 실행하지 않습니다. 실제 macOS 암호 필드와 Safari의 값 수신·포커스 이동 후 유지·로그 가림, 창 병렬 실행과 대기·재개를 검증했습니다. 회귀 3,046건, 사유 있는 제외20건이며 남은 실패·오류는 없습니다. 초기 문서 링크 누락과 수정 후 재검증은 릴리즈 검증 기록에 구분했습니다. 신규 서명·공증, 산출물·보안 검사, 세 Mac 동일 번들 설치와 기존 권한·데이터 보존을 확인했습니다. 정식 안정 버전의 검증은 별도입니다.
-DMG를 다운로드했다면 `Haejo.app`을 `Applications`로 드래그한 뒤 앱의 시작 안내를 따릅니다.
-이 방식에는 사용자의 개발용 인증서나 소스 빌드가 필요하지 않습니다.
+Tacto를 쓰던 경우도 같은 방법으로 설치합니다. Tacto 데이터는 Haejo 폴더로 옮겨지고, 앱 신원이 바뀌어 macOS 권한 두 가지를 다시 허용해야 합니다. [바뀌는 점](docs/haejo-branding.md)
 
-rc.13 배포본은 소스 `f9f85c8` 기준입니다. 설치한 앱에 연결된 스킬이 해당 버전의 안내입니다.
+Haejo는 Dock 아이콘 없이 메뉴 막대에서 실행됩니다. 창을 닫아도 백그라운드에 남고, 메뉴 막대 아이콘에서 다시 열거나 종료할 수 있습니다.
 
-현재 **정식 출시 후보**이며 아직 승인된 정식 안정 버전이 아닙니다. 정식 출시 전에 사람이 직접 하는 새 설치, 권한 해제·재부여 3회, 제한 베타([안내](docs/beta-participant-guide.md))가 남아 있습니다.
-
-설정 후 **첫 작업 시작**을 누르면 설치된 Claude Code·Codex를 감지해 새 CLI 대화를 엽니다. 명령 하나로 TextEdit 실행·새 문서 생성·환영 문구 입력과 확인을 처리하며, 내부 모델 호출은 없습니다. 에이전트 CLI 자체의 최초 신뢰·로그인 확인은 나타날 수 있습니다.
-
-Haejo는 Dock 아이콘 없이 메뉴 막대에서 실행됩니다. 설정 창을 닫아도 백그라운드에 남으며, 메뉴 막대 아이콘에서 설정을 다시 열거나 종료할 수 있습니다.
-
-Mac 3대에서 설치·권한·Claude/Codex 연결·업데이트를 확인했고, 두 번째 Mac에서 새 Claude Code·Codex 대화가 Finder 첫 작업을 완료했습니다. 다른 macOS 버전, 사람이 직접 하는 새 설치와 베타 검증은 남아 있습니다. Windows·Intel Mac 빌드는 제공하지 않습니다.
-기존 개발용 서명에서의 실제 앱 검증은 Finder·Safari 40회 성공, TextEdit 저장은 사용자가 앱을 앞으로 가져온 뒤 재시도 20/20 성공입니다.
-최초 저장 실패 20회도 유지하며, 이 결과를 새 DMG의 무인 실행 성공으로 간주하지 않습니다.
+rc.39 DMG는 소스 `225b613` 기준입니다. 회귀 테스트 3,583개 실패 없음, Apple 공증·Gatekeeper 통과, 같은 번들을 Mac 세 대에 설치해 데이터와 권한을 확인했습니다. **정식 출시 후보이며 아직 승인된 정식 안정 버전이 아닙니다.** 사람이 직접 하는 새 설치, 권한 해제·재부여 반복, 제한 베타([안내](docs/beta-participant-guide.md))가 남아 있습니다. Windows·Intel Mac 빌드는 제공하지 않습니다.
 [출시 검증 현황](docs/release-readiness.md) · [설치 범위와 제한](docs/installation.md)
 
 **소스에서 빌드하려면** Python 3.11+, [uv](https://docs.astral.sh/uv/), Xcode Command Line Tools,
 Apple 발급 코드 서명 인증서가 필요합니다. 런처·도우미를 같은 팀으로 서명합니다.
 
 ```sh
-git clone https://github.com/Open330/tacto.git
+git clone https://github.com/Open330/tacto.git haejo
 cd haejo
 uv sync
 ./build.sh

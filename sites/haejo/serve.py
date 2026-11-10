@@ -130,7 +130,7 @@ class StaticHandler(SimpleHTTPRequestHandler):
         status = HTTPStatus.NOT_MODIFIED if not_modified else HTTPStatus.OK
         full_length = len(body)
         content_range = None
-        is_media = path.suffix.lower() == '.mp4'
+        is_media = path.suffix.lower() in ('.mp4', '.webm')
         if not not_modified and is_media and self.command == 'GET':
             range_header = self.headers.get('Range', '')
             if_range = self.headers.get('If-Range')

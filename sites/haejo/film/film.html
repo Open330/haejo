@@ -1,0 +1,194 @@
+<!doctype html>
+<!-- Haejo showcase film, B tone ("해줘 트레일러"). One 1920x1080 stage; every
+     frame is a pure function of t: renderAt(t) places plates and captions.
+     Plates are real window captures: an agent's Haejo calls entering eight
+     card expenses into a demo groupware page, the Haejo activity window over
+     that day's tasks, and the saved Flow replaying next month's six. -->
+<html lang="ko"><head><meta charset="utf-8"><title>Haejo film</title>
+<style>
+:root{--ink:#1c1b1a;--paper:#fffaf6;--orange:#e8590c;--term:#17181b;--line:rgba(28,27,26,.12);
+--sans:"Apple SD Gothic Neo","Pretendard","Helvetica Neue",sans-serif;--mono:"SF Mono",Menlo,monospace}
+*{box-sizing:border-box}html,body{margin:0;background:#000}
+#stage{position:relative;width:1920px;height:1080px;overflow:hidden;font-family:var(--sans);color:var(--ink);
+background:radial-gradient(1200px 800px at 85% 10%,#ffe0c9 0,rgba(255,224,201,0) 70%),radial-gradient(900px 700px at 0% 100%,#ffd2b3 0,rgba(255,210,179,0) 70%),var(--paper)}
+.layer{position:absolute;inset:0;opacity:0;will-change:transform,opacity}
+.card{position:absolute;border-radius:22px;box-shadow:0 30px 80px rgba(60,30,10,.18),0 4px 14px rgba(60,30,10,.10)}
+.term{background:var(--term);color:#ece8e1;font:23px/1.6 var(--mono);padding:28px 32px;overflow:hidden}
+.term .ln{white-space:pre;opacity:0}.term .dim{color:#8d8a85}.term .ok{color:#7ee2a0}.term .acc{color:#ffb27a}.term .me{color:#fff}
+.term .caret{display:inline-block;width:13px;height:26px;background:#ece8e1;vertical-align:-5px;margin-left:4px}
+.plate{position:absolute;border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 30px 80px rgba(60,30,10,.24),0 2px 8px rgba(60,30,10,.12);opacity:0}
+.plate .cam{position:absolute;inset:0}.plate img{position:absolute;left:0;top:0;width:100%;height:100%;opacity:0}
+.tag{position:absolute;left:14px;top:12px;z-index:2;background:rgba(28,27,26,.78);color:#fff;font:700 18px var(--sans);padding:5px 12px;border-radius:8px}
+.chip{position:absolute;font:800 34px var(--sans);padding:14px 26px;border-radius:999px;background:#fff;box-shadow:0 10px 28px rgba(60,30,10,.16);display:flex;gap:14px;align-items:center;opacity:0;white-space:nowrap;font-variant-numeric:tabular-nums}
+.chip i{width:16px;height:16px;border-radius:50%;background:var(--orange)}.chip.ok i{background:#2f9e44}
+.sticker{position:absolute;left:110px;top:84px;background:var(--orange);color:#fff;font:800 62px/1 var(--sans);padding:20px 34px 22px;border-radius:18px;
+letter-spacing:-.02em;box-shadow:0 14px 30px rgba(232,89,12,.35);transform-origin:0 50%;white-space:nowrap;z-index:5}
+.title{position:absolute;left:150px;top:300px}
+.title .small{font:800 84px/1.15 var(--sans);letter-spacing:-.04em;opacity:0}
+.title .big{font:900 230px/1.05 var(--sans);letter-spacing:-.05em;color:var(--orange);opacity:0;transform-origin:0 70%}
+.title .gloss{font:700 34px var(--sans);color:#8a6a55;opacity:0;margin-top:10px}
+.win{position:absolute;left:240px;top:200px;width:1440px;height:951px;border-radius:20px;overflow:hidden;background:#fff;box-shadow:0 30px 90px rgba(60,30,10,.25)}
+.win img{position:absolute;left:0;top:0;width:100%;transform-origin:75% 22%}
+.nodes{position:absolute;left:110px;top:400px;width:1700px;height:560px}
+.node{position:absolute;width:380px;height:200px;background:#fff;border-radius:22px;border:2px solid var(--line);padding:22px 24px;opacity:0;box-shadow:0 18px 40px rgba(60,30,10,.10)}
+.node .k{font:700 21px var(--mono);color:#9a948c}.node .n{font:800 34px/1.2 var(--sans);margin-top:8px;letter-spacing:-.02em}
+.node .v{position:absolute;left:24px;bottom:18px;font:700 27px var(--mono);color:var(--orange)}
+.node.lit{border-color:var(--orange);box-shadow:0 0 0 6px rgba(232,89,12,.18),0 18px 40px rgba(60,30,10,.12)}
+.edge{position:absolute;height:5px;background:#e6ddd4;border-radius:3px;transform-origin:0 50%}
+.flowhead{position:absolute;left:110px;top:205px;font:800 54px var(--mono);letter-spacing:-.02em}
+.flowhead small{display:block;font:600 28px var(--sans);color:#8a837b;margin-top:12px;letter-spacing:0}
+.big0{position:absolute;font:800 260px/1 var(--mono);letter-spacing:-.06em;opacity:0}
+.big0 small{display:block;font:700 36px var(--sans);letter-spacing:0;color:#7c746b;margin-top:6px}
+.stat{position:absolute;font:700 36px var(--sans);color:#5c554e;opacity:0}.stat b{color:var(--orange);font-family:var(--mono)}
+.web{position:absolute;left:300px;top:225px;width:1320px;height:825px;border-radius:20px;overflow:hidden;background:#fff;box-shadow:0 30px 80px rgba(60,30,10,.22)}
+.web video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff;opacity:0}
+.webtag{position:absolute;right:28px;bottom:26px;background:rgba(28,27,26,.85);color:#fff;font:700 30px var(--sans);padding:10px 20px;border-radius:12px;z-index:2}
+.end{display:grid;place-items:center;text-align:center}
+.end .logo{height:170px;display:block;margin:0 auto}
+.end .line{font:800 66px/1.25 var(--sans);letter-spacing:-.03em;margin-top:56px}.end .line em{font-style:normal;color:var(--orange)}
+.end .chips{display:flex;gap:16px;justify-content:center;margin-top:40px}
+.end .chips span{font:700 30px var(--sans);padding:12px 24px;border-radius:999px;border:2px solid var(--line);background:#fff}
+.end .url{font:700 34px var(--mono);color:var(--orange);margin-top:30px}
+</style></head><body>
+<div id="stage">
+  <div class="layer" id="L-title"><div class="title"><div class="small" id="t-small"></div><div class="big" id="t-big"></div><div class="gloss" id="t-gloss"></div></div></div>
+
+  <div class="layer" id="L-ask">
+    <div class="card term" style="left:70px;top:226px;width:660px;height:420px"><div id="ask-lines"></div></div>
+    <div class="plate" id="ask-stmt" style="left:70px;top:676px;width:660px;height:284px"><span class="tag">TextEdit</span></div>
+    <div class="plate" id="ask-web" style="left:770px;top:120px;width:1090px;height:727px"><span class="tag" data-t="demo_tag"></span></div>
+    <div class="chip" id="ask-count" style="left:1180px;top:880px"><i></i><span id="ask-count-t"></span></div>
+  </div>
+
+  <div class="layer" id="L-log"><div class="win"><img id="log-img" alt=""></div></div>
+
+  <div class="layer" id="L-flow">
+    <div class="flowhead">expense-entry<small data-t="flow_sub"></small></div>
+    <div class="nodes" id="nodes"></div>
+  </div>
+
+  <div class="layer" id="L-replay">
+    <div class="card term" style="left:70px;top:226px;width:870px;height:420px;font-size:20px"><div id="rep-lines"></div></div>
+    <div class="big0" id="big0" style="left:100px;top:690px">0<small data-t="model_calls"></small></div>
+    <div class="stat" id="rep-stat" style="left:470px;top:880px"></div>
+    <div class="plate" id="rep-web" style="left:970px;top:150px;width:890px;height:594px"><span class="tag" data-t="demo_tag"></span></div>
+    <div class="chip ok" id="rep-count" style="left:1260px;top:790px"><i></i><span id="rep-count-t"></span></div>
+  </div>
+
+  <div class="layer" id="L-web"><div class="web" id="web"><div class="webtag" id="webtag"></div></div></div>
+
+  <div class="layer end" id="L-end"><div>
+    <img class="logo" id="logo" alt="Haejo">
+    <div class="line" id="end-line"></div>
+    <div class="chips"><span data-t="chip_mac"></span><span>Claude Code</span><span>Codex</span></div>
+    <div class="url" id="end-url"></div>
+  </div></div>
+
+  <div class="sticker" id="sticker"></div>
+</div>
+<script>
+const Q=new URLSearchParams(location.search);const LANG=Q.get('lang')||'ko';
+const PLATES=Q.get('plates')||'plates';const ASSETS=Q.get('assets')||'../dist/assets';
+const FACTS=JSON.parse(Q.get('facts')||'{}');const END_URL=Q.get('url')||'';
+const repRows=FACTS.rows||[2.8,3.0,4.3,3.1,5.4,3.7],repTotal=(FACTS.replay_seconds||22.4).toFixed(1);
+const DEC=[['카카오T 택시','12,800'],['스타벅스 선릉점','22,400'],['오피스디포','45,600'],['코레일 KTX','59,800'],['김밥천국 역삼점','24,000'],['교보문고 강남점','28,000']];
+const TEXT={ko:{
+ small:'법인카드 영수증 8건 입력,', big:'"해줘"', gloss:'',
+ ask:'8건, "해줘"', log:'뭘 했는지 보여줘', flow:'그대로 저장해줘', replay:'다음 달에도 "해줘"', web:'다른 앱도 "해줘"',
+ prompt:'11월 법인카드 내역 8건,\n  경비 시스템에 등록해줘',
+ lines:[['acc','● 카드 사용내역 읽기 · 8건'],['acc','● 경비 시스템 열기'],['acc','● 1/8 스타벅스 역삼점 · 칸마다 입력'],['acc','● 2/8 … 8/8 등록'],['ok','✓ 8건 등록 · 합계 215,300원']],
+ count:n=>`${n}/8 등록`, demo_tag:'데모 사내 시스템',
+ flow_sub:'방금 한 입력을 Flow로 저장 · haejo replay expense-entry',
+ steps:[['01','사용일자','{{date}}'],['02','가맹점명','{{merchant}}'],['03','비용 분류','{{category}}'],['04','금액','{{amount}}'],['05','프로젝트 코드','{{project}}'],['06','사용 내용','{{memo}}'],['07','등록','결과 확인']],
+ model_calls:'모델 호출', rep_stat:s=>`12월 6건 · <b>${s}초</b>`, rcount:n=>`12월 ${n}/6 등록`,
+ end:'Mac에서 귀찮은 일, <em>"해줘"</em>', chip_mac:'macOS 앱 · 웹',
+ webtags:['Finder · 정렬','TextEdit · 메모 저장','Wikipedia · 문서 이동']},
+en:{
+ small:'Eight card receipts to enter?', big:'"Haejo."', gloss:'해줘 · Korean for "do it for me"',
+ ask:'Eight of them. Do it.', log:'Show me what you did.', flow:'Save it as is.', replay:'Again next month.', web:'Any app. Do it.',
+ prompt:'Enter November\'s 8 card expenses\n  into the expense system',
+ lines:[['acc','● Read the card statement · 8 rows'],['acc','● Open the expense system'],['acc','● 1/8 Starbucks · field by field'],['acc','● 2/8 … 8/8 entered'],['ok','✓ 8 entered · total ₩215,300']],
+ count:n=>`${n}/8 entered`, demo_tag:'Demo company system',
+ flow_sub:'What it just entered, saved as a Flow · haejo replay expense-entry',
+ steps:[['01','Date','{{date}}'],['02','Merchant','{{merchant}}'],['03','Category','{{category}}'],['04','Amount','{{amount}}'],['05','Project code','{{project}}'],['06','Memo','{{memo}}'],['07','Register','check result']],
+ model_calls:'model calls', rep_stat:s=>`December, 6 rows · <b>${s}s</b>`, rcount:n=>`Dec ${n}/6 entered`,
+ end:'Ask Haejo to use your apps.', chip_mac:'macOS apps · Web',
+ webtags:['Finder · sort','TextEdit · save a note','Wikipedia · page link']}}[LANG];
+document.documentElement.lang=LANG;
+document.querySelectorAll('[data-t]').forEach(e=>e.textContent=TEXT[e.dataset.t]);
+const $=id=>document.getElementById(id);
+$('t-small').textContent=TEXT.small;$('t-big').textContent=TEXT.big;$('t-gloss').textContent=TEXT.gloss;$('end-line').innerHTML=TEXT.end;$('end-url').textContent=END_URL;
+
+const X=.28,S={title:[0,3.0],ask:[3.0,14.2],log:[14.2,19.4],flow:[19.4,25.0],replay:[25.0,33.2],web:[33.2,36.6],end:[36.6,40]};
+const DURATION=40;
+const clamp=(v,a=0,b=1)=>Math.min(b,Math.max(a,v));
+const ease=p=>p<.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2;
+const spring=p=>{p=clamp(p);return 1-Math.cos(p*Math.PI*2.2)*Math.exp(-6*p)};
+const seg=(t,a,b)=>clamp((t-a)/(b-a));
+function sceneEnv(t,[a,b]){const i=seg(t,a-X/2,a+X/2),o=1-seg(t,b-X/2,b+X/2);return {o:Math.min(i,o),s:1+.06*(1-ease(i))-.03*(1-ease(o)),on:t>=a-X/2&&t<b+X/2}}
+function rows(el,list){return list.map(([c,txt])=>{const d=document.createElement('div');d.className='ln '+c;d.textContent=txt;el.appendChild(d);return d})}
+const promptLine=document.createElement('div');promptLine.className='ln me';promptLine.style.opacity=1;$('ask-lines').appendChild(promptLine);
+const askRows=rows($('ask-lines'),TEXT.lines);
+const repLines=rows($('rep-lines'),DEC.map(()=>['me','']));
+repLines.forEach((d,i)=>{d.innerHTML='';const a=document.createElement('span');a.textContent=`$ haejo replay expense-entry -p … ${DEC[i][0]} ${DEC[i][1]}  `;const b=document.createElement('span');b.className='ok';b.textContent=`✓ ${repRows[i].toFixed(1)}s`;d.append(a,b);d.okSpan=b});
+function imgs(id,names){const box=$(id),cam=document.createElement('div');cam.className='cam';box.prepend(cam);box.cam=cam;return names.map(n=>{const im=new Image();im.src=`${PLATES}/${n}.png`;cam.appendChild(im);return im})}
+const camAt=(id,ox,oy,z)=>{const c=$(id).cam;c.style.transformOrigin=`${ox}px ${oy}px`;c.style.transform=`scale(${z})`};
+const AF=['s00','s01-1','s01-2','s01-3','s01-4','s01-5','s01-6','s01-7','s02','s03','s04','s05','s06','s07','s08'];
+const askWeb=imgs('ask-web',AF),stmt=imgs('ask-stmt',['statement']),repWeb=imgs('rep-web',['d00','d01','d02','d03','d04','d05','d06']);
+const show=(list,k)=>list.forEach((im,i)=>im.style.opacity=i===k?1:0);
+const nodes=TEXT.steps.map(([k,n,v],i)=>{const d=document.createElement('div');d.className='node';const row=i<4?0:1,col=i<4?i:i-4;
+  d.style.left=(col*440+(row?220:0))+'px';d.style.top=(row*290)+'px';d.innerHTML=`<div class="k">${k}</div><div class="n">${n}</div><div class="v">${v}</div>`;$('nodes').appendChild(d);
+  if(col<(row?2:3)){const e=document.createElement('div');e.className='edge';e.style.left=(col*440+(row?220:0)+380)+'px';e.style.top=(row*290+98)+'px';e.style.width='60px';$('nodes').appendChild(e);d.edge=e}return d});
+const webClips=[['native-finder',8],['native-textedit',17],['browser-wikipedia',9]].map(([n,start])=>{const v=document.createElement('video');v.src=`${ASSETS}/demos/${n}.mp4`;v.muted=true;v.preload='auto';$('web').insertBefore(v,$('webtag'));return {v,start}});
+$('log-img').src=`${PLATES}/activity.png`;$('logo').src=`${ASSETS}/haejo-wordmark.svg`;
+function seek(v,time){return new Promise(r=>{if(Math.abs(v.currentTime-time)<1/120){r();return}v.addEventListener('seeked',()=>r(),{once:true});v.currentTime=time})}
+window.ready=Promise.all([...[...document.images].map(im=>im.decode().catch(()=>{})),...webClips.map(({v})=>new Promise(r=>{if(v.readyState>=2)r();else v.addEventListener('loadeddata',r,{once:true})}))]);
+const pop=(el,t,a,dur=.4)=>{const p=seg(t,a,a+dur);el.style.opacity=clamp(p*2.5);el.style.transform=`translateY(${(1-spring(p))*50}px) scale(${.96+.04*spring(p)})`;return p};
+
+window.renderAt=async function(t){
+  const pending=[];
+  const layer=(id,win)=>{const e=sceneEnv(t,win),el=$(id);el.style.opacity=e.o;el.style.transform=`scale(${e.s})`;el.style.visibility=e.on?'visible':'hidden';return e};
+  const key=['ask','log','flow','replay','web'].find(k=>t>=S[k][0]&&t<S[k][1]);const st=$('sticker');
+  if(key){const p=seg(t,S[key][0]+.05,S[key][0]+.55);st.textContent=TEXT[key];st.style.opacity=clamp(p*3)*(1-seg(t,S[key][1]-.15,S[key][1]));st.style.transform=`rotate(-2.5deg) scale(${.6+.4*spring(p)})`}else st.style.opacity=0;
+
+  // Title: the chore, then the word.
+  layer('L-title',S.title);
+  pop($('t-small'),t,.15,.45);const bp=seg(t,.9,1.5);$('t-big').style.opacity=clamp(bp*3);$('t-big').style.transform=`scale(${.5+.5*spring(bp)}) rotate(${(1-spring(bp))*-4}deg)`;pop($('t-gloss'),t,1.6,.4);
+
+  // Ask: the request, the agent's Haejo calls, the statement and the demo groupware page filling up.
+  layer('L-ask',S.ask);
+  const typed=Math.floor(TEXT.prompt.length*seg(t,3.2,4.6));promptLine.textContent='> '+TEXT.prompt.slice(0,typed);
+  if(t<4.9&&Math.floor(t*2.5)%2===0)promptLine.insertAdjacentHTML('beforeend','<span class="caret"></span>');
+  [4.8,5.7,6.3,9.3,12.9].forEach((at,i)=>{const p=seg(t,at,at+.22);askRows[i].style.opacity=p;askRows[i].style.transform=`translateX(${(1-ease(p))*20}px)`});
+  pop($('ask-stmt'),t,4.9,.4);show(stmt,0);pop($('ask-web'),t,5.8,.45);camAt('ask-stmt',0,0,1+.45*ease(seg(t,5.0,5.8)));
+  {const zin=ease(seg(t,6.0,6.6)),zmid=ease(seg(t,9.0,9.6)),zout=ease(seg(t,12.7,13.3));const oy=231+(556-231)*zmid;const z=1+.7*zin-.35*zmid-.35*zout;camAt('ask-web',380+(555-380)*zmid,oy,z)}
+  const k=t<6.4?0:t<9.2?Math.min(7,1+Math.floor((t-6.4)/.4)):Math.min(14,8+Math.floor((t-9.2)/.5));show(askWeb,k);
+  const done=k<7?0:k===7?1:Math.min(8,k-6);$('ask-count-t').textContent=TEXT.count(done);$('ask-count').style.opacity=t>7.2?1:0;
+  $('ask-count').className='chip'+(done===8?' ok':'');
+
+  // Activity: four tasks of the day; the expense task's per-call reasons.
+  layer('L-log',S.log);
+  const lp=ease(seg(t,14.5,19.0));$('log-img').style.transform=`scale(${1+.1*lp})`;
+
+  // Saved as a Flow: the seven steps with their parameters.
+  layer('L-flow',S.flow);
+  nodes.forEach((n,i)=>{pop(n,t,19.8+i*.32,.4);n.classList.toggle('lit',t>23.2);
+    if(n.edge){const q=seg(t,20.0+i*.32,20.3+i*.32);n.edge.style.transform=`scaleX(${q})`;n.edge.style.background=t>23.2?'var(--orange)':'#e6ddd4'}});
+
+  // Next month: six replays of the saved Flow, real timings, zero model calls.
+  layer('L-replay',S.replay);pop($('rep-web'),t,25.3,.4);camAt('rep-web',453,453,1+.4*ease(seg(t,25.6,26.2))-.4*ease(seg(t,30.4,31.0)));
+  const starts=[25.6,26.4,27.2,28.0,28.8,29.6];
+  repLines.forEach((d,i)=>{d.style.opacity=seg(t,starts[i],starts[i]+.15);d.okSpan.style.opacity=t>starts[i]+.5?1:0});
+  const rn=starts.filter(s=>t>s+.5).length;show(repWeb,rn);$('rep-count-t').textContent=TEXT.rcount(rn);$('rep-count').style.opacity=t>26.1?1:0;
+  const z=seg(t,30.6,31.1);$('big0').style.opacity=z;$('big0').style.transform=`scale(${.7+.3*spring(z)})`;$('big0').style.transformOrigin='0 60%';
+  $('rep-stat').innerHTML=TEXT.rep_stat(repTotal);$('rep-stat').style.opacity=seg(t,31.2,31.5);
+
+  const ew=layer('L-web',S.web);const slot=Math.min(2,Math.floor((t-S.web[0])/1.15));
+  webClips.forEach((c,i)=>{const on=ew.on&&i===slot;c.v.style.opacity=on?1:0;
+    if(on){const local=t-S.web[0]-i*1.15;pending.push(seek(c.v,c.start+local*1.2));c.v.style.transform=`scale(${1.04-.04*ease(clamp(local/.35))})`}});
+  $('webtag').textContent=TEXT.webtags[Math.max(0,slot)];
+
+  layer('L-end',S.end);
+  await Promise.all(pending);
+};
+</script></body></html>

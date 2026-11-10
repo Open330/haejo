@@ -46,7 +46,7 @@
         ></a
       >
       <nav aria-label="Main menu">
-        <a href="#app">Activity</a><a href="#evidence">Benchmarks</a
+        <a href="#film">Film</a><a href="#app">Activity</a><a href="#evidence">Benchmarks</a
         ><a href="#start"
           >Get started
           <svg
@@ -82,7 +82,7 @@
     <main id="main" tabindex="-1">
       <section class="hero wrap">
         <div class="hero-copy">
-          <a class="release-pill" href="https://github.com/Open330/tacto/releases/tag/v1.0.0-rc.13"><span class="signal"></span> TACTO 1.0.0 RC13 <span>Now named Haejo</span><svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><use href="../assets/ui-icons.svg#arrow-up-right"></use></svg></a>
+          <a class="release-pill" href="https://github.com/Open330/tacto/releases/tag/v1.0.0-rc.39"><span class="signal"></span> HAEJO 1.0.0 RC39 <span>Renamed from Tacto</span><svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><use href="../assets/ui-icons.svg#arrow-up-right"></use></svg></a>
           <h1>Ask Haejo to<br /><span>use your apps.</span></h1>
           <p class="hero-description">It opens your apps, does the work and checks the result.<br />Then it remembers the steps for next time.</p>
           <div class="hero-actions">
@@ -93,15 +93,15 @@
           <p class="platform-note">macOS · Apple Silicon · Runs locally</p>
           <a class="activity-promise" href="#app">See what your agent did in the activity history <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><use href="../assets/ui-icons.svg#arrow-down"></use></svg></a>
         </div>
-        <figure class="hero-film">
-          <div class="film-heading"><span class="film-dot"></span><span>HAEJO IN ACTION</span><span>GitHub / Browser</span></div>
-          <video controls playsinline preload="none" poster="../assets/demos/browser-github-poster.png" width="1280" height="800" aria-label="Actual Haejo run: searching and sorting GitHub bugs">
-            <source src="../assets/demos/browser-github.mp4" type="video/mp4" />
-            <track kind="captions" src="../assets/demos/browser-github.en.vtt" srclang="en" label="English" default />
-            <a href="../assets/demos/browser-github.mp4">Download the recording</a>
+        <figure class="hero-film" id="film">
+          <div class="film-heading"><span class="film-dot"></span><span>HAEJO FILM</span><span>40 sec</span></div>
+          <video controls playsinline preload="none" poster="../assets/film/haejo-film.en.poster.jpg" width="1920" height="1080" aria-label="Haejo in 40 seconds: eight card expenses entered into a demo company system right away, every call in the activity log, and next month&#39;s six replayed from the saved Flow with zero model calls">
+            <source src="../assets/film/haejo-film.en.webm" type="video/webm" />
+            <source src="../assets/film/haejo-film.en.mp4" type="video/mp4" />
+            <a href="../assets/film/haejo-film.en.mp4">Download the film</a>
           </video>
-          <figcaption><div><strong>“Show me open bugs, most commented first.”</strong><span>Search · filter · sort on the real GitHub</span></div><span class="film-evidence">Recording of an actual run</span></figcaption>
-          <p class="film-note">Recorded in a separate Chromium · includes an illustrative guide pointer</p>
+          <figcaption><div><strong>Eight card receipts to enter? &quot;Haejo.&quot;</strong><span>Do it now · see every call · replay as a Flow next month</span></div><span class="film-evidence">Real screens</span></figcaption>
+          <p class="film-note">The expense system is a demo page · Safari and TextEdit screens are real captures after each Haejo call · next month&#39;s six rows replay with zero model calls</p>
         </figure>
       </section>
       <section class="principles wrap" aria-label="How Haejo works">
@@ -112,7 +112,7 @@
       </section>
       <section class="app-showcase wrap" id="app">
         <div class="app-showcase-copy"><div class="section-label">SEE WHAT YOUR AGENT DID</div><h2>See for yourself<br />what your agent did.</h2><p>Which apps it accessed, and what it did there.<br />Review accesses made through Haejo as a timeline inside the app.</p><ul><li>Apps accessed, with each step’s action, outcome and time</li><li>Find runs that failed or whose completion was not confirmed</li><li>Turn logging on or off and keep records for 7, 30 or 90 days</li></ul><span class="app-local-note">Records stay on this Mac. Screen content, input values, prompts and internal agent reasoning are excluded.</span></div>
-        <figure><a class="app-image-link" href="../assets/haejo-activity.png" target="_blank" rel="noopener" aria-label="View the activity history app screen at full size"><img src="../assets/haejo-activity.png" width="2120" height="1400" loading="lazy" decoding="async" alt="Haejo app preview loaded with 38 actual saved activity records, showing a list of runs alongside the actions, outcomes and times of a selected TextEdit task." /></a><figcaption><a href="../assets/haejo-activity.png" target="_blank" rel="noopener">View full size</a> · 38 actual activity records · App preview</figcaption></figure>
+        <figure><a class="app-image-link" href="../assets/haejo-activity.png" target="_blank" rel="noopener" aria-label="View the activity history app screen at full size"><img src="../assets/haejo-activity.png" width="2120" height="1400" loading="lazy" decoding="async" alt="Haejo app preview loaded with 67 actual saved activity records from Calculator, TextEdit and Finder runs, alongside the actions, outcomes and times of a selected Finder task." /></a><figcaption><a href="../assets/haejo-activity.png" target="_blank" rel="noopener">View full size</a> · 67 actual activity records · App preview</figcaption></figure>
       </section>
       <section class="intro wrap" id="how">
         <div class="section-label">REUSABLE FLOW</div>
@@ -277,12 +277,12 @@
         <div class="onboarding-heading">
           <h2>Move the app,<br />connect your agent.</h2>
           <p>
-            Haejo 1.0.0-rc.13 is a release-candidate DMG for Apple Silicon,
+            Haejo 1.0.0-rc.39 is a release-candidate DMG for Apple Silicon,
             currently in stable-release qualification. Anyone can download it;
             it was verified on macOS 27.0.1 · Apple Silicon.
           </p>
           <div>
-            <a class="button primary" href="https://github.com/Open330/tacto/releases/download/v1.0.0-rc.13/Haejo-1.0.0-rc.13-arm64.dmg"
+            <a class="button primary" href="https://github.com/Open330/tacto/releases/download/v1.0.0-rc.39/Haejo-1.0.0-rc.39-arm64.dmg"
               >Download Haejo for Mac
               <svg
                 class="ui-icon"
@@ -344,7 +344,7 @@
                 Haejo from Applications. If you open it directly inside the read-only
                 DMG, it will ask you to move it first.
               </p>
-              <a href="https://github.com/Open330/tacto/releases/tag/v1.0.0-rc.13" target="_blank" rel="noopener noreferrer"
+              <a href="https://github.com/Open330/tacto/releases/tag/v1.0.0-rc.39" target="_blank" rel="noopener noreferrer"
                 >Haejo release candidate notes
                 <svg
                   class="ui-icon"
@@ -369,7 +369,7 @@
                   >
                     Copy
                   </button>
-                  <pre><code id="install-command">git clone https://github.com/Open330/tacto.git
+                  <pre><code id="install-command">git clone https://github.com/Open330/tacto.git haejo
 cd haejo
 uv sync
 ./build.sh
@@ -394,13 +394,13 @@ uv sync
           <li>
             <span class="step-number">02</span>
             <div>
-              <h3>Turn on two macOS permissions</h3>
+              <h3>Turn on macOS permissions</h3>
               <p>
                 In the Haejo window, under <span lang="ko">‘1. Mac 권한’</span> (Mac permissions), press
                 <span lang="ko">‘설정 열기’</span> (Open Settings) for each item and follow the guide beside it:
                 allow app control for <strong>Haejo Helper</strong> and screen recording
-                for <strong>Haejo</strong>. If you are switching from Preview 8 or earlier,
-                grant each permission again to the new Haejo app. After connecting your
+                for <strong>Haejo</strong> (screen recording is optional). If you are upgrading from Tacto,
+                the app identity changed, so grant each permission again to the new Haejo app. After connecting your
                 agent in step 3, you can also check from the terminal with the command below.
               </p>
               <div class="inline-command">
@@ -672,7 +672,7 @@ uv sync
                 <a href="../assets/demos/native-textedit.mp4">Download video</a>
               </video>
               <p class="recording-caption">
-                About 10 sec · Mac window capture · includes guide pointer
+                About 28 sec · Mac window capture · includes guide pointer
               </p>
 <p class="case-result">Document matches disk contents</p>
               <details class="case-details"><summary>Actions and verification scope</summary>
@@ -732,7 +732,7 @@ uv sync
                 <a href="../assets/demos/native-finder.mp4">Download video</a>
               </video>
               <p class="recording-caption">
-                About 8 sec · Mac window capture · includes guide pointer
+                About 22 sec · Mac window capture · includes guide pointer
               </p>
 <p class="case-result">Sort by kind → sort by name · 5 files</p>
               <details class="case-details"><summary>Actions and verification scope</summary>
@@ -799,7 +799,7 @@ uv sync
                 <a href="../assets/demos/browser-translate.mp4">Download video</a>
               </video>
               <p class="recording-caption">
-                About 7 sec · separate Chromium · includes guide pointer
+                About 8 sec · separate Chromium · includes guide pointer
               </p>
 <p class="case-result">English input · Korean result shown</p>
               <details class="case-details"><summary>Actions and verification scope</summary>
@@ -863,7 +863,7 @@ uv sync
                 <a href="../assets/demos/browser-github.mp4">Download video</a>
               </video>
               <p class="recording-caption">
-                About 9 sec · separate Chromium · includes guide pointer
+                About 20 sec · separate Chromium · includes guide pointer
               </p>
 <p class="case-result">Open-bug filter · sorted by comments</p>
               <details class="case-details"><summary>Actions and verification scope</summary>
@@ -927,7 +927,7 @@ uv sync
                 <a href="../assets/demos/browser-units.mp4">Download video</a>
               </video>
               <p class="recording-caption">
-                About 9 sec · separate Chromium · includes guide pointer
+                About 11 sec · separate Chromium · includes guide pointer
               </p>
 <p class="case-result">3.5 m → 11.482939633 ft</p>
               <details class="case-details"><summary>Actions and verification scope</summary>
@@ -992,7 +992,7 @@ uv sync
                 <a href="../assets/demos/browser-markdown.mp4">Download video</a>
               </video>
               <p class="recording-caption">
-                About 18 sec · separate Chromium · includes guide pointer
+                About 9 sec · separate Chromium · includes guide pointer
               </p>
 <p class="case-result">Headings, lists and bold text rendered</p>
               <details class="case-details"><summary>Actions and verification scope</summary>
@@ -1057,7 +1057,7 @@ uv sync
                 <a href="../assets/demos/browser-wikipedia.mp4">Download video</a>
               </video>
               <p class="recording-caption">
-                About 14 sec · separate Chromium · includes guide pointer
+                About 19 sec · separate Chromium · includes guide pointer
               </p>
 <p class="case-result">Search the Seoul article · go to History</p>
               <details class="case-details"><summary>Actions and verification scope</summary>
@@ -1179,7 +1179,7 @@ uv sync
                 <a href="../assets/demos/browser-shopping.mp4">Download video</a>
               </video>
               <p class="recording-caption">
-                About 9 sec · separate Chromium · includes guide pointer
+                About 12 sec · separate Chromium · includes guide pointer
               </p>
 <p class="case-result">Book detail · fictional price and stock</p>
               <details class="case-details"><summary>Actions and verification scope</summary>
@@ -1241,7 +1241,7 @@ uv sync
                 <a href="../assets/demos/browser-form.mp4">Download video</a>
               </video>
               <p class="recording-caption">
-                About 13 sec · separate Chromium · includes guide pointer
+                About 16 sec · separate Chromium · includes guide pointer
               </p>
 <p class="case-result">Four text, date and option values verified</p>
               <details class="case-details"><summary>Actions and verification scope</summary>
@@ -1329,15 +1329,15 @@ uv sync
               >
             </video>
             <p class="recording-caption">
-              About 17 sec · actual window capture + guide pointer · chronological playback, speed unchanged
+              About 21 sec · real window captures after each step + guide pointer
             </p>
             <blockquote>
               “Enter these five jobs in the same order and verify the calculated results.”
             </blockquote>
             <p>
-              Replayed 11 steps: field input, option selection, review, calculation,
-              result comparison and completion check. The results were 89, 34, 62, 79 and
-              108, and it was separately verified that each job left exactly one completion record.
+              Replayed 11 steps one at a time: field input, option selection, review, calculation,
+              result comparison and completion check. The results were 37, 46, 70, 27 and
+              48, and it was separately verified that each job left exactly one completion record.
             </p>
             <p class="recording-caption">
               A test app built for recording, not a commercial business app. Normal

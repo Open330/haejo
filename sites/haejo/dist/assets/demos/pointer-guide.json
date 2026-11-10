@@ -136,11 +136,11 @@
       "output": "workflow-guided.mp4",
       "width": 1220,
       "height": 1004,
-      "seconds": 17.416667,
+      "seconds": 19.0,
       "poster_source": "workflow-result.png",
       "poster_output": "workflow-guided-poster.png",
       "poster_marker": {
-        "time": 14.65,
+        "time": 17.0,
         "x": 220,
         "y": 760,
         "label": "5/5  CHECK  result",
@@ -161,7 +161,7 @@
           "kind": "idle"
         },
         {
-          "time": 1.05,
+          "time": 0.9,
           "x": 1100,
           "y": 128,
           "label": "1/5  INPUT  amount",
@@ -174,7 +174,7 @@
           ]
         },
         {
-          "time": 1.3,
+          "time": 1.15,
           "x": 1100,
           "y": 218,
           "label": "1/5  INPUT  factor",
@@ -187,7 +187,7 @@
           ]
         },
         {
-          "time": 1.55,
+          "time": 1.4,
           "x": 1100,
           "y": 308,
           "label": "1/5  INPUT  discount",
@@ -200,7 +200,7 @@
           ]
         },
         {
-          "time": 1.8,
+          "time": 1.65,
           "x": 1100,
           "y": 398,
           "label": "1/5  INPUT  reference",
@@ -213,7 +213,7 @@
           ]
         },
         {
-          "time": 2.05,
+          "time": 1.9,
           "x": 60,
           "y": 626,
           "label": "1/5  SET  bonus",
@@ -226,7 +226,7 @@
           ]
         },
         {
-          "time": 2.3,
+          "time": 2.15,
           "x": 170,
           "y": 914,
           "label": "1/5  CLICK  Review",
@@ -239,7 +239,7 @@
           ]
         },
         {
-          "time": 2.55,
+          "time": 2.4,
           "x": 460,
           "y": 914,
           "label": "1/5  CLICK  Compute",
@@ -252,7 +252,7 @@
           ]
         },
         {
-          "time": 2.8,
+          "time": 2.65,
           "x": 1100,
           "y": 488,
           "label": "1/5  INPUT  audit result",
@@ -265,7 +265,7 @@
           ]
         },
         {
-          "time": 3.05,
+          "time": 2.9,
           "x": 750,
           "y": 914,
           "label": "1/5  CLICK  Audit",
@@ -278,7 +278,7 @@
           ]
         },
         {
-          "time": 3.3,
+          "time": 3.15,
           "x": 1040,
           "y": 914,
           "label": "1/5  CLICK  Finish",
@@ -291,7 +291,7 @@
           ]
         },
         {
-          "time": 3.55,
+          "time": 3.4,
           "x": 220,
           "y": 760,
           "label": "1/5  CHECK  result",
@@ -304,7 +304,7 @@
           ]
         },
         {
-          "time": 4.5,
+          "time": 4.3,
           "x": 1100,
           "y": 128,
           "label": "2/5  INPUT  amount",
@@ -317,7 +317,7 @@
           ]
         },
         {
-          "time": 4.655,
+          "time": 4.55,
           "x": 1100,
           "y": 218,
           "label": "2/5  INPUT  factor",
@@ -330,7 +330,7 @@
           ]
         },
         {
-          "time": 4.81,
+          "time": 4.8,
           "x": 1100,
           "y": 308,
           "label": "2/5  INPUT  discount",
@@ -343,7 +343,7 @@
           ]
         },
         {
-          "time": 4.965,
+          "time": 5.05,
           "x": 1100,
           "y": 398,
           "label": "2/5  INPUT  reference",
@@ -356,7 +356,7 @@
           ]
         },
         {
-          "time": 5.12,
+          "time": 5.3,
           "x": 60,
           "y": 626,
           "label": "2/5  SET  bonus",
@@ -369,7 +369,7 @@
           ]
         },
         {
-          "time": 5.275,
+          "time": 5.55,
           "x": 170,
           "y": 914,
           "label": "2/5  CLICK  Review",
@@ -382,7 +382,7 @@
           ]
         },
         {
-          "time": 5.43,
+          "time": 5.8,
           "x": 460,
           "y": 914,
           "label": "2/5  CLICK  Compute",
@@ -395,7 +395,7 @@
           ]
         },
         {
-          "time": 5.585,
+          "time": 6.05,
           "x": 1100,
           "y": 488,
           "label": "2/5  INPUT  audit result",
@@ -408,7 +408,7 @@
           ]
         },
         {
-          "time": 5.74,
+          "time": 6.3,
           "x": 750,
           "y": 914,
           "label": "2/5  CLICK  Audit",
@@ -421,7 +421,7 @@
           ]
         },
         {
-          "time": 5.895,
+          "time": 6.55,
           "x": 1040,
           "y": 914,
           "label": "2/5  CLICK  Finish",
@@ -434,7 +434,7 @@
           ]
         },
         {
-          "time": 6.05,
+          "time": 6.8,
           "x": 220,
           "y": 760,
           "label": "2/5  CHECK  result",
@@ -447,7 +447,7 @@
           ]
         },
         {
-          "time": 7.05,
+          "time": 7.7,
           "x": 1100,
           "y": 128,
           "label": "3/5  INPUT  amount",
@@ -460,7 +460,7 @@
           ]
         },
         {
-          "time": 7.25,
+          "time": 7.95,
           "x": 1100,
           "y": 218,
           "label": "3/5  INPUT  factor",
@@ -473,7 +473,7 @@
           ]
         },
         {
-          "time": 7.45,
+          "time": 8.2,
           "x": 1100,
           "y": 308,
           "label": "3/5  INPUT  discount",
@@ -486,7 +486,7 @@
           ]
         },
         {
-          "time": 7.65,
+          "time": 8.45,
           "x": 1100,
           "y": 398,
           "label": "3/5  INPUT  reference",
@@ -499,7 +499,7 @@
           ]
         },
         {
-          "time": 7.85,
+          "time": 8.7,
           "x": 60,
           "y": 626,
           "label": "3/5  SET  bonus",
@@ -512,7 +512,7 @@
           ]
         },
         {
-          "time": 8.05,
+          "time": 8.95,
           "x": 170,
           "y": 914,
           "label": "3/5  CLICK  Review",
@@ -525,7 +525,7 @@
           ]
         },
         {
-          "time": 8.25,
+          "time": 9.2,
           "x": 460,
           "y": 914,
           "label": "3/5  CLICK  Compute",
@@ -538,7 +538,7 @@
           ]
         },
         {
-          "time": 8.45,
+          "time": 9.45,
           "x": 1100,
           "y": 488,
           "label": "3/5  INPUT  audit result",
@@ -551,7 +551,7 @@
           ]
         },
         {
-          "time": 8.65,
+          "time": 9.7,
           "x": 750,
           "y": 914,
           "label": "3/5  CLICK  Audit",
@@ -564,7 +564,7 @@
           ]
         },
         {
-          "time": 8.85,
+          "time": 9.95,
           "x": 1040,
           "y": 914,
           "label": "3/5  CLICK  Finish",
@@ -577,7 +577,7 @@
           ]
         },
         {
-          "time": 9.05,
+          "time": 10.2,
           "x": 220,
           "y": 760,
           "label": "3/5  CHECK  result",
@@ -590,7 +590,7 @@
           ]
         },
         {
-          "time": 9.95,
+          "time": 11.1,
           "x": 1100,
           "y": 128,
           "label": "4/5  INPUT  amount",
@@ -603,7 +603,7 @@
           ]
         },
         {
-          "time": 10.11,
+          "time": 11.35,
           "x": 1100,
           "y": 218,
           "label": "4/5  INPUT  factor",
@@ -616,7 +616,7 @@
           ]
         },
         {
-          "time": 10.27,
+          "time": 11.6,
           "x": 1100,
           "y": 308,
           "label": "4/5  INPUT  discount",
@@ -629,7 +629,7 @@
           ]
         },
         {
-          "time": 10.43,
+          "time": 11.85,
           "x": 1100,
           "y": 398,
           "label": "4/5  INPUT  reference",
@@ -642,7 +642,7 @@
           ]
         },
         {
-          "time": 10.59,
+          "time": 12.1,
           "x": 60,
           "y": 626,
           "label": "4/5  SET  bonus",
@@ -655,7 +655,7 @@
           ]
         },
         {
-          "time": 10.75,
+          "time": 12.35,
           "x": 170,
           "y": 914,
           "label": "4/5  CLICK  Review",
@@ -668,7 +668,7 @@
           ]
         },
         {
-          "time": 10.91,
+          "time": 12.6,
           "x": 460,
           "y": 914,
           "label": "4/5  CLICK  Compute",
@@ -681,7 +681,7 @@
           ]
         },
         {
-          "time": 11.07,
+          "time": 12.85,
           "x": 1100,
           "y": 488,
           "label": "4/5  INPUT  audit result",
@@ -694,7 +694,7 @@
           ]
         },
         {
-          "time": 11.23,
+          "time": 13.1,
           "x": 750,
           "y": 914,
           "label": "4/5  CLICK  Audit",
@@ -707,7 +707,7 @@
           ]
         },
         {
-          "time": 11.39,
+          "time": 13.35,
           "x": 1040,
           "y": 914,
           "label": "4/5  CLICK  Finish",
@@ -720,7 +720,7 @@
           ]
         },
         {
-          "time": 11.55,
+          "time": 13.6,
           "x": 220,
           "y": 760,
           "label": "4/5  CHECK  result",
@@ -733,7 +733,7 @@
           ]
         },
         {
-          "time": 12.5,
+          "time": 14.5,
           "x": 1100,
           "y": 128,
           "label": "5/5  INPUT  amount",
@@ -746,7 +746,7 @@
           ]
         },
         {
-          "time": 12.715,
+          "time": 14.75,
           "x": 1100,
           "y": 218,
           "label": "5/5  INPUT  factor",
@@ -759,7 +759,7 @@
           ]
         },
         {
-          "time": 12.93,
+          "time": 15.0,
           "x": 1100,
           "y": 308,
           "label": "5/5  INPUT  discount",
@@ -772,7 +772,7 @@
           ]
         },
         {
-          "time": 13.145,
+          "time": 15.25,
           "x": 1100,
           "y": 398,
           "label": "5/5  INPUT  reference",
@@ -785,7 +785,7 @@
           ]
         },
         {
-          "time": 13.36,
+          "time": 15.5,
           "x": 60,
           "y": 626,
           "label": "5/5  SET  bonus",
@@ -798,7 +798,7 @@
           ]
         },
         {
-          "time": 13.575,
+          "time": 15.75,
           "x": 170,
           "y": 914,
           "label": "5/5  CLICK  Review",
@@ -811,7 +811,7 @@
           ]
         },
         {
-          "time": 13.79,
+          "time": 16.0,
           "x": 460,
           "y": 914,
           "label": "5/5  CLICK  Compute",
@@ -824,7 +824,7 @@
           ]
         },
         {
-          "time": 14.005,
+          "time": 16.25,
           "x": 1100,
           "y": 488,
           "label": "5/5  INPUT  audit result",
@@ -837,7 +837,7 @@
           ]
         },
         {
-          "time": 14.22,
+          "time": 16.5,
           "x": 750,
           "y": 914,
           "label": "5/5  CLICK  Audit",
@@ -850,7 +850,7 @@
           ]
         },
         {
-          "time": 14.435,
+          "time": 16.75,
           "x": 1040,
           "y": 914,
           "label": "5/5  CLICK  Finish",
@@ -863,7 +863,7 @@
           ]
         },
         {
-          "time": 14.65,
+          "time": 17.0,
           "x": 220,
           "y": 760,
           "label": "5/5  CHECK  result",
