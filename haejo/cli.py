@@ -500,10 +500,12 @@ def _run_flow(flow, argv, walked: bool = False, *, _driver=None, _confirm=None, 
         if argv.count('--repair-packet')!=1 or k+1>=len(argv) or not os.path.isabs(argv[k+1]) or os.path.lexists(argv[k+1]):
             print('repair_packet: use one absolute new output path');return 2
         repair_path=argv[k+1]
+    if window_id is None and flow.window:
+        window_id = flow.window
     driver = _driver if _driver is not None else _make_driver(argv)
     if window_id is not None:
         problem=bind_window(driver,flow.target,window_id)
-        if problem is not None:print(json.dumps(problem));return 1
+        if problem is not None:print(json.dumps(problem,ensure_ascii=False));return 1
     timed_driver = None
     if document is not None:
         from .document_scope import DocumentScopedDriver, DocumentScopeUnavailable

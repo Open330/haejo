@@ -177,7 +177,11 @@ final class ParallelSession {
             else { return cancelled() ? parallelRefusal(stopCode()) : busy("app:\(pid)") }
             var listing=WindowListingDiagnostic()
             let matches=realWindows(of:AXUIElementCreateApplication(pid),diagnostic:&listing).filter { nativeWindowID($0)==id }
-            guard listing.status=="ok",matches.count==1 else { return parallelRefusal("window_scope_lost") }
+            guard listing.status=="ok",matches.count==1 else {
+                var refusal=parallelRefusal("window_scope_lost")
+                refusal["reason"]=windowAbsenceReason(pid,id)
+                return refusal
+            }
             if let previous=scope,!CFEqual(previous.window,matches[0]) { return parallelRefusal("window_scope_changed") }
             let fixed=scope ?? ParallelWindowScope(pid:pid,id:id,start:start,window:matches[0])
             scope=fixed;ParallelWindowState.shared.current=fixed
@@ -208,10 +212,94 @@ func parallelWindowList(_ target:String) -> [String:Any] {
     var diagnostic=WindowListingDiagnostic()
     let windows=realWindows(of:AXUIElementCreateApplication(pid),diagnostic:&diagnostic)
     guard ["ok","no_value"].contains(diagnostic.status) else { return parallelRefusal("window_list_unavailable") }
+    let server=serverWindows(pid)
+    var listed=Set<UInt32>()
     let rows=windows.prefix(128).compactMap { window -> [String:Any]? in
         guard let id=nativeWindowID(window) else { return nil }
-        return ["window_id":Int(id),"title":String((str(window,kAXTitleAttribute as String) ?? "").prefix(200))]
+        listed.insert(id)
+        var row:[String:Any]=["window_id":Int(id),"title":String((str(window,kAXTitleAttribute as String) ?? "").prefix(200))]
+        if let url=windowPageURL(window) { row["url"]=url }
+        if let onScreen=server[id] { row["on_screen"]=onScreen }
+        return row
     }
     guard nativeProcessStartIdentity(pid)==start else { return parallelRefusal("target_changed") }
-    return ["type":"windows","target":target,"pid":Int(pid),"process_start":start,"windows":rows]
+    var reply:[String:Any]=["type":"windows","target":target,"pid":Int(pid),"process_start":start,"windows":rows,
+                            "screen":screenState()]
+    // Accessibility lists only what the app hands it. The window server also
+    // knows windows on other Spaces; a window it has and accessibility omits
+    // was seen missing for 30 s+ while `--window-id` still reached it
+    // (Safari popup player, june-mba 2026-11-09), and read as "closed".
+    let unlisted=server.filter { !listed.contains($0.key) }.sorted { $0.key < $1.key }.prefix(64).map { id,onScreen in
+        ["window_id":Int(id),"reason":onScreen ? "enumeration_partial" : "not_on_active_space"] as [String:Any]
+    }
+    if !unlisted.isEmpty { reply["unlisted"]=Array(unlisted) }
+    if rows.isEmpty, let reason=emptyListingReason(reply["screen"] as! [String:Any], unlisted:!unlisted.isEmpty) {
+        reply["reason"]=reason
+    }
+    return reply
+}
+
+/// Layer-0 windows the window server has for this process: id -> on screen now.
+/// Needs no screen-recording permission (ids and flags only, no titles).
+func serverWindows(_ pid:pid_t) -> [UInt32:Bool] {
+    guard let entries=CGWindowListCopyWindowInfo([.optionAll,.excludeDesktopElements],kCGNullWindowID) as? [[String:Any]] else { return [:] }
+    var found:[UInt32:Bool]=[:]
+    for entry in entries {
+        guard (entry[kCGWindowOwnerPID as String] as? Int).map({ pid_t($0) })==pid,
+              (entry[kCGWindowLayer as String] as? Int)==0,
+              let number=entry[kCGWindowNumber as String] as? NSNumber else { continue }
+        // Off-screen helper surfaces have no size; a real window has one.
+        if let bounds=entry[kCGWindowBounds as String] as? [String:Any],
+           let rect=CGRect(dictionaryRepresentation:bounds as CFDictionary), rect.width<2 || rect.height<2 { continue }
+        found[number.uint32Value]=(entry[kCGWindowIsOnscreen as String] as? Bool) ?? false
+    }
+    return found
+}
+
+func screenState() -> [String:Any] {
+    var state:[String:Any]=["display_asleep":CGDisplayIsAsleep(CGMainDisplayID()) != 0]
+    if let session=CGSessionCopyCurrentDictionary() as? [String:Any] {
+        state["locked"]=session["CGSSessionScreenIsLocked"] as? Bool == true
+        state["on_console"]=session[kCGSessionOnConsoleKey as String] as? Bool ?? false
+    }
+    return state
+}
+
+func emptyListingReason(_ screen:[String:Any], unlisted:Bool) -> String? {
+    if screen["locked"] as? Bool == true { return "screen_locked" }
+    if screen["on_console"] as? Bool == false { return "session_not_on_console" }
+    if screen["display_asleep"] as? Bool == true { return "display_asleep" }
+    return unlisted ? "windows_not_listed" : nil
+}
+
+/// Why a window id this connection pinned cannot be found now.
+func windowAbsenceReason(_ pid:pid_t,_ id:UInt32) -> String {
+    let screen=screenState()
+    if screen["locked"] as? Bool == true { return "screen_locked" }
+    if screen["on_console"] as? Bool == false { return "session_not_on_console" }
+    if screen["display_asleep"] as? Bool == true { return "display_asleep" }
+    guard let onScreen=serverWindows(pid)[id] else { return "window_closed" }
+    return onScreen ? "enumeration_partial" : "not_on_active_space"
+}
+
+/// The page a browser window shows, as origin + path (no query or fragment:
+/// those can carry session tokens). A bounded breadth-first look for the
+/// first AXWebArea; nil for non-web windows.
+func windowPageURL(_ window:AXUIElement) -> String? {
+    var queue:[(AXUIElement,Int)]=[(window,0)]
+    var visited=0
+    while !queue.isEmpty && visited<400 {
+        let (node,depth)=queue.removeFirst();visited+=1
+        _ = AXUIElementSetMessagingTimeout(node,0.25)
+        if str(node,kAXRoleAttribute as String)=="AXWebArea" {
+            let raw=(attr(node,"AXURL") as? URL)?.absoluteString ?? str(node,"AXURL")
+            guard let raw,raw.count<=4096,var parts=URLComponents(string:raw),
+                  let scheme=parts.scheme?.lowercased(),["http","https","file"].contains(scheme) else { return nil }
+            parts.query=nil;parts.fragment=nil;parts.user=nil;parts.password=nil
+            return parts.string.map { String($0.prefix(512)) }
+        }
+        guard depth<12,let children=attr(node,kAXChildrenAttribute as String) as? [AXUIElement] else { continue }
+        for child in children.prefix(64) { queue.append((child,depth+1)) }
+    }
+    return nil
 }

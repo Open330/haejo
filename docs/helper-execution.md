@@ -103,6 +103,24 @@ It remains available while other connections own windows in that app. Start
 `run`/`replay`/`observe`. IDs belong to the current OS windows and are never saved
 inside a Flow. `--document` remains a separate app-wide TextEdit route.
 
+`--window-match` chooses the window when the command starts instead:
+`url=<substring>` (browser page origin and path; query and fragment are never
+listed), `title=<substring>` and `newest` (highest window ID among matches,
+i.e. the most recently opened). Matching is case-insensitive; when nothing
+matches yet it re-lists for up to 10 s, which covers a popup still opening.
+`session --window-match ... --save` stores the selector as the Flow's
+`"window": {"url": ...}`; `run`, `replay` and `batch` resolve it at start, and
+`batch` opens one connection per job so each job finds that job's window.
+
+The `windows` reply also cross-checks the window server (ids and on-screen
+flags only, no titles or screen recording): each row has `on_screen`; windows
+the server has but accessibility omits are under `unlisted` with
+`not_on_active_space` or `enumeration_partial`; `screen` reports
+`locked`/`display_asleep`/`on_console`; an empty list carries `reason`
+(`screen_locked`, `display_asleep`, `session_not_on_console`,
+`windows_not_listed`). `window_scope_lost` carries the same kind of `reason`,
+plus `window_closed`.
+
 A window session takes shared app ownership and exclusive ownership of one
 process-start/window-ID/AX-window-object identity. Different windows may have
 independent connections. Scoped observations contain only the selected window.

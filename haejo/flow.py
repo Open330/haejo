@@ -897,6 +897,10 @@ class Flow:
     intents: list = field(default_factory=list)
     # Schema 4: observed literal data is not caller-overridable task input.
     literal_params: dict = field(default_factory=dict)
+    # Which window of `target` to run in, resolved at run start: a selector
+    # ({"url": ..., "title": ..., "newest": true}), never a live window ID —
+    # a popup opened per run has a new ID each time.
+    window: "dict | None" = None
 
     def bind(self, **values) -> "Flow":
         """Return a concrete, runnable Flow with parameters substituted and
@@ -922,7 +926,7 @@ class Flow:
         # an input, as it is for "close the dialog in <app>".
         return Flow(name=self.name, target=_render(self.target, ctx),
                     steps=_bind_steps(self.steps, ctx), schema=self.schema,
-                    tables=deepcopy(self.tables))
+                    tables=deepcopy(self.tables), window=deepcopy(self.window))
 
     def runtime_names(self) -> set:
         """Values produced during a run: captures and decisions, at any depth."""
@@ -1014,6 +1018,8 @@ class Flow:
         if self.literal_params or literal_params:
             d['literal_params']={**self.literal_params,**literal_params}
             d['schema']=max(d['schema'],4)
+        if self.window:
+            d['window']=dict(self.window)
         return json.dumps(d, ensure_ascii=False, indent=None if compact else 2,
                           separators=(',', ':') if compact else None)
 
@@ -1036,6 +1042,12 @@ class Flow:
         for key in ("params", "tables", "derived", "literal_params"):
             if key in d and not isinstance(d[key], dict):
                 raise FlowFieldError(f"Flow.{key} must be an object", key, 'Use an object; params example: {"amount":"11"}, with {{amount}} in step values.')
+        if 'window' in d:
+            from .window_scope import selector_problem
+            problem = selector_problem(d['window'])
+            if problem:
+                raise FlowFieldError('Flow.' + problem if problem.startswith('window.') else 'Flow.window: ' + problem,
+                                     'window', 'Example: "window": {"url": "player.example.com"} or {"title": "Player", "newest": true}.')
         if d.get('literal_params') and schema < 4:
             raise ValueError('literal data requires Flow schema 4')
         for name,value in d.get('literal_params',{}).items():
@@ -1326,7 +1338,8 @@ class Flow:
                     schema=schema,
                     params=d.get("params", {}), tables=d.get("tables", {}),
                     derived=d.get("derived", {}), intents=_intents_from(d),
-                    literal_params=d.get('literal_params',{}))
+                    literal_params=d.get('literal_params',{}),
+                    window=dict(d['window']) if 'window' in d else None)
 
 
 # Endings that make a word the sentence's predicate — how the thing is asked

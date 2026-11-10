@@ -1361,7 +1361,11 @@ func observe(_ target: String, requireWindow: Bool = true, documentToken: String
             return parallelRefusal("window_scope_changed")
         }
         windows = windows.filter { nativeWindowID($0) == scope.id && CFEqual($0,scope.window) }
-        guard windows.count == 1 else { return parallelRefusal("window_scope_lost") }
+        guard windows.count == 1 else {
+            var refusal = parallelRefusal("window_scope_lost")
+            refusal["reason"] = windowAbsenceReason(p, scope.id)
+            return refusal
+        }
     }
     // A menu bar app shows its menu, not a window, after `status_item`: read
     // that open menu as the root so its items can be chosen like any element

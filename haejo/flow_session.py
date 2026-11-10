@@ -177,10 +177,21 @@ def read_session_flow(fd, timeout, emit, *, prepare=None, observe_next=None, fin
             emit('HAEJO_SESSION_READY correct the JSON on this same session; no UI input was sent. The original input deadline still applies.')
 
 
-def prepare_session_flow(flow, target):
+def prepare_session_flow(flow, target, window=None):
     from .flow_errors import FlowFieldError
     if flow.target != target:
         raise FlowFieldError('session_target_mismatch', 'target', 'Match the target of this session.')
+    # The session already chose its window; a saved Flow keeps the selector
+    # (never the live ID) so a replay finds the same kind of window again.
+    if isinstance(window, dict):
+        if flow.window is None:
+            flow.window = dict(window)
+        elif flow.window != window:
+            raise FlowFieldError('session_window_mismatch', 'window',
+                                 'Use the same selector as this session\'s --window-match, or omit "window".')
+    elif flow.window is not None and window is None:
+        raise FlowFieldError('session_window_mismatch', 'window',
+                             'This session is app-wide; start it with --window-match matching "window", or omit it.')
     if any(step.action in ('decide', 'visual') for step in every_step(flow.steps)):
         raise FlowFieldError('session_requires_deterministic_flow', 'steps', 'Use deterministic steps here; use run for model judgment.')
     template = flow.to_json(compact=True)
@@ -297,13 +308,16 @@ def _run_session(args, *, make_driver, run_flow, stdin, emit):
     if document is not None and target != 'com.apple.TextEdit':
         emit('document_scope_unavailable: --document requires com.apple.TextEdit');return 2
     driver = None
+    bound_window_id = None
     started = time.monotonic()
     timing = {}
     try:
         driver = make_driver(list(helper))
         if window_id is not None:
             problem=bind_window(driver,target,window_id)
-            if problem is not None:emit(json.dumps(problem));return 1
+            if problem is not None:emit(json.dumps(problem,ensure_ascii=False));return 1
+            scope=getattr(driver,'_window_scope',None)
+            bound_window_id=scope[1] if isinstance(scope,tuple) else None
         if document is not None:
             from .document_scope import DocumentScopedDriver, DocumentScopeUnavailable
             try:
@@ -392,11 +406,15 @@ def _run_session(args, *, make_driver, run_flow, stdin, emit):
                     emit(session_guide(target, reusable='--reuse-guide' in args,
                                        document=document, save=save_path is not None, steps=bound_steps))
                 if window_id is not None:
-                    emit(f'HAEJO_WINDOW_SCOPE {window_id}: read/set_value/type_text and supported AXPress only; menus/keys/pointer require a separate app-wide session. Do not save the live window ID in the Flow.')
+                    chosen = bound_window_id if bound_window_id is not None else window_id
+                    stored = (' --save stores the selector as the Flow\'s "window", so each replay picks the matching window again.'
+                              if isinstance(window_id, dict) else
+                              ' The live ID is not stored; for a reusable Flow start with --window-match url=... (or title=..., newest).')
+                    emit(f'HAEJO_WINDOW_SCOPE {chosen}: read/set_value/type_text and supported AXPress only; menus/keys/pointer require a separate app-wide session.' + stored)
                 show_observation()
                 timing['input_ready_seconds'] = time.monotonic() - started
                 flow, template = read_session_flow(stdin.fileno(), timeout, emit,
-                                                   prepare=lambda parsed: prepare_session_flow(parsed, target),
+                                                   prepare=lambda parsed: prepare_session_flow(parsed, target, window_id),
                                                    observe_next=additional_observation,
                                                    find_observation=additional_observation,
                                                    metrics=timing if '--timings' in args else None,
@@ -438,6 +456,11 @@ def _run_session(args, *, make_driver, run_flow, stdin, emit):
                 from .task import note_visible_document_result
                 note_visible_document_result(readback)
         timing['replay_done_seconds'] = time.monotonic() - started
+        if result == 0 and save_path is None:
+            from .task import note_session_success
+            hint = note_session_success(flow)
+            if hint:
+                emit(hint)
         if result == 0 and save_path is not None:
             from .storage import write_private
             try:
