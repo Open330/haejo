@@ -139,6 +139,10 @@ class Observation:
         self.seen = set()
 
 
+# How long a list opened through a combo box's drop-down button may take to show.
+LIST_OPEN_WAIT_S = 2.0
+
+
 class WindowsDriver:
     """In-process UI Automation driver; no signed helper exists on Windows yet."""
 
@@ -523,9 +527,16 @@ class WindowsDriver:
                 backend.invoke(opener)
             try:
                 # One cached read per option: each is a cross-process call.
-                options = [(option, props) for option in backend.descendants(element)
-                           for props in (backend.props(option),)
-                           if props.get("control_type") == "ListItem" and props.get("name") == label]
+                # Invoking the drop-down button only posts the open, so its
+                # list can appear a moment later (a slow CI runner missed it).
+                deadline = self._clock() + (LIST_OPEN_WAIT_S if opener is not None else 0)
+                while True:
+                    options = [(option, props) for option in backend.descendants(element)
+                               for props in (backend.props(option),)
+                               if props.get("control_type") == "ListItem" and props.get("name") == label]
+                    if options or self._clock() >= deadline:
+                        break
+                    self._sleep(0.05)
                 if len(options) != 1:
                     raise RuntimeError("option absent or ambiguous")
                 option, option_props = options[0]

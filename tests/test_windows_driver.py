@@ -344,15 +344,22 @@ class WindowsDriverTests(unittest.TestCase):
                                                    for label in ("Apple", "Grape")])
         backend = self.backend
 
+        pending = []
+
         def invoke(element):
             backend._record("invoke", element)
             if element is opener:  # the list shows while open, as in the real control
                 if items in legacy.kids:
                     legacy.kids.remove(items)
                 else:
-                    legacy.kids.insert(0, items)
-                    items.parent = legacy
+                    pending.append(items)  # posted: it appears only after a moment
+
+        def sleep(_seconds):
+            while pending:
+                legacy.kids.insert(0, pending.pop())
+                items.parent = legacy
         backend.invoke = invoke
+        self.driver._sleep = sleep
         self.window.kids[0].kids.append(legacy)
         legacy.parent = self.window.kids[0]
         obs = self.observe()
