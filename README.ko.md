@@ -25,13 +25,11 @@
 
 ## 실제 앱에서 이런 일을 맡깁니다
 
-[![40초로 보는 Haejo: 법인카드 8건을 데모 사내 경비 시스템에 입력하고, 실행 기록으로 확인하고, 다음 달엔 저장한 Flow로 다시 입력합니다](docs/assets/haejo-film-poster.ko.jpg)](https://open330.github.io/tacto/#film)
+[![40초로 보는 Haejo: 법인카드 8건을 데모 사내 경비 시스템에 입력하고, 실행 기록으로 확인하고, 다음 달엔 저장한 Flow로 다시 입력합니다](docs/assets/haejo-film-poster.ko.jpg)](https://open330.github.io/haejo/#film)
 
-**40초로 보는 Haejo.** API도 없는 사내 경비 시스템에 법인카드 영수증 8건 입력, "해줘". Haejo가 칸마다 바로 입력하고, 모든 호출은 목표·이유와 함께 실행 기록에 남습니다. 한 일을 Flow로 저장하면 다음 달 6건은 모델 호출 없이 다시 입력합니다. 경비 시스템은 데모 화면이고, Safari·TextEdit 화면은 모두 Haejo 호출마다 찍은 실제 캡처입니다. [사이트에서 보기](https://open330.github.io/tacto/#film) · [MP4](sites/haejo/dist/assets/film/haejo-film.ko.mp4)
+**40초로 보는 Haejo.** API도 없는 사내 경비 시스템에 법인카드 영수증 8건 입력, "해줘". Haejo가 칸마다 바로 입력하고, 모든 호출은 목표·이유와 함께 실행 기록에 남습니다. 한 일을 Flow로 저장하면 다음 달 6건은 모델 호출 없이 다시 입력합니다. 경비 시스템은 데모 화면이고, Safari·TextEdit 화면은 모두 Haejo 호출마다 찍은 실제 캡처입니다. [사이트에서 보기](https://open330.github.io/haejo/#film) · [MP4](sites/haejo/dist/assets/film/haejo-film.ko.mp4)
 
 **실제 앱·웹사이트 8개와 공개 테스트 2개, 총 10개 상황의 실행 영상**을 제공합니다.
-위 GIF는 실제 실행 영상의 미리보기입니다. 클릭하면 원본 MP4를 볼 수 있습니다.
-GitHub의 접근성 설정에서 애니메이션 자동재생을 끄면 정지 화면으로 보일 수 있습니다.
 
 | 앱·사이트 | 맡긴 작업과 확인한 결과 | 실제 영상 |
 | :--- | :--- | :--- |
@@ -49,7 +47,7 @@ GitHub의 접근성 설정에서 애니메이션 자동재생을 끄면 정지 �
 
 공개 테스트 환경의 [상품 확인](sites/haejo/dist/assets/demos/browser-shopping.mp4)과
 [폼 작성](sites/haejo/dist/assets/demos/browser-form.mp4)도 제공합니다. 구매·등록은 하지 않았습니다.
-브라우저 사례는 **Python BrowserDriver + Flow가 여는 별도 Chromium**이며 개인 Chrome·Safari 탭 연결은 지원 범위 밖입니다.
+아래 브라우저 사례는 **Python BrowserDriver + Flow가 여는 별도 Chromium**에서 촬영했습니다. 이미 열려 있는 Safari 창은 서명된 helper가 창 URL·제목으로 찾아 직접 조작합니다(영상의 경비 입력).
 
 TextEdit 입력은 저장 증거 부족으로 멈춘 뒤 별도 Save의 저장 상태 검증이 통과했습니다.
 Google 번역도 입력 전송의 전달 증명과 화면의 한국어 출력 확인을 구분합니다.
@@ -78,22 +76,28 @@ Markdown은 나머지 예제가 남는 부분 수정입니다. 모든 사례가 
 
 ## 에이전트가 한 일을 직접 확인하세요
 
-**작업은 맡기고, 접근 내역은 확인하세요.** Haejo를 통해 접근한 앱과 수행한
-동작, 결과, 소요 시간을 앱 안의 실행 기록에서 볼 수 있습니다. 작업을 검색하고,
-실패하거나 완료를 확인하지 못한 실행을 골라 단계별 타임라인을 확인하세요.
-로그 폴더를 찾아갈 필요가 없습니다.
+**작업은 맡기고, 한 일은 확인하세요.** 요청 하나가 작업 하나로 묶입니다
+(`--task new --goal … --why …`). 앱의 실행 기록은 작업마다 요청과 목표, 호출마다
+이유와 대상 앱, 결과, 소요 시간을 보여 줍니다. 작업을 검색하고, 실패하거나 완료를
+확인하지 못한 실행을 골라 단계별로 확인하세요. 로그 폴더를 찾아갈 필요가 없습니다.
+[작업 단위 기록](docs/tasks.md).
 
-![실제 접근 기록 여러 개와 선택한 Finder 작업의 동작·결과·시간을 함께 보여주는 앱 미리보기](sites/haejo/dist/assets/haejo-activity.png)
+![Haejo 실행 기록: 하루 동안의 실제 작업 4개와 11월 법인카드 경비 등록 작업의 요청, 호출 16회, 호출마다의 이유](sites/haejo/dist/assets/haejo-activity.png)
 
 기록은 이 Mac에 저장됩니다. 설정에서 자동 저장과 보관 기간(7·30·90일)을
-선택할 수 있습니다. 화면 내용·입력값·프롬프트와 에이전트의 내부 추론은
-기록하지 않습니다. [접근 기록과 설정 안내](docs/access-logging.md).
+선택할 수 있습니다. 에이전트가 적은 목표와 호출 이유는 남기고, 화면 내용·입력값·
+내부 추론은 남기지 않습니다. [실행 기록과 설정 안내](docs/access-logging.md).
 
 앱·사이트별로 한 번 위임하면 에이전트가 macOS Keychain이나
 이미 인증된 Bitwarden Vault의 값으로 입력 또는 로그인까지 수행할 수 있습니다.
 비밀값은 서명된 도우미로 직접 전달되고, 에이전트에는 결과만 반환됩니다.
-rc.11은 앱 설정에서 Vault 연결과 위임 파일의 끌어놓기·검토·저장·취소를 제공합니다. Flow 안의 로그인 단계, 선언한 여러 화면과 선택형 계정 확인도 지원합니다.
+앱 설정에서 Vault 연결과 위임 파일의 끌어놓기·검토·저장·취소를 제공합니다. Flow 안의 로그인 단계, 선언한 여러 화면과 선택형 계정 확인도 지원합니다.
 [Vault 연결과 위임 수준](skill/references/credentials.md).
+
+`haejo parallel jobs.json --helper --json`은 확인된 창 작업 1–4개를 동시에 실행합니다.
+작업마다 서명된 세션과 내용 없는 결과 영수증이 따로 있고, Haejo 메뉴에서 작업별로
+중지할 수 있습니다. 같은 앱의 다른 창은 `haejo windows <bundle-id> --helper`로 창 ID를
+확인해 따로 다룹니다. 앱 전체 작업은 직렬 처리합니다. [병렬 실행](docs/parallel-execution.md) · [helper 실행](docs/helper-execution.md).
 
 ## 에이전트에게 앱 조작을 맡기세요
 
@@ -107,7 +111,7 @@ rc.11은 앱 설정에서 Vault 연결과 위임 파일의 끌어놓기·검토�
 | Claude·Codex로 재사용할 Flow 작성 | 새 입력값으로 같은 작업 흐름 재생 | 판단이 필요한 단계에만 모델 사용 |
 | 작성한 모델에 종속되지 않는 실행 형식 | 정상적인 결정적 재생은 **모델 호출 0회** | 지원되는 실패는 해당 단계만 수리 |
 
-작성·판단·수리에는 모델 비용이 발생합니다. 자동 선택자 수리는 현재 개발 버전의 Codex provider가 지원합니다.
+작성·판단·수리에는 모델 비용이 발생합니다. 자동 선택자 수리는 `run`·`batch`에 `--auto-repair codex` 또는 `--auto-repair claude`를 붙여 켭니다.
 
 ## 기존 검증 기록
 
@@ -155,7 +159,7 @@ Haejo는 실행할 때 대상을 새 관찰에서 찾고 결과 조건을 검사
 <details>
 <summary>화면이 바뀌거나 완료 여부가 불확실하면?</summary>
 
-개발 버전의 자동 수리는 지원되는 정적 선택자 실패에 대해 필요한 후보만 에이전트에 전달합니다.
+자동 수리는 지원되는 정적 선택자 실패에 대해 필요한 후보만 에이전트에 전달합니다.
 확인된 checkpoint 이후부터 재개하며, 이미 완료됐을 수 있는 동작은 그대로 다시 보내지 않습니다.
 모든 UI 변화나 crash를 복구하는 기능은 아닙니다. [자동 개입의 지원 범위](docs/haejo-auto-repair-2026-10-14.md)
 
@@ -167,9 +171,9 @@ Haejo는 실행할 때 대상을 새 관찰에서 찾고 결과 조건을 검사
 
 ## 첫 작업 시작하기
 
-**macOS용 1.0.0-rc.39 정식 출시 후보**입니다. Haejo 이름으로 나온 첫 릴리스입니다.
+**macOS용 1.0.0-rc.39 정식 출시 후보**입니다(Apple Silicon · macOS 27.0.1에서 확인). Haejo 이름으로 나온 첫 릴리스입니다.
 
-1. [공증된 DMG 다운로드](https://github.com/Open330/tacto/releases/download/v1.0.0-rc.39/Haejo-1.0.0-rc.39-arm64.dmg) ([릴리스 안내와 검증 결과](https://github.com/Open330/tacto/releases/tag/v1.0.0-rc.39))
+1. [공증된 DMG 다운로드](https://github.com/Open330/haejo/releases/download/v1.0.0-rc.39/Haejo-1.0.0-rc.39-arm64.dmg) ([릴리스 안내와 검증 결과](https://github.com/Open330/haejo/releases/tag/v1.0.0-rc.39))
 2. DMG를 열어 `Haejo.app`을 `Applications`로 끌어다 놓고, `Applications`에서 Haejo를 엽니다.
 3. **1. Mac 권한**에서 **설정 열기**를 눌러 앱 조작을 **Haejo Helper**에 허용합니다(화면 기록은 **Haejo**에, 선택).
 4. **2. 에이전트 연결**에서 Claude Code나 Codex를 연결합니다. `haejo` 명령과 스킬이 연결됩니다.
@@ -186,7 +190,7 @@ rc.39 DMG는 소스 `225b613` 기준입니다. 회귀 테스트 3,583개 실패 
 Apple 발급 코드 서명 인증서가 필요합니다. 런처·도우미를 같은 팀으로 서명합니다.
 
 ```sh
-git clone https://github.com/Open330/tacto.git haejo
+git clone https://github.com/Open330/haejo.git
 cd haejo
 uv sync
 ./build.sh
@@ -208,7 +212,7 @@ uv sync
 [설치·권한 안내](docs/installation.md) · [Windows(실험적)](docs/windows.md) · [Flow 작성 가이드](docs/recipes.md) · [에이전트 스킬](skill/SKILL.md)
 
 <details>
-<summary>설치 문제와 개발 버전의 반복 실행</summary>
+<summary>설치 문제와 반복 실행</summary>
 
 스킬을 찾지 못하면 에이전트 세션을 다시 열고 `./skill/install.sh --check`로 연결을 확인하세요.
 Python 배포 이름은 `haejo-runtime`이고 기본 import는 `haejo`입니다.
@@ -217,7 +221,7 @@ Python wheel만으로는 서명된 macOS 런처·helper를 사용할 수 없습�
 
 선택적 Playwright backend는 별도 Chromium 페이지를 사용합니다.
 
-다음 batch·자동 수리 명령은 개발 checkout 기준이며 아직 기본 브랜치의 배포 기능이 아닙니다.
+Flow 템플릿 하나로 여러 행을 처리할 때는 작업마다 매개변수 JSON 한 줄을 보냅니다.
 
 ```sh
 ~/.local/bin/haejo batch template.json --helper < jobs.jsonl
@@ -261,7 +265,7 @@ Python wheel만으로는 서명된 macOS 런처·helper를 사용할 수 없습�
 
 ## 먼저 흐름을 살펴보세요
 
-[온보딩 랜딩페이지](https://open330.github.io/tacto/)([소스](sites/haejo/README.md))에서 재생·수리·중단 예시와 설치 안내를 제공합니다.
+[온보딩 랜딩페이지](https://open330.github.io/haejo/)([소스](sites/haejo/README.md))에서 재생·수리·중단 예시와 설치 안내를 제공합니다.
 실제 앱이나 모델을 실행하지 않는 인터랙티브 소개입니다.
 
 ```sh
@@ -272,7 +276,7 @@ python3 sites/haejo/serve.py
 
 <a id="documentation"></a>
 
-macOS 설정의 **빠른 실행(helper 유지)**을 켜면 다음 작업의 시작 시간을 줄일 수 있습니다. 기본은 꺼짐이며 유휴 시간은 1–10분입니다. `HAEJO_HELPER_MODE=warm` / `per_command`가 앱 설정보다 우선합니다. 동시 실행은 최대 10초 대기 후 `helper_busy`로 안내합니다. [동작과 측정 범위](docs/helper-execution.md). rc.13은 서로 다른 앱과 명시적으로 범위를 지정한 같은 앱의 독립 AX 창을 최대 네 작업자로 병렬 처리합니다. 앱 전체 작업은 직렬 처리합니다.
+macOS 설정의 **빠른 실행(helper 유지)**을 켜면 다음 작업의 시작 시간을 줄일 수 있습니다. 기본은 꺼짐이며 유휴 시간은 1–10분입니다. `HAEJO_HELPER_MODE=warm` / `per_command`가 앱 설정보다 우선합니다. 동시 실행은 최대 10초 대기 후 `helper_busy`로 안내합니다. [동작과 측정 범위](docs/helper-execution.md).
 
 ## 필요한 문서부터
 
@@ -281,7 +285,7 @@ macOS 설정의 **빠른 실행(helper 유지)**을 켜면 다음 작업의 시�
 <details>
 <summary><strong>CLI 명령 찾아보기</strong></summary>
 
-기본 브랜치에서 제공하는 명령입니다.
+주요 명령입니다.
 
 | 목적 | 명령 |
 | :--- | :--- |
@@ -289,16 +293,18 @@ macOS 설정의 **빠른 실행(helper 유지)**을 켜면 다음 작업의 시�
 | 앱·화면 관찰 | `haejo apps`, `haejo observe`, `haejo menu-state` |
 | 자연어·Flow 실행 | `haejo do`, `haejo run`, `haejo replay` |
 | Flow 작성·매개변수화 | `haejo compile`, `haejo parameterize` |
-| 저장 Flow·후보 관리 | `haejo list`, `haejo show`, `haejo candidates`, `haejo promote` |
-| 평가 | `haejo eval` |
-
-다음은 **개발 checkout 전용이며 기본 브랜치에는 없는 명령**입니다.
-
-| 목적 | 개발본 전용 명령 |
-| :--- | :--- |
+| 저장 Flow·후보 관리 | `haejo list`, `haejo show`, `haejo flows`(저장·이름 변경·삭제·입력 편집, 앱의 저장된 Flow 페이지), `haejo candidates`, `haejo promote` |
 | 반복·세션·수리 | `haejo batch`, `haejo session`, `haejo repair` |
-| 문서 첨부 관찰 | `haejo document-attachments` |
-| 브라우저 파일 등록 | `haejo web-upload` |
+| 작업·실행 기록 | `haejo task`, `haejo logs` |
+| 창·병렬 작업 | `haejo windows`, `haejo activate`, `haejo parallel` |
+| 웹·파일 | `haejo open-url`, `haejo web-upload`, `haejo document-attachments` |
+| 자격 증명 | `haejo auth` |
+| 평가(소스 checkout) | `haejo eval` |
+
+개발용 명령입니다.
+
+| 목적 | 개발용 명령 |
+| :--- | :--- |
 | VRoid 전용 실험 | `haejo vroid-focus`, `haejo vroid-drag` — `HAEJO_ENABLE_EXPERIMENTAL_FOREGROUND=1`로 별도 빌드한 개발용 진단 경로. 기본 빌드 제외 |
 
 `haejo --help`로 현재 checkout의 명령을 확인하세요.
@@ -309,6 +315,11 @@ macOS 설정의 **빠른 실행(helper 유지)**을 켜면 다음 작업의 시�
 <details>
 <summary><strong>문서 찾아보기</strong></summary>
 
+- [필름과 랜딩 재촬영 (2026-11-10)](docs/haejo-film-2026-11-10.md)
+- [작업 단위 기록](docs/tasks.md)
+- [사용자가 이미 승인한 동의로 진행하기](docs/approved-consent.md)
+- [긴 Flow 대기와 마감 일시정지](docs/flow-wait-until.md)
+- [창 병렬 실행](docs/parallel-execution.md)
 - [GUI·브랜딩 독립 검토와 수정 결과](docs/haejo-gui-review-2026-10-17.md)
 - [로고·시각 아이덴티티](docs/haejo-visual-identity.md)
 - [랜딩페이지 개선·검증](docs/haejo-landing-engineering-2026-10-15.md)
@@ -370,9 +381,8 @@ Release candidate · [MIT License](LICENSE)
 - [haejo-provider-paging-validation](docs/haejo-provider-paging-validation.md)
 - [haejo-textedit-saved-state-validation](docs/haejo-textedit-saved-state-validation.md)
 - [window-preparation-diagnostics](docs/window-preparation-diagnostics.md)
+- [Preview 3 런타임 업데이트](docs/runtime-update-2026-10-19.md)
 
 </details>
-
-[Preview 3 runtime update](docs/runtime-update-2026-10-19.md)
 
 [자동 접근 로그와 실행 기록](docs/access-logging.md)

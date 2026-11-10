@@ -69,24 +69,24 @@ def audit(url, output, axe_source=None, browser_executable=None):
         checks['skip_focuses_main'] = page.evaluate('document.activeElement.id==="main"')
         def connected_canvas():
             page.wait_for_function('() => { const svg=document.querySelector(".flow-edges"); return Math.abs(svg.viewBox.baseVal.width-svg.getBoundingClientRect().width)<1; }')
-            return page.locator('#flow-edge-paths path').evaluate_all("""paths => paths.length===9 && paths.every(p=>{
+            return page.locator('#flow-edge-paths path').evaluate_all("""paths => paths.length===10 && paths.every(p=>{
                 const b=p.getBBox(), v=p.ownerSVGElement.viewBox.baseVal;
                 return p.getTotalLength()>5 && b.x>=0 && b.y>=0 && b.x+b.width<=v.width+1 && b.y+b.height<=v.height+1;
             })""")
         checks['connected_flow_canvas'] = connected_canvas()
         checks['app_image_opens_full_size'] = page.locator('.app-image-link').get_attribute('href') == 'assets/haejo-activity.png'
-        checks['source_backed_six_step_flow'] = page.locator('[data-flow-node]').count() == 6
-        flow_response = page.request.get(url.rstrip('/')+'/assets/calculator-reusable.flow.json')
+        checks['source_backed_seven_step_flow'] = page.locator('[data-flow-node]').count() == 7
+        flow_response = page.request.get(url.rstrip('/')+'/assets/expense-entry.flow.json')
         flow_source = flow_response.json()
-        checks['downloadable_actual_flow'] = (flow_response.status == 200 and flow_source['name']=='calculator-reusable'
-            and len(flow_source['steps'])==6 and flow_source['steps'][-1]['postcondition']['equals']=='{{result}}')
-        for case, left, right, result in [('second','3','9','12'), ('first','7','8','15')]:
+        checks['downloadable_actual_flow'] = (flow_response.status == 200 and flow_source['name']=='expense-entry'
+            and len(flow_source['steps'])==7 and '{{merchant}}' in flow_source['steps'][-1]['postcondition']['contains'])
+        for case, merchant, amount in [('second','카카오T 택시','12,800'), ('first','스타벅스 역삼점','18,900')]:
             page.locator('[data-flow-case="'+case+'"]').click()
-            checks['flow_inputs_'+case] = (page.locator('#flow-left').inner_text()==left
-                and page.locator('#flow-right').inner_text()==right and page.locator('#flow-result').inner_text()==result)
+            checks['flow_inputs_'+case] = (page.locator('[data-flow-value="merchant"]').inner_text()==merchant
+                and page.locator('[data-flow-value="amount"]').inner_text()==amount)
         page.locator('#flow-walk').click()
-        page.wait_for_function('() => document.querySelectorAll("[data-flow-node][data-state=done]").length===6')
-        checks['flow_walkthrough_completes'] = ('7 + 8 = 15' in page.locator('#flow-preview-status').inner_text()
+        page.wait_for_function('() => document.querySelectorAll("[data-flow-node][data-state=done]").length===7')
+        checks['flow_walkthrough_completes'] = ('스타벅스 역삼점' in page.locator('#flow-preview-status').inner_text()
             and not page.locator('#flow-walk').is_disabled())
 
 
@@ -201,7 +201,7 @@ def audit(url, output, axe_source=None, browser_executable=None):
         page.emulate_media(reduced_motion='reduce')
         checks['reduced_motion'] = page.evaluate('getComputedStyle(document.documentElement).scrollBehavior==="auto"')
         page.locator('#flow-walk').click()
-        checks['flow_reduced_motion_completes'] = page.locator('[data-flow-node][data-state="done"]').count()==6
+        checks['flow_reduced_motion_completes'] = page.locator('[data-flow-node][data-state="done"]').count()==7
 
         checks['no_external_requests'] = all(urlsplit(item).netloc == origin.netloc for item in requests)
         checks['no_script_or_console_errors'] = not errors
@@ -212,7 +212,7 @@ def audit(url, output, axe_source=None, browser_executable=None):
         fallback = nojs.new_page()
         fallback.goto(url, wait_until='networkidle')
         checks['nojs_all_ten_cases'] = fallback.locator('.everyday-case:visible').count()==10
-        checks['nojs_flow_visible'] = fallback.locator('[data-flow-node]').count()==6
+        checks['nojs_flow_visible'] = fallback.locator('[data-flow-node]').count()==7
         checks['nojs_flow_controls_disabled'] = fallback.locator('#flow-walk').is_disabled()
 
         checks['nojs_native_video_controls'] = fallback.locator('video').evaluate_all('(items)=>items.length===13&&items.every(e=>e.controls)')

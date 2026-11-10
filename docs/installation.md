@@ -1,6 +1,6 @@
 # 설치 범위와 실행 경로
 
-현재 공개 배포본은 [v1.0.0-rc.39](https://github.com/Open330/tacto/releases/tag/v1.0.0-rc.39)
+현재 공개 배포본은 [v1.0.0-rc.39](https://github.com/Open330/haejo/releases/tag/v1.0.0-rc.39)
 정식 출시 후보입니다. 정식 안정 버전 전의 지원 범위와 통과 조건, 최종 DMG 검사
 방법은 [출시 기준](release-readiness.md)에 정리합니다.
 
@@ -24,14 +24,14 @@ Python wheel은 Haejo의 Python 코어를 배포합니다. macOS 앱 조작에 �
 ```sh
 uv build --wheel
 python3 -m venv /tmp/haejo-client
-/tmp/haejo-client/bin/python -m pip install ./dist/haejo_runtime-0.1.0-py3-none-any.whl
+/tmp/haejo-client/bin/python -m pip install ./dist/haejo_runtime-1.0.0-py3-none-any.whl
 /tmp/haejo-client/bin/haejo --help
 ```
 
 브라우저가 필요한 환경에서는 같은 wheel에 `web` extra를 설치합니다.
 
 ```sh
-/tmp/haejo-client/bin/python -m pip install './dist/haejo_runtime-0.1.0-py3-none-any.whl[web]'
+/tmp/haejo-client/bin/python -m pip install './dist/haejo_runtime-1.0.0-py3-none-any.whl[web]'
 /tmp/haejo-client/bin/python -m playwright install chromium
 ```
 
@@ -57,7 +57,7 @@ wheel에는 기본 flow recipe 파일이 포함되지 않습니다. 명시적으
 팀·프로그램 식별자를 비교합니다. 다른 팀·서명 없는 프로그램·ad-hoc 서명은 거부합니다.
 `HAEJO_TEAM_ID` 같은 실행 환경변수로 이 검사를 바꿀 수 없습니다.
 일반 사용에는 소스 빌드가 아니라 공증 DMG를 씁니다. Apple Silicon용 DMG는 Developer ID
-서명·Apple 공증·Gatekeeper 검사를 통과했으며, [v1.0.0-rc.39 릴리스](https://github.com/Open330/tacto/releases/tag/v1.0.0-rc.39)에서
+서명·Apple 공증·Gatekeeper 검사를 통과했으며, [v1.0.0-rc.39 릴리스](https://github.com/Open330/haejo/releases/tag/v1.0.0-rc.39)에서
 누구나 받을 수 있습니다. DMG를 열어 `Haejo.app`을 `Applications`로 끌어다 놓고, 앱을 열어
 권한·에이전트 연결·첫 작업 안내를 따릅니다. 사용자 자신의 개발용 인증서는 필요하지 않습니다.
 macOS 27.0.1 Apple Silicon Mac 세 대에서 설치·권한·연결·업데이트를 확인했습니다. 다른 macOS
@@ -248,7 +248,7 @@ helper만 추가했는데 화면 기록이 미완료라면, 화면 기록 단계
 요청하지 않습니다. [권한 소유자와 드래그 안내](permission-onboarding.md)를 참고하세요.
 
 
-### 첫 작업 시작 (Preview 6 first-run.5)
+### 첫 작업 시작
 
 권한과 에이전트 연결을 마치면 **첫 작업 시작**을 누릅니다.
 설치된 Claude Code·Codex CLI를 감지하며, 둘 다 있으면 선택할 수 있습니다.
@@ -278,7 +278,6 @@ Haejo로 작성했습니다.
 
 저장 명령은 실행하지 않습니다. TextEdit은 제목 없는 문서도
 자동 복구 데이터를 남길 수 있으므로 입력 확인과 영구 저장 확인은 구분합니다.
-이 기능은 `v0.1.0-preview.6-first-run.5`부터 포함됩니다. 원래 Preview 6에는 포함되지 않습니다.
 새 문서는 창 제목 대신 macOS 창 ID로 구분하므로 기존 문서의 자동 저장·이름 변경이
 새 창으로 잘못 집계되지 않습니다.
 
@@ -286,15 +285,6 @@ Haejo로 작성했습니다.
 관찰할 수 있습니다. 설치된 앱을 LaunchServices로 열며, 실행 중이면 다시 실행하지
 않습니다. 앱 실행 성공은 창 준비 완료와 구분합니다. 실행 시간 초과 시에는 앱이
 늦게 열릴 수 있으므로 재실행하기 전에 관찰하세요.
-
-### Preview 3 update
-
-[Preview 3](https://github.com/Open330/tacto/releases/tag/v0.1.0-preview.3) is
-version 0.1.0 build 3. The app and DMG are Developer ID signed, notarized and
-stapled. Local upgrade from Preview 2 retained both existing permissions and
-Claude/Codex connections. Accessibility enables AX-based tasks; screen recording
-is needed for screenshot features and is optional for basic readiness. This does
-not establish a fresh-Mac or stable-release qualification.
 
 번들 Python은 앱 실행용입니다. 번들 안에서 pip로 패키지를 추가하거나 확장 모듈을 빌드하는 경로는 지원하지 않습니다. 번들 문서는 표시된 소스 커밋의 스냅샷이며, 최신 배포 검증은 Release 페이지와 출시 기준 문서를 확인하세요.
 
@@ -304,7 +294,7 @@ Maintainers can build a Developer ID distribution from a clean committed tree:
 
 ```sh
 python setup/build_distribution.py --output /private/tmp/Haejo.app \
-  --identity 'DEVELOPER_ID_IDENTITY' --tag v0.1.0-preview.15 \
+  --identity 'DEVELOPER_ID_IDENTITY' --tag v1.0.0-rc.39 \
   --report /private/tmp/haejo-build-report.json
 ```
 

@@ -37,8 +37,11 @@ Haejo로 통일합니다. 이전 이름의 명령·import·환경 변수를 런�
   - 헬퍼의 서명 신원이 바뀌므로 Keychain이 처음 한 번 접근 허용을 물을 수 있습니다.
 - **은퇴한 연결 정리.** `./skill/install.sh`는 이 체크아웃이 만든 `tacto` 명령·스킬 링크를
   지웁니다(`nlc`와 같은 방식). 다른 프로그램이나 다른 체크아웃의 링크는 건드리지 않습니다.
-- **저장소와 웹 주소는 아직 그대로입니다.** GitHub 저장소 `Open330/tacto`와
-  `open330.github.io/tacto`는 저장소 이름을 바꾸기 전까지 유지합니다. v1.0.0-rc.13까지의
+- **저장소와 웹 주소.** 2026-11-10에 GitHub 저장소를 `Open330/tacto`에서 `Open330/haejo`로
+  바꿨습니다. GitHub가 예전 저장소 주소(클론, 릴리스, 이슈)를 새 주소로 넘겨 주고, 예전 사이트
+  주소 `open330.github.io/tacto/`는 조직 사이트의 안내 페이지가 `open330.github.io/haejo/`로
+  보냅니다. 기존 클론은 `git remote set-url origin git@github.com:Open330/haejo.git`로 바꾸면
+  됩니다. v1.0.0-rc.13까지의
   출시 후보는 Tacto(`Tacto.app`, `tacto` 명령)로 배포됐고, v1.0.0-rc.39가 Haejo로 나온 첫 릴리스입니다.
 - **측정 기록의 라벨 이전.** 문서·측정표·비교 arm/case 키·fixture 이름을 Haejo 표기로
   옮겼습니다. 라벨과 식별자의 이전이며 재측정이 아닙니다. 토큰·시간·성공률·실패·SKIP

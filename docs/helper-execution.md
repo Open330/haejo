@@ -90,7 +90,7 @@ claim concurrent windows within one app.
 
 The rc.12 release subsequently repeated this check through the installed signed
 launcher/helper. Exact-bundle installation/audit also passed on all three Macs.
-See [rc.12 validation](https://github.com/Open330/tacto/releases/tag/v1.0.0-rc.12)
+See [rc.12 validation](https://github.com/Open330/haejo/releases/tag/v1.0.0-rc.12)
 for the installed receiving result and scope. Earlier startup medians above
 remain historical measurements and are not relabeled as rc.12 performance.
 
