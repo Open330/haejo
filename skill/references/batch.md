@@ -64,3 +64,11 @@ Read [automatic repair](auto-repair.md) only when enabling this mode. Successful
 jobs use no model. A missing/ambiguous selector may invoke a text-only agent,
 verify a stable checkpoint and replay only the failed suffix. The repaired
 selector is reused for later jobs in this batch. The original file is unchanged.
+
+A template can include `{"action":"wait_until","until":{"contains":"ready"},"timeout_s":1200}`
+for a long transition inside each job. Polling defaults to every 10 seconds and
+the active timeout allows up to 7200 seconds. Unavailable screens pause the
+deadline and contribute to the step's `paused_seconds` and `pauses` diagnostics.
+`--idle-timeout` measures the wait for a request line, so a running wait step
+can outlast it. After the job, the next request receives a fresh idle deadline.
+See [wait details](../../docs/flow-wait-until.md).

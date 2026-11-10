@@ -92,3 +92,17 @@ apps require explicit step selectors, contracts and result fields. Checks and
 write evidence remain explicit. A full Flow remains valid; use it for named
 parameters, tables, other schemas or custom defaults. `--reuse-guide` keeps the
 full template. Saved files expand the selected defaults into a complete Flow.
+
+For a result that takes minutes, include a read-only waiting step:
+
+```json
+{"action":"wait_until","until":{"contains":"본 차시의 학습이 종료되었습니다."},"timeout_s":1200,"poll_s":10}
+```
+
+`until` accepts postcondition checks and `{"field":{"identifier":"observed-id"},"exists":true}`.
+`timeout_s` allows up to 7200 active seconds; `poll_s` defaults to 10 and accepts
+1–60 seconds. Screen lock, display sleep and an offscreen window pause the clock.
+The step result reports paused seconds by reason and `wait_timeout` if the
+active deadline expires. Session input idle timeouts apply before execution;
+the same connection remains open during the wait. Saved Flows keep the step.
+See [wait details](../../docs/flow-wait-until.md) for timing and diagnostics.

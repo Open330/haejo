@@ -295,6 +295,7 @@ Check `haejo --help` for your checkout. Use the signed launcher for native work 
 - [Haejo and Sky matched comparison](docs/haejo-matched-comparison-2026-10-14.md)
 - [provider envelope](docs/provider-envelope.md)
 - [recipes](docs/recipes.md)
+- [Long Flow waits and paused deadlines](docs/flow-wait-until.md)
 - [rtf receipts](docs/rtf-receipts.md)
 - [save directory observation](docs/save-directory-observation.md)
 - [textedit save](docs/textedit-save.md)
