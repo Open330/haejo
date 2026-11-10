@@ -2,7 +2,7 @@
 """Render the Haejo film: step film.html through time in headless Chromium.
 
 Each frame calls renderAt(t) (a pure function of t), screenshots the 1920x1080
-stage and streams it to ffmpeg. Plates come from shoot_native.py; browser
+stage and streams it to ffmpeg. Plates come from shoot_weekly.sh; browser
 clips are the site's own recordings. Writes MP4 (H.264) + WebM (VP9) + poster.
 
   python render.py --plates DIR --out DIR [--lang ko|en] [--preview 2,9,16]
@@ -24,12 +24,9 @@ def main():
     ap.add_argument('--url', default='', help='address shown on the end card')
     ap.add_argument('--preview', help='comma-separated seconds: write stills only')
     a = ap.parse_args(); a.out.mkdir(parents=True, exist_ok=True)
-    runs = json.loads((a.plates/'runs.json').read_text())
-    timing = next(json.loads(l.split(' ', 1)[1]) for l in runs['second']['output'] if l.startswith('HAEJO_TIMINGS '))
-    provider = next(json.loads(l.split(' ', 1)[1]) for l in runs['repair']['output'] if l.startswith('HAEJO_AUTO_REPAIR_PROVIDER '))
-    facts = {'replay_seconds': timing['replay_seconds'], 'repair_seconds': provider['elapsed_seconds']}
+    facts = json.loads((a.plates/'facts.json').read_text())
     query = urlencode({'lang': a.lang, 'plates': a.plates.resolve().as_uri(), 'assets': (HERE.parent/'dist/assets').as_uri(),
-                       'runs': json.dumps(facts), 'url': a.url})
+                       'facts': json.dumps(facts), 'url': a.url})
     name = f'haejo-film.{a.lang}'
     with sync_playwright() as p:
         browser = p.chromium.launch(args=['--autoplay-policy=no-user-gesture-required', '--allow-file-access-from-files'])
@@ -50,7 +47,7 @@ def main():
             enc.stdin.write(shot(n/FPS))
             if n % 150 == 0: print(f'{a.lang} frame {n}', flush=True)
         enc.stdin.close(); assert enc.wait() == 0
-        (a.out/f'{name}.poster.png').write_bytes(shot(18.2))
+        (a.out/f'{name}.poster.png').write_bytes(shot(30.2))
         browser.close()
     ff = ['ffmpeg', '-hide_banner', '-loglevel', 'error', '-y', '-i', str(raw)]
     subprocess.run(ff+['-c:v', 'libx264', '-preset', 'slow', '-crf', '21', '-tune', 'animation', '-pix_fmt', 'yuv420p',

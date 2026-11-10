@@ -23,9 +23,9 @@ It saves the steps as a reusable **Flow**, so next time it runs with new inputs 
 
 ## See it work in real apps
 
-[![Haejo in 37 seconds: ask once, replay the saved Flow with zero model calls, repair only the step that changed](docs/assets/haejo-film-poster.en.jpg)](https://open330.github.io/tacto/en/#film)
+[![Haejo in 40 seconds: one request does the work in Safari and TextEdit, the activity log shows every call, and the saved Flows replay it with zero model calls](docs/assets/haejo-film-poster.en.jpg)](https://open330.github.io/tacto/en/#film)
 
-**Haejo in 37 seconds.** Ask once in Calculator, replay the saved Flow with zero model calls, and let the agent repair only the step that changed. Every app screen is real: Haejo captured the Calculator window at each step, the repair scene is one real Claude call, and the web shots are Haejo's own browser recordings. [Watch on the site](https://open330.github.io/tacto/en/#film) · [MP4](sites/haejo/dist/assets/film/haejo-film.en.mp4)
+**Haejo in 40 seconds.** Ask once and it does the work: find the five most-discussed open bugs on GitHub in Safari and save them to a TextEdit meeting note. Every call shows up in the Haejo activity log with its goal and reason. Save what it did as Flows, and next week the same review replays with zero model calls. All app screens are real captures taken after each Haejo call. [Watch on the site](https://open330.github.io/tacto/en/#film) · [MP4](sites/haejo/dist/assets/film/haejo-film.en.mp4)
 
 **Ten recorded scenarios: eight real apps or websites, plus two public test environments.**
 

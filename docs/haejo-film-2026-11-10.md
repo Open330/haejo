@@ -1,28 +1,28 @@
 # Haejo film and landing re-shoot — 2026-11-10
 
-The landing hero and the README now open with a 37-second film
+The landing hero and the README now open with a 40-second film
 (`sites/haejo/dist/assets/film/haejo-film.{ko,en}.{mp4,webm}` + poster).
 Every landing recording that still showed the Tacto name was re-shot with the
 installed Haejo v1.0.0-rc.39.
 
 ## What the film shows
 
+One real weekly task, in the order a person meets Haejo:
+
 | Time | Scene | Source |
 |---|---|---|
-| 0–2.4 s | Title | Drawn |
-| 2.4–8 s | "Ask once": a prompt, then Calculator goes 0 → 7 → 7+ → 7+8 → 15 | Terminal drawn; Calculator frames are real window captures |
-| 8–13.6 s | The six Flow steps saved as `calculator-reusable` | Drawn from `film/calculator.flow.json` |
-| 13.6–20 s | `haejo run … -p left=3 -p right=9`, result 12, **0 model calls**, replay 1.39 s | Real command output and timing (`HAEJO_TIMINGS.replay_seconds`); real captures |
-| 20–24.6 s | The saved Add step names an old `Plus` button; `--auto-repair claude` fixes only that step | Real run: `target_missing`, one Claude call (3.6 s), resume, result 12 |
-| 24.6–29.4 s | GitHub, Wikipedia, Google Translate, Markdown | The site's own Haejo browser recordings (re-shot today) |
-| 29.4–33.4 s | Haejo activity window | `HaejoSetup --activity-snapshot` over the receipts of the film's own runs |
-| 33.4–37 s | End card | Drawn |
+| 0–2.6 s | Title | Drawn |
+| 2.6–13.4 s | **Just ask.** "Find the 5 most-discussed open bugs in vscode and put them in a meeting note." Safari opens the filtered GitHub list, the top 5 are read, a TextEdit note is written and saved | The Haejo calls an agent makes (`open-url`, `run read-top5`, `run memo`, `activate`, `replay textedit_save`), one task with a goal and a reason per call; real window captures after each call |
+| 13.4–18.8 s | **Every call, on the record.** | `HaejoSetup --activity-snapshot` over that task's receipts: goal, request, reasons, 5 calls (the note edit is listed as a failure: TextEdit edits end `commit_unverified`; the following save verified the file) |
+| 18.8–24.6 s | **Saved as Flows.** Safari lane (reload, read top 5) and TextEdit lane (write note, save) | Drawn from `film/weekly-bugs.json` and `film/weekly-memo.json`, saved with `haejo flows save` |
+| 24.6–32.4 s | **Next week: replay.** `haejo replay weekly-bugs`, `weekly-memo -p date=…`, `textedit_save`; a new note for 11/17 | Real replay: 0 model calls, 2.1 s of replay (`HAEJO_TIMINGS.replay_seconds`), save verified; real captures |
+| 32.4–36 s | Finder, Wikipedia, Markdown | The site's own Haejo recordings |
+| 36–40 s | End card with the brand lockup (`haejo-wordmark.svg`) | Drawn |
 
-The authoring conversation in the "Ask once" scene is illustrative: it is not
-a recording of a model writing the Flow. Calculator pixels are real captures
-taken after each step of the saved Flow; the film's timing and camera moves
-are edited. The repair scene's terminal lines paraphrase the real run's
-output (`runs.json`), including its provider time.
+The prompt and the agent's narration lines are composed for the film; the
+calls under them are the ones that ran. The "next week" note was produced the
+same day, so it lists the same bugs. Safari's tab bar is cropped. Only public
+GitHub pages were read, signed out; both notes are new files.
 
 ## Re-shot landing recordings
 
@@ -44,9 +44,7 @@ From the repository root, with the installed Haejo and its grants:
 
 ```sh
 S=$(mktemp -d)
-python3 sites/haejo/film/shoot_native.py --out "$S/plates"
-/Applications/Haejo.app/Contents/MacOS/HaejoSetup --activity-snapshot "$S/act" --activity-fixture "$S/plates/activity"
-cp "$S/act/app.png" "$S/plates/activity.png"
+sites/haejo/film/shoot_weekly.sh "$S"
 .venv/bin/python sites/haejo/film/render.py --plates "$S/plates" --out "$S/film" --lang ko
 .venv/bin/python sites/haejo/film/render.py --plates "$S/plates" --out "$S/film" --lang en
 cp "$S"/film/haejo-film.* sites/haejo/dist/assets/film/

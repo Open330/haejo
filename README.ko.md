@@ -25,9 +25,9 @@
 
 ## 실제 앱에서 이런 일을 맡깁니다
 
-[![37초로 보는 Haejo: 한 번 맡기고, 저장한 Flow를 모델 호출 없이 다시 실행하고, 바뀐 단계만 수리합니다](docs/assets/haejo-film-poster.ko.jpg)](https://open330.github.io/tacto/#film)
+[![40초로 보는 Haejo: 요청 한 번에 Safari와 TextEdit에서 일을 하고, 실행 기록으로 확인하고, 저장한 Flow로 모델 호출 없이 다시 실행합니다](docs/assets/haejo-film-poster.ko.jpg)](https://open330.github.io/tacto/#film)
 
-**37초로 보는 Haejo.** 계산기에 한 번 맡기고, 저장한 Flow를 모델 호출 없이 다시 실행하고, 바뀐 단계만 에이전트가 고칩니다. 앱 화면은 모두 실제입니다. 계산기 화면은 Haejo가 단계마다 찍었고, 수리 장면은 실제 Claude 호출 1회, 웹 장면은 Haejo의 브라우저 실행 녹화입니다. [사이트에서 보기](https://open330.github.io/tacto/#film) · [MP4](sites/haejo/dist/assets/film/haejo-film.ko.mp4)
+**40초로 보는 Haejo.** 말하면 바로 해 줍니다. Safari에서 GitHub의 댓글 많은 열린 버그 5개를 찾아 TextEdit 회의 메모로 저장합니다. 모든 호출은 목표·이유와 함께 Haejo 실행 기록에 남고, 한 일을 Flow로 저장하면 다음 주에는 모델 호출 없이 같은 점검을 다시 실행합니다. 앱 화면은 모두 Haejo 호출마다 찍은 실제 캡처입니다. [사이트에서 보기](https://open330.github.io/tacto/#film) · [MP4](sites/haejo/dist/assets/film/haejo-film.ko.mp4)
 
 **실제 앱·웹사이트 8개와 공개 테스트 2개, 총 10개 상황의 실행 영상**을 제공합니다.
 위 GIF는 실제 실행 영상의 미리보기입니다. 클릭하면 원본 MP4를 볼 수 있습니다.

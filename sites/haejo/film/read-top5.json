@@ -1,0 +1,77 @@
+{
+ "name": "read-top5",
+ "target": "com.apple.Safari",
+ "schema": 2,
+ "steps": [
+  {
+   "action": "read",
+   "selector": {
+    "role": "Heading",
+    "value": "3",
+    "allow_nth": 0,
+    "in_focused_window": true
+   },
+   "postcondition": {
+    "contains": "sort:comments-desc"
+   },
+   "safety": {
+    "effects": [
+     "read"
+    ]
+   },
+   "answers": true,
+   "captures": [
+    {
+     "name": "bug1",
+     "field": {
+      "role": "Heading",
+      "value": "3",
+      "allow_nth": 0,
+      "in_focused_window": true
+     },
+     "attribute": "Title"
+    },
+    {
+     "name": "bug2",
+     "field": {
+      "role": "Heading",
+      "value": "3",
+      "allow_nth": 1,
+      "in_focused_window": true
+     },
+     "attribute": "Title"
+    },
+    {
+     "name": "bug3",
+     "field": {
+      "role": "Heading",
+      "value": "3",
+      "allow_nth": 2,
+      "in_focused_window": true
+     },
+     "attribute": "Title"
+    },
+    {
+     "name": "bug4",
+     "field": {
+      "role": "Heading",
+      "value": "3",
+      "allow_nth": 3,
+      "in_focused_window": true
+     },
+     "attribute": "Title"
+    },
+    {
+     "name": "bug5",
+     "field": {
+      "role": "Heading",
+      "value": "3",
+      "allow_nth": 4,
+      "in_focused_window": true
+     },
+     "attribute": "Title"
+    }
+   ]
+  }
+ ]
+}
