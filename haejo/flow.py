@@ -2506,7 +2506,7 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
                     if hasattr(driver,'protect_value'):driver.protect_value(value)
     last_checkpoint_index = None
     last_checkpoint = None
-    if type(flow.schema) is not int or flow.schema not in (2, 3, 4, 5):
+    if type(flow.schema) is not int or flow.schema not in ((2, 3, 4, 5) if flow.window else (2, 3, 4)):
         res.record(status="error", error="unsupported_schema",
                    detail="migrate the flow to schema 2 before execution")
         return res
