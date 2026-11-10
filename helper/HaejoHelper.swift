@@ -3350,6 +3350,14 @@ func credentialUnicodeChunks(_ value:String)->[String] {
 // The caller holds the app and global-input leases throughout this operation.
 func pasteCredential(_ element:AXUIElement,pid:pid_t,value:String,origin:String?,obsID:String)->[String:Any] {
     func refuse(_ code:String)->[String:Any] {["type":"error","error":code,"effect":"not_started"]}
+    // Say what took focus (a system dialog, another app) so the cause is
+    // visible; a bundle identifier carries no field or screen contents.
+    func targetChanged()->[String:Any] {
+        var answer=refuse("paste_target_changed")
+        answer["frontmost_bundle"]=NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? ""
+        answer["target_frontmost"]=isFrontmost(pid:pid)
+        return answer
+    }
     guard ["AXTextField","AXTextArea","AXComboBox","AXSearchField"].contains(str(element,kAXRoleAttribute as String) ?? ""),
           value.utf8.count<=16384 else {return refuse("invalid_paste_input")}
     let unicodeInput=Array(value.utf16) != Array(value.precomposedStringWithCanonicalMapping.utf16)
@@ -3377,7 +3385,7 @@ func pasteCredential(_ element:AXUIElement,pid:pid_t,value:String,origin:String?
         guard let focus=attr(AXUIElementCreateApplication(pid),"AXFocusedUIElement"),CFGetTypeID(focus)==AXUIElementGetTypeID() else {return false}
         return CFEqual(focus,element) && (origin==nil || credentialElementAllowed(element,pid:pid,origin:origin!,write:true))
     }
-    guard exactFocus() else {return refuse("paste_target_changed")}
+    guard exactFocus() else {return targetChanged()}
     // Prepare every event before selection changes; unsupported input has no
     // effect. The Unicode path neither reads nor writes clipboard contents.
     var unicodePairs:[NativeWindowKeyPair]=[]
@@ -3409,7 +3417,7 @@ func pasteCredential(_ element:AXUIElement,pid:pid_t,value:String,origin:String?
                 "clipboard_restored":true,"clipboard_used":false,"unverified":"observe_effect"]
     }
     guard let (paste,_) = menuItem(pid:pid,path:[["Edit","편집"],["Paste","붙여넣기"]]),
-          exactFocus(),pasteboard.changeCount==beforeCount else {return refuse("paste_target_changed")}
+          exactFocus(),pasteboard.changeCount==beforeCount else {return targetChanged()}
     pasteboard.clearContents()
     let clearedCount=pasteboard.changeCount
     guard pasteboard.setString(value,forType:.string) else {
@@ -3426,7 +3434,7 @@ func pasteCredential(_ element:AXUIElement,pid:pid_t,value:String,origin:String?
         return restored
     }
     defer {_=restore()}
-    guard exactFocus(),!abortState.isStopped else {return refuse("paste_target_changed")}
+    guard exactFocus(),!abortState.isStopped else {return targetChanged()}
     let error=AXUIElementPerformAction(paste,kAXPressAction as CFString)
     if error != .success {return ["type":"error","error":"paste_dispatch_unverified","effect":"unknown"]}
     // AXPress acknowledges a menu dispatch, not the website's receiving state.

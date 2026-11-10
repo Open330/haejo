@@ -121,6 +121,13 @@ For username → password screens or checking the logged-in account, read
 
 - `credential_driver_upgrade_required`: update both launcher and helper; do not
   send a credential through an older unguarded transport.
+- `keychain_session_unavailable`: this shell runs outside the Mac's logged-in
+  screen session (for example a tmux server started over ssh). Such a session
+  keeps its own keychain lock state and cannot show a dialog. Run the command
+  from a terminal opened on the Mac, or unlock the keychain in that session with
+  `security unlock-keychain`; `haejo doctor --check` shows the keychain line.
+- `keychain_locked`: unlock the login keychain, then run the same command.
+- `keychain_access_denied`: allow Haejo in the keychain dialog, then rerun.
 - `vault_locked` / `vault_server_mismatch`: use the user's authenticated session
   for the registered server. Do not repeatedly unlock or lock their Vault.
 - `credential_scope_mismatch` / `credential_target_missing`: observe the actual

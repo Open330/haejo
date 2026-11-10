@@ -30,13 +30,15 @@ class NativeLogin(unittest.TestCase):
         self.addCleanup(stop)
         url=f'http://127.0.0.1:{server.server_port}'
         name='owned-native-'+uuid.uuid4().hex
+        from keychain_fixture import discard,require_keychain
+        require_keychain(self)
         store=CredentialStore();vault=KeychainVault()
         store.add_vault(name,{'kind':'keychain'})
         self.addCleanup(lambda:store._path('vault',name).unlink(missing_ok=True))
         self.addCleanup(store.revoke,name)
         fields=[]
         for field,value in [('username','owned-user'),('password',SECRET)]:
-            item=name+'-'+field;vault.put(item,value);self.addCleanup(vault.delete,item)
+            item=name+'-'+field;vault.put(item,value);self.addCleanup(discard,vault,item)
             fields.append({'name':field,'selector':{'role':'TextField','title':field.capitalize()},'secret':{'vault':name,'item':item,'field':'password'}})
         store.grant(name,{'target':'com.apple.Safari','origin':url,'level':'login','fields':fields,
             'submit':{'role':'Button','title':'Sign in'},'success':{'field':{'role':'Heading','title':'Signed in'},'attribute':'Title','equals':'Signed in'}})

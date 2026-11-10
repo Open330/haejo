@@ -109,6 +109,8 @@ class CredentialUnicodeNative(unittest.TestCase):
                                 from haejo.credential_grants import CredentialStore
                                 from haejo.credential_vault import KeychainVault
                                 name = 'owned-unicode-' + uuid4().hex
+                                from keychain_fixture import discard, require_keychain
+                                require_keychain(self)
                                 store, vault = CredentialStore(), KeychainVault()
                                 try:
                                     vault.put(name, value)
@@ -131,7 +133,7 @@ class CredentialUnicodeNative(unittest.TestCase):
                                 finally:
                                     store.revoke(name)
                                     store._path('vault', name).unlink(missing_ok=True)
-                                    vault.delete(name)
+                                    discard(vault, name)
             # A real website moves focus after the first chunk. Do not send
             # remaining secret text into the second field or retry the operation.
             server.interrupt = True

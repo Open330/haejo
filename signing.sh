@@ -6,7 +6,13 @@ haejo_select_identity() {
   if [ -n "${HAEJO_SIGN_IDENTITY:-}" ]; then
     IDENTITY=$HAEJO_SIGN_IDENTITY
   else
-    IDENTITY=$(security find-identity -p codesigning -v | sed -nE '/CSSMERR/!s/^[[:space:]]*[0-9]+\) ([0-9A-Fa-f]{40}) .*/\1/p' | head -1)
+    # Prefer certificates meant for signing executables: Developer ID, then
+    # Apple Development. Distribution certificates sign store submissions and
+    # often need an interactive key prompt that a terminal session cannot show.
+    local valid
+    valid=$(security find-identity -p codesigning -v | grep -v CSSMERR)
+    IDENTITY=$( { printf '%s\n' "$valid" | grep '"Developer ID Application:'; printf '%s\n' "$valid" | grep '"Apple Development:'; printf '%s\n' "$valid"; } \
+      | sed -nE 's/^[[:space:]]*[0-9]+\) ([0-9A-Fa-f]{40}) .*/\1/p' | head -1)
   fi
   [ -n "$IDENTITY" ] && [ "$IDENTITY" != '-' ] || {
     echo 'An Apple-issued code signing identity is required; set HAEJO_SIGN_IDENTITY.' >&2

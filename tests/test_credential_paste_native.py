@@ -41,6 +41,8 @@ class CredentialPasteNative(unittest.TestCase):
     from haejo.credential_grants import CredentialStore
     from haejo.credential_vault import KeychainVault
     import uuid
+    from keychain_fixture import discard,require_keychain
+    require_keychain(self)
     name='owned-paste-'+uuid.uuid4().hex;store=CredentialStore();vault=KeychainVault()
     try:
      vault.put(name,'owned-Synthetic-47!');store.add_vault(name,{'kind':'keychain'})
@@ -53,6 +55,6 @@ class CredentialPasteNative(unittest.TestCase):
       self.assertLess(time.monotonic(),deadline);time.sleep(.05)
      self.assertEqual(['true'],server.proof.get('state'));self.assertTrue(before==clipboard(),'Vault paste changed clipboard bytes')
     finally:
-     store.revoke(name);store._path('vault',name).unlink(missing_ok=True);vault.delete(name)
+     store.revoke(name);store._path('vault',name).unlink(missing_ok=True);discard(vault,name)
     print('Native paste: two replacement inputs received by controlled form; clipboard formats restored; no secret in output/trace',flush=True)
   finally:server.shutdown();server.server_close();thread.join()

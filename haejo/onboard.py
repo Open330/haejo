@@ -165,6 +165,24 @@ def run(interactive: bool = True, narrate=print) -> bool:
         except Exception:
             pass
 
+    # Keychain-backed credentials are optional, so this line informs rather
+    # than failing readiness. It never prompts.
+    try:
+        import sys as _sys
+        if _sys.platform == "darwin":
+            from .credential_vault import keychain_state
+            ks = keychain_state()
+            if ks["available"]:
+                narrate("✓ 키체인 사용 가능 (Keychain 자격 증명).")
+            elif not ks["gui_session"]:
+                narrate("○ 키체인 — 이 터미널은 Mac 화면 세션 밖에서 실행 중이라 키체인이 잠긴 것으로 보여요. "
+                        "Mac에서 연 터미널에서 실행하거나, 이 터미널에서 `security unlock-keychain` 으로 "
+                        "잠금을 해제하면 Keychain 자격 증명을 쓸 수 있어요.")
+            else:
+                narrate("○ 키체인 — login 키체인이 잠겨 있어요. Keychain 자격 증명을 쓸 때 잠금을 해제하세요.")
+    except Exception:
+        pass
+
     # The helper is the path we want people on: a named, signed binary holding
     # the grant instead of a shared interpreter.
     try:

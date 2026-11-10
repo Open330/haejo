@@ -9,7 +9,7 @@ import subprocess
 import sys
 
 
-_PUBLIC_ERRORS=frozenset(['credential_plan_changed', 'credential_account_mismatch', 'credential_arguments_invalid', 'credential_browser_host_required', 'credential_delegation_not_granted', 'credential_delegation_required', 'credential_driver_upgrade_required', 'credential_execution_failed', 'credential_file_permissions', 'credential_file_too_large', 'credential_file_unavailable', 'credential_fill_failed', 'credential_grant_expired', 'credential_level_requires_login', 'credential_login_unverified', 'credential_name_invalid', 'credential_observation_unavailable', 'credential_origin_invalid', 'credential_plan_invalid', 'credential_registration_invalid', 'credential_scope_mismatch', 'credential_selector_invalid', 'credential_submit_outside_scope', 'credential_submit_unverified', 'credential_target_missing', 'credential_vault_changed', 'keychain_delete_failed', 'keychain_field_invalid', 'keychain_item_unavailable', 'keychain_requires_macos', 'keychain_write_failed', 'vault_command_failed', 'vault_field_unavailable', 'vault_item_invalid', 'vault_item_mismatch', 'vault_locked', 'vault_provider_invalid', 'vault_provider_unknown', 'vault_server_mismatch', 'vault_status_invalid', 'vault_unavailable', 'vault_value_invalid', 'vault_value_not_text'])
+_PUBLIC_ERRORS=frozenset(['credential_plan_changed', 'credential_account_mismatch', 'credential_arguments_invalid', 'credential_browser_host_required', 'credential_delegation_not_granted', 'credential_delegation_required', 'credential_driver_upgrade_required', 'credential_execution_failed', 'credential_file_permissions', 'credential_file_too_large', 'credential_file_unavailable', 'credential_fill_failed', 'credential_grant_expired', 'credential_level_requires_login', 'credential_login_unverified', 'credential_name_invalid', 'credential_observation_unavailable', 'credential_origin_invalid', 'credential_plan_invalid', 'credential_registration_invalid', 'credential_scope_mismatch', 'credential_selector_invalid', 'credential_submit_outside_scope', 'credential_submit_unverified', 'credential_target_missing', 'credential_vault_changed', 'keychain_access_denied', 'keychain_delete_failed', 'keychain_field_invalid', 'keychain_item_unavailable', 'keychain_locked', 'keychain_requires_macos', 'keychain_session_unavailable', 'keychain_write_failed', 'vault_command_failed', 'vault_field_unavailable', 'vault_item_invalid', 'vault_item_mismatch', 'vault_locked', 'vault_provider_invalid', 'vault_provider_unknown', 'vault_server_mismatch', 'vault_status_invalid', 'vault_unavailable', 'vault_value_invalid', 'vault_value_not_text'])
 
 
 class CredentialError(Exception):
@@ -47,11 +47,54 @@ def private_read(path, maximum=1024*1024):
     except (OSError,UnicodeError):raise CredentialError('credential_file_unavailable') from None
 
 
+_SECURITY='/System/Library/Frameworks/Security.framework/Security'
+_ERR_INTERACTION_NOT_ALLOWED=-25308
+_ERR_ITEM_NOT_FOUND=-25300
+_ACCESS_DENIED=frozenset([-128,-25293])   # user cancelled / authorization failed
+_GRAPHIC_ACCESS=0x10                      # sessionHasGraphicAccess
+_UNLOCKED=0x1                             # kSecUnlockStateStatus
+
+
+def keychain_state(api=None,release=None):
+    """Whether this process can use the login keychain, without prompting.
+
+    A process started outside the logged-in Mac's screen session (a tmux server
+    begun over ssh, a launch daemon) has no graphic access and keeps its own
+    keychain lock state: after the screen locks once, the keychain stays locked
+    there even when the user unlocks the screen, and it cannot show a dialog.
+    """
+    if sys.platform!='darwin':return {'available':False,'gui_session':False,'unlocked':False}
+    if api is None:
+        api=ctypes.CDLL(_SECURITY)
+        api.SessionGetInfo.argtypes=[ctypes.c_uint32,ctypes.POINTER(ctypes.c_uint32),ctypes.POINTER(ctypes.c_uint32)]
+        api.SecKeychainCopyDefault.argtypes=[ctypes.POINTER(ctypes.c_void_p)]
+        api.SecKeychainGetStatus.argtypes=[ctypes.c_void_p,ctypes.POINTER(ctypes.c_uint32)]
+    session=ctypes.c_uint32();attributes=ctypes.c_uint32()
+    gui=api.SessionGetInfo(0xFFFFFFFF,ctypes.byref(session),ctypes.byref(attributes))==0 and bool(attributes.value&_GRAPHIC_ACCESS)
+    keychain=ctypes.c_void_p();flags=ctypes.c_uint32()
+    unlocked=False
+    if api.SecKeychainCopyDefault(ctypes.byref(keychain))==0 and keychain.value:
+        try:unlocked=api.SecKeychainGetStatus(keychain,ctypes.byref(flags))==0 and bool(flags.value&_UNLOCKED)
+        finally:(release or ctypes.CDLL('/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation').CFRelease)(keychain)
+    return {'available':unlocked,'gui_session':gui,'unlocked':unlocked}
+
+
+def keychain_error(status,default,state=keychain_state):
+    """Name what the user can act on instead of one generic failure."""
+    if status==_ERR_INTERACTION_NOT_ALLOWED:
+        try:gui=state()['gui_session']
+        except Exception:gui=True
+        return CredentialError('keychain_locked' if gui else 'keychain_session_unavailable')
+    if status in _ACCESS_DENIED:return CredentialError('keychain_access_denied')
+    if status==_ERR_ITEM_NOT_FOUND:return CredentialError('keychain_item_unavailable')
+    return CredentialError(default)
+
+
 class KeychainVault:
     service=b'ai.callabo.tacto.credentials'
     def __init__(self):
         if sys.platform!='darwin':raise CredentialError('keychain_requires_macos')
-        self.api=ctypes.CDLL('/System/Library/Frameworks/Security.framework/Security')
+        self.api=ctypes.CDLL(_SECURITY)
         self.cf=ctypes.CDLL('/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation')
         P=ctypes.c_void_p;U=ctypes.c_uint32;C=ctypes.c_char_p
         self.api.SecKeychainFindGenericPassword.argtypes=[P,U,C,U,C,ctypes.POINTER(U),ctypes.POINTER(P),ctypes.POINTER(P)]
@@ -64,7 +107,7 @@ class KeychainVault:
         key=item.encode();length=ctypes.c_uint32();data=ctypes.c_void_p();ref=ctypes.c_void_p()
         status=self.api.SecKeychainFindGenericPassword(None,len(self.service),self.service,len(key),key,
             ctypes.byref(length),ctypes.byref(data),ctypes.byref(ref))
-        if status:raise CredentialError('keychain_item_unavailable')
+        if status:raise keychain_error(status,'keychain_item_unavailable')
         try:return ctypes.string_at(data,length.value).decode('utf-8'),ref
         except UnicodeError:
             self.cf.CFRelease(ref);raise CredentialError('vault_value_not_text') from None
@@ -77,15 +120,16 @@ class KeychainVault:
     def put(self,item,value):
         key=item.encode();raw=value.encode();buffer=ctypes.create_string_buffer(raw)
         status=self.api.SecKeychainAddGenericPassword(None,len(self.service),self.service,len(key),key,len(raw),buffer,None)
-        if status==-25299:
+        if status==-25299:   # errSecDuplicateItem: replace the value in place
             _,ref=self._find(item)
             try:status=self.api.SecKeychainItemModifyAttributesAndData(ref,None,len(raw),buffer)
             finally:self.cf.CFRelease(ref)
-        if status:raise CredentialError('keychain_write_failed')
+        if status:raise keychain_error(status,'keychain_write_failed')
     def delete(self,item):
         _,ref=self._find(item)
         try:
-            if self.api.SecKeychainItemDelete(ref):raise CredentialError('keychain_delete_failed')
+            status=self.api.SecKeychainItemDelete(ref)
+            if status:raise keychain_error(status,'keychain_delete_failed')
         finally:self.cf.CFRelease(ref)
 
 
