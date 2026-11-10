@@ -2224,3 +2224,4 @@ h1,h2,h3,h4{word-break:keep-all}
 @media(max-width:420px){html:lang(en) .header nav a:first-child{display:none}}
 @media(max-width:340px){html:lang(en) .header nav{gap:10px;font-size:10px}html:lang(en) .brand-wordmark{width:76px}}
 @media(max-width:540px){.header nav a[href="#film"]{display:none}.header nav a{white-space:nowrap}}
+@media(max-width:360px){.header nav a{white-space:normal}}
