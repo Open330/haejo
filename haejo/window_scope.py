@@ -6,10 +6,17 @@ Flow's `window` field) is persisted instead and resolved to the one live
 window it names when the run starts.
 """
 import time
+from urllib.parse import urlsplit
 
 SELECTOR_KEYS = ('url', 'title', 'newest')
 MATCH_WAIT_SECONDS = 10.0
 MATCH_POLL_SECONDS = 0.5
+# Listing states that mean "not available now", not "not there". A Flow that
+# starts with wait_until keeps waiting through them (as the step itself would).
+PAUSE_REASONS = frozenset(('screen_locked', 'display_asleep', 'session_not_on_console'))
+PAUSE_POLL_SECONDS = 10.0
+MAX_PAUSE_SECONDS = 6 * 3600
+OTHER_SPACE_PAUSE_SECONDS = 30 * 60
 
 
 def selector_problem(value):
@@ -22,6 +29,13 @@ def selector_problem(value):
         if key in value and (not isinstance(value[key], str) or not value[key].strip()
                              or len(value[key]) > 512 or '{{' in value[key]):
             return f'window.{key} must be a non-empty literal substring'
+    if 'url' in value:
+        try:
+            host = _url_parts(value['url'])[1]
+        except ValueError:
+            host = ''
+        if not host or '.' not in host and host != 'localhost':
+            return 'window.url must name a host, e.g. player.example.com or https://player.example.com/play'
     if 'newest' in value and value['newest'] is not True:
         return 'window.newest must be true when given'
     return None
@@ -79,12 +93,36 @@ def take_window_arg(args):
     return args, value
 
 
+def _url_parts(text):
+    """(scheme or None, host, path) for `https://host/path`, `host/path` or `host`."""
+    text = text.strip()
+    parts = urlsplit(text if '://' in text else '//' + text)
+    return (parts.scheme.lower() or None), (parts.hostname or '').lower(), parts.path
+
+
+def url_matches(pattern, url):
+    """Host matches on a label boundary (`example.com` covers
+    `player.example.com`, not `badexample.com` or a path containing it);
+    scheme, when given, must be equal; path is a case-sensitive prefix."""
+    if not isinstance(url, str):
+        return False
+    want_scheme, want_host, want_path = _url_parts(pattern)
+    have = urlsplit(url)
+    host = (have.hostname or '').lower()
+    if not want_host or not (host == want_host or host.endswith('.' + want_host)):
+        return False
+    if want_scheme and have.scheme.lower() != want_scheme:
+        return False
+    return not want_path or want_path == '/' or have.path.startswith(want_path)
+
+
 def _matches(row, selector):
-    for key in ('url', 'title'):
-        if key in selector:
-            have = row.get(key)
-            if not isinstance(have, str) or selector[key].casefold() not in have.casefold():
-                return False
+    if 'url' in selector and not url_matches(selector['url'], row.get('url')):
+        return False
+    if 'title' in selector:
+        have = row.get('title')
+        if not isinstance(have, str) or selector['title'].casefold() not in have.casefold():
+            return False
     return True
 
 
@@ -92,16 +130,20 @@ def _candidate(row):
     return {k: row[k] for k in ('window_id', 'title', 'url') if k in row}
 
 
-def resolve_window(driver, target, selector, *, wait=MATCH_WAIT_SECONDS, sleep=time.sleep, clock=time.monotonic):
+def resolve_window(driver, target, selector, *, wait=None, sleep=time.sleep, clock=time.monotonic,
+                   patient=False):
     """Return (window_id, None) or (None, error reply).
 
     Waits briefly when nothing matches yet: the popup a previous step opened
-    can take a moment to appear.
+    can take a moment to appear. `patient` also waits (up to
+    MAX_PAUSE_SECONDS) while the screen is locked/asleep or the matching
+    window is on another Space; that time does not use up `wait`.
     """
+    paused = 0.0
     listing = getattr(driver, 'windows', None)
     if listing is None or 'observe.window_list' not in getattr(driver, 'capabilities', ()):
         return None, {'type': 'error', 'error': 'window_list_unavailable', 'effect': 'not_started'}
-    deadline = clock() + wait
+    deadline = clock() + (MATCH_WAIT_SECONDS if wait is None else wait)
     while True:
         reply = listing(target)
         if not isinstance(reply, dict) or reply.get('type') != 'windows':
@@ -115,6 +157,17 @@ def resolve_window(driver, target, selector, *, wait=MATCH_WAIT_SECONDS, sleep=t
             return None, {'type': 'error', 'error': 'window_match_ambiguous', 'effect': 'not_started',
                           'selector': selector, 'candidates': [_candidate(r) for r in found][:16],
                           'hint': 'add url=/title= text that only one window has, or newest to take the most recently opened'}
+        locked = reply.get('reason') in PAUSE_REASONS
+        # An unlisted window has no title or URL, so it may not be the one
+        # wanted: wait for another Space for a shorter time than for a lock.
+        elsewhere = any(isinstance(r, dict) and r.get('reason') == 'not_on_active_space'
+                        for r in reply.get('unlisted', ()))
+        limit = MAX_PAUSE_SECONDS if locked else OTHER_SPACE_PAUSE_SECONDS if elsewhere else 0
+        if patient and paused < limit:
+            sleep(PAUSE_POLL_SECONDS)
+            paused += PAUSE_POLL_SECONDS
+            deadline += PAUSE_POLL_SECONDS
+            continue
         if clock() >= deadline:
             error = {'type': 'error', 'error': 'window_match_none', 'effect': 'not_started',
                      'selector': selector, 'listed': [_candidate(r) for r in rows][:16]}
@@ -125,13 +178,13 @@ def resolve_window(driver, target, selector, *, wait=MATCH_WAIT_SECONDS, sleep=t
         sleep(MATCH_POLL_SECONDS)
 
 
-def bind_window(driver, target, window):
+def bind_window(driver, target, window, *, patient=False):
     """Pin `driver` to one window. `window` is an ID or a selector dict.
 
     Returns None on success, else the error reply to print.
     """
     if isinstance(window, dict):
-        window_id, problem = resolve_window(driver, target, window)
+        window_id, problem = resolve_window(driver, target, window, patient=patient)
         if problem is not None:
             return problem
     else:

@@ -500,11 +500,14 @@ def _run_flow(flow, argv, walked: bool = False, *, _driver=None, _confirm=None, 
         if argv.count('--repair-packet')!=1 or k+1>=len(argv) or not os.path.isabs(argv[k+1]) or os.path.lexists(argv[k+1]):
             print('repair_packet: use one absolute new output path');return 2
         repair_path=argv[k+1]
-    if window_id is None and flow.window:
-        window_id = flow.window
     driver = _driver if _driver is not None else _make_driver(argv)
+    # A session already pinned its window when it started; resolving the
+    # selector again could pick a different (newer) matching window.
+    if window_id is None and flow.window and getattr(driver,'_window_scope',None) is None:
+        window_id = flow.window
     if window_id is not None:
-        problem=bind_window(driver,flow.target,window_id)
+        problem=bind_window(driver,flow.target,window_id,
+                            patient=bool(flow.steps) and flow.steps[0].action=='wait_until')
         if problem is not None:print(json.dumps(problem,ensure_ascii=False));return 1
     timed_driver = None
     if document is not None:

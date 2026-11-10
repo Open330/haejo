@@ -36,7 +36,7 @@ class Windows:
 
 
 def flow_doc(**extra):
-    return {'schema': 2, 'name': 'lesson', 'target': 'com.apple.Safari',
+    return {'schema': 5 if 'window' in extra else 2, 'name': 'lesson', 'target': 'com.apple.Safari',
             'safety_defaults': {'effects': ['read'], 'reversibility': 'reversible',
                                 'resource': {'object_type': 'page', 'scope': 'entry'}},
             'steps': [{'action': 'read', 'selector': {'role': 'StaticText'}, 'answers': True}], **extra}
@@ -66,7 +66,7 @@ class SelectorArgs(unittest.TestCase):
 class Resolution(unittest.TestCase):
     def test_url_tells_same_title_windows_apart(self):
         driver = Windows([HOME, PORTAL, PLAYER])
-        self.assertEqual((22691, None), resolve_window(driver, 'com.apple.Safari', {'url': 'PLAYER.example'}))
+        self.assertEqual((22691, None), resolve_window(driver, 'com.apple.Safari', {'url': 'PLAYER.example.com'}))
         self.assertIsNone(bind_window(driver, 'com.apple.Safari', {'url': 'player.example.com'}))
         self.assertEqual([22691], driver.scoped)
 
@@ -81,7 +81,7 @@ class Resolution(unittest.TestCase):
     def test_waits_for_a_popup_that_is_still_opening(self):
         driver = Windows([HOME], [HOME], [HOME, PLAYER])
         sleeps = []
-        self.assertEqual((22691, None), resolve_window(driver, 'com.apple.Safari', {'url': 'player'},
+        self.assertEqual((22691, None), resolve_window(driver, 'com.apple.Safari', {'url': 'player.example.com'},
                                                        sleep=sleeps.append, clock=lambda: 0))
         self.assertEqual(2, len(sleeps))
 
@@ -89,7 +89,7 @@ class Resolution(unittest.TestCase):
         listing = {'type': 'windows', 'windows': [], 'reason': 'screen_locked',
                    'screen': {'locked': True}, 'unlisted': [{'window_id': 22691, 'reason': 'not_on_active_space'}]}
         ticks = iter([0, 0, 11])
-        window_id, error = resolve_window(Windows(listing), 'com.apple.Safari', {'url': 'player'},
+        window_id, error = resolve_window(Windows(listing), 'com.apple.Safari', {'url': 'player.example.com'},
                                           sleep=lambda s: None, clock=lambda: next(ticks))
         self.assertIsNone(window_id)
         self.assertEqual(('window_match_none', 'screen_locked'), (error['error'], error['reason']))
@@ -97,9 +97,37 @@ class Resolution(unittest.TestCase):
 
     def test_listing_errors_pass_through(self):
         refusal = {'type': 'error', 'error': 'target_not_found', 'effect': 'not_started'}
-        self.assertEqual(refusal, resolve_window(Windows(refusal), 'x', {'url': 'a'})[1])
+        self.assertEqual(refusal, resolve_window(Windows(refusal), 'x', {'url': 'a.example.com'})[1])
         old = Windows([HOME]);old.capabilities = set()
-        self.assertEqual('window_list_unavailable', resolve_window(old, 'x', {'url': 'a'})[1]['error'])
+        self.assertEqual('window_list_unavailable', resolve_window(old, 'x', {'url': 'a.example.com'})[1]['error'])
+
+
+class UrlMatching(unittest.TestCase):
+    def test_host_boundary_scheme_and_case_sensitive_path(self):
+        from haejo.window_scope import url_matches
+        url = 'https://player.example.com/LessonA/play'
+        for pattern, expected in (('example.com', True), ('player.example.com/LessonA', True),
+                                  ('https://player.example.com/LessonA', True), ('PLAYER.EXAMPLE.COM', True),
+                                  ('player.example.com/lessona', False), ('http://player.example.com', False),
+                                  ('ample.com', False), ('other.example.com', False)):
+            with self.subTest(pattern=pattern):
+                self.assertEqual(expected, url_matches(pattern, url))
+        self.assertFalse(url_matches('player.example.com', 'https://unrelated.test/player.example.com/'))
+        self.assertFalse(url_matches('player.example.com', None))
+        self.assertIsNotNone(selector_problem({'url': 'player'}))
+        self.assertIsNone(selector_problem({'url': 'localhost:8000/home.html'}))
+
+    def test_patient_resolution_waits_through_a_lock(self):
+        locked = {'type': 'windows', 'windows': [], 'reason': 'screen_locked'}
+        driver = Windows(locked, locked, locked, [HOME, PLAYER])
+        sleeps = []
+        self.assertEqual((22691, None), resolve_window(driver, 'com.apple.Safari', {'url': 'player.example.com'},
+                                                       sleep=sleeps.append, clock=lambda: 100, patient=True))
+        self.assertEqual(3, len(sleeps))
+        impatient = Windows(locked)
+        ticks = iter([0, 11])
+        self.assertEqual('window_match_none', resolve_window(impatient, 'x', {'url': 'player.example.com'},
+                         sleep=lambda s: None, clock=lambda: next(ticks))[1]['error'])
 
 
 class FlowField(unittest.TestCase):
@@ -109,6 +137,15 @@ class FlowField(unittest.TestCase):
         self.assertEqual(flow.window, Flow.from_json(flow.to_json()).window)
         self.assertEqual(flow.window, flow.bind().window)
         self.assertNotIn('window', json.loads(Flow.from_json(json.dumps(flow_doc())).to_json()))
+
+    def test_window_needs_schema_5_so_older_runtimes_refuse_it(self):
+        doc = flow_doc(window={'url': 'player.example.com'})
+        self.assertEqual(5, json.loads(Flow.from_json(json.dumps(doc)).to_json())['schema'])
+        for bad in (dict(doc, schema=2), dict(flow_doc(), schema=5)):
+            with self.subTest(schema=bad['schema']), self.assertRaises(ValueError):
+                Flow.from_json(json.dumps(bad))
+        flow = Flow.from_json(json.dumps(flow_doc()));flow.window = {'url': 'player.example.com'}
+        self.assertEqual(5, json.loads(flow.to_json())['schema'])
 
     def test_live_ids_are_not_a_selector(self):
         for bad in ({'window_id': 22691}, {}, {'url': 3}, 'player'):
@@ -123,7 +160,7 @@ class FlowField(unittest.TestCase):
         self.assertEqual(selector, json.loads(template)['window'])
         _, template = prepare_session_flow(Flow.from_json(json.dumps(flow_doc())), 'com.apple.Safari', 22691)
         self.assertNotIn('window', json.loads(template))
-        for window, doc in ((selector, flow_doc(window={'url': 'other'})), (None, flow_doc(window=selector))):
+        for window, doc in ((selector, flow_doc(window={'url': 'other.example.com'})), (None, flow_doc(window=selector))):
             with self.subTest(window=window), self.assertRaises(ValueError) as caught:
                 prepare_session_flow(Flow.from_json(json.dumps(doc)), 'com.apple.Safari', window)
             self.assertIn('session_window_mismatch', str(caught.exception))
@@ -132,7 +169,7 @@ class FlowField(unittest.TestCase):
 class RunAndBatch(unittest.TestCase):
     def test_run_binds_the_flow_window(self):
         from haejo.cli import _run_flow
-        flow = Flow.from_json(json.dumps(flow_doc(window={'url': 'player'})))
+        flow = Flow.from_json(json.dumps(flow_doc(window={'url': 'player.example.com'})))
         driver = Windows([HOME, PLAYER])
         with patch('haejo.cli._indicator_for', return_value=contextlib.nullcontext()), \
              contextlib.redirect_stdout(io.StringIO()), patch('haejo.flow.replay', side_effect=RuntimeError('stop')):
@@ -142,9 +179,33 @@ class RunAndBatch(unittest.TestCase):
                 pass
         self.assertEqual([22691], driver.scoped)
 
+    def test_an_existing_session_pin_is_kept(self):
+        from haejo.cli import _run_flow
+        flow = Flow.from_json(json.dumps(flow_doc(window={'url': 'player.example.com'})))
+        driver = Windows([HOME, PLAYER]);driver._window_scope = ('com.apple.Safari', 22000)
+        with patch('haejo.cli._indicator_for', return_value=contextlib.nullcontext()), \
+             contextlib.redirect_stdout(io.StringIO()), patch('haejo.flow.replay', side_effect=RuntimeError('stop')):
+            try:
+                _run_flow(flow, ['--helper', '--think', '0'], _driver=driver, _confirm=lambda d: False)
+            except RuntimeError:
+                pass
+        self.assertEqual([], driver.scoped)
+
+    def test_agent_binds_the_flow_window_or_refuses(self):
+        from haejo.agent import Agent
+        flow = Flow.from_json(json.dumps(flow_doc(window={'url': 'player.example.com'})))
+        driver = Windows([HOME, PLAYER])
+        self.assertIsNone(Agent(driver=driver).pin_window(flow))
+        self.assertEqual([22691], driver.scoped)
+        with patch('haejo.window_scope.MATCH_WAIT_SECONDS', 0):
+            self.assertEqual('window_match_none', Agent(driver=Windows([HOME])).pin_window(flow)['error'])
+        self.assertIsNone(Agent(driver=Windows([HOME])).pin_window(Flow.from_json(json.dumps(flow_doc()))))
+        source = Path(__import__('haejo.agent').agent.__file__).read_text(encoding='utf-8')
+        self.assertLess(source.index('problem = self.pin_window(flow)'), source.index('res = replay(self.driver, flow'))
+
     def test_batch_opens_a_fresh_connection_per_job_for_a_window_flow(self):
         from haejo.flow_batch import run_batch
-        for window, connections in (({'url': 'player'}, 3), (None, 1)):
+        for window, connections in (({'url': 'player.example.com'}, 3), (None, 1)):
             with self.subTest(window=window), tempfile.TemporaryDirectory() as tmp:
                 src = Path(tmp)/'flow.json'
                 src.write_text(json.dumps(flow_doc(**({'window': window} if window else {}))))

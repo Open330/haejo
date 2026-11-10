@@ -104,13 +104,20 @@ It remains available while other connections own windows in that app. Start
 inside a Flow. `--document` remains a separate app-wide TextEdit route.
 
 `--window-match` chooses the window when the command starts instead:
-`url=<substring>` (browser page origin and path; query and fragment are never
-listed), `title=<substring>` and `newest` (highest window ID among matches,
-i.e. the most recently opened). Matching is case-insensitive; when nothing
-matches yet it re-lists for up to 10 s, which covers a popup still opening.
+`url=<host[/path]>` or a full URL (browser pages list origin and path; query
+and fragment are never listed), `title=<substring>` and `newest` (highest
+window ID among matches, i.e. the most recently opened; combine it with `url`
+or `title`). The host matches on a label boundary (`example.com` covers
+`player.example.com`, not `badexample.com`), a given scheme must be equal, and
+the path is a case-sensitive prefix; titles match case-insensitively. When
+nothing matches yet it re-lists for up to 10 s, which covers a popup still
+opening; a Flow that starts with `wait_until` also waits through a locked or
+sleeping screen (up to 6 h) and a window on another Space (up to 30 min).
 `session --window-match ... --save` stores the selector as the Flow's
-`"window": {"url": ...}`; `run`, `replay` and `batch` resolve it at start, and
-`batch` opens one connection per job so each job finds that job's window.
+`"window": {"url": ...}` with `"schema": 5`, so runtimes that predate it refuse
+the file instead of running it app-wide. `run`, `replay`, `do` and `batch`
+resolve it at start (a session keeps the window it pinned when it started),
+and `batch` opens one connection per job so each job finds that job's window.
 
 The `windows` reply also cross-checks the window server (ids and on-screen
 flags only, no titles or screen recording): each row has `on_screen`; windows

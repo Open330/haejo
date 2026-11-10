@@ -1032,7 +1032,10 @@ class Flow:
             d['literal_params']={**self.literal_params,**literal_params}
             d['schema']=max(d['schema'],4)
         if self.window:
+            # Schema 5: older runtimes refuse it rather than silently running
+            # a window-bound procedure app-wide.
             d['window']=dict(self.window)
+            d['schema']=max(d['schema'],5)
         return json.dumps(d, ensure_ascii=False, indent=None if compact else 2,
                           separators=(',', ':') if compact else None)
 
@@ -1044,7 +1047,7 @@ class Flow:
         if not isinstance(d, dict):
             raise ValueError("Flow must be a JSON object")
         schema = d.get("schema", 2)
-        if type(schema) is not int or schema not in (1, 2, 3, 4):
+        if type(schema) is not int or schema not in (1, 2, 3, 4, 5):
             raise ValueError(f"unsupported Flow schema: {schema!r}")
         if schema == 1 and not allow_legacy:
             raise ValueError("schema 1 requires explicit migration to schema 2")
@@ -1055,6 +1058,10 @@ class Flow:
         for key in ("params", "tables", "derived", "literal_params"):
             if key in d and not isinstance(d[key], dict):
                 raise FlowFieldError(f"Flow.{key} must be an object", key, 'Use an object; params example: {"amount":"11"}, with {{amount}} in step values.')
+        if 'window' in d and schema < 5:
+            raise FlowFieldError('Flow.window requires schema 5', 'window', 'Set "schema": 5 (runtimes before it would ignore "window").')
+        if schema == 5 and 'window' not in d:
+            raise FlowFieldError('Flow schema 5 is for a Flow with "window"', 'schema', 'Use schema 2-4, or add "window".')
         if 'window' in d:
             from .window_scope import selector_problem
             problem = selector_problem(d['window'])
@@ -2499,7 +2506,7 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
                     if hasattr(driver,'protect_value'):driver.protect_value(value)
     last_checkpoint_index = None
     last_checkpoint = None
-    if type(flow.schema) is not int or flow.schema not in (2, 3, 4):
+    if type(flow.schema) is not int or flow.schema not in (2, 3, 4, 5):
         res.record(status="error", error="unsupported_schema",
                    detail="migrate the flow to schema 2 before execution")
         return res
