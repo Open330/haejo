@@ -26,8 +26,8 @@ popup belongs to an app-wide Flow, and the work inside the popup to a Flow with
 `"window"`.
 
 Without automatic repair, failure stops the batch. Unknown completion, invalid
-input or observed activation always stops it. Inspect state before deciding what to do next; do not resend completed
-or uncertain jobs. This is connection reuse, not automatic journal resume or
+input or observed activation always stops it. Inspect state before deciding what to do next; completed and
+uncertain jobs may already have taken effect. This is connection reuse, not automatic journal resume or
 exactly-once delivery. Pass --timings only when diagnosing timing; normal output
 is completion/result markers, not repeated full observations.
 
@@ -40,8 +40,8 @@ haejo batch /absolute/template.json --helper --max-jobs 10 < /absolute/jobs.json
 ```
 
 Buffered requests are processed in order and stop at the first failure. Read
-result markers to distinguish completed jobs from the stopped job; do not
-restart the file after a failure. The Flow itself must prepare each new task.
+result markers to distinguish completed jobs from the stopped job, then continue
+with the rows after it. The Flow itself must prepare each new task.
 Batch does not reset application state or synthesize a resume checkpoint.
 
 After an action passes its result predicate, the next job still reads a fresh

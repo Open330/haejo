@@ -1,7 +1,7 @@
 # Multi-screen login and account checks
 
-Requires rc.11 or later. Read the base credential guide first; do not reload
-the general authoring guides. These are deterministic, declared screens, not
+Read the base credential guide first; the general authoring guides are not
+needed again. These are deterministic, declared screens, not
 automatic support for arbitrary SSO, MFA, passkeys or challenges.
 
 For username → password, put two objects in the grant's `stages` array. Each
@@ -24,7 +24,7 @@ origins before each credential write and submit.
 }
 ```
 
-Copy selectors from the actual screen; do not copy these illustrative labels.
+Copy selectors from the actual screen; the labels here are illustrations.
 `account` is optional. When configured, the observed account attribute must
 exactly match the selected Vault field. Comparison is internal; the expected
 value never appears in the result. Use a Vault display-name field if the UI
@@ -33,8 +33,8 @@ means no account check was configured, not that a particular account was proved.
 
 The result's `repair` contains a field alias, `stage_index`, completed-stage
 count and short hint. Resume from the present screen: a stage whose declared
-success condition already holds is read-checked and skipped. Never restart a
-submitted stage just because its response was uncertain. A durable journal
+success condition already holds is read-checked and skipped. A submitted stage
+whose response was uncertain is checked on screen rather than restarted. A durable journal
 still requires reconciliation across a process restart; it does not silently
 replay a reserved submission.
 

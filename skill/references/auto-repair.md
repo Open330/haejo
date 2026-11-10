@@ -24,8 +24,8 @@ postcondition (a skipped step is insufficient), and fresh observations must
 preserve controls, values, flags and named hierarchy before and after the call. Dynamic
 steps or on_uncertain handling, parameterized selectors, a first-step failure, missing checkpoints, activation, ambiguous choices
 or changing UI stop continuation. Timeout/unknown completion never causes an
-automatic resend. Follow the stop marker and inspect state; do not rerun the
-entire batch. No automatic crash/journal recovery is implied.
+automatic resend. Follow the stop marker and inspect state; completed jobs
+stay done, so continue from the stopped job. No automatic crash/journal recovery is implied.
 
 Default model budget is two calls across the batch; `--max-repairs 1..10` changes
 it. `--repair-timeout 1..120` bounds each call (default60s). Failure/decline counts
