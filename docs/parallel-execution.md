@@ -96,9 +96,10 @@ removes them after collecting results. A receipt is never an input permission.
 The Haejo menu lists each live helper run separately, with its window ID and
 helper-reported activity, and offers individual and existing all-run stop
 controls. A helper's dispatch acknowledgement is shown as unverified, not as a
-passed postcondition. Esc stops runs whose helper connection already exists;
-it does not stop jobs still waiting to connect. Use **all-run stop or Ctrl-C**
-to stop the entire batch, including those waiting jobs. Individual run stops
+passed postcondition. Esc pressed while a helper is serving a run stops that
+run and sends the same all-run stop as the menu, so the whole batch ends,
+including jobs still waiting to connect. While no helper is serving a run, Esc
+has no batch effect; use **all-run stop or Ctrl-C**. Individual run stops
 remain limited to the selected helper.
 
 This stage adds concurrent AX operations and execution visibility. It does not
