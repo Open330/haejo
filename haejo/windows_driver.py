@@ -454,9 +454,11 @@ class WindowsDriver:
         return [window for window in self._backend.top_windows(pid)
                 if self._backend.props(window).get("control_type") == "List"]
 
-    def _list_shown(self, element):
-        return any(props.get("control_type") == "List" and not props.get("offscreen")
-                   for props in map(self._backend.props, self._backend.children(element)))
+    def _list_shown(self, pid):
+        """A popup list still showing items; a closed one keeps its window."""
+        return any(props.get("control_type") == "ListItem" and not props.get("offscreen")
+                   for popup in self._popup_lists(pid)
+                   for props in map(self._backend.props, self._backend.descendants(popup)))
 
     def _owned(self, obs, element, what):
         props = self._backend.props(element)
@@ -540,10 +542,14 @@ class WindowsDriver:
                 # list can appear a moment later (a slow CI runner missed it).
                 deadline = self._clock() + (LIST_OPEN_WAIT_S if opener is not None else 0)
                 while True:
-                    options = self._options(element, label)
-                    if not options and opener is not None:
-                        # The list a drop-down button opens can show only as its
-                        # own popup window of the same process (Windows Server).
+                    if opener is None:
+                        options = self._options(element, label)
+                    else:
+                        # The open list is its own popup window of the process.
+                        # The combo box is not searched again: while the list
+                        # is open its sibling chain runs on into the desktop's
+                        # windows (itself included), and a search of it crashed
+                        # the process on Windows Server.
                         options = [found for popup in self._popup_lists(obs.pid)
                                    for found in self._options(popup, label)]
                     if options or self._clock() >= deadline:
@@ -565,7 +571,7 @@ class WindowsDriver:
                 # Cleanup, not a new action: put back the list this step opened.
                 if opener is None:
                     backend.collapse(element)
-                elif self._list_shown(element) or self._popup_lists(obs.pid):
+                elif self._list_shown(obs.pid):
                     backend.invoke(opener)
             return {"input_route": "uia_selection_item"}
         raise NotStarted(f"unsupported action {name!r} on Windows")
