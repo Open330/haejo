@@ -288,7 +288,9 @@ func windowAbsenceReason(_ pid:pid_t,_ id:UInt32) -> String {
 func windowPageURL(_ window:AXUIElement) -> String? {
     var queue:[(AXUIElement,Int)]=[(window,0)]
     var visited=0
-    while !queue.isEmpty && visited<400 {
+    // Listing must stay cheap even when the app answers slowly.
+    let deadline=ProcessInfo.processInfo.systemUptime+0.4
+    while !queue.isEmpty && visited<400 && ProcessInfo.processInfo.systemUptime<deadline {
         let (node,depth)=queue.removeFirst();visited+=1
         _ = AXUIElementSetMessagingTimeout(node,0.25)
         if str(node,kAXRoleAttribute as String)=="AXWebArea" {
