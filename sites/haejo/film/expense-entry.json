@@ -1,0 +1,274 @@
+{
+ "name": "expense-entry",
+ "target": "com.apple.Safari",
+ "schema": 2,
+ "params": {
+  "date": "2026-11-03",
+  "merchant": "스타벅스 역삼점",
+  "category": "회의비",
+  "amount": "18900",
+  "project": "P-2611",
+  "memo": "고객사 미팅 음료 4잔"
+ },
+ "steps": [
+  {
+   "action": "set_value",
+   "selector": {
+    "role": "TextField",
+    "title": "사용일자",
+    "in_focused_window": true
+   },
+   "params": {
+    "value": "{{date}}",
+    "input_method": "paste"
+   },
+   "postcondition": {
+    "field": {
+     "role": "TextField",
+     "title": "사용일자",
+     "in_focused_window": true
+    },
+    "attribute": "Value",
+    "equals": "{{date}}"
+   },
+   "safety": {
+    "effects": [
+     "write_ephemeral"
+    ],
+    "data_classes": [
+     "none"
+    ],
+    "resource": {
+     "object_type": "demo expense form",
+     "scope": "entry"
+    },
+    "destination": {
+     "kind": "same_app"
+    },
+    "reversibility": "reversible",
+    "evidence": [],
+    "unknowns": []
+   }
+  },
+  {
+   "action": "set_value",
+   "selector": {
+    "role": "TextField",
+    "title": "가맹점명",
+    "in_focused_window": true
+   },
+   "params": {
+    "value": "{{merchant}}",
+    "input_method": "paste"
+   },
+   "postcondition": {
+    "field": {
+     "role": "TextField",
+     "title": "가맹점명",
+     "in_focused_window": true
+    },
+    "attribute": "Value",
+    "equals": "{{merchant}}"
+   },
+   "safety": {
+    "effects": [
+     "write_ephemeral"
+    ],
+    "data_classes": [
+     "none"
+    ],
+    "resource": {
+     "object_type": "demo expense form",
+     "scope": "entry"
+    },
+    "destination": {
+     "kind": "same_app"
+    },
+    "reversibility": "reversible",
+    "evidence": [],
+    "unknowns": []
+   }
+  },
+  {
+   "action": "click",
+   "selector": {
+    "role": "RadioButton",
+    "title": "{{category}}",
+    "in_focused_window": true
+   },
+   "postcondition": {
+    "field": {
+     "role": "RadioButton",
+     "title": "{{category}}",
+     "in_focused_window": true
+    },
+    "attribute": "Value",
+    "equals": "1"
+   },
+   "safety": {
+    "effects": [
+     "write_ephemeral"
+    ],
+    "data_classes": [
+     "none"
+    ],
+    "resource": {
+     "object_type": "demo expense form",
+     "scope": "entry"
+    },
+    "destination": {
+     "kind": "same_app"
+    },
+    "reversibility": "reversible",
+    "evidence": [],
+    "unknowns": []
+   }
+  },
+  {
+   "action": "set_value",
+   "selector": {
+    "role": "TextField",
+    "title": "금액",
+    "in_focused_window": true
+   },
+   "params": {
+    "value": "{{amount}}",
+    "input_method": "paste"
+   },
+   "postcondition": {
+    "field": {
+     "role": "TextField",
+     "title": "금액",
+     "in_focused_window": true
+    },
+    "attribute": "Value",
+    "equals": "{{amount}}"
+   },
+   "safety": {
+    "effects": [
+     "write_ephemeral"
+    ],
+    "data_classes": [
+     "none"
+    ],
+    "resource": {
+     "object_type": "demo expense form",
+     "scope": "entry"
+    },
+    "destination": {
+     "kind": "same_app"
+    },
+    "reversibility": "reversible",
+    "evidence": [],
+    "unknowns": []
+   }
+  },
+  {
+   "action": "set_value",
+   "selector": {
+    "role": "TextField",
+    "title": "프로젝트 코드",
+    "in_focused_window": true
+   },
+   "params": {
+    "value": "{{project}}",
+    "input_method": "paste"
+   },
+   "postcondition": {
+    "field": {
+     "role": "TextField",
+     "title": "프로젝트 코드",
+     "in_focused_window": true
+    },
+    "attribute": "Value",
+    "equals": "{{project}}"
+   },
+   "safety": {
+    "effects": [
+     "write_ephemeral"
+    ],
+    "data_classes": [
+     "none"
+    ],
+    "resource": {
+     "object_type": "demo expense form",
+     "scope": "entry"
+    },
+    "destination": {
+     "kind": "same_app"
+    },
+    "reversibility": "reversible",
+    "evidence": [],
+    "unknowns": []
+   }
+  },
+  {
+   "action": "set_value",
+   "selector": {
+    "role": "TextField",
+    "title": "적요",
+    "in_focused_window": true
+   },
+   "params": {
+    "value": "{{memo}}",
+    "input_method": "paste"
+   },
+   "postcondition": {
+    "field": {
+     "role": "TextField",
+     "title": "적요",
+     "in_focused_window": true
+    },
+    "attribute": "Value",
+    "equals": "{{memo}}"
+   },
+   "safety": {
+    "effects": [
+     "write_ephemeral"
+    ],
+    "data_classes": [
+     "none"
+    ],
+    "resource": {
+     "object_type": "demo expense form",
+     "scope": "entry"
+    },
+    "destination": {
+     "kind": "same_app"
+    },
+    "reversibility": "reversible",
+    "evidence": [],
+    "unknowns": []
+   }
+  },
+  {
+   "action": "click",
+   "selector": {
+    "role": "Button",
+    "title": "등록",
+    "in_focused_window": true
+   },
+   "postcondition": {
+    "contains": "번째 경비를 등록했습니다: {{merchant}}"
+   },
+   "safety": {
+    "effects": [
+     "write_ephemeral"
+    ],
+    "data_classes": [
+     "none"
+    ],
+    "resource": {
+     "object_type": "demo expense form",
+     "scope": "entry"
+    },
+    "destination": {
+     "kind": "same_app"
+    },
+    "reversibility": "reversible",
+    "evidence": [],
+    "unknowns": []
+   }
+  }
+ ]
+}

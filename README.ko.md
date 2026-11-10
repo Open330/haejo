@@ -25,9 +25,9 @@
 
 ## 실제 앱에서 이런 일을 맡깁니다
 
-[![40초로 보는 Haejo: 요청 한 번에 Safari와 TextEdit에서 일을 하고, 실행 기록으로 확인하고, 저장한 Flow로 모델 호출 없이 다시 실행합니다](docs/assets/haejo-film-poster.ko.jpg)](https://open330.github.io/tacto/#film)
+[![40초로 보는 Haejo: 법인카드 8건을 데모 사내 경비 시스템에 입력하고, 실행 기록으로 확인하고, 다음 달엔 저장한 Flow로 다시 입력합니다](docs/assets/haejo-film-poster.ko.jpg)](https://open330.github.io/tacto/#film)
 
-**40초로 보는 Haejo.** 말하면 바로 해 줍니다. Safari에서 GitHub의 댓글 많은 열린 버그 5개를 찾아 TextEdit 회의 메모로 저장합니다. 모든 호출은 목표·이유와 함께 Haejo 실행 기록에 남고, 한 일을 Flow로 저장하면 다음 주에는 모델 호출 없이 같은 점검을 다시 실행합니다. 앱 화면은 모두 Haejo 호출마다 찍은 실제 캡처입니다. [사이트에서 보기](https://open330.github.io/tacto/#film) · [MP4](sites/haejo/dist/assets/film/haejo-film.ko.mp4)
+**40초로 보는 Haejo.** API도 없는 사내 경비 시스템에 법인카드 영수증 8건 입력, "해줘". Haejo가 칸마다 바로 입력하고, 모든 호출은 목표·이유와 함께 실행 기록에 남습니다. 한 일을 Flow로 저장하면 다음 달 6건은 모델 호출 없이 다시 입력합니다. 경비 시스템은 데모 화면이고, Safari·TextEdit 화면은 모두 Haejo 호출마다 찍은 실제 캡처입니다. [사이트에서 보기](https://open330.github.io/tacto/#film) · [MP4](sites/haejo/dist/assets/film/haejo-film.ko.mp4)
 
 **실제 앱·웹사이트 8개와 공개 테스트 2개, 총 10개 상황의 실행 영상**을 제공합니다.
 위 GIF는 실제 실행 영상의 미리보기입니다. 클릭하면 원본 MP4를 볼 수 있습니다.

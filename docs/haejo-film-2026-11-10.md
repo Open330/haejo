@@ -7,22 +7,27 @@ installed Haejo v1.0.0-rc.39.
 
 ## What the film shows
 
-One real weekly task, in the order a person meets Haejo:
+Tedious work with no API: eight card receipts typed into a company expense
+system, field by field. The expense system is a local demo page
+(`film/demo-expense/`, marked **DEMO** on screen); the card rows in
+`film/data/` are made up. Everything else is real.
 
 | Time | Scene | Source |
 |---|---|---|
-| 0–2.6 s | Title | Drawn |
-| 2.6–13.4 s | **Just ask.** "Find the 5 most-discussed open bugs in vscode and put them in a meeting note." Safari opens the filtered GitHub list, the top 5 are read, a TextEdit note is written and saved | The Haejo calls an agent makes (`open-url`, `run read-top5`, `run memo`, `activate`, `replay textedit_save`), one task with a goal and a reason per call; real window captures after each call |
-| 13.4–18.8 s | **Every call, on the record.** | `HaejoSetup --activity-snapshot` over that task's receipts: goal, request, reasons, 5 calls (the note edit is listed as a failure: TextEdit edits end `commit_unverified`; the following save verified the file) |
-| 18.8–24.6 s | **Saved as Flows.** Safari lane (reload, read top 5) and TextEdit lane (write note, save) | Drawn from `film/weekly-bugs.json` and `film/weekly-memo.json`, saved with `haejo flows save` |
-| 24.6–32.4 s | **Next week: replay.** `haejo replay weekly-bugs`, `weekly-memo -p date=…`, `textedit_save`; a new note for 11/17 | Real replay: 0 model calls, 2.1 s of replay (`HAEJO_TIMINGS.replay_seconds`), save verified; real captures |
-| 32.4–36 s | Finder, Wikipedia, Markdown | The site's own Haejo recordings |
-| 36–40 s | End card with the brand lockup (`haejo-wordmark.svg`) | Drawn |
+| 0–3 s | Title: "법인카드 영수증 8건 입력, \"해줘\"" | Drawn |
+| 3–14.2 s | **8건, "해줘"**: the request; Haejo reads November's statement in TextEdit, then fills the form (the first entry field by field, the other seven one Flow run each) until 8 rows total ₩215,300 | The calls an agent makes (`observe --document`, `activate`, `run` with `--task`/`--why`); real window captures after each call |
+| 14.2–19.4 s | **뭘 했는지 보여줘**: four tasks of the day (weekly issue review, kickoff notes, workshop folder, November expenses) and the expense task's 16 calls with reasons | `HaejoSetup --activity-snapshot` over those tasks' receipts |
+| 19.4–25 s | **그대로 저장해줘**: the seven-step `expense-entry` Flow with its parameters | Drawn from `film/expense-entry.json`, saved with `haejo flows save` |
+| 25–33.2 s | **다음 달에도 "해줘"**: six `haejo replay expense-entry -p …` runs fill December | Real replays: 0 model calls, 22.4 s of replay in total (`HAEJO_TIMINGS.replay_seconds` per row) |
+| 33.2–36.6 s | Finder, TextEdit, Wikipedia | The site's own Haejo recordings |
+| 36–40 s | End card: brand lockup, "Mac에서 귀찮은 일, \"해줘\"" | Drawn |
 
-The prompt and the agent's narration lines are composed for the film; the
-calls under them are the ones that ran. The "next week" note was produced the
-same day, so it lists the same bugs. Safari's tab bar is cropped. Only public
-GitHub pages were read, signed out; both notes are new files.
+The request and the narration lines are composed for the film; the calls under
+them are the ones that ran. `haejo batch` was not used for December: the
+web form needs the paste input route (Safari ignores AX value edits on these
+fields), which batch does not accept, so each row is its own replay. The
+groupware page's Register button is named 등록; a button named 저장 is
+classified as a persistent write, while the demo only keeps rows in the page.
 
 ## Re-shot landing recordings
 
@@ -44,9 +49,9 @@ From the repository root, with the installed Haejo and its grants:
 
 ```sh
 S=$(mktemp -d)
-sites/haejo/film/shoot_weekly.sh "$S"
-.venv/bin/python sites/haejo/film/render.py --plates "$S/plates" --out "$S/film" --lang ko
-.venv/bin/python sites/haejo/film/render.py --plates "$S/plates" --out "$S/film" --lang en
+python3 sites/haejo/film/shoot_expense.py --out "$S/expense" --folder /path/to/an/owned/folder
+.venv/bin/python sites/haejo/film/render.py --plates "$S/expense/plates" --out "$S/film" --lang ko
+.venv/bin/python sites/haejo/film/render.py --plates "$S/expense/plates" --out "$S/film" --lang en
 cp "$S"/film/haejo-film.* sites/haejo/dist/assets/film/
 ```
 

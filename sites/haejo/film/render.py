@@ -2,7 +2,7 @@
 """Render the Haejo film: step film.html through time in headless Chromium.
 
 Each frame calls renderAt(t) (a pure function of t), screenshots the 1920x1080
-stage and streams it to ffmpeg. Plates come from shoot_weekly.sh; browser
+stage and streams it to ffmpeg. Plates come from shoot_expense.py; browser
 clips are the site's own recordings. Writes MP4 (H.264) + WebM (VP9) + poster.
 
   python render.py --plates DIR --out DIR [--lang ko|en] [--preview 2,9,16]
@@ -47,7 +47,7 @@ def main():
             enc.stdin.write(shot(n/FPS))
             if n % 150 == 0: print(f'{a.lang} frame {n}', flush=True)
         enc.stdin.close(); assert enc.wait() == 0
-        (a.out/f'{name}.poster.png').write_bytes(shot(30.2))
+        (a.out/f'{name}.poster.png').write_bytes(shot(31.6))
         browser.close()
     ff = ['ffmpeg', '-hide_banner', '-loglevel', 'error', '-y', '-i', str(raw)]
     subprocess.run(ff+['-c:v', 'libx264', '-preset', 'slow', '-crf', '21', '-tune', 'animation', '-pix_fmt', 'yuv420p',
