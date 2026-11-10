@@ -107,6 +107,12 @@ def run_batch(args, *, make_driver, run_flow, stdin, emit, load_recipe=None):
         emit(str(exc));return 2
     timeout, maximum = 90, 10
     repair_path = None
+    # `--yes` is the user's approval of these rows: confirmation steps run for
+    # every job instead of stopping the batch at the first one.
+    if args.count('--yes') > 1:
+        emit('batch_invalid_option: --yes');return 2
+    approved = '--yes' in args
+    if approved:args = [a for a in args if a != '--yes']
     if '--repair-packet' in args:
         i = args.index('--repair-packet')
         if (args.count('--repair-packet') != 1 or i+1 >= len(args)
@@ -127,9 +133,9 @@ def run_batch(args, *, make_driver, run_flow, stdin, emit, load_recipe=None):
     helper = [] if sys.platform == "win32" else ['--helper']
     files=[v for v in args if v not in ('--helper','--timings')]
     if len(files)!=1 or files[0].startswith('-') or args.count('--helper')!=len(helper) or args.count('--timings')>1:
-        usage = ('usage: batch <flow.json | saved name> [--max-jobs 1..1000] [--idle-timeout 1..600] [--timings] [--repair-packet /absolute/new.json]'
+        usage = ('usage: batch <flow.json | saved name> [--yes] [--max-jobs 1..1000] [--idle-timeout 1..600] [--timings] [--repair-packet /absolute/new.json]'
                  if not helper else
-                 'usage: batch <flow.json | saved name> --helper [--max-jobs 1..1000] [--idle-timeout 1..600] [--timings] [--repair-packet /absolute/new.json]')
+                 'usage: batch <flow.json | saved name> --helper [--yes] [--max-jobs 1..1000] [--idle-timeout 1..600] [--timings] [--repair-packet /absolute/new.json]')
         emit(usage);return 2
     try:
         # A saved name repeats the recipe `haejo replay <name>` runs, so going
@@ -174,7 +180,7 @@ def run_batch(args, *, make_driver, run_flow, stdin, emit, load_recipe=None):
                     driver.close()
                     driver=None
                     driver=BatchDriver(make_driver(list(helper)))
-                flags=[*helper,'--think','0','--no-indicator']
+                flags=[*helper,'--think','0','--no-indicator',*(['--yes'] if approved else [])]
                 if '--timings' in args:flags.append('--timings')
                 if repair_path is not None:
                     flags.extend(['--repair-packet', repair_path])
@@ -195,7 +201,7 @@ def run_batch(args, *, make_driver, run_flow, stdin, emit, load_recipe=None):
                     return interruption_summary(result,len(bound.steps),step_offset=offset,failed=True)
                 try:
                     if auto_repair is None:
-                        code=checked_run_flow(bound,flags,_driver=driver,_confirm=lambda description:False)
+                        code=checked_run_flow(bound,flags,_driver=driver,_confirm=lambda description:approved)
                     else:
                         code,learned=auto_repair.run(recipe,record['params'],flags,
                             driver=driver,run_flow=checked_run_flow,emit=emit)

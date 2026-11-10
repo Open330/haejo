@@ -19,9 +19,9 @@ does not prove submission.
 
 ## Choose the right route and explain the actual blocker
 
-- `session`/`batch` have no approver. Move approved consequential operations to
-  `run --yes`; inability to ask in that route does not require the user to
-  operate the screen.
+- `session` has no approver: approved consequential operations move to
+  `run --yes`, and `batch --yes` carries the approval to every row. The agent
+  keeps operating the screen in both.
 - Use `observe --helper --json` for an observation only. An empty `{}` session
   input is invalid, not a read command or proof of a consent refusal.
 - Reuse unchanged approval within its scope. Ask only for an uncovered action
