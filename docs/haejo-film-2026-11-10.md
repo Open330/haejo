@@ -20,7 +20,7 @@ system, field by field. The expense system is a local demo page
 | 19.4–25 s | **그대로 저장해줘**: the seven-step `expense-entry` Flow with its parameters | Drawn from `film/expense-entry.json`, saved with `haejo flows save` |
 | 25–33.2 s | **다음 달에도 "해줘"**: six `haejo replay expense-entry -p …` runs fill December | Real replays: 0 model calls, 20.7 s of replay in total (`HAEJO_TIMINGS.replay_seconds` per row) |
 | 33.2–36.6 s | Finder, TextEdit, Wikipedia | The site's own Haejo recordings |
-| 36–40 s | End card: brand lockup, "Mac에서 귀찮은 일, \"해줘\"" | Drawn |
+| 36–40 s | End card: brand lockup, "Mac에서 귀찮은 일, \"해줘\"", github.com/Open330/haejo | Drawn |
 
 The request and the narration lines are composed for the film; the calls under
 them are the ones that ran. `haejo batch` was not used for December: the
@@ -37,7 +37,7 @@ classified as a persistent write, while the demo only keeps rows in the page.
 | TextEdit | `film/shoot_everyday.py`: owned note in a new folder; `film/textedit.flow.json`, then built-in `textedit_save` | Edit step `commit_unverified` (postcondition observed); save step verified the disk contents |
 | Finder | `film/shoot_everyday.py`: owned folder of five synthetic files; `film/finder.flow.json` sorts by Kind, then Name | Passed; sidebar and path bar cropped |
 | Workflow test app | `film/shoot_workflow.py`: fixture titled "Haejo Workflow Demo"; the 11-step Flow replayed one step at a time for five input sets | 37, 46, 70, 27, 48; one completion per job in the fixture record |
-| Activity screenshot | `HaejoSetup --activity-snapshot` over 67 run/replay receipts from today's shoot | Calculator, TextEdit and Finder runs, including failed attempts |
+| Activity screenshot | The film's activity frame (`HaejoSetup --activity-snapshot` over the day's four tasks) | 25 runs in 4 tasks; the expense task's request and 16 calls with reasons |
 
 Native clips are built from captures taken after each step (the helper takes
 about 2.3 s per capture), held for their real or fixed intervals. They are
@@ -50,8 +50,8 @@ From the repository root, with the installed Haejo and its grants:
 ```sh
 S=$(mktemp -d)
 python3 sites/haejo/film/shoot_expense.py --out "$S/expense" --folder /path/to/an/owned/folder [--include-task t-…]
-.venv/bin/python sites/haejo/film/render.py --plates "$S/expense/plates" --out "$S/film" --lang ko
-.venv/bin/python sites/haejo/film/render.py --plates "$S/expense/plates" --out "$S/film" --lang en
+.venv/bin/python sites/haejo/film/render.py --plates "$S/expense/plates" --out "$S/film" --lang ko --url github.com/Open330/haejo
+.venv/bin/python sites/haejo/film/render.py --plates "$S/expense/plates" --out "$S/film" --lang en --url github.com/Open330/haejo
 cp "$S"/film/haejo-film.* sites/haejo/dist/assets/film/
 ```
 
