@@ -18,6 +18,13 @@ is separate; it does not authorize the next task. Requests cannot change the
 Flow, target, contracts or checks. Interactive approval is not accepted. Model selection is disabled unless
 `--auto-repair codex` or `--auto-repair claude` is explicitly enabled. Use run for document scope, approval, judgment or a dispatch journal.
 
+A Flow with `"window": {"url": "...", "title": "...", "newest": true}` (saved by
+`session --window-match ... --save`) runs each job in the window that selector
+names at that job's start, on a fresh connection per job; use it when every
+item opens its own popup. Each Flow runs in one window: a step that opens the
+popup belongs to an app-wide Flow, and the work inside the popup to a Flow with
+`"window"`.
+
 Without automatic repair, failure stops the batch. Unknown completion, invalid
 input or observed activation always stops it. Inspect state before deciding what to do next; do not resend completed
 or uncertain jobs. This is connection reuse, not automatic journal resume or
@@ -57,3 +64,11 @@ Read [automatic repair](auto-repair.md) only when enabling this mode. Successful
 jobs use no model. A missing/ambiguous selector may invoke a text-only agent,
 verify a stable checkpoint and replay only the failed suffix. The repaired
 selector is reused for later jobs in this batch. The original file is unchanged.
+
+A template can include `{"action":"wait_until","until":{"contains":"ready"},"timeout_s":1200}`
+for a long transition inside each job. Polling defaults to every 10 seconds and
+the active timeout allows up to 7200 seconds. Unavailable screens pause the
+deadline and contribute to the step's `paused_seconds` and `pauses` diagnostics.
+`--idle-timeout` measures the wait for a request line, so a running wait step
+can outlast it. After the job, the next request receives a fresh idle deadline.
+See [wait details](../../docs/flow-wait-until.md).

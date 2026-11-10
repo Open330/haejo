@@ -501,9 +501,15 @@ def _run_flow(flow, argv, walked: bool = False, *, _driver=None, _confirm=None, 
             print('repair_packet: use one absolute new output path');return 2
         repair_path=argv[k+1]
     driver = _driver if _driver is not None else _make_driver(argv)
+    patient = bool(flow.steps) and flow.steps[0].action=='wait_until'
     if window_id is not None:
-        problem=bind_window(driver,flow.target,window_id)
-        if problem is not None:print(json.dumps(problem));return 1
+        problem=bind_window(driver,flow.target,window_id,patient=patient)
+        if problem is not None:print(json.dumps(problem,ensure_ascii=False));return 1
+    # A session already pinned its window with this selector when it started;
+    # resolving it again could pick a different (newer) matching window.
+    from .window_scope import pin_for_flow
+    problem=pin_for_flow(driver,flow,patient=patient)
+    if problem is not None:print(json.dumps(problem,ensure_ascii=False));return 1
     timed_driver = None
     if document is not None:
         from .document_scope import DocumentScopedDriver, DocumentScopeUnavailable

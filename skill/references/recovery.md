@@ -169,3 +169,11 @@ Finish this session and start an ordinary app-wide session for that operation.
 `window_scope_lost` / `window_scope_changed`: the pinned live window no longer
 matches; list windows again and start a new session. Never adopt another window
 by title alone. The runtime pins process start, window ID and AX window object.
+`window_scope_lost` carries `reason`: `window_closed` (the window server no
+longer has it), `not_on_active_space` (it exists on another Space),
+`enumeration_partial` (on screen but accessibility omitted it; retry shortly),
+`screen_locked`, `display_asleep` or `session_not_on_console` (wait for the
+session; the window was not closed). `window_match_none` / `window_match_ambiguous`
+come from `--window-match` or a Flow `"window"`: the first carries the listing
+`reason`/`unlisted`, the second the `candidates`; add `url=`/`title=` text only
+one window has, or `newest`.

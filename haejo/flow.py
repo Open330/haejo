@@ -33,7 +33,7 @@ from .protocol import Driver, ACTION_PARAMS, REVEAL_CAPABILITY
 FLOW_ACTIONS = {"decide": frozenset({"question", "choices", "into", "branches", "goal",
                                      "extract_from", "compose"})}
 HOST_FLOW_ACTIONS = {'visual': frozenset({'scope', 'max_screens', 'timeout_seconds'}),
-                     'authenticate': frozenset({'grant'})}
+                     'authenticate': frozenset({'grant'}), 'wait_until': frozenset()}
 # The same rule as a `{{name}}` template, or the answer could never be used.
 _NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]{0,39}")
 
@@ -714,6 +714,7 @@ class Postcondition:
     absent_role: str | None = None    # exact observed role token, never a label substring
 
     all_of: list["Postcondition"] = dataclass_field(default_factory=list)
+    exists: bool | None = None        # a uniquely resolved field is present
 
     def primary_check(self, tree: str) -> bool:
         """Commit guards still test their original result, independent of extras."""
@@ -730,6 +731,13 @@ class Postcondition:
     def check(self, tree: str) -> bool:
         if not all(condition.check(tree) for condition in self.all_of):
             return False
+        if self.exists is not None:
+            if self.field is None or self.exists is not True:
+                return False
+            try:
+                self.field.resolve(tree)
+            except LookupError:
+                return False
         if self.absent_role is not None:
             if not isinstance(self.absent_role,str) or not self.absent_role.strip():
                 return False
@@ -740,7 +748,7 @@ class Postcondition:
         if self.absent is not None and self.absent in tree:
             return False
         if self.equals is None and self.contains is None:
-            return self.absent is not None or self.absent_role is not None or bool(self.all_of)
+            return self.absent is not None or self.absent_role is not None or bool(self.all_of) or self.exists is True
         want = _norm(self.equals) if self.equals is not None else None
         if self.field is not None:
             try:
@@ -877,6 +885,9 @@ class Step:
     # that the step landed? A calculator's 408 is an answer; the bold checkbox's
     # "1" is not, and reporting it made "굵게 해줘" reply "결과는 1 입니다".
     answers: bool = False
+    until: Postcondition | None = None
+    timeout_s: float | None = None
+    poll_s: float | None = None
 
 
 @dataclass
@@ -897,6 +908,10 @@ class Flow:
     intents: list = field(default_factory=list)
     # Schema 4: observed literal data is not caller-overridable task input.
     literal_params: dict = field(default_factory=dict)
+    # Which window of `target` to run in, resolved at run start: a selector
+    # ({"url": ..., "title": ..., "newest": true}), never a live window ID —
+    # a popup opened per run has a new ID each time.
+    window: "dict | None" = None
 
     def bind(self, **values) -> "Flow":
         """Return a concrete, runnable Flow with parameters substituted and
@@ -922,7 +937,7 @@ class Flow:
         # an input, as it is for "close the dialog in <app>".
         return Flow(name=self.name, target=_render(self.target, ctx),
                     steps=_bind_steps(self.steps, ctx), schema=self.schema,
-                    tables=deepcopy(self.tables))
+                    tables=deepcopy(self.tables), window=deepcopy(self.window))
 
     def runtime_names(self) -> set:
         """Values produced during a run: captures and decisions, at any depth."""
@@ -985,6 +1000,8 @@ class Flow:
                     "captures": [], "answers": False, "on_uncertain": []}
                 for f in fields(value):
                     item = getattr(value, f.name)
+                    if f.name in ('until', 'timeout_s', 'poll_s', 'exists') and item is None:
+                        continue
                     if isinstance(value, Step) and f.name == "ready_when":
                         if item is not None:
                             out[f.name] = item.to_dict()
@@ -1006,7 +1023,7 @@ class Flow:
             return value
         d = {"name": self.name, "target": encode(self.target), "schema": max(self.schema,3) if any(
             p is not None and p.all_of for st in every_step(self.steps)
-            for p in (st.postcondition, st.skip_if)) else self.schema,
+            for p in (st.postcondition, st.skip_if, st.until)) else self.schema,
              "steps": [encode(s) for s in self.steps]}
         for k in ("params", "tables", "derived", "intents"):
             if getattr(self, k):
@@ -1014,6 +1031,11 @@ class Flow:
         if self.literal_params or literal_params:
             d['literal_params']={**self.literal_params,**literal_params}
             d['schema']=max(d['schema'],4)
+        if self.window:
+            # Schema 5: older runtimes refuse it rather than silently running
+            # a window-bound procedure app-wide.
+            d['window']=dict(self.window)
+            d['schema']=max(d['schema'],5)
         return json.dumps(d, ensure_ascii=False, indent=None if compact else 2,
                           separators=(',', ':') if compact else None)
 
@@ -1025,7 +1047,7 @@ class Flow:
         if not isinstance(d, dict):
             raise ValueError("Flow must be a JSON object")
         schema = d.get("schema", 2)
-        if type(schema) is not int or schema not in (1, 2, 3, 4):
+        if type(schema) is not int or schema not in (1, 2, 3, 4, 5):
             raise ValueError(f"unsupported Flow schema: {schema!r}")
         if schema == 1 and not allow_legacy:
             raise ValueError("schema 1 requires explicit migration to schema 2")
@@ -1036,6 +1058,16 @@ class Flow:
         for key in ("params", "tables", "derived", "literal_params"):
             if key in d and not isinstance(d[key], dict):
                 raise FlowFieldError(f"Flow.{key} must be an object", key, 'Use an object; params example: {"amount":"11"}, with {{amount}} in step values.')
+        if 'window' in d and schema < 5:
+            raise FlowFieldError('Flow.window requires schema 5', 'window', 'Set "schema": 5 (runtimes before it would ignore "window").')
+        if schema == 5 and 'window' not in d:
+            raise FlowFieldError('Flow schema 5 is for a Flow with "window"', 'schema', 'Use schema 2-4, or add "window".')
+        if 'window' in d:
+            from .window_scope import selector_problem
+            problem = selector_problem(d['window'])
+            if problem:
+                raise FlowFieldError('Flow.' + problem if problem.startswith('window.') else 'Flow.window: ' + problem,
+                                     'window', 'Example: "window": {"url": "player.example.com"} or {"title": "Player", "newest": true}.')
         if d.get('literal_params') and schema < 4:
             raise ValueError('literal data requires Flow schema 4')
         for name,value in d.get('literal_params',{}).items():
@@ -1150,12 +1182,12 @@ class Flow:
             s = dict(s)
             if isinstance(s.get("selector"), dict) and s["selector"]:
                 s["selector"] = {**deepcopy(selector_defaults), **deepcopy(s["selector"])}
-            for check in ("postcondition", "skip_if"):
+            for check in ("postcondition", "skip_if", "until"):
                 if isinstance(s.get(check), dict) and s[check]:
                     # An explicitly supplied field replaces the entire shared
                     # field. Defaults never add a predicate to an absent check.
                     s[check] = {**deepcopy(check_defaults), **deepcopy(s[check])}
-            if defaults and s["action"] not in (*FLOW_ACTIONS, 'authenticate'):
+            if defaults and s["action"] not in (*FLOW_ACTIONS, 'authenticate', 'wait_until'):
                 # Explicit null disables inheritance; replay then refuses the
                 # missing contract. Lists replace, resource/destination merge
                 # one level, and every step gets an independent copy.
@@ -1254,6 +1286,8 @@ class Flow:
                 # not "no postcondition" (Codex review of 4a79c11).
                 if not isinstance(pc, dict):
                     raise ValueError(f"{where} must be an object, not {type(pc).__name__}")
+                if where.startswith('until') and set(pc) - set(Postcondition.__dataclass_fields__):
+                    raise ValueError('until has unknown check fields')
                 if pc.get("field") is not None and not isinstance(pc["field"], dict):
                     raise ValueError(f"{where}.field must be an object, not "
                                      f"{type(pc['field']).__name__}")
@@ -1270,21 +1304,24 @@ class Flow:
                     raise ValueError(f'{where}.all_of must contain at most 32 nonempty check objects, depth at most 8')
                 checks=[_post(item,f'{where}.all_of[{j}]',depth+1) for j,item in enumerate(group)]
                 if strict_checks and not checks and all(pc.get(key) is None for key in
-                        ('equals','contains','absent','absent_role')):
+                        ('equals','contains','absent','absent_role','exists')):
                     raise FlowFieldError('check requires a predicate', path+'.'+where,
                         'Use equals:"text" (not value), contains, absent, absent_role or nonempty all_of. '
                         'For a field value use field:{"identifier":"observed-id"}, equals:"text", attribute:"Value".')
                 pf = _optional_selector(pc, "field", f"{where}.field")
                 if pc.get('absent_role') is not None and not pc['absent_role'].strip():
                     raise ValueError(f'{where}.absent_role must name a role')
+                if 'exists' in pc and (pc['exists'] is not True or pf is None):
+                    raise ValueError(f'{where}.exists requires true and a field selector')
                 return Postcondition(field=pf, equals=pc.get("equals"),
                                      contains=pc.get("contains"),
                                      absent=pc.get("absent"),
                                      absent_role=pc.get("absent_role"),
-                                     attribute=pc.get("attribute"), all_of=checks)
+                                     attribute=pc.get("attribute"), all_of=checks, exists=pc.get('exists'))
 
             post = _post(s.get("postcondition"), "postcondition")
             skip_if = _post(s.get("skip_if"), "skip_if")
+            until = _post(s.get('until'), 'until') if s['action'] == 'wait_until' else None
             contract = None
             if s.get("safety"):
                 from .contract import Resource, Destination, Evidence
@@ -1303,6 +1340,16 @@ class Flow:
             binding = None
             if s.get("binding"):
                 binding = schema_object(ContextBinding, s["binding"], path+".binding")
+            if s['action'] == 'wait_until':
+                from .flow_wait import step_problem
+                problem = step_problem(Step('wait_until', selector=sel, params=payload,
+                    safety=contract, until=until, timeout_s=s.get('timeout_s'), poll_s=s.get('poll_s'),
+                    postcondition=post, skip_if=skip_if, binding=binding,
+                    captures=_captures_from(s), expect=s.get('expect')))
+                if problem:
+                    raise FlowFieldError(problem, path, 'Use until:{"contains":"observed text"}, timeout_s:7200, poll_s:10.')
+            elif any(s.get(key) is not None for key in ('until', 'timeout_s', 'poll_s')):
+                raise ValueError('until/timeout_s/poll_s belong to wait_until')
             return Step(action=s["action"], selector=sel,
                               params=payload,
                               risk_class=s.get("risk_class", "none"),
@@ -1317,16 +1364,18 @@ class Flow:
                               captures=_captures_from(s),
                               skip_if=skip_if, answers=s.get("answers", False),
                               on_uncertain=list(s.get("on_uncertain", [])),
-                              ready_when=_ready_hint(s.get("ready_when")))
+                              ready_when=_ready_hint(s.get("ready_when")),
+                              until=until, timeout_s=s.get('timeout_s'), poll_s=s.get('poll_s'))
         steps = [parse(s, f"steps[{i}]") for i, s in enumerate(d["steps"])]
         if any(p is not None and p.all_of for st in every_step(steps)
-               for p in (st.postcondition, st.skip_if)):
+               for p in (st.postcondition, st.skip_if, st.until)):
             schema=max(schema,3)
         return Flow(name=d["name"], target=d["target"], steps=steps,
                     schema=schema,
                     params=d.get("params", {}), tables=d.get("tables", {}),
                     derived=d.get("derived", {}), intents=_intents_from(d),
-                    literal_params=d.get('literal_params',{}))
+                    literal_params=d.get('literal_params',{}),
+                    window=dict(d['window']) if 'window' in d else None)
 
 
 # Endings that make a word the sentence's predicate — how the thing is asked
@@ -1745,7 +1794,7 @@ def _render_step(st: "Step", ctx: dict) -> "Step":
                              contains=_render(p.contains, ctx),
                              absent=_render(p.absent, ctx), attribute=p.attribute,
                              absent_role=_render(p.absent_role,ctx),
-                             all_of=[render_post(child) for child in p.all_of])
+                             all_of=[render_post(child) for child in p.all_of], exists=p.exists)
 
     post = render_post(st.postcondition)
     # The contract and its binding describe THIS concrete action, so they are
@@ -1804,6 +1853,7 @@ def _render_step(st: "Step", ctx: dict) -> "Step":
                 captures=[replace(c, field=render_sel(c.field))
                           for c in st.captures],
                 skip_if=render_post(st.skip_if), answers=st.answers,
+                until=render_post(st.until), timeout_s=st.timeout_s, poll_s=st.poll_s,
                 on_uncertain=list(st.on_uncertain),
                 ready_when=None if st.ready_when is None else ReadyHint(
                     render_sel(st.ready_when.field), st.ready_when.attribute,
@@ -2347,7 +2397,7 @@ def _reveal_texts(selector):
 
 def _absence_only(post) -> bool:
     """Does `post` only assert that things are gone (absent / absent_role)?"""
-    if post is None or post.equals is not None or post.contains is not None:
+    if post is None or post.equals is not None or post.contains is not None or post.exists is not None:
         return False
     if post.absent is None and post.absent_role is None and not post.all_of:
         return False
@@ -2456,7 +2506,7 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
                     if hasattr(driver,'protect_value'):driver.protect_value(value)
     last_checkpoint_index = None
     last_checkpoint = None
-    if type(flow.schema) is not int or flow.schema not in (2, 3, 4):
+    if type(flow.schema) is not int or flow.schema not in ((2, 3, 4, 5) if flow.window else (2, 3, 4)):
         res.record(status="error", error="unsupported_schema",
                    detail="migrate the flow to schema 2 before execution")
         return res
@@ -2490,7 +2540,7 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
         used = json.dumps([asdict(st.selector) if st.selector else None, st.params],
                           ensure_ascii=False, default=str)
         names = [name for name in decided if "{{%s}}" % name in used]
-        if names and (st.safety is None or policy(st.safety).risk != "none"):
+        if names and st.action != 'wait_until' and (st.safety is None or policy(st.safety).risk != "none"):
             # Asked at the moment the value exists, or not at all. A contract
             # and a binding are what the consent is bound to.
             if confirm is None or st.safety is None or st.binding is None \
@@ -2501,6 +2551,14 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
             ask_then[i] = names
 
     for i, step in enumerate(flow.steps):
+        if step.action == 'wait_until':
+            from .flow_wait import step_problem
+            problem = step_problem(step)
+            if problem:
+                res.record(status='error', step=i, action='wait_until', error='invalid_wait',
+                           detail=problem, effect='none')
+                return res
+            continue
         if step.action == 'authenticate':
             from .credential_flow import preflight
             from .credential_grants import CredentialStore
@@ -2622,7 +2680,7 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
     # A decide step acts on nothing, so it has nothing to contract for; what
     # its answer may reach is checked above.
     missing = [i for i, st in enumerate(flow.steps)
-               if st.safety is None and st.action not in (*FLOW_ACTIONS, 'authenticate')]
+               if st.safety is None and st.action not in (*FLOW_ACTIONS, 'authenticate', 'wait_until')]
     if missing:
         res.record(status="error", error="contract_required",
                    detail=f"steps {missing} require a safety contract")
@@ -2636,7 +2694,10 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
     host_expected = deepcopy(configured_expected or {})
     if hasattr(driver, "protect_captures"):
         driver.protect_captures([c for s in flow.steps for c in s.captures if c.sensitive])
-    obs = _replay_observation(driver.observe, flow.target, "tree_full")
+    # A leading wait owns its first observation, including a locked/absent
+    # window. Its paused clock can outlive initial UI unavailability.
+    obs = ({'type': 'observation', 'tree': ''} if flow.steps and flow.steps[0].action == 'wait_until'
+           else _replay_observation(driver.observe, flow.target, "tree_full"))
     if obs.get("error") == "no_window_content" and flow.steps \
             and flow.steps[0].action in ("menu", "open_folder", "reopen_window", "close_menu", "status_item"):
         # "Finder 열어줘" starts from an app with no window at all. Menus are
@@ -2676,7 +2737,7 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
         # focus may be on it now, so nothing more is sent to it in this run —
         # only reads continue (Codex review of b8a1113). What that step did
         # stays done; this stops what would come next.
-        if seen_in_front() and step.action != "read":
+        if seen_in_front() and step.action not in ("read", 'wait_until'):
             res.record(status="error", step=i, action=step.action, error="target_seen_in_front",
                        effect="not_started",
                        detail="앞 단계 뒤에 대상 앱이 맨 앞에 있는 것이 관찰되어, 이 단계부터는 보내지 않았습니다")
@@ -2695,6 +2756,14 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
                        error="runtime_value_missing", effect="not_started",
                        detail="a required parameter, capture, or table value is unavailable")
             return res
+        if step.action == 'wait_until':
+            from .flow_wait import run_step
+            if narrate and step.intent_text:
+                narrate(step.intent_text)
+            obs = run_step(driver, flow.target, step, i, res)
+            if obs is None:
+                return res
+            continue
         if i in ask_then:
             # The whole of anything a model wrote; consent to part of a
             # message is not consent to the message.

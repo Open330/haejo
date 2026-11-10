@@ -103,6 +103,31 @@ It remains available while other connections own windows in that app. Start
 `run`/`replay`/`observe`. IDs belong to the current OS windows and are never saved
 inside a Flow. `--document` remains a separate app-wide TextEdit route.
 
+`--window-match` chooses the window when the command starts instead:
+`url=<host[/path]>` or a full URL (browser pages list origin and path; query
+and fragment are never listed), `title=<substring>` and `newest` (highest
+window ID among matches, i.e. the most recently opened; combine it with `url`
+or `title`). The host matches on a label boundary (`example.com` covers
+`player.example.com`, not `badexample.com`), a given scheme must be equal, and
+the path is a case-sensitive prefix; titles match case-insensitively. When
+nothing matches yet it re-lists for up to 10 s, which covers a popup still
+opening; a Flow that starts with `wait_until` also waits through a locked or
+sleeping screen (up to 6 h) and a window on another Space (up to 30 min).
+`session --window-match ... --save` stores the selector as the Flow's
+`"window": {"url": ...}` with `"schema": 5`, so runtimes that predate it refuse
+the file instead of running it app-wide. `run`, `replay`, `do` and `batch`
+resolve it at start (a session keeps the window it pinned when it started),
+and `batch` opens one connection per job so each job finds that job's window.
+
+The `windows` reply also cross-checks the window server (ids and on-screen
+flags only, no titles or screen recording): each row has `on_screen`; windows
+the server has but accessibility omits are under `unlisted` with
+`not_on_active_space` or `enumeration_partial`; `screen` reports
+`locked`/`display_asleep`/`on_console`; an empty list carries `reason`
+(`screen_locked`, `display_asleep`, `session_not_on_console`,
+`windows_not_listed`). `window_scope_lost` carries the same kind of `reason`,
+plus `window_closed`.
+
 A window session takes shared app ownership and exclusive ownership of one
 process-start/window-ID/AX-window-object identity. Different windows may have
 independent connections. Scoped observations contain only the selected window.

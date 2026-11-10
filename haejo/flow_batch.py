@@ -166,6 +166,14 @@ def run_batch(args, *, make_driver, run_flow, stdin, emit, load_recipe=None):
                     return 2
                 if bound.target!=recipe.target:
                     emit('HAEJO_BATCH_STOP target_mismatch');return 2
+                if recipe.window and number>1:
+                    # A connection stays pinned to the window it first scoped.
+                    # The window this selector names is usually a new one each
+                    # job (a popup opened per item), so each job gets a fresh
+                    # connection and resolves the selector again.
+                    driver.close()
+                    driver=None
+                    driver=BatchDriver(make_driver(list(helper)))
                 flags=[*helper,'--think','0','--no-indicator']
                 if '--timings' in args:flags.append('--timings')
                 if repair_path is not None:

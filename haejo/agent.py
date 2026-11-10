@@ -654,6 +654,12 @@ class Agent:
 
     # ------------------------------------------------------------ consent
 
+    def pin_window(self, flow: Flow):
+        """A window-bound procedure never runs app-wide: pin the window its
+        selector names, or return the refusal. None when nothing to pin."""
+        from .window_scope import pin_for_flow
+        return pin_for_flow(self.driver, flow, patient=_leads_with_wait(flow))
+
     def authorize(self, flow: Flow, ask: Callable[[str], bool] | None = None
                   ) -> tuple[dict, list[str]]:
         """Collect the consent a flow needs BEFORE any of it runs.
@@ -866,6 +872,9 @@ class Agent:
         except Exception as exc:
             return Turn("failed", f"저장 결과를 검증할 준비를 하지 못했어요: {exc}", flow.name)
         hooks = self.commit_adapter_hooks(receipt)
+        problem = self.pin_window(flow)
+        if problem is not None:
+            return Turn("failed", f"이 절차가 쓰는 창을 찾지 못했어요: {problem.get('error')}", flow.name)
         walk = None
         if self.general is not None:
             def walk(goal, question, choice):
@@ -1184,3 +1193,7 @@ if __name__ == "__main__":
     print("USER: 계산기로 12 곱하기 34 해줘\n")
     t = a.handle("계산기로 12 곱하기 34 해줘")
     print(f"\nBOT [{t.status}]: {t.say}")
+
+
+def _leads_with_wait(flow):
+    return bool(flow.steps) and flow.steps[0].action == 'wait_until'

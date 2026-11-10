@@ -586,6 +586,50 @@ def inline_options(args):
     return rest, goal, finish
 
 
+REUSE_HINT_AT = 2
+
+
+def flow_shape(flow):
+    """What makes two one-off session Flows "the same procedure": target,
+    name and each step's action and role. Values (titles, typed text) differ
+    per item and are left out."""
+    from .flow import every_step
+    parts = [flow.target, flow.name]
+    for step in every_step(flow.steps):
+        role = getattr(getattr(step, 'selector', None), 'role', None)
+        parts.append(f'{step.action}:{role or ""}')
+    return hashlib.sha256('\x1f'.join(parts).encode('utf-8', 'surrogatepass')).hexdigest()[:16]
+
+
+def note_session_success(flow):
+    """Count a successful unsaved session Flow by shape; return a reuse hint
+    the run it reaches REUSE_HINT_AT in this task, else None."""
+    binding = current.get()
+    if binding is None or not binding.admitted or binding.ended:
+        return None
+    try:
+        shape = flow_shape(flow)
+        with _locked(binding.directory):
+            _append(binding.directory, {'event': 'invocation_shape', 'invocation': binding.invocation, 'shape': shape})
+            seen = 0
+            with open(binding.directory / 'events.jsonl', encoding='utf-8') as handle:
+                for line in handle:
+                    if shape in line:
+                        try:
+                            row = json.loads(line)
+                        except ValueError:
+                            continue
+                        seen += row.get('event') == 'invocation_shape' and row.get('shape') == shape
+    except (OSError, ValueError, TypeError, AttributeError):
+        return None
+    if seen != REUSE_HINT_AT:
+        return None
+    return ('HAEJO_HINT reuse: this task has now run the same Flow shape '
+            f'{seen} times. Save it once with `haejo session {flow.target} --helper --reuse-guide --save /abs/flow.json` '
+            '(item values as {{params}}; a per-item popup as "window": {"url": "..."}), then repeat it with '
+            '`haejo batch /abs/flow.json --helper`, one {"params":{...}} line per item.')
+
+
 def note_flow(name, source=None):
     """Tie a flow run to the current task invocation, if there is one."""
     binding = current.get()

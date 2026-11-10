@@ -150,6 +150,10 @@ def session_guide(target, *, reusable=False, document=None, save=False, steps=Fa
         'Persistent writes/sending need their actual contract, binding and completion evidence; '
         'for steps the user already approved use run --yes within that scope. ')
         + details
+        + ('' if document is not None or target == 'com.apple.calculator' else
+           'Same procedure for many items (N lessons, rows, files): author it once with --reuse-guide --save, then '
+           '`haejo batch <file> --helper` with one {"params":{...}} line per item; a window that opens per item is chosen by '
+           '--window-match url=... (saved as the Flow\'s "window"). ')
         + "Inspect uncertain outcomes before retrying. Send one minified JSON line plus newline on this session."
     )
 

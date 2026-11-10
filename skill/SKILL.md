@@ -48,10 +48,17 @@ Details and manual lifecycle controls: [task](references/task.md).
 - **Saved flow:** `haejo list`, `haejo show <name> --compact`, `haejo replay <name> --helper`; keep a working flow file with `haejo flows save <file>` (`haejo flows` lists, renames and removes them).
   For repeated runs use `haejo batch <name> --helper` and [batch](references/batch.md).
   Read [reuse](references/reuse.md) only to save/parameterize a new template.
-- **Concurrent windows:** `haejo windows <bundle-id> --helper`, then
-  `session <bundle-id> --window-id <current ID> --helper --guide` for window AX
-  work. App-wide menus, keys and pointer work use an ordinary session; live
-  window IDs are not reusable Flow data.
+- **Concurrent windows:** `haejo windows <bundle-id> --helper` lists windows
+  with `url` for browser pages, plus `unlisted` (`not_on_active_space`,
+  `enumeration_partial`) and a `reason` such as `screen_locked` when the list is
+  empty. `session <bundle-id> --window-match url=<text> --helper --guide`
+  (also `title=<text>`, `newest`) picks the window by page and `--save` stores
+  that selector as the Flow's `"window"`, so `run`/`batch` find the new popup
+  each time; `--window-id <current ID>` pins one live window for this run only.
+  App-wide menus, keys and pointer work use an ordinary session.
+- **Same procedure for many items:** after one item works, save it with
+  `--reuse-guide --save` and run the rest through `haejo batch`; a
+  `HAEJO_HINT reuse` line appears once a task repeats the same session Flow.
 - **Login:** approved user-provided values can use `set_value`/`run --yes`;
   a Vault grant is not required for those values. Existing delegated secrets:
   `haejo auth login <grant> --helper`. Read [credentials](references/credentials.md)
