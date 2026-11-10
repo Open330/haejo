@@ -151,7 +151,7 @@ def resolve_window(driver, target, selector, *, wait=None, sleep=time.sleep, clo
     window is on another Space; that time does not use up `wait`.
     """
     paused = 0.0
-    pause_started = None
+    pause_started = pause_limit = None
     listing = getattr(driver, 'windows', None)
     if listing is None or 'observe.window_list' not in getattr(driver, 'capabilities', ()):
         return None, {'type': 'error', 'error': 'window_list_unavailable', 'effect': 'not_started'}
@@ -163,6 +163,16 @@ def resolve_window(driver, target, selector, *, wait=None, sleep=time.sleep, clo
             return None, {'type': 'error', 'error': 'window_list_unavailable', 'effect': 'not_started'}
         if reply.get('type') != 'windows' and not (patient and reply.get('reason') in PAUSE_REASONS):
             return None, reply
+        # Settle the pause that ended with this poll (measured, so host sleep
+        # or oversleep counts) before anything is accepted.
+        if pause_started is not None:
+            spent = polled - pause_started
+            paused += spent
+            deadline += spent
+            pause_started = None
+            if paused >= pause_limit:
+                return None, {'type': 'error', 'error': 'window_match_paused_too_long', 'effect': 'not_started',
+                              'selector': selector, 'paused_seconds': round(paused, 3)}
         rows = [r for r in reply.get('windows', []) if isinstance(r, dict) and type(r.get('window_id')) is int]
         found = [r for r in rows if _matches(r, selector)]
         if found and (len(found) == 1 or selector.get('newest')):
@@ -177,15 +187,8 @@ def resolve_window(driver, target, selector, *, wait=None, sleep=time.sleep, clo
         elsewhere = any(isinstance(r, dict) and r.get('reason') == 'not_on_active_space'
                         for r in reply.get('unlisted', ()))
         limit = MAX_PAUSE_SECONDS if locked else OTHER_SPACE_PAUSE_SECONDS if elsewhere else 0
-        # Paused time is measured, from the poll that saw the pause until the
-        # next poll, and extends the deadline by exactly that much.
-        if pause_started is not None:
-            spent = polled - pause_started
-            paused += spent
-            deadline += spent
-            pause_started = None
         if patient and limit and paused < limit:
-            pause_started = polled
+            pause_started, pause_limit = polled, limit
             sleep(PAUSE_POLL_SECONDS)
             continue
         if reply.get('type') != 'windows':

@@ -147,6 +147,17 @@ class UrlMatching(unittest.TestCase):
         self.assertEqual('window_list_unavailable', resolve_window(Windows(error_lock), 'x', {'url': 'player.example.com'},
                                                                    sleep=lambda s: None, clock=lambda: 0)[1]['error'])
 
+    def test_a_resume_after_the_pause_cap_is_refused(self):
+        now = [0.0]
+        def sleep(seconds):
+            now[0] += 30          # host suspended past the cap
+        locked = {'type': 'windows', 'windows': [], 'reason': 'screen_locked'}
+        with patch('haejo.window_scope.MAX_PAUSE_SECONDS', 20):
+            window_id, error = resolve_window(Windows(locked, [PLAYER]), 'x', {'url': 'player.example.com'},
+                                              sleep=sleep, clock=lambda: now[0], patient=True)
+        self.assertIsNone(window_id)
+        self.assertEqual('window_match_paused_too_long', error['error'])
+
     def test_explicit_ports_must_match(self):
         from haejo.window_scope import url_matches
         self.assertFalse(url_matches('https://player.example.com:8443/play', 'https://player.example.com:9443/play'))
