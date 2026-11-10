@@ -56,6 +56,8 @@ Details and manual lifecycle controls: [task](references/task.md).
   that selector as the Flow's `"window"`, so `run`/`batch` find the new popup
   each time; `--window-id <current ID>` pins one live window for this run only.
   App-wide menus, keys and pointer work use an ordinary session.
+  To run 2-4 windows at once, put one inline Flow per `window_id` in a manifest and
+  call `haejo parallel jobs.json --helper --json` (`haejo parallel --help`).
 - **Same procedure for many items:** after one item works, save it with
   `--reuse-guide --save` and run the rest through `haejo batch`; a
   `HAEJO_HINT reuse` line appears once a task repeats the same session Flow.
