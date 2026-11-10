@@ -82,7 +82,7 @@
     <main id="main" tabindex="-1">
       <section class="hero wrap">
         <div class="hero-copy">
-          <a class="release-pill" href="https://github.com/Open330/tacto/releases/tag/v1.0.0-rc.13"><span class="signal"></span> TACTO 1.0.0 RC13 <span>Now named Haejo</span><svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><use href="../assets/ui-icons.svg#arrow-up-right"></use></svg></a>
+          <a class="release-pill" href="https://github.com/Open330/tacto/releases/tag/v1.0.0-rc.39"><span class="signal"></span> HAEJO 1.0.0 RC39 <span>Renamed from Tacto</span><svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24"><use href="../assets/ui-icons.svg#arrow-up-right"></use></svg></a>
           <h1>Ask Haejo to<br /><span>use your apps.</span></h1>
           <p class="hero-description">It opens your apps, does the work and checks the result.<br />Then it remembers the steps for next time.</p>
           <div class="hero-actions">
@@ -277,12 +277,12 @@
         <div class="onboarding-heading">
           <h2>Move the app,<br />connect your agent.</h2>
           <p>
-            Haejo 1.0.0-rc.13 is a release-candidate DMG for Apple Silicon,
+            Haejo 1.0.0-rc.39 is a release-candidate DMG for Apple Silicon,
             currently in stable-release qualification. Anyone can download it;
             it was verified on macOS 27.0.1 · Apple Silicon.
           </p>
           <div>
-            <a class="button primary" href="https://github.com/Open330/tacto/releases/download/v1.0.0-rc.13/Haejo-1.0.0-rc.13-arm64.dmg"
+            <a class="button primary" href="https://github.com/Open330/tacto/releases/download/v1.0.0-rc.39/Haejo-1.0.0-rc.39-arm64.dmg"
               >Download Haejo for Mac
               <svg
                 class="ui-icon"
@@ -344,7 +344,7 @@
                 Haejo from Applications. If you open it directly inside the read-only
                 DMG, it will ask you to move it first.
               </p>
-              <a href="https://github.com/Open330/tacto/releases/tag/v1.0.0-rc.13" target="_blank" rel="noopener noreferrer"
+              <a href="https://github.com/Open330/tacto/releases/tag/v1.0.0-rc.39" target="_blank" rel="noopener noreferrer"
                 >Haejo release candidate notes
                 <svg
                   class="ui-icon"
@@ -369,7 +369,7 @@
                   >
                     Copy
                   </button>
-                  <pre><code id="install-command">git clone https://github.com/Open330/tacto.git
+                  <pre><code id="install-command">git clone https://github.com/Open330/tacto.git haejo
 cd haejo
 uv sync
 ./build.sh
@@ -394,13 +394,13 @@ uv sync
           <li>
             <span class="step-number">02</span>
             <div>
-              <h3>Turn on two macOS permissions</h3>
+              <h3>Turn on macOS permissions</h3>
               <p>
                 In the Haejo window, under <span lang="ko">‘1. Mac 권한’</span> (Mac permissions), press
                 <span lang="ko">‘설정 열기’</span> (Open Settings) for each item and follow the guide beside it:
                 allow app control for <strong>Haejo Helper</strong> and screen recording
-                for <strong>Haejo</strong>. If you are switching from Preview 8 or earlier,
-                grant each permission again to the new Haejo app. After connecting your
+                for <strong>Haejo</strong> (screen recording is optional). If you are upgrading from Tacto,
+                the app identity changed, so grant each permission again to the new Haejo app. After connecting your
                 agent in step 3, you can also check from the terminal with the command below.
               </p>
               <div class="inline-command">

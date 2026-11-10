@@ -206,7 +206,7 @@
    "action": "set_value",
    "selector": {
     "role": "TextField",
-    "title": "적요",
+    "title": "사용 내용",
     "in_focused_window": true
    },
    "params": {
@@ -216,7 +216,7 @@
    "postcondition": {
     "field": {
      "role": "TextField",
-     "title": "적요",
+     "title": "사용 내용",
      "in_focused_window": true
     },
     "attribute": "Value",

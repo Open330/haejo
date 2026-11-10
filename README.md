@@ -15,11 +15,11 @@ It saves the steps as a reusable **Flow**, so next time it runs with new inputs 
 [![Claude + Codex](docs/assets/badge-agents.svg)](skill/SKILL.md)
 [![Status](docs/assets/badge-status.svg)](#getting-started)
 
-[Release candidate](https://github.com/Open330/tacto/releases/tag/v1.0.0-rc.13) · [How it works](#how-it-works) · [Benchmarks](#benchmarks) · [Documentation](#documentation)
+[Release candidate](https://github.com/Open330/tacto/releases/tag/v1.0.0-rc.39) · [How it works](#how-it-works) · [Benchmarks](#benchmarks) · [Documentation](#documentation)
 
 </div>
 
-> **Renamed from Tacto (2026-11-09).** Release candidates up to v1.0.0-rc.13 were published as Tacto (`Tacto.app`, `tacto` command). The next release ships as Haejo. [What changes when you upgrade](docs/haejo-branding.md)
+> **Renamed from Tacto (2026-11-09).** Release candidates up to v1.0.0-rc.13 were published as Tacto (`Tacto.app`, `tacto` command); v1.0.0-rc.39 is the first Haejo release. [What changes when you upgrade](docs/haejo-branding.md)
 
 ## See it work in real apps
 
@@ -123,28 +123,26 @@ A separate development test completed ten jobs with zero replay-time model calls
 
 ## Get started
 
-**1.0.0-rc.13 release candidate for Apple Silicon Macs on macOS 27.0.1.**
+**1.0.0-rc.39 release candidate for Apple Silicon Macs on macOS 27.0.1** — the first release under the Haejo name.
 
-[Release candidate](https://github.com/Open330/tacto/releases/tag/v1.0.0-rc.13). Download the notarized DMG, drag `Haejo.app` into `Applications`, and follow setup. rc.13 allows task-approved credential entry without mandatory Vault registration and adds explicitly scoped same-app AX window concurrency. Contention waits before dispatch; cancelled requests do not execute later. Existing scoped Vault login, in-app activity/settings, TextEdit first task and optional warm startup remain available. Signed app/DMG notarization, artifact/security checks and identical-bundle installation on three Macs passed. Regression: 3,046 cases, 20 skips, no unresolved failures/errors; see release validation for the initial documentation failure and its recheck. Stable qualification remains separate.
+1. [Download the notarized DMG](https://github.com/Open330/tacto/releases/download/v1.0.0-rc.39/Haejo-1.0.0-rc.39-arm64.dmg) ([release notes and validation](https://github.com/Open330/tacto/releases/tag/v1.0.0-rc.39)).
+2. Open it, drag `Haejo.app` into `Applications`, then open Haejo from `Applications`.
+3. In **1. Mac permissions**, press **Open Settings** and allow app control for **Haejo Helper** (screen recording for **Haejo** is optional).
+4. In **2. Connect agent**, connect Claude Code or Codex. This links the `haejo` command and skill.
+5. **3. First task** opens a fresh Claude Code or Codex conversation that creates and verifies a TextEdit welcome note. Check anytime with `~/.local/bin/haejo doctor`.
 
-The rc.13 binary is pinned to source `f9f85c8`. Use the skill linked by the installed app for version-matched instructions.
+Upgrading from Tacto: install Haejo the same way. Your Tacto data moves to the Haejo folders, and because the app identity changed, macOS asks for both permissions again. [What changes](docs/haejo-branding.md)
 
-This is a **release candidate, not yet the approved stable release**. Stable qualification still needs a person-run fresh install, three permission revocation/regrant cycles and a limited beta ([guide](docs/beta-participant-guide.md)).
+Haejo runs in the menu bar without a Dock icon. Close the window to leave it in the background; the menu bar icon reopens it or quits.
 
-After setup, **Start first task** detects Claude Code or Codex and opens a fresh CLI conversation with one fixed Haejo command. The command launches TextEdit if needed, creates a new document and verifies its welcome text without an internal model call. The agent CLI may still ask for its normal trust or login confirmation.
-
-Haejo runs in the menu bar without a Dock icon. Close the settings window to leave it in the background; use the menu bar icon to reopen settings or quit.
-
-Installation, permissions, Claude/Codex connection and upgrades were verified on three Macs; on a second Mac, fresh Claude Code and Codex conversations completed a first Finder task. Other macOS versions, a person-run fresh install and the beta remain unverified. Windows and Intel Mac builds are not provided. The bundled onboarding UI and detailed guides are currently primarily Korean; this README is available in both languages.
-
-Under the previous development signature, Finder and Safari completed 40 tasks. The first 20 TextEdit saves required the user to bring the app forward; all 20 retries then passed. Those initial failures remain in the record. These results are not unattended 60/60 success or approval of the newly signed DMG. [Release evidence and remaining checks](docs/release-readiness.md) · [Installation details](docs/installation.md).
+The rc.39 DMG is built from source `225b613`: 3,583 regression cases with no failures, Apple notarization and Gatekeeper accepted, the identical bundle installed on three Macs with data and permissions checked. It is a **release candidate, not the approved stable release**; a person-run fresh install, permission revoke/regrant cycles and a limited beta remain ([guide](docs/beta-participant-guide.md)). Windows and Intel Mac builds are not provided. The in-app onboarding is currently Korean-first. [Release evidence](docs/release-readiness.md) · [Installation details](docs/installation.md)
 
 ### Build from source
 
 Requires Python 3.11+, [uv](https://docs.astral.sh/uv/), Xcode Command Line Tools, and an Apple-issued code-signing certificate. The launcher and helper must be signed by the same team.
 
 ```sh
-git clone https://github.com/Open330/tacto.git
+git clone https://github.com/Open330/tacto.git haejo
 cd haejo
 uv sync
 ./build.sh
@@ -334,7 +332,7 @@ Release candidate · [MIT License](LICENSE)
 [Preview 3 runtime update](docs/runtime-update-2026-10-19.md)
 
 
-rc.13 supports `haejo windows <bundle-id> --helper` for compact
+Haejo supports `haejo windows <bundle-id> --helper` for compact
 window IDs, then `haejo session <bundle-id> --window-id ID --helper --guide` for
 independent AX work in different windows of the same app. App-wide operations
 stay exclusive. See [helper execution](docs/helper-execution.md).

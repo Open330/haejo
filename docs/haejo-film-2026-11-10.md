@@ -18,7 +18,7 @@ system, field by field. The expense system is a local demo page
 | 3–14.2 s | **8건, "해줘"**: the request; Haejo reads November's statement in TextEdit, then fills the form (the first entry field by field, the other seven one Flow run each) until 8 rows total ₩215,300 | The calls an agent makes (`observe --document`, `activate`, `run` with `--task`/`--why`); real window captures after each call |
 | 14.2–19.4 s | **뭘 했는지 보여줘**: four tasks of the day (weekly issue review, kickoff notes, workshop folder, November expenses) and the expense task's 16 calls with reasons | `HaejoSetup --activity-snapshot` over those tasks' receipts |
 | 19.4–25 s | **그대로 저장해줘**: the seven-step `expense-entry` Flow with its parameters | Drawn from `film/expense-entry.json`, saved with `haejo flows save` |
-| 25–33.2 s | **다음 달에도 "해줘"**: six `haejo replay expense-entry -p …` runs fill December | Real replays: 0 model calls, 22.4 s of replay in total (`HAEJO_TIMINGS.replay_seconds` per row) |
+| 25–33.2 s | **다음 달에도 "해줘"**: six `haejo replay expense-entry -p …` runs fill December | Real replays: 0 model calls, 20.7 s of replay in total (`HAEJO_TIMINGS.replay_seconds` per row) |
 | 33.2–36.6 s | Finder, TextEdit, Wikipedia | The site's own Haejo recordings |
 | 36–40 s | End card: brand lockup, "Mac에서 귀찮은 일, \"해줘\"" | Drawn |
 
@@ -49,7 +49,7 @@ From the repository root, with the installed Haejo and its grants:
 
 ```sh
 S=$(mktemp -d)
-python3 sites/haejo/film/shoot_expense.py --out "$S/expense" --folder /path/to/an/owned/folder
+python3 sites/haejo/film/shoot_expense.py --out "$S/expense" --folder /path/to/an/owned/folder [--include-task t-…]
 .venv/bin/python sites/haejo/film/render.py --plates "$S/expense/plates" --out "$S/film" --lang ko
 .venv/bin/python sites/haejo/film/render.py --plates "$S/expense/plates" --out "$S/film" --lang en
 cp "$S"/film/haejo-film.* sites/haejo/dist/assets/film/

@@ -99,7 +99,7 @@ const TEXT={ko:{
  lines:[['acc','● 카드 사용내역 읽기 · 8건'],['acc','● 경비 시스템 열기'],['acc','● 1/8 스타벅스 역삼점 · 칸마다 입력'],['acc','● 2/8 … 8/8 등록'],['ok','✓ 8건 등록 · 합계 215,300원']],
  count:n=>`${n}/8 등록`, demo_tag:'데모 사내 시스템',
  flow_sub:'방금 한 입력을 Flow로 저장 · haejo replay expense-entry',
- steps:[['01','사용일자','{{date}}'],['02','가맹점명','{{merchant}}'],['03','비용 분류','{{category}}'],['04','금액','{{amount}}'],['05','프로젝트 코드','{{project}}'],['06','적요','{{memo}}'],['07','등록','결과 확인']],
+ steps:[['01','사용일자','{{date}}'],['02','가맹점명','{{merchant}}'],['03','비용 분류','{{category}}'],['04','금액','{{amount}}'],['05','프로젝트 코드','{{project}}'],['06','사용 내용','{{memo}}'],['07','등록','결과 확인']],
  model_calls:'모델 호출', rep_stat:s=>`12월 6건 · <b>${s}초</b>`, rcount:n=>`12월 ${n}/6 등록`,
  end:'Mac에서 귀찮은 일, <em>"해줘"</em>', chip_mac:'macOS 앱 · 웹',
  webtags:['Finder · 정렬','TextEdit · 메모 저장','Wikipedia · 문서 이동']},

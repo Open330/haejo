@@ -37,13 +37,13 @@ table.list td{padding:4px 6px;border:1px solid #d5dbe3}table.list td.n{text-alig
 <tr><th>비용 분류 <span class="req">*</span></th><td><label><input type="radio" name="category" value="식대"> 식대</label> &nbsp; <label><input type="radio" name="category" value="회의비"> 회의비</label> &nbsp; <label><input type="radio" name="category" value="교통비"> 교통비</label> &nbsp; <label><input type="radio" name="category" value="소모품비"> 소모품비</label> &nbsp; <label><input type="radio" name="category" value="도서인쇄비"> 도서인쇄비</label></td></tr>
 <tr><th>금액(원) <span class="req">*</span></th><td><input type="text" id="amount" aria-label="금액"></td></tr>
 <tr><th>프로젝트 코드</th><td><input type="text" id="project" aria-label="프로젝트 코드" placeholder="예: P-2611" style="width:120px"> <span style="color:#778;font-size:12px">P-2611 신규 고객 온보딩 · P-2608 사내 교육 · P-2603 물류 개선</span></td></tr>
-<tr><th>적요</th><td><input type="text" id="memo" aria-label="적요" style="width:420px"></td></tr>
+<tr><th>사용 내용</th><td><input type="text" id="memo" aria-label="사용 내용" style="width:420px"></td></tr>
 <tr><th>증빙</th><td><label><input type="radio" name="proof" id="card" value="법인카드" checked> 법인카드 전표</label> &nbsp; <label><input type="radio" name="proof" id="cash" value="현금영수증"> 현금영수증</label></td></tr>
 </table>
 <div class="btns"><button type="button" class="sub" id="reset">초기화</button><button type="button" id="save">등록</button></div>
 </form>
 <div id="status" role="status" aria-label="저장 상태"></div>
-<table class="list" aria-label="등록 내역"><thead><tr><th>No</th><th>사용일자</th><th>가맹점</th><th>분류</th><th>금액</th><th>프로젝트</th><th>적요</th><th>증빙</th></tr></thead><tbody id="rows"></tbody></table>
+<table class="list" aria-label="등록 내역"><thead><tr><th>No</th><th>사용일자</th><th>가맹점</th><th>분류</th><th>금액</th><th>프로젝트</th><th>사용 내용</th><th>증빙</th></tr></thead><tbody id="rows"></tbody></table>
 <div class="sum" id="sum" aria-label="합계">합계 0원 (0건)</div>
 </main></div>
 <script>
