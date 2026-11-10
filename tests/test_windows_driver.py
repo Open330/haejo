@@ -374,6 +374,33 @@ class WindowsDriverTests(unittest.TestCase):
                            option_label="Grape")
         self.assertEqual(("not_started", []), (refused["effect"], backend.calls))
 
+    def test_legacy_combo_list_shown_only_as_a_popup_window_is_used_and_closed(self):
+        """Windows Server shows the opened list only as a top-level popup of
+        the same process, not inside the combo box (GitHub runner)."""
+        opener = Element("Button", "Open", patterns={"invoke"})
+        opener.props["runtime_id"] = None
+        legacy = Element("ComboBox", "Fruit", automation_id="fruit", value="Apple", readonly=False,
+                         patterns={"value"}, children=[opener])
+        popup = Element("List", "Fruit", children=[Element("ListItem", label, patterns={"selection_item"})
+                                                   for label in ("Apple", "Grape")])
+        backend = self.backend
+
+        def invoke(element):
+            backend._record("invoke", element)
+            if element is opener:
+                if popup in backend.windows:
+                    backend.windows.remove(popup)
+                else:
+                    backend.windows.append(popup)
+        backend.invoke = invoke
+        self.window.kids[0].kids.append(legacy)
+        legacy.parent = self.window.kids[0]
+        obs = self.observe()
+        result = self.act(obs, "select_option", element_index=self.index(obs, identifier="fruit"), option_label="Grape")
+        self.assertEqual("acted", result["type"], result)
+        self.assertEqual([("invoke", "Open"), ("select", "Grape"), ("invoke", "Open")], backend.calls)
+        self.assertNotIn(popup, backend.windows)
+
     def test_scroll_finds_container_and_bounds_pages(self):
         obs = self.observe()
         index = self.index(obs, title="Save")

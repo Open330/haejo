@@ -445,6 +445,15 @@ class WindowsDriver:
                    and child_props.get("pid") == obs.pid]
         return buttons[0] if len(buttons) == 1 else None
 
+    def _options(self, container, label):
+        return [(option, props) for option in self._backend.descendants(container)
+                for props in (self._backend.props(option),)
+                if props.get("control_type") == "ListItem" and props.get("name") == label]
+
+    def _popup_lists(self, pid):
+        return [window for window in self._backend.top_windows(pid)
+                if self._backend.props(window).get("control_type") == "List"]
+
     def _list_shown(self, element):
         return any(props.get("control_type") == "List" and not props.get("offscreen")
                    for props in map(self._backend.props, self._backend.children(element)))
@@ -531,9 +540,12 @@ class WindowsDriver:
                 # list can appear a moment later (a slow CI runner missed it).
                 deadline = self._clock() + (LIST_OPEN_WAIT_S if opener is not None else 0)
                 while True:
-                    options = [(option, props) for option in backend.descendants(element)
-                               for props in (backend.props(option),)
-                               if props.get("control_type") == "ListItem" and props.get("name") == label]
+                    options = self._options(element, label)
+                    if not options and opener is not None:
+                        # The list a drop-down button opens can show only as its
+                        # own popup window of the same process (Windows Server).
+                        options = [found for popup in self._popup_lists(obs.pid)
+                                   for found in self._options(popup, label)]
                     if options or self._clock() >= deadline:
                         break
                     self._sleep(0.05)
@@ -553,7 +565,7 @@ class WindowsDriver:
                 # Cleanup, not a new action: put back the list this step opened.
                 if opener is None:
                     backend.collapse(element)
-                elif self._list_shown(element):
+                elif self._list_shown(element) or self._popup_lists(obs.pid):
                     backend.invoke(opener)
             return {"input_route": "uia_selection_item"}
         raise NotStarted(f"unsupported action {name!r} on Windows")
