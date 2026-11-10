@@ -10,8 +10,8 @@ Each line is `<indent><index> <Role>  Key: value, Key2: value`:
     9 StaticText  Value: 408
 ```
 
-Indices are **volatile** — they change on every observation. Never put one in a
-recipe; select by meaning instead.
+Indices are **volatile** — they change on every observation. Recipes select by
+meaning (title, role, value) instead.
 
 `haejo observe` prints the uniquely focused window and summarizes the others.
 If focus is absent or more than one window is marked, it prints all windows.
@@ -33,9 +33,9 @@ On an open ComboBox, options can include `visible` and `scroll_direction`.
 When the desired option has `visible: false`, scroll a named row or text inside
 that list in the reported direction, then observe again before selecting.
 The ComboBox itself is not the scroll area. Missing visibility metadata is
-unknown; do not invent a visible state. A hint never replaces the runtime's
+unknown, and stays unknown. A hint never replaces the runtime's
 fresh popup/row checks. Keep selectors based on names; JSON indices and
-`obs_id` belong to that observation and must not be saved in a recipe.
+`obs_id` belong to that observation only, so recipes leave them out.
 Keep `open_select` and its subsequent scroll/selection in one `run` or `do`
 invocation: the opened-list pin belongs to that helper connection. A separate
 CLI invocation cannot resume that pin. For live option planning, use

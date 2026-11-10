@@ -10,8 +10,8 @@ not a guarantee of AX-only dispatch. Element focus for text input does not by
 itself require moving the app to the foreground.
 
 Background operation avoids routine global cursor/focus contention, but does
-not make shared app focus or menus independent. rc.12 and later have four
-isolated warm workers; rc.11 has one. Different apps can run concurrently.
+not make shared app focus or menus independent. The helper has four
+isolated warm workers. Different apps can run concurrently.
 A connection owns each app it observes until disconnect (`target_busy` for a
 competitor). Pointer/menu/key dispatch also uses a cross-process input lease
 (`input_busy` before dispatch). Keep sessions bounded and close them promptly.
@@ -23,8 +23,8 @@ first-mouse input received no content click even though the helper posted both
 events. When planning a pointer action that needs a prepared window, use an
 explicit `prepare_window` step, verify its declared postcondition, and observe
 again before choosing the click. Keep the click's actual task postcondition;
-`acted`/posted counts do not prove receipt. If a click was already possibly
-sent, inspect its effect instead of preparing and blindly clicking again.
+`acted`/posted counts do not prove receipt. If a click was possibly sent
+already, inspect its effect first; it may have landed.
 AXPress and pointer fallback are different routes; this measurement does not
 establish the same failure for AXPress. The detailed [window input implementation record](../docs/native-window-input.md)
 is for diagnosing a preparation/receiving failure; it is not a prerequisite for ordinary clicks.

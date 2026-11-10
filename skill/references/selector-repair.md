@@ -19,8 +19,8 @@ The command verifies the saved target/step/old selector, requires one candidate
 match and changes only that selector. It preserves params, checks, contracts,
 bindings and other steps. It refuses nested decisions/dynamic steps and existing
 output paths. It does not replay, approve, or automatically resume anything.
-Verify the current checkpoint before continuing remaining steps. Do not restart
-completed or uncertain effects. More than one intended candidate: inspect the
+Verify the current checkpoint before continuing remaining steps; completed or
+uncertain effects stay as they are. More than one intended candidate: inspect the
 relevant control, rather than guessing from a truncated list.
 
 If the checkpoint is verified and no earlier capture is needed, add
@@ -31,4 +31,4 @@ Generate the full repaired template without --remaining for future jobs.
 Earlier captures require explicit state review; this offline shortcut refuses them.
 For live in-process continuation that retains captures privately, see
 [automatic repair](auto-repair.md). It does not export capture state to a file.
-Never pass a remaining segment as the full template for subsequent jobs.
+Subsequent jobs use the full repaired template; a remaining segment covers only this job.

@@ -2,15 +2,15 @@ To just open an address the person asked for, use `haejo open-url <URL>
 --helper` (LaunchServices, no typing; `loaded_verified` from the page's web area,
 `page_not_shown` for a redirect, never reopened). `already_open: true` with
 `loaded_verified: false` means the page was already in front: done, not a failure;
-do not open it again. `open_unconfirmed` may still finish later; observe, never
-resend. The page opens in the browser's front window; when another task shares the
+the page is already there. `open_unconfirmed` may still finish later; observe it
+before any resend. The page opens in the browser's front window; when another task shares the
 browser, add `--window "<part of the intended window's title>"` and Haejo brings
 that window forward first (`window_not_found`/`window_ambiguous` list `windows`).
 Use the steps below only when a Flow must navigate an existing window.
 
 For a page already open, start with its accessibility tree and window-scoped
-selectors. Read/click/fill the page in the background; do not activate Safari
-or edit its address bar as routine preparation for page interactions.
+selectors. Read/click/fill the page in the background; activation and address-bar
+edits are for steps that need them.
 
 For Safari address navigation, use File > Open Location… to start editing,
 then `set_value` on `WEB_BROWSER_ADDRESS_AND_SEARCH_FIELD` and a bound submit

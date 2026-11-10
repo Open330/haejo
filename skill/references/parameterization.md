@@ -18,7 +18,7 @@ namespace. A saved Flow uses schema 4 and a read-only `literal_params` map:
 `"literal_params":{"label":"{{name}}"}`, with `"{{label}}"` in the selector
 or payload. Use a different alias from task inputs/captures; callers cannot
 override it. Ordinary `params` remain reusable inputs. Schema 4 requires a
-runtime that supports it; do not lower the schema to make an old runtime accept it.
+runtime that supports it; update the runtime and keep schema 4.
 
 The model compiler accepts `"literals"` for this map in its authoring response
 and exports `literal_params` in the saved Flow. This spelling is specific to the
