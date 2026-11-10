@@ -243,15 +243,25 @@ func parallelWindowList(_ target:String) -> [String:Any] {
 /// Needs no screen-recording permission (ids and flags only, no titles).
 func serverWindows(_ pid:pid_t) -> [UInt32:Bool] {
     guard let entries=CGWindowListCopyWindowInfo([.optionAll,.excludeDesktopElements],kCGNullWindowID) as? [[String:Any]] else { return [:] }
-    var found:[UInt32:Bool]=[:]
+    // Browsers keep untitled internal surfaces at layer 0 (Safari: four
+    // menu-bar-high strips, 18x20 badges, a 171x60 piece on screen;
+    // jiun-MBP 2026-11-10). A real window has a title in the window server
+    // when names are readable at all, and a window-sized frame otherwise.
+    var rows:[(UInt32,Bool,String,CGRect)]=[]
     for entry in entries {
         guard (entry[kCGWindowOwnerPID as String] as? Int).map({ pid_t($0) })==pid,
               (entry[kCGWindowLayer as String] as? Int)==0,
-              let number=entry[kCGWindowNumber as String] as? NSNumber else { continue }
-        // Off-screen helper surfaces have no size; a real window has one.
-        if let bounds=entry[kCGWindowBounds as String] as? [String:Any],
-           let rect=CGRect(dictionaryRepresentation:bounds as CFDictionary), rect.width<2 || rect.height<2 { continue }
-        found[number.uint32Value]=(entry[kCGWindowIsOnscreen as String] as? Bool) ?? false
+              let number=entry[kCGWindowNumber as String] as? NSNumber,
+              let bounds=entry[kCGWindowBounds as String] as? [String:Any],
+              let rect=CGRect(dictionaryRepresentation:bounds as CFDictionary) else { continue }
+        rows.append((number.uint32Value,(entry[kCGWindowIsOnscreen as String] as? Bool) ?? false,
+                     entry[kCGWindowName as String] as? String ?? "",rect))
+    }
+    let namesReadable=rows.contains { !$0.2.isEmpty }
+    var found:[UInt32:Bool]=[:]
+    for (id,onScreen,name,rect) in rows {
+        if namesReadable ? name.isEmpty : (rect.width<160 || rect.height<120) { continue }
+        found[id]=onScreen
     }
     return found
 }
@@ -285,7 +295,19 @@ func windowAbsenceReason(_ pid:pid_t,_ id:UInt32) -> String {
 /// The page a browser window shows, as origin + path (no query or fragment:
 /// those can carry session tokens). A bounded breadth-first look for the
 /// first AXWebArea; nil for non-web windows.
+///
+/// While a page shows a JavaScript alert, Safari replaces its web area with
+/// the dialog and every window of that web process stops answering for page
+/// content — exactly when a "lesson finished" popup must be found. The
+/// address field still carries the full URL in AXHelp, so it is the fallback.
 func windowPageURL(_ window:AXUIElement) -> String? {
+    func cleaned(_ raw:String?) -> String? {
+        guard let raw,raw.count<=4096,var parts=URLComponents(string:raw),
+              let scheme=parts.scheme?.lowercased(),["http","https","file"].contains(scheme) else { return nil }
+        parts.query=nil;parts.fragment=nil;parts.user=nil;parts.password=nil
+        return parts.string.map { String($0.prefix(512)) }
+    }
+    var addressURL:String?=nil
     var queue:[(AXUIElement,Int)]=[(window,0)]
     var visited=0
     // Listing must stay cheap even when the app answers slowly.
@@ -294,14 +316,14 @@ func windowPageURL(_ window:AXUIElement) -> String? {
         let (node,depth)=queue.removeFirst();visited+=1
         _ = AXUIElementSetMessagingTimeout(node,0.25)
         if str(node,kAXRoleAttribute as String)=="AXWebArea" {
-            let raw=(attr(node,"AXURL") as? URL)?.absoluteString ?? str(node,"AXURL")
-            guard let raw,raw.count<=4096,var parts=URLComponents(string:raw),
-                  let scheme=parts.scheme?.lowercased(),["http","https","file"].contains(scheme) else { return nil }
-            parts.query=nil;parts.fragment=nil;parts.user=nil;parts.password=nil
-            return parts.string.map { String($0.prefix(512)) }
+            if let url=cleaned((attr(node,"AXURL") as? URL)?.absoluteString ?? str(node,"AXURL")) { return url }
+        }
+        if addressURL==nil, depth<=2,
+           str(node,kAXIdentifierAttribute as String)?.hasPrefix("WEB_BROWSER_ADDRESS_AND_SEARCH_FIELD")==true {
+            addressURL=cleaned(str(node,kAXHelpAttribute as String))
         }
         guard depth<12,let children=attr(node,kAXChildrenAttribute as String) as? [AXUIElement] else { continue }
         for child in children.prefix(64) { queue.append((child,depth+1)) }
     }
-    return nil
+    return addressURL
 }
