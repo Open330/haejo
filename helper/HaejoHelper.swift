@@ -3355,6 +3355,26 @@ func nativeSelectionParametersProblem(_ action: [String: Any]) -> String? {
 }
 
 
+// Copy the clipboard so it can be put back after a paste. A type nobody can
+// read (a conversion the system lists, such as the UTF-16 text WebKit copies
+// advertise, or a promise from an app that quit) cannot be pasted by anyone,
+// so leaving it out loses nothing. nil when an item has no readable type or
+// the copy would exceed 8 MB.
+func clipboardSnapshot(_ items:[NSPasteboardItem])->[NSPasteboardItem]? {
+    var saved:[NSPasteboardItem]=[];var bytes=0
+    for item in items {
+        let copy=NSPasteboardItem()
+        for type in item.types {
+            guard let data=item.data(forType:type) else {continue}
+            bytes += data.count
+            guard bytes<=8*1024*1024,copy.setData(data,forType:type) else {return nil}
+        }
+        guard !copy.types.isEmpty || item.types.isEmpty else {return nil}
+        saved.append(copy)
+    }
+    return saved
+}
+
 // Swift String == uses canonical equivalence, which is unsuitable for secrets.
 // Native Unicode key events retain exact code units where Safari paste composes
 // NFD. Build bounded chunks without ever splitting a surrogate pair.
@@ -3387,16 +3407,7 @@ func pasteCredential(_ element:AXUIElement,pid:pid_t,value:String,origin:String?
     let deadline=ProcessInfo.processInfo.systemUptime+5
     let pasteboard=NSPasteboard.general
     let beforeCount=pasteboard.changeCount
-    var saved:[NSPasteboardItem]=[];var bytes=0
-    for item in unicodeInput ? [] : (pasteboard.pasteboardItems ?? []) {
-        let copy=NSPasteboardItem()
-        for type in item.types {
-            guard let data=item.data(forType:type) else {return refuse("clipboard_snapshot_unavailable")}
-            bytes += data.count
-            guard bytes<=8*1024*1024,copy.setData(data,forType:type) else {return refuse("clipboard_snapshot_unavailable")}
-        }
-        saved.append(copy)
-    }
+    guard let saved=unicodeInput ? [] : clipboardSnapshot(pasteboard.pasteboardItems ?? []) else {return refuse("clipboard_snapshot_unavailable")}
     guard pasteboard.changeCount==beforeCount else {return refuse("clipboard_changed")}
     if !isFrontmost(pid:pid) {
         NSRunningApplication(processIdentifier:pid)?.activate(options:[])
