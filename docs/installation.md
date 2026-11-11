@@ -92,6 +92,20 @@ wheel의 `haejo` console script는 Python CLI입니다. 서명된 `./launcher/ha
 네이티브 `doctor`, `apps`, `observe`, `do`, `run`, `replay`에는 macOS 실행
 환경과 해당 경로의 권한이 필요합니다.
 
+## Haejo 제거
+
+설정의 **Haejo 제거…** 또는 `haejo uninstall`로 지웁니다. 이 설치가 만든 링크
+(`~/.local/bin/haejo`, Claude Code·Codex·`~/.agents/skills`의 `haejo` 스킬)만 지우고
+Haejo.app을 휴지통으로 옮깁니다. 실행 기록·작업·Flow·설정은 남겨 두며,
+`--remove-data`(설정에서는 '실행 기록과 Flow도 함께 삭제')를 고르면 함께 휴지통으로
+옮깁니다. 다른 설치나 다른 프로그램의 링크는 건드리지 않습니다. 휴지통에서 되돌릴 수
+있습니다. macOS 권한(손쉬운 사용·화면 기록) 항목은 시스템 설정에 남으며, 같은
+Haejo를 다시 설치하면 그대로 이어집니다.
+
+앱만 휴지통으로 끌어다 버리면 위 링크가 끊긴 채 남아 에이전트가 깨진 스킬을 보게
+됩니다. 그때는 `~/.local/bin/haejo`·`~/.claude/skills/haejo`·`~/.codex/skills/haejo`·
+`~/.agents/skills/haejo` 링크를 지우거나 Haejo를 다시 설치하면 됩니다.
+
 ## 평가와 설치 검증
 
 `haejo eval`의 평가 fixture는 소스 checkout에 있으므로 wheel에 포함되지

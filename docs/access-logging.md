@@ -27,7 +27,7 @@ For file-level diagnostics, `haejo logs` lists recent filenames and `haejo logs
 `~/Library/Application Support/Haejo/Logs/`. The app's normal record viewer does
 not require navigating that folder.
 
-Each CLI invocation has one JSONL file with ordered command/access start and end
+Each CLI invocation writes its own JSONL file with ordered command/access start and end
 records, target bundle identifiers, operation/action names, outcome codes and
 elapsed time. A failed `run` or `session` adds a `task_result` with a closed
 failure code and stage (for example `invalid_flow`/`load` or
@@ -50,10 +50,18 @@ selectors, provider/item references, scope and expiry; local credential values
 are stored in macOS Keychain, not in these JSON files. See
 [credential delegation](../skill/references/credentials.md).
 
-The Haejo/Logs directories are owner-only on POSIX, with 0600 files. Receipts
-are capped at approximately 1 MiB per invocation, 200 files, 20 MiB total and
-30 days by default (adjustable in the app). Cleanup occurs at the next logged invocation and only removes owned
-files matching the receipt naming scheme. A capped invocation records
+The Haejo/Logs directories are owner-only on POSIX, with 0600 files. Today's
+runs keep one file each while they write. When a later run starts, finished runs
+from earlier days (idle for an hour) are merged into one file per day,
+`haejo-day-YYYYMMDD.jsonl`, each line tagged with its run's original file name;
+the app's history and `haejo task status --steps` read them back per run. A
+receipt is about 700 bytes, while a file takes at least one 4 KB disk block, so
+the merge keeps the same history in roughly a fifth of the disk space (2,010
+receipts: 7.9 MB as separate files, 1.7 MB of content). Receipts are capped at
+approximately 1 MiB per invocation, 5,000 run files, 100 MB of disk usage in
+total (allocated blocks, not content bytes) and 30 days by default (7/30/90 in
+the app). Cleanup occurs at the next logged invocation and only removes owned
+files matching the receipt naming scheme. On Windows each run keeps its own file. A capped invocation records
 `log_truncated` and still attempts to record command termination. Storage failure
 prints one short diagnostic and does not interrupt the computer-use operation.
 Files can be deleted locally; the next invocation creates a fresh receipt.

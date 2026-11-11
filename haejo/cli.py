@@ -8,6 +8,7 @@ Usage:
   haejo doctor            # check/guide permissions
   haejo apps              # list running apps (GUI session check)
   haejo logs [--json|--open]  # automatic access receipts (no screen/input contents)
+  haejo uninstall [--remove-data] [--yes]  # remove links and app (data kept unless asked) to the Trash
   haejo launch <bundle-id> [--helper]  # explicitly start an installed app in background
   haejo activate <bundle-id> [--window TEXT] [--helper]  # on a person's request: bring the app (and that window) forward
   haejo open-url <URL> [--browser <bundle-id>] [--window <title part>] [--helper]  # open a web page as a link click does
@@ -812,6 +813,9 @@ def _dispatch_command(cmd, rest):
     if help_text is not None:
         print(help_text)
         return 0
+    if cmd == 'uninstall':
+        from .uninstall import main as uninstall_main
+        return uninstall_main(rest)
     if cmd == 'logs':
         from .access_log import recent_logs, private_directory, log_directory
         if rest not in ([], ['--json'], ['--open']):

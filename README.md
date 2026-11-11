@@ -248,6 +248,7 @@ Available on the main branch:
 | Manage Flows and candidates | `haejo list`, `haejo show`, `haejo flows` (save, rename, remove, edit inputs; also the app's 저장된 Flow page), `haejo candidates`, `haejo promote` |
 | Batch, session, repair | `haejo batch`, `haejo session`, `haejo repair` |
 | Tasks and activity | `haejo task`, `haejo logs` |
+| Remove Haejo | `haejo uninstall` (links and app to the Trash; `--remove-data` also history and Flows), or Settings → Haejo 제거 |
 | Windows and parallel jobs | `haejo windows`, `haejo activate`, `haejo parallel` |
 | Web and files | `haejo open-url`, `haejo web-upload`, `haejo document-attachments` |
 | Credentials | `haejo auth` |

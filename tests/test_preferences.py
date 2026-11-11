@@ -50,15 +50,22 @@ class PreferencesTests(unittest.TestCase):
     def test_retention_setting_prunes_old_receipts_but_preserves_unrelated_files(self):
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder)/'Haejo'; logs=root/'Logs'; logs.mkdir(parents=True)
-            old=logs/('haejo-20260101T000000000000Z-'+'1'*32+'.jsonl'); old.write_text('{}\n')
-            stamp=time.time()-10*86400; os.utime(old,(stamp,stamp))
+            from datetime import datetime, timezone
+            from haejo.access_log import read_run
+            stamp=time.time()-10*86400
+            name='haejo-'+datetime.fromtimestamp(stamp,timezone.utc).strftime('%Y%m%dT%H%M%S%fZ-')+'1'*32+'.jsonl'
+            old=logs/name; old.write_text('{"schema":1,"sequence":1,"event":"command_start"}\n')
+            os.utime(old,(stamp,stamp))
             sentinel=logs/'notes.json'; sentinel.write_text('KEEP')
             (root/'preferences.json').write_text('{"schema":1,"retention_days":90}')
             log=AccessLog('observe',root=logs); log.finish(0); log.close()
-            self.assertTrue(old.exists())
+            # Kept: merged into its day file, still readable as that run.
+            self.assertIn(b'command_start', read_run(name, root=logs))
             (root/'preferences.json').write_text('{"schema":1,"retention_days":7}')
             log=AccessLog('observe',root=logs); log.finish(0); log.close()
-            self.assertFalse(old.exists()); self.assertEqual('KEEP',sentinel.read_text())
+            with self.assertRaises(FileNotFoundError):
+                read_run(name, root=logs)
+            self.assertEqual('KEEP',sentinel.read_text())
 
     def test_symlink_and_oversized_settings_are_ignored_without_reading_target(self):
         with tempfile.TemporaryDirectory() as folder:
