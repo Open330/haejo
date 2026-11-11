@@ -38,6 +38,22 @@ HOST_FLOW_ACTIONS = {'visual': frozenset({'scope', 'max_screens', 'timeout_secon
 _NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]{0,39}")
 
 
+# Refusals the signed helper returns when menu approval is enforced there
+# (stage 2). Each one precedes dispatch, so the step is gated, not failed, and
+# never enters the action_failed recovery path.
+NATIVE_APPROVAL_ERRORS = frozenset({
+    "approval_denied", "approval_unavailable", "approval_timeout",
+    "approval_target_changed", "haejo_ui_input_refused",
+})
+
+
+def native_approval_refusal(r):
+    if (isinstance(r, dict) and r.get("type") == "error" and r.get("error") in NATIVE_APPROVAL_ERRORS
+            and r.get("effect") == "not_started"):
+        return {"type": "approval_refused", "gate": r["error"], "effect": "not_started"}
+    return r
+
+
 def visual_problem(params):
     if (not isinstance(params, dict) or set(params) - HOST_FLOW_ACTIONS['visual']
             or not isinstance(params.get('scope'), str) or not _NAME.fullmatch(params['scope'])):
@@ -3329,6 +3345,7 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
                        **extra)
             return res
 
+        r = native_approval_refusal(r)
         if r["type"] == "approval_refused":
             res.record(status="gated", step=i, gate=r["gate"], action_effect="not_started",
                        detail="메뉴 승인을 받지 못해 이 단계를 실행하지 않았습니다")
@@ -3380,6 +3397,7 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
                                error=r["error"], effect=r["effect"],
                                event_id=r["event_id"], event_state=r["event_state"], detail=r["detail"])
                     return res
+                r = native_approval_refusal(r)
                 if r["type"] == "approval_refused":
                     res.record(status="gated", step=i, gate=r["gate"], action_effect="not_started",
                                detail="메뉴 승인을 받지 못해 이 단계를 실행하지 않았습니다")
