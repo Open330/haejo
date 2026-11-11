@@ -142,8 +142,15 @@ final class ActivityStore {
     var logs: URL { root.appendingPathComponent("Logs") }
     var preferencesURL: URL { root.appendingPathComponent("preferences.json") }
     private let pattern = try! NSRegularExpression(pattern: "^(haejo|tacto)-[0-9]{8}T[0-9]{12}Z-[0-9a-f]{32}\\.jsonl$")  // tacto-: pre-rename logs
-    private var cache: [URL: (Date, Int, ActivityRecord)] = [:]
+    // Finished runs of earlier days, merged one file per day; each line names its run.
+    private let dayPattern = try! NSRegularExpression(pattern: "^haejo-day-[0-9]{8}\\.jsonl$")
+    private var cache: [URL: (Date, Int, [ActivityRecord])] = [:]
     let maximumBytes = 1_048_576 + 8192
+    let maximumDayBytes = 64 * 1_048_576 + 1_048_576
+    func isDay(_ url: URL) -> Bool {
+        let name = url.lastPathComponent
+        return dayPattern.firstMatch(in:name, range:NSRange(name.startIndex..., in:name)) != nil
+    }
     init(root: URL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support/Haejo")) { self.root = root }
     func ownedDirectory(_ url: URL, create: Bool = false) throws {
         if create { try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true, attributes: [.posixPermissions:0o700]) }
@@ -193,21 +200,46 @@ final class ActivityStore {
         try ownedDirectory(root); try ownedDirectory(logs)
         return try FileManager.default.contentsOfDirectory(at:logs, includingPropertiesForKeys:nil).compactMap { url in
             let name = url.lastPathComponent
-            guard pattern.firstMatch(in:name, range:NSRange(name.startIndex..., in:name)) != nil,
+            let day = isDay(url)
+            guard day || pattern.firstMatch(in:name, range:NSRange(name.startIndex..., in:name)) != nil,
                   let a = try? FileManager.default.attributesOfItem(atPath:url.path),
                   a[.type] as? FileAttributeType == .typeRegular, (a[.ownerAccountID] as? NSNumber)?.uint32Value == getuid(),
-                  let size = a[.size] as? Int, size <= maximumBytes else { return nil }
+                  let size = a[.size] as? Int, size <= (day ? maximumDayBytes : maximumBytes) else { return nil }
             return (url, a[.modificationDate] as? Date ?? .distantPast, size)
         }.sorted { $0.1 > $1.1 }
     }
     func records() throws -> [ActivityRecord] {
-        let candidates = Array(try files().prefix(200))
-        let keep = Set(candidates.map { $0.0 }); cache = cache.filter { keep.contains($0.key) }
-        return candidates.compactMap { url, date, size in
-            if let c = cache[url], c.0 == date && c.1 == size { return c.2 }
-            guard let data = try? readPrivate(url, limit:maximumBytes) else { return nil }
-            let record = parse(data, url:url, modified:date)
-            cache[url] = (date, size, record); return record
+        var out: [ActivityRecord] = []
+        var keep = Set<URL>()
+        for (url, date, size) in try files() {
+            if out.count >= 200 { break }
+            keep.insert(url)
+            if let c = cache[url], c.0 == date && c.1 == size { out += c.2; continue }
+            let day = isDay(url)
+            guard let data = try? readPrivate(url, limit:day ? maximumDayBytes : maximumBytes) else { continue }
+            let found = day ? parseDay(data, modified:date) : [parse(data, url:url, modified:date)]
+            cache[url] = (date, size, found); out += found
+        }
+        cache = cache.filter { keep.contains($0.key) }
+        return Array(out.sorted { $0.started > $1.started }.prefix(200))
+    }
+    /// A day file holds many runs; split by `run`, drop repeats of one line, parse each as its own file.
+    func parseDay(_ data: Data, modified: Date) -> [ActivityRecord] {
+        guard let text = String(data:data, encoding:.utf8) else { return [] }
+        var order: [String] = []
+        var lines: [String: [Substring]] = [:]
+        var seen = Set<String>()
+        for line in text.split(separator:"\n", omittingEmptySubsequences:true) {
+            guard let row = try? JSONSerialization.jsonObject(with:Data(line.utf8)) as? [String:Any],
+                  let run = row["run"] as? String,
+                  pattern.firstMatch(in:run, range:NSRange(run.startIndex..., in:run)) != nil else { continue }
+            let sequence = (row["sequence"] as? NSNumber)?.stringValue ?? String(line.hashValue)
+            guard seen.insert(run + "#" + sequence).inserted else { continue }
+            if lines[run] == nil { order.append(run) }
+            lines[run, default: []].append(line)
+        }
+        return order.map { run in
+            parse(Data((lines[run]!.joined(separator:"\n") + "\n").utf8), url:logs.appendingPathComponent(run), modified:modified)
         }
     }
     func parse(_ data: Data, url: URL, modified: Date) -> ActivityRecord {
@@ -392,6 +424,8 @@ private func activityLabel(_ text: String, _ size: CGFloat = 13, _ weight: NSFon
 final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDataSource, NSTableViewDelegate, NSSearchFieldDelegate, NSSplitViewDelegate {
     let store: ActivityStore
     var onSetup: (() -> Void)?
+    /// Runs `haejo uninstall --yes [--remove-data]`; the app quits after it.
+    var onUninstall: ((Bool) -> Void)?
     private let queue = DispatchQueue(label:"ai.callabo.haejo.activity-reader", qos:.userInitiated)
     private let table = NSTableView()
     private let search = NSSearchField()
@@ -546,6 +580,8 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
         let approvalControls = NSStackView(views:[approvalToggle,clearAlways])
         approvalControls.orientation = .vertical; approvalControls.alignment = .leading; approvalControls.spacing = 10
         let remove = button("저장된 기록 모두 삭제…", "trash", #selector(confirmDelete))
+        let uninstallButton = button("Haejo 제거…", "xmark.bin", #selector(confirmUninstall))
+        uninstallButton.setAccessibilityIdentifier("haejo.settings.uninstall")
         let credentials = button("Vault·로그인 위임 관리", "key", #selector(openCredentials))
         let setupButton = button("권한·연결 확인", "arrow.up.forward.app", #selector(openSetup))
         setupButton.setAccessibilityIdentifier("haejo.settings.setup")
@@ -554,9 +590,10 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
                      settingsCard("로그인 위임", "Vault 연결과 앱·사이트별 위임을 관리합니다. 에이전트가 만든 위임 파일을 끌어놓고 허용 수준을 검토하세요.",credentials),
                      settingsCard("메뉴 승인", "결제·전송·삭제처럼 확인이 필요한 단계를 이 Mac의 Haejo 메뉴 카드로 결정합니다. 기본은 꺼짐입니다. 켜면 명령의 --yes 대신 카드에서 고른 범위(이번만·이 작업 동안·항상)로 진행합니다.",approvalControls),
                      settingsCard("빠른 실행", "도우미를 잠시 유지해 다음 작업을 더 빠르게 시작합니다. 기본은 꺼짐입니다. 유휴 시간이 지나면 자동 종료하며, 환경변수로 지정한 실행 방식이 우선합니다.",warmControls),
-                     settingsCard("실행 기록", "접근한 앱·동작·결과·시간을 이 Mac에 저장합니다. 화면 내용·입력값·프롬프트는 기록하지 않습니다.",logToggle),
-                     settingsCard("기록 보관 기간", "선택한 기간과 최대 200개·20MB 제한 안에서 다음 작업 시작 시 정리합니다.",retention),
-                     settingsCard("작업 표시", "끄면 우상단 배너를 숨깁니다. 기존 Haejo 메뉴에서 작업 상태를 확인하거나 중단할 수 있고, Esc로도 중단할 수 있습니다.",bannerToggle)]
+                     settingsCard("실행 기록", "접근한 앱·동작·결과·시간을 이 Mac에 저장합니다. 화면 내용·입력값·프롬프트는 기록하지 않습니다. 오늘 기록은 실행마다 한 파일, 지난 기록은 하루 한 파일로 합쳐 보관합니다.",logToggle),
+                     settingsCard("기록 보관 기간", "선택한 기간과 디스크 사용량 100MB 안에서 다음 작업을 시작할 때 오래된 기록부터 정리합니다.",retention),
+                     settingsCard("작업 표시", "끄면 우상단 배너를 숨깁니다. 기존 Haejo 메뉴에서 작업 상태를 확인하거나 중단할 수 있고, Esc로도 중단할 수 있습니다.",bannerToggle),
+                     settingsCard("Haejo 제거", "이 설치가 만든 haejo 명령·스킬 연결을 지우고 Haejo.app을 휴지통으로 옮깁니다. 실행 기록과 Flow는 고를 때만 함께 지웁니다.",uninstallButton)]
         settings.addArrangedSubview(activityLabel("설정",24,.semibold))
         for card in cards { settings.addArrangedSubview(card); card.widthAnchor.constraint(equalTo:settings.widthAnchor).isActive = true }
         for v in [saveStatus,remove,activityLabel("기록은 Haejo를 통한 접근 내역입니다. 에이전트의 내부 추론이나 전체 대화는 포함하지 않습니다.",12,secondary:true)] { settings.addArrangedSubview(v) }
@@ -768,6 +805,19 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
     @objc private func clearAlwaysApprovals() {
         NotificationCenter.default.post(name:Notification.Name("ai.callabo.haejo.menu-approval.clear-always"), object:nil)
         saveStatus.stringValue = "항상 허용을 모두 지웠어요."
+    }
+    @objc private func confirmUninstall() {
+        guard let window else { return }
+        let alert = NSAlert(); alert.messageText = "Haejo를 제거할까요?"
+        alert.informativeText = "haejo 명령과 Claude Code·Codex 스킬 연결을 지우고 Haejo.app을 휴지통으로 옮긴 뒤 종료합니다. 휴지통에서 되돌릴 수 있습니다."
+        let data = NSButton(checkboxWithTitle:"실행 기록과 Flow도 함께 삭제", target:nil, action:nil)
+        data.state = .off; alert.accessoryView = data
+        alert.addButton(withTitle:"제거"); alert.addButton(withTitle:"취소")
+        alert.buttons.first?.hasDestructiveAction = true
+        alert.beginSheetModal(for:window) { [weak self] response in
+            guard response == .alertFirstButtonReturn, let self else { return }
+            self.onUninstall?(data.state == .on)
+        }
     }
     @objc private func confirmDelete() {
         guard let window else { return }

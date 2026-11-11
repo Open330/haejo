@@ -871,12 +871,12 @@ def invocation_steps(item):
     Only the access log named in the task record, only when it carries the
     same invocation ID, and only the already content-free receipt fields.
     """
-    from .access_log import log_directory, _NAMES
+    from .access_log import _NAMES, read_run
     name = item.get('access_log')
     if not isinstance(name, str) or not _NAMES.fullmatch(name):
         return {'available': False, 'reason': 'no_access_log', 'steps': []}
     try:
-        raw = _read_regular(Path(log_directory())/name, MAX_STEP_LOG_BYTES)
+        raw = read_run(name, limit=MAX_STEP_LOG_BYTES)
     except FileNotFoundError:
         return {'available': False, 'reason': 'access_log_removed', 'steps': []}
     except (OSError, ValueError):

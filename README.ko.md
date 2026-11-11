@@ -296,6 +296,7 @@ macOS 설정의 **빠른 실행(helper 유지)**을 켜면 다음 작업의 시�
 | 저장 Flow·후보 관리 | `haejo list`, `haejo show`, `haejo flows`(저장·이름 변경·삭제·입력 편집, 앱의 저장된 Flow 페이지), `haejo candidates`, `haejo promote` |
 | 반복·세션·수리 | `haejo batch`, `haejo session`, `haejo repair` |
 | 작업·실행 기록 | `haejo task`, `haejo logs` |
+| Haejo 제거 | `haejo uninstall`(링크와 앱을 휴지통으로, `--remove-data`면 실행 기록·Flow도), 또는 설정 → Haejo 제거 |
 | 창·병렬 작업 | `haejo windows`, `haejo activate`, `haejo parallel` |
 | 웹·파일 | `haejo open-url`, `haejo web-upload`, `haejo document-attachments` |
 | 자격 증명 | `haejo auth` |

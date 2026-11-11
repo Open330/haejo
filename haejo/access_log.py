@@ -18,6 +18,10 @@ COMMANDS = frozenset(('doctor', 'apps', 'launch', 'activate', 'open-url', 'keep-
                       'run', 'replay', 'do', 'web-upload', 'auth'))
 # tacto-: logs written before the 2026-11-09 rename; same format, new files use haejo-.
 _NAMES = re.compile(r'^(?:haejo|tacto)-\d{8}T\d{12}Z-[0-9a-f]{32}\.jsonl$')
+# Finished runs from earlier days, merged one file per day (each line names its
+# run). A file per run cost a 4 KB disk block for a ~700-byte receipt: 2,010
+# receipts took 7.9 MB on disk for 1.7 MB of content (june-mba, 2026-11-11).
+_DAYS = re.compile(r'^haejo-day-(\d{8})\.jsonl$')
 _CODE = re.compile(r'^[a-z][a-z0-9_]{0,80}$')
 _BUNDLE = re.compile(r'^[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$')
 _METHODS = frozenset(('credential_input','credential_submit','observe', 'act', 'ask', 'capture', 'list_targets', 'probe', 'selection',
@@ -29,7 +33,9 @@ _ACTIONS = frozenset(('click', 'click_point', 'double_click', 'drag', 'vroid_dra
                      'secondary_action', 'menu', 'open_folder', 'reopen_window', 'close_menu', 'status_item',
                      'read', 'press_key', 'select_option', 'open_select', 'select_custom_option', 'upload'))
 MAX_FILE = 1024 * 1024
-MAX_TOTAL = 20 * 1024 * 1024
+# Measured as disk usage (allocated blocks), not content bytes.
+MAX_TOTAL = 100 * 1024 * 1024
+MAX_DAY = 64 * 1024 * 1024
 # Receipts average a few KB; MAX_TOTAL is the real bound. A low file count let a
 # polling loop of short reads evict the whole retention window within a day.
 MAX_FILES = 5000
@@ -74,11 +80,155 @@ def _files(root):
     return sorted(found, key=lambda row: row[1].st_mtime, reverse=True)
 
 
+def _disk(info):
+    blocks = getattr(info, 'st_blocks', None)
+    return blocks * 512 if blocks else info.st_size
+
+
+def _day_files(root):
+    found = []
+    if not root.exists():
+        return found
+    for p in root.iterdir():
+        if _DAYS.fullmatch(p.name):
+            try:
+                info = p.lstat()
+            except FileNotFoundError:
+                continue
+            if stat.S_ISREG(info.st_mode) and (not hasattr(os, 'getuid') or info.st_uid == os.getuid()):
+                found.append((p, info))
+    return sorted(found, key=lambda row: row[0].name, reverse=True)
+
+
+def _run_day(name):
+    return name.split('-', 2)[1][:8]
+
+
+def compact(root, *, now=None, settle=3600):
+    """Merge finished runs from earlier days into one file per day.
+
+    Only runs written before today (UTC, by name) and idle for `settle`
+    seconds move, so a run still writing is never touched. One process merges
+    at a time; others skip. A run's lines are appended (each tagged `run`),
+    flushed, then its own file is removed — a crash in between leaves a
+    duplicate that readers drop by (run, sequence), never a lost receipt.
+    """
+    try:
+        import fcntl
+    except ImportError:
+        return 0  # Windows keeps one file per run
+    now = time.time() if now is None else now
+    today = datetime.fromtimestamp(now, timezone.utc).strftime('%Y%m%d')
+    flags = os.O_RDWR | os.O_CREAT | getattr(os, 'O_NOFOLLOW', 0)
+    try:
+        lock = os.open(root/'.compact.lock', flags, 0o600)
+    except OSError:
+        return 0
+    moved = 0
+    try:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError:
+            return 0
+        groups = {}
+        for p, info in _files(root):
+            if _run_day(p.name) < today and now - info.st_mtime >= settle:
+                groups.setdefault(_run_day(p.name), []).append((p, info))
+        for day, runs in sorted(groups.items()):
+            target = root/f'haejo-day-{day}.jsonl'
+            try:
+                current_size = target.lstat().st_size
+            except FileNotFoundError:
+                current_size = 0
+            out = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_APPEND | getattr(os, 'O_NOFOLLOW', 0), 0o600)
+            try:
+                for p, info in sorted(runs, key=lambda row: row[0].name):
+                    if info.st_size > MAX_FILE + 65536 or current_size + info.st_size * 2 > MAX_DAY:
+                        continue
+                    try:
+                        raw = p.read_bytes()
+                    except FileNotFoundError:
+                        continue
+                    lines = []
+                    for line in raw.split(b'\n'):
+                        if not line.strip():
+                            continue
+                        try:
+                            row = json.loads(line)
+                        except (ValueError, UnicodeError):
+                            row = {'schema': 1, 'event': 'damaged_line'}
+                        if type(row) is not dict:
+                            row = {'schema': 1, 'event': 'damaged_line'}
+                        row['run'] = p.name
+                        lines.append(json.dumps(row, ensure_ascii=False, allow_nan=False, separators=(',', ':')))
+                    data = ('\n'.join(lines) + '\n').encode() if lines else b''
+                    view = memoryview(data)
+                    while view:
+                        size = os.write(out, view)
+                        if size <= 0:
+                            raise OSError('access_log_compact_failed')
+                        view = view[size:]
+                    os.fsync(out)
+                    current_size += len(data)
+                    p.unlink(missing_ok=True)
+                    moved += 1
+            finally:
+                os.close(out)
+    finally:
+        os.close(lock)
+    return moved
+
+
+def read_run(name, root=None, limit=MAX_FILE + 65536):
+    """One run's receipt lines, from its own file or the day file it moved into."""
+    root = Path(root) if root is not None else log_directory()
+    if not _NAMES.fullmatch(name):
+        raise ValueError('invalid_access_log_name')
+    own = root/name
+    try:
+        info = own.lstat()
+    except FileNotFoundError:
+        info = None
+    if info is not None:
+        if not stat.S_ISREG(info.st_mode) or info.st_size > limit:
+            raise ValueError('access_log_unreadable')
+        fd = os.open(own, os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0))
+        with os.fdopen(fd, 'rb') as stream:
+            return stream.read(limit + 1)
+    day = root/f'haejo-day-{_run_day(name)}.jsonl'
+    try:
+        dinfo = day.lstat()
+    except FileNotFoundError:
+        raise FileNotFoundError(name) from None
+    if not stat.S_ISREG(dinfo.st_mode) or dinfo.st_size > MAX_DAY + MAX_FILE:
+        raise ValueError('access_log_unreadable')
+    rows, seen = [], set()
+    marker = ('"run":"' + name + '"').encode()
+    for line in day.read_bytes().split(b'\n'):
+        if marker not in line:
+            continue
+        try:
+            row = json.loads(line)
+        except (ValueError, UnicodeError):
+            continue
+        if type(row) is not dict or row.pop('run', None) != name:
+            continue
+        key = row.get('sequence')
+        if key in seen:
+            continue
+        seen.add(key)
+        rows.append(json.dumps(row, ensure_ascii=False, separators=(',', ':')))
+    if not rows:
+        raise FileNotFoundError(name)
+    return ('\n'.join(rows) + '\n').encode()
+
+
 def recent_logs(root=None, limit=20):
     root = Path(root) if root is not None else log_directory()
+    rows = sorted(_files(root) + _day_files(root), key=lambda row: row[1].st_mtime, reverse=True)
     return {'directory': str(root), 'files': [
-        {'name': p.name, 'bytes': info.st_size, 'modified_at': info.st_mtime}
-        for p, info in _files(root)[:limit]]}
+        {'name': p.name, 'bytes': info.st_size, 'disk_bytes': _disk(info), 'modified_at': info.st_mtime}
+        for p, info in rows[:limit]]}
 
 
 class AccessLog:
@@ -98,11 +248,23 @@ class AccessLog:
             return
         try:
             root = private_directory(root or log_directory())
+            try:
+                compact(root)
+            except OSError:
+                pass  # merging is housekeeping; this run's receipt comes first
+            keep = self.preferences['retention_days'] * 86400
             total = count = 0
-            for p, info in _files(root):
-                total += info.st_size
-                count += 1
-                if count >= MAX_FILES or total > MAX_TOTAL - MAX_FILE or time.time() - info.st_mtime > self.preferences['retention_days'] * 86400:
+            # Newest first: today's run files, then day files by date.
+            entries = sorted(_files(root), key=lambda row: row[1].st_mtime, reverse=True) + _day_files(root)
+            for p, info in entries:
+                total += _disk(info)
+                if _NAMES.fullmatch(p.name):
+                    count += 1
+                    age = time.time() - info.st_mtime
+                else:
+                    day = datetime.strptime(_DAYS.fullmatch(p.name).group(1), '%Y%m%d').replace(tzinfo=timezone.utc)
+                    age = time.time() - day.timestamp() - 86400
+                if count >= MAX_FILES or total > MAX_TOTAL - MAX_FILE or age > keep:
                     # Concurrent runs prune the same oldest files; a file already
                     # gone must not cost this run its own receipt.
                     p.unlink(missing_ok=True)

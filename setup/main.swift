@@ -1123,6 +1123,16 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         if let activityCenter { return activityCenter }
         let center = ActivityCenter(flowPage: FlowLibraryPage(runner: FlowLibraryPage.launcherRunner(root?.appendingPathComponent("launcher/haejo"))))
         center.onSetup = { [weak self] in self?.showSetup() }
+        center.onUninstall = { [weak self] removeData in
+            guard let launcher = self?.root?.appendingPathComponent("launcher/haejo") else { return }
+            DispatchQueue.global().async {
+                let process = Process(); process.executableURL = launcher
+                process.arguments = ["uninstall", "--yes"] + (removeData ? ["--remove-data"] : [])
+                process.standardOutput = FileHandle.nullDevice; process.standardError = FileHandle.nullDevice
+                try? process.run(); process.waitUntilExit()
+                DispatchQueue.main.async { NSApp.terminate(nil) }
+            }
+        }
         center.updateStatus(badge.stringValue)
         activityCenter = center
         return center
