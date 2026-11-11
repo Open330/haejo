@@ -104,11 +104,11 @@ def _run_day(name):
     return name.split('-', 2)[1][:8]
 
 
-def compact(root, *, now=None, settle=3600):
-    """Merge finished runs from earlier days into one file per day.
+def compact(root, *, now=None, settle=3600, files=None):
+    """Merge finished runs into one file per day (the run's start date).
 
-    Only runs written before today (UTC, by name) and idle for `settle`
-    seconds move, so a run still writing is never touched. One process merges
+    Only runs idle for `settle` seconds move, so a run still writing is never
+    touched. One process merges
     at a time; others skip. A run's lines are appended (each tagged `run`),
     flushed, then its own file is removed — a crash in between leaves a
     duplicate that readers drop by (run, sequence), never a lost receipt.
@@ -118,7 +118,6 @@ def compact(root, *, now=None, settle=3600):
     except ImportError:
         return 0  # Windows keeps one file per run
     now = time.time() if now is None else now
-    today = datetime.fromtimestamp(now, timezone.utc).strftime('%Y%m%d')
     flags = os.O_RDWR | os.O_CREAT | getattr(os, 'O_NOFOLLOW', 0)
     try:
         lock = os.open(root/'.compact.lock', flags, 0o600)
@@ -131,8 +130,8 @@ def compact(root, *, now=None, settle=3600):
         except OSError:
             return 0
         groups = {}
-        for p, info in _files(root):
-            if _run_day(p.name) < today and now - info.st_mtime >= settle:
+        for p, info in (files if files is not None else _files(root)):
+            if now - info.st_mtime >= settle:
                 groups.setdefault(_run_day(p.name), []).append((p, info))
         for day, runs in sorted(groups.items()):
             target = root/f'haejo-day-{day}.jsonl'
@@ -177,6 +176,56 @@ def compact(root, *, now=None, settle=3600):
     finally:
         os.close(lock)
     return moved
+
+
+# Merging and pruning walk the whole folder; once per interval is enough. On a
+# busy day 5,000 run files made every command pay ~0.18 s for two full scans
+# (2026-11-11). The stamp also records the retention setting, so changing it
+# applies at the next command.
+HOUSEKEEPING_INTERVAL = 600
+
+
+def housekeeping(root, retention_days, *, now=None):
+    now = time.time() if now is None else now
+    stamp = root/'.housekeeping'
+    mark = f'{retention_days}'
+    try:
+        info = stamp.lstat()
+        # Names only (no per-file stat): cheap enough to keep the file-count
+        # cap exact on every command while the full scan waits.
+        if (now - info.st_mtime < HOUSEKEEPING_INTERVAL and stamp.read_text(encoding='utf-8') == mark
+                and len(os.listdir(root)) < MAX_FILES):
+            return False
+    except (FileNotFoundError, OSError):
+        pass
+    try:
+        fd = os.open(stamp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, 'O_NOFOLLOW', 0), 0o600)
+        with os.fdopen(fd, 'w', encoding='utf-8') as handle:
+            handle.write(mark)
+    except OSError:
+        pass
+    runs = _files(root)
+    try:
+        if compact(root, now=now, files=runs):
+            runs = _files(root)
+    except OSError:
+        pass  # merging is housekeeping; this run's receipt comes first
+    keep = retention_days * 86400
+    total = count = 0
+    # Newest first: run files, then day files by date.
+    for p, info in sorted(runs, key=lambda row: row[1].st_mtime, reverse=True) + _day_files(root):
+        total += _disk(info)
+        if _NAMES.fullmatch(p.name):
+            count += 1
+            age = now - info.st_mtime
+        else:
+            day = datetime.strptime(_DAYS.fullmatch(p.name).group(1), '%Y%m%d').replace(tzinfo=timezone.utc)
+            age = now - day.timestamp() - 86400
+        if count >= MAX_FILES or total > MAX_TOTAL - MAX_FILE or age > keep:
+            # Concurrent runs prune the same oldest files; a file already
+            # gone must not cost this run its own receipt.
+            p.unlink(missing_ok=True)
+    return True
 
 
 def read_run(name, root=None, limit=MAX_FILE + 65536):
@@ -248,26 +297,7 @@ class AccessLog:
             return
         try:
             root = private_directory(root or log_directory())
-            try:
-                compact(root)
-            except OSError:
-                pass  # merging is housekeeping; this run's receipt comes first
-            keep = self.preferences['retention_days'] * 86400
-            total = count = 0
-            # Newest first: today's run files, then day files by date.
-            entries = sorted(_files(root), key=lambda row: row[1].st_mtime, reverse=True) + _day_files(root)
-            for p, info in entries:
-                total += _disk(info)
-                if _NAMES.fullmatch(p.name):
-                    count += 1
-                    age = time.time() - info.st_mtime
-                else:
-                    day = datetime.strptime(_DAYS.fullmatch(p.name).group(1), '%Y%m%d').replace(tzinfo=timezone.utc)
-                    age = time.time() - day.timestamp() - 86400
-                if count >= MAX_FILES or total > MAX_TOTAL - MAX_FILE or age > keep:
-                    # Concurrent runs prune the same oldest files; a file already
-                    # gone must not cost this run its own receipt.
-                    p.unlink(missing_ok=True)
+            housekeeping(root, self.preferences['retention_days'])
             name = 'haejo-' + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ-') + uuid.uuid4().hex + '.jsonl'
             flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, 'O_NOFOLLOW', 0)
             self.fd = os.open(root/name, flags, 0o600)
