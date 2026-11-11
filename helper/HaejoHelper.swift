@@ -3395,7 +3395,19 @@ func pasteCredential(_ element:AXUIElement,pid:pid_t,value:String,origin:String?
         do {unicodePairs=try credentialUnicodeChunks(value).map {try buildNativeWindowText(windowID,text:$0)}}
         catch {return refuse("unicode_input_unavailable")}
     }
-    if !(str(element,kAXValueAttribute as String) ?? "").isEmpty {
+    // The field's own value says when the app has taken the input; wait for
+    // that (up to the former fixed 0.2 s) instead of always sleeping 0.2 s.
+    // A field that never reads back (secure text, reformatting) waits the full
+    // 0.2 s as before, so the clipboard is never restored early.
+    let beforeValue=str(element,kAXValueAttribute as String)
+    func awaitReceipt(_ received:(String?)->Bool) {
+        let end=ProcessInfo.processInfo.systemUptime+0.2
+        while ProcessInfo.processInfo.systemUptime<end {
+            if received(str(element,kAXValueAttribute as String)) {return}
+            Thread.sleep(forTimeInterval:0.01)
+        }
+    }
+    if !(beforeValue ?? "").isEmpty {
         guard let (select,_) = menuItem(pid:pid,path:[["Edit","편집"],["Select All","모두 선택","전체 선택"]]),
               AXUIElementPerformAction(select,kAXPressAction as CFString) == .success else {return refuse("paste_selection_unavailable")}
     }
@@ -3412,7 +3424,7 @@ func pasteCredential(_ element:AXUIElement,pid:pid_t,value:String,origin:String?
             }
             Thread.sleep(forTimeInterval:0.01)
         }
-        Thread.sleep(forTimeInterval:0.2)
+        awaitReceipt { $0==value }
         return ["type":"acted","action":"set_value","obs_id":obsID,"input_route":"native_unicode",
                 "clipboard_restored":true,"clipboard_used":false,"unverified":"observe_effect"]
     }
@@ -3438,7 +3450,7 @@ func pasteCredential(_ element:AXUIElement,pid:pid_t,value:String,origin:String?
     let error=AXUIElementPerformAction(paste,kAXPressAction as CFString)
     if error != .success {return ["type":"error","error":"paste_dispatch_unverified","effect":"unknown"]}
     // AXPress acknowledges a menu dispatch, not the website's receiving state.
-    Thread.sleep(forTimeInterval:0.2)
+    awaitReceipt { $0 != beforeValue && $0 != nil }
     let recovered=restore()
     return ["type":"acted","action":"set_value","obs_id":obsID,"input_route":"native_paste",
             "clipboard_restored":recovered,"unverified":"observe_effect"]

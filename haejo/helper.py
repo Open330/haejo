@@ -1213,6 +1213,8 @@ class HelperDriver:
         from .protocol import CONTINUATION_CAPABILITY
         search_pages = bool(search_pages) and CONTINUATION_CAPABILITY in getattr(self, 'capabilities', ())
         deadline = time.monotonic() + timeout_ms / 1000
+        from .observation_wait import poll_gaps
+        gaps = poll_gaps(poll_ms)
         last = None
         pages_checked = 0
         while True:
@@ -1240,7 +1242,7 @@ class HelperDriver:
                         **({"observation_pages_checked": pages_checked} if search_pages else {})}
             if yield_between and 'session.release_targets' in getattr(self, 'capabilities', ()):
                 self.release_targets()
-            time.sleep(min(poll_ms / 1000, max(0, deadline - time.monotonic())))
+            time.sleep(min(next(gaps), max(0, deadline - time.monotonic())))
 
 
 # The L2 surface is transport-independent: observe/act/wait_until only need a

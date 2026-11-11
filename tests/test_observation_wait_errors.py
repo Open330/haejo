@@ -61,7 +61,7 @@ class ObservationWaitErrorsTests(unittest.TestCase):
                     observe=Mock(return_value=error)
                     result,clock=self.run_wait(fn,module,observe)
                     self.assertEqual(result,error)
-                    self.assertEqual(observe.call_count,3)
+                    self.assertEqual(observe.call_count,4)
                     self.assertAlmostEqual(sum(clock.sleeps),.1)
 
     def test_real_false_condition_keeps_timeout_and_last_observation(self):
@@ -103,7 +103,7 @@ class WindowListingWaitTests(unittest.TestCase):
         for fn,module in self.backends():
             error=self.listing_error();observe=Mock(return_value=error)
             result,clock=self.run_wait(fn,module,observe)
-            self.assertEqual(result,error);self.assertEqual(observe.call_count,3)
+            self.assertEqual(result,error);self.assertEqual(observe.call_count,4)
             self.assertAlmostEqual(sum(clock.sleeps),.1)
 
     def test_malformed_unclassified_and_locked_failures_stop_without_polling(self):

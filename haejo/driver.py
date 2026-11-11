@@ -1780,6 +1780,8 @@ class Driver:
         from .observation_state import retryable_observation_error
         from .observation_wait import match_in_pages
         deadline = time.monotonic() + timeout_ms / 1000
+        from .observation_wait import poll_gaps
+        gaps = poll_gaps(poll_ms)
         last = None
         pages_checked = 0
         while True:
@@ -1801,7 +1803,7 @@ class Driver:
                 # after paging its obs_id is no longer the latest.
                 return {"type": "timeout", "target": target, "waited_ms": timeout_ms,
                         "last_obs": last, **({"observation_pages_checked": pages_checked} if search_pages else {})}
-            time.sleep(min(poll_ms / 1000, max(0, deadline - time.monotonic())))
+            time.sleep(min(next(gaps), max(0, deadline - time.monotonic())))
 
     # ------------------------------------------------------------ act
 

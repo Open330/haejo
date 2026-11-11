@@ -38,10 +38,10 @@ class ObservationPollLatencyTests(unittest.TestCase):
              patch('haejo.helper.time.sleep', side_effect=clock.sleep):
             result = driver.wait_until('fixture', lambda tree: tree == 'ready', poll_ms=50)
         self.assertEqual('ready', result['tree'])
-        self.assertEqual([.05], clock.sleeps)
+        self.assertEqual([.025], clock.sleeps)  # first gap is 25 ms, not the full poll_ms
 
     def test_false_result_times_out_and_no_new_action_is_sent(self):
-        driver = self.helper([{'type': 'observation', 'tree': 'old'}] * 3)
+        driver = self.helper([{'type': 'observation', 'tree': 'old'}] * 5)
         clock = Clock()
         with patch('haejo.helper.time.monotonic', side_effect=clock.now), \
              patch('haejo.helper.time.sleep', side_effect=clock.sleep):
@@ -127,7 +127,8 @@ class ObservationPollLatencyTests(unittest.TestCase):
         if expected_ok:
             # General's separate next-screen observation deliberately retains
             # its ordinary settle; this check is about predicate polling.
-            self.assertEqual([.25, .75] if general else [.25], clock.sleeps)
+            # Gaps start at 25 ms and double toward poll_ms (and the general walk's one-second check).
+            self.assertEqual([.025, .05, .1, .2, .625] if general else [.025, .05, .1, .2], clock.sleeps)
         else:
             self.assertEqual(1., clock.sleeps[0])
             if not general:

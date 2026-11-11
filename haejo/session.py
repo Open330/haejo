@@ -22,7 +22,8 @@ import os
 import subprocess
 from dataclasses import dataclass, asdict
 
-import Quartz
+import ctypes
+import ctypes.util
 
 
 # ---- capabilities (option D): name what is and isn't reachable, honestly ----
@@ -39,6 +40,62 @@ CAPABILITIES = {
 }
 
 
+_SESSION_KEYS = ("kCGSSessionOnConsoleKey", "OnConsole", "kCGSessionLoginDoneKey", "CGSSessionScreenIsLocked")
+_cf = _cg = None
+
+
+def _frameworks():
+    """CoreGraphics/CoreFoundation through ctypes: two C calls do not need the
+    PyObjC Quartz bridge, whose import cost ~0.15 s on every CLI command."""
+    global _cf, _cg
+    if _cg is None:
+        cf = ctypes.CDLL(ctypes.util.find_library("CoreFoundation"))
+        cg = ctypes.CDLL(ctypes.util.find_library("CoreGraphics"))
+        ptr = ctypes.c_void_p
+        cg.CGSessionCopyCurrentDictionary.restype = ptr
+        cg.CGPreflightScreenCaptureAccess.restype = ctypes.c_bool
+        cf.CFStringCreateWithCString.restype = ptr
+        cf.CFStringCreateWithCString.argtypes = [ptr, ctypes.c_char_p, ctypes.c_uint32]
+        cf.CFDictionaryGetValue.restype = ptr
+        cf.CFDictionaryGetValue.argtypes = [ptr, ptr]
+        cf.CFDictionaryContainsKey.restype = ctypes.c_bool
+        cf.CFDictionaryContainsKey.argtypes = [ptr, ptr]
+        cf.CFGetTypeID.restype = ctypes.c_ulong
+        cf.CFGetTypeID.argtypes = [ptr]
+        cf.CFBooleanGetTypeID.restype = ctypes.c_ulong
+        cf.CFBooleanGetValue.restype = ctypes.c_bool
+        cf.CFBooleanGetValue.argtypes = [ptr]
+        cf.CFRelease.argtypes = [ptr]
+        _cf, _cg = cf, cg
+    return _cf, _cg
+
+
+def _session_dictionary():
+    """The session keys Haejo reads, as {key: bool or a non-bool marker}; None without a session."""
+    cf, cg = _frameworks()
+    d = cg.CGSessionCopyCurrentDictionary()
+    if not d:
+        return None
+    try:
+        out = {}
+        for name in _SESSION_KEYS:
+            key = cf.CFStringCreateWithCString(None, name.encode(), 0x08000100)  # UTF-8
+            try:
+                if cf.CFDictionaryContainsKey(d, key):
+                    value = cf.CFDictionaryGetValue(d, key)
+                    out[name] = (cf.CFBooleanGetValue(value)
+                                 if value and cf.CFGetTypeID(value) == cf.CFBooleanGetTypeID() else "non-bool")
+            finally:
+                cf.CFRelease(key)
+        return out
+    finally:
+        cf.CFRelease(d)
+
+
+def screen_capture_preflight() -> bool:
+    return bool(_frameworks()[1].CGPreflightScreenCaptureAccess())
+
+
 def lock_state() -> dict:
     """Best-effort current-session state, not an atomic input authorization.
 
@@ -48,7 +105,7 @@ def lock_state() -> dict:
     is private; app visibility and input guards still need their own checks.
     """
     try:
-        d = Quartz.CGSessionCopyCurrentDictionary()
+        d = _session_dictionary()
         if d is None:
             return {"locked": None, "on_console": None, "login_done": None,
                     "source": "no_session_dict"}
@@ -233,7 +290,7 @@ def preflight(require_unlocked: bool = True) -> dict:
     """
     caps = dict(CAPABILITIES)
     try:
-        caps["screen_capture"] = bool(Quartz.CGPreflightScreenCaptureAccess())
+        caps["screen_capture"] = screen_capture_preflight()
     except Exception:
         caps["screen_capture"] = None
     ls = lock_state()
