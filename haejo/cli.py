@@ -161,6 +161,12 @@ def _confirmer(argv):
     consent.
     """
     import sys as _sys
+    from .menu_approval import enabled as _menu_enabled
+    if _menu_enabled():
+        # Opt-in menu approval decides confirm steps whatever the flags or
+        # terminal; off keeps the branches below exactly as they were.
+        from .menu_approval import RuntimeConfirm
+        return RuntimeConfirm()
     if "--yes" in argv or "-y" in argv:
         return lambda what: True
     if not _sys.stdin.isatty():
@@ -481,6 +487,12 @@ def _run_flow(flow, argv, walked: bool = False, *, _driver=None, _confirm=None, 
     from .window_scope import take_window_arg, bind_window
     try:argv,window_id=take_window_arg(argv)
     except ValueError as error:print(str(error));return 2
+    from .menu_approval import take_approval_arg, enabled as _menu_enabled
+    try:argv,approval_id=take_approval_arg(argv)
+    except ValueError as error:print(str(error));return 2
+    menu = _confirm is None and _menu_enabled()
+    if approval_id is not None and not menu:
+        print('approval_not_enabled: --approval is used only when menu approval is on');return 2
     document = None
     if "--document" in argv:
         k=argv.index("--document")
@@ -541,8 +553,18 @@ def _run_flow(flow, argv, walked: bool = False, *, _driver=None, _confirm=None, 
         tracer = TracingDriver(driver, Trace(flow=flow.name, target=flow.target))
         driver = tracer
     agent = Agent(driver=driver)
-    confirmer = _confirmer(argv) if _confirm is None else _confirm
-    approvals, blocked = agent.authorize(flow, ask=confirmer)
+    if menu:
+        from .menu_approval import plan as _menu_plan, RuntimeConfirm, PENDING_EXIT
+        approvals, blocked, outcome = _menu_plan(flow, agent, window_id=window_id, approval_id=approval_id)
+        if outcome is not None:
+            from .access_log import record_failure
+            record_failure(outcome['type'], 'authorize')
+            print(json.dumps(outcome, ensure_ascii=False))
+            return PENDING_EXIT if outcome['type'] in ('approval_pending', 'approval_claimed') else 1
+        confirmer = RuntimeConfirm(flow.target)
+    else:
+        confirmer = _confirmer(argv) if _confirm is None else _confirm
+        approvals, blocked = agent.authorize(flow, ask=confirmer)
     if blocked:
         from .access_log import record_failure
         record_failure('step_not_authorized', 'authorize')
@@ -587,6 +609,9 @@ def _run_flow(flow, argv, walked: bool = False, *, _driver=None, _confirm=None, 
             result = replay(driver, flow, approvals=approvals,
                             narrate=lambda text: print(f"  … {text}"), decide=decider,
                             confirm=confirmer, escalate=judge, budget=think, **hooks)
+            if menu:
+                from .menu_approval import finish as _menu_finish
+                _menu_finish(approvals, result.ok)
         finally:
             if timed_driver is not None:
                 report = timed_driver.snapshot()
@@ -762,7 +787,23 @@ def _dispatch(cmd, rest):
             _execution_journal.reset(token)
 
 
+_MENU_JSON_OUT = None
+
+
 def _dispatch_command(cmd, rest):
+    global _MENU_JSON_OUT
+    if cmd == 'do' and '--json' in rest and _MENU_JSON_OUT is None:
+        from .menu_approval import enabled as _menu_enabled
+        if _menu_enabled():
+            # With menu approval and --json, stdout carries only the final JSON
+            # object; narration, guidance and trace lines go to stderr.
+            import contextlib
+            _MENU_JSON_OUT = sys.stdout
+            try:
+                with contextlib.redirect_stdout(sys.stderr):
+                    return _dispatch_command(cmd, rest)
+            finally:
+                _MENU_JSON_OUT = None
     if cmd == 'parallel':
         from .parallel_run import main as parallel_main
         return parallel_main(rest)
@@ -1656,8 +1697,16 @@ def _dispatch_command(cmd, rest):
                     if j != k and not (j == k + 1 and nxt.isdigit())]
             intent = " ".join(rest)
 
+        from .menu_approval import take_approval_arg, enabled as _menu_enabled
+        _approval = None
+        if _menu_enabled():
+            # The approval id is an option, never part of the request text.
+            try:rest,_approval=take_approval_arg(rest)
+            except ValueError as error:print(str(error));return 2
+        _menu_json = _menu_enabled() and '--json' in rest
         intent = " ".join(w for w in rest if w not in
-                          ("--yes", "-y", "--helper", "--strict", "--no-indicator")).strip()
+                          ("--yes", "-y", "--helper", "--strict", "--no-indicator")
+                          + (("--json",) if _menu_enabled() else ())).strip()
 
         driver = _make_driver(rest)
         tracer = None
@@ -1751,11 +1800,20 @@ def _dispatch_command(cmd, rest):
         except Exception:
             guess = None
         with _indicator_for(guess or "", rest):
-            turn = agent.handle(intent, ask=_confirmer(rest), think=think)
+            turn = (agent.handle(intent, ask=_confirmer(rest), think=think, approval_id=_approval)
+                    if _approval is not None else agent.handle(intent, ask=_confirmer(rest), think=think))
         if tracer is not None:
             tracer.trace.flow = turn.flow or "(unresolved)"
             print(f"\n트레이스 저장: {tracer.trace.save(trace_path)}"
                   f"  (이 파일만 있으면 다른 컴퓨터에서 그대로 재현됩니다)")
+        detail = getattr(turn, 'detail', None)
+        if isinstance(detail, dict) and str(detail.get('type', '')).startswith('approval_'):
+            # A menu approval outcome is one JSON object on the last line.
+            from .menu_approval import PENDING_EXIT
+            if not _menu_json:
+                print(f"\n[{turn.status}] {turn.say if not turn.say.startswith('{') else ''}".rstrip())
+            print(json.dumps(detail, ensure_ascii=False), file=_MENU_JSON_OUT or sys.stdout)
+            return PENDING_EXIT if detail['type'] in ('approval_pending', 'approval_claimed') else 1
         print(f"\n[{turn.status}] {turn.say}")
         return 0 if turn.status == "done" else 1
 

@@ -9,6 +9,7 @@ from functools import partial
 from .flow import every_step, _replay_observation
 from .checkpoint_tree import equivalent, corresponding_index
 from .repair_packet import packet_for, selector_candidate_nodes, candidate_packet_page
+from .menu_approval import enabled as menu_enabled
 
 
 class RepairRefused(ValueError):
@@ -117,7 +118,7 @@ class AutoRepair:
                                 '_replay_sensitive_names':resume_sensitive_names}
                                if resume_seed is not None else {})
             approved='--yes' in flags
-            code=run_flow(segment,flags,_driver=driver,_confirm=lambda description:approved,
+            code=run_flow(segment,flags,_driver=driver,_confirm=None if menu_enabled() else (lambda description:approved),
                           _on_result=capture_result,**continuation_args)
             if code==0:
                 return code,working

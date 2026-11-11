@@ -35,7 +35,7 @@ def build(output: Path):
         for name in ("haejo-app.icns", "haejo-logo.svg", "haejo-menu-template.svg"):
             shutil.copy2(root / "docs/assets" / name, contents / "Resources" / name)
         executable = contents / "MacOS/HaejoSetup"
-        subprocess.run(["swiftc", str(source / "main.swift"), str(source / "PermissionState.swift"), str(source / "ActivityCenter.swift"), str(root / "RuntimeStatus.swift"),
+        subprocess.run(["swiftc", str(source / "main.swift"), str(source / "PermissionState.swift"), str(source / "ActivityCenter.swift"), str(source / "ApprovalCenter.swift"), str(root / "RuntimeStatus.swift"),
                         "-o", str(executable)], check=True)
         (contents / "Info.plist").write_bytes(plistlib.dumps({
             "CFBundleDisplayName": "Haejo", "CFBundleName": "Haejo",

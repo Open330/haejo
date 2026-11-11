@@ -9,6 +9,7 @@ from pathlib import Path
 from .flow import Flow, every_step
 from .flow_errors import feedback
 from .flow_session import flow_input_mode
+from .menu_approval import enabled as menu_enabled
 
 MAX_REQUEST_BYTES = 65536
 
@@ -201,7 +202,7 @@ def run_batch(args, *, make_driver, run_flow, stdin, emit, load_recipe=None):
                     return interruption_summary(result,len(bound.steps),step_offset=offset,failed=True)
                 try:
                     if auto_repair is None:
-                        code=checked_run_flow(bound,flags,_driver=driver,_confirm=lambda description:approved)
+                        code=checked_run_flow(bound,flags,_driver=driver,_confirm=None if menu_enabled() else (lambda description:approved))
                     else:
                         code,learned=auto_repair.run(recipe,record['params'],flags,
                             driver=driver,run_flow=checked_run_flow,emit=emit)

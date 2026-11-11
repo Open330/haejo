@@ -475,6 +475,7 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         refreshConnection()
         build()
         installMenus()
+        ApprovalCenter.shared.refresh()
         window.center()
         // Background launches keep the settings surface out of the user's way.
         // The menu bar remains available; a normal open or menu click shows it.

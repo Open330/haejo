@@ -40,6 +40,12 @@ in that run. `session` has no approver, so `run` handles these steps and the
 task continues; for many rows, `haejo batch --yes` carries the same approval to
 every job. Declare a persistent effect as persistent; `--yes`
 is how its confirmation is given.
+With the menu approval setting on, `run` answers a confirm step through the
+Haejo menu: `{"type":"approval_pending",...,"resume":"--approval ap_…"}` (exit 4)
+means run the same command again with that `--approval` option;
+`approval_claimed` means another run already holds that approval, so read that
+run's result (`haejo task status <id> --steps`) before deciding on anything new.
+Preapproved steps run as before.
 
 Privacy consent and terms are ordinary form operations when the user has made
 the decision. For example, approving two required consents while refusing event
