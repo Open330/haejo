@@ -430,13 +430,11 @@ def _indicator_for(target, argv):
         # Windows has no indicator yet; the macOS overlay must not load there.
         from contextlib import nullcontext
         return nullcontext()
-    from .driver import Driver
     from .overlay import Indicator
-    try:
-        pid = Driver()._resolve(target, launch=False)
-    except Exception:
-        pid = None
-    return Indicator(pid, notify=lambda m: print(f"  {m}"))
+    # The indicator child resolves the app itself: finding a pid here loaded
+    # the PyObjC in-process driver (~0.2 s) into every run that drives the app
+    # through the signed helper and never uses that driver.
+    return Indicator(None, target=target, notify=lambda m: print(f"  {m}"))
 
 
 def _emit_pin_diagnostic(reason):

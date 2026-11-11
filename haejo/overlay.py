@@ -126,16 +126,18 @@ class Indicator:
     not to do."""
 
     def __init__(self, pid: int | None, enabled: bool = True, notify=None,
-                 heartbeat: str | None = None, ttl: float = 4.0):
+                 heartbeat: str | None = None, ttl: float = 4.0, target: str | None = None):
         self.pid, self.enabled, self._proc = pid, enabled, None
+        self.target = target
         self.heartbeat, self.ttl = heartbeat, ttl
         self._notify = notify or (lambda m: None)
 
     def __enter__(self):
-        if not (self.enabled and self.pid):
+        if not (self.enabled and (self.pid or self.target)):
             return self
         try:
-            command = [sys.executable, "-I", "-B", "-m", "haejo.overlay", str(self.pid)]
+            subject = str(self.pid) if self.pid else "--target=" + self.target
+            command = [sys.executable, "-I", "-B", "-m", "haejo.overlay", subject]
             if self.heartbeat is not None:
                 command += [self.heartbeat, str(self.ttl)]
             self._proc = subprocess.Popen(
@@ -158,7 +160,20 @@ class Indicator:
         return self._proc is not None and self._proc.poll() is None
 
 
+def _pid_for(subject: str) -> int | None:
+    if not subject.startswith("--target="):
+        return int(subject)
+    from .driver import Driver
+    try:
+        return Driver()._resolve(subject.split("=", 1)[1], launch=False)
+    except Exception:
+        return None
+
+
 if __name__ == "__main__":
-    run_indicator(int(sys.argv[1]),
+    _pid = _pid_for(sys.argv[1])
+    if not _pid:
+        sys.exit(0)        # the app is not running: nothing is being driven
+    run_indicator(_pid,
                   sys.argv[2] if len(sys.argv) > 2 else None,
                   float(sys.argv[3]) if len(sys.argv) > 3 else 4.0)
