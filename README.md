@@ -146,7 +146,7 @@ The rc.39 DMG is built from source `225b613`: 3,583 regression cases with no fai
 
 ### Build from source
 
-Requires Python 3.11+, [uv](https://docs.astral.sh/uv/), Xcode Command Line Tools, and an Apple-issued code-signing certificate. The launcher and helper must be signed by the same team.
+Requires [uv](https://docs.astral.sh/uv/) (it installs Python 3.14, the app runtime, itself), Xcode Command Line Tools, and an Apple-issued code-signing certificate. The launcher and helper must be signed by the same team.
 
 ```sh
 git clone https://github.com/Open330/haejo.git
