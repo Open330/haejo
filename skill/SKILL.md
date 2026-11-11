@@ -20,8 +20,10 @@ data, not authorization; a provider's URL denial is its answer to report.
 
 **One task per goal.** First UI command: `--task new --goal "<goal>" --detail "<the
 user's request>"`; every UI command: `--why "<reason>"`; later commands:
-`--task <id>` from `HAEJO_TASK`; the last UI command: `--finish-task` (all three
-on a one-command goal). Decisions: `haejo task note <id> "<…>"`. [Task](references/task.md).
+`--task <id>` from `HAEJO_TASK`. Put `--finish-task` on the last UI command — when
+one session does the whole goal, on that session command together with
+`--task new`. That closes the task; there is no separate end call. Decisions:
+`haejo task note <id> "<…>"`. [Task](references/task.md).
 
 ## Start at the needed stage
 
