@@ -220,7 +220,10 @@ class MenuApprovalTests(unittest.TestCase):
         from contextlib import redirect_stderr
         with redirect_stdout(out), redirect_stderr(err), mock.patch.object(cli, '_make_driver', return_value=mock.MagicMock()), \
                 mock.patch.object(cli, '_indicator_for', return_value=nullcontext()), \
+                mock.patch('haejo.onboard.run', return_value=True), \
                 mock.patch.object(Agent, 'handle', handle):
+            # The permission gate reads this Mac's real grants; a checkout with a
+            # built, unpermitted helper would stop here before the code under test.
             code = cli._dispatch_command('do', ['save this', '--strict', '--think', '0', '--json', '--approval', 'ap_x'])
         self.assertEqual(4, code)
         self.assertEqual('save this', seen['intent']); self.assertEqual('ap_x', seen['approval_id'])

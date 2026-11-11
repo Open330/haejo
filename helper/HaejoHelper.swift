@@ -2929,6 +2929,11 @@ struct TemporaryMenuPreparation {
     let windowID: CGWindowID
     var record: [String: Any]
     var restored = false
+    /// The app the person had in front before the preparation. The internal
+    /// activation is meant to stay inside the target, but Finder on macOS 27
+    /// answered it by coming to the real front (june-mba, 2026-11-11), which
+    /// takes the screen from the person. Putting their app back is the undo.
+    var previousFront: pid_t? = nil
 
     /// Same main/focused window, still without a sheet.
     func stillBound(pid: pid_t) -> Bool {
@@ -3054,8 +3059,16 @@ struct TemporaryMenuPreparation {
         guard !restored else { return }
         restored = true
         if isFrontmost(pid: pid) {
-            record["restored"] = false
-            record["restore_skipped"] = "target_in_front"
+            guard let previous = previousFront, previous != pid else {
+                record["restored"] = false
+                record["restore_skipped"] = "target_in_front"
+                return
+            }
+            // The preparation moved the person's screen; give it back.
+            let back = returnScreen(to: previous)
+            record["foreground_taken"] = true
+            record["foreground_returned"] = back
+            record["restored"] = back
             return
         }
         guard let owner = NSEvent.otherEvent(with: .appKitDefined, location: .zero,
@@ -3139,6 +3152,7 @@ func beginTemporaryMenuPreparation(_ obsID: String, _ target: String, _ pid: pid
     }
     var prepared = TemporaryMenuPreparation(window: window, windowID: windowID,
         record: ["attempted": true, "window_id": Int(windowID), "frontmost_before": false])
+    prepared.previousFront = nativeFrontmostProcessPID()
     let result = prepareBackgroundWindow(obsID, target, window, pid, deadline: deadline, toolbarTitlebar: true)
     let posted = (result["posted_events"] as? Int) ?? (result["posted_or_attempted_events"] as? Int) ?? 0
     prepared.record["posted_events"] = posted

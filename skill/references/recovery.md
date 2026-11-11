@@ -51,9 +51,11 @@ Then start with a fresh observation and continue from what it shows, since an
 earlier action may already have been sent. `helper_busy` instead means all four warm workers are busy.
 
 `needs_foreground` with `effect: not_started` means the app disabled that menu
-in the background. Bring the requested app forward with
-`haejo activate <bundle-id> [--window "<title part>"] --helper`. Then re-observe the exact document and
-resume the bound operation. A TextEdit
+in the background. First look for a background route: the element's own
+accessibility action, Finder `open_folder`, or the document or file itself.
+When none exists, `haejo activate <bundle-id> [--window "<title part>"] --helper`
+brings the app forward — this takes the person's screen, so say so in the
+result. Then re-observe the exact document and resume the bound operation. A TextEdit
 edit returning `commit_unverified` still needs the bound `textedit_save` receipt
 and matching file bytes before reporting that it was saved.
 

@@ -76,6 +76,18 @@ class TemporaryMenuPreparationTests(unittest.TestCase):
                               'kCGHIDEventTap', 'AXFrontmost" as CFString, kCFBooleanTrue'):
                 self.assertNotIn(forbidden, text)
 
+    def test_taken_foreground_goes_back_to_the_persons_app_only(self):
+        restore = SOURCE[SOURCE.index('mutating func restore(pid: pid_t)'):]
+        restore = restore[:restore.index('\n    }\n') + 6]
+        self.assertIn('let back = returnScreen(to: previous)', restore)
+        self.assertIn('previous != pid', restore)
+        self.assertIn('prepared.previousFront = nativeFrontmostProcessPID()', SOURCE)
+        front = (ROOT / 'helper/FrontmostProcess.swift').read_text()
+        back = front[front.index('func returnScreen(to previous: pid_t)'):]
+        back = back[:back.index('\n}\n') + 3]
+        self.assertIn('NSRunningApplication(processIdentifier: previous)', back)
+        self.assertEqual(1, back.count('activate('))
+
 
 if __name__ == '__main__':
     unittest.main()

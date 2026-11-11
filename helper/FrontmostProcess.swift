@@ -1,3 +1,4 @@
+import AppKit
 // Fresh public Process Manager reads. NSWorkspace can retain its foreground
 // snapshot until its runloop runs; that snapshot cannot authorize a focus write.
 // The public deprecated APIs remain exported on the tested host. Swift marks
@@ -31,3 +32,17 @@ func nativeFrontmostProcessPID() -> pid_t? {
           first.high == second.high && first.low == second.low else { return nil }
     return pid
 }
+
+/// Put the person's own app back in front after Haejo took the screen by
+/// accident. The only app this activates is the one that was frontmost before
+/// Haejo acted, and only to undo that; a target app is never raised here.
+func returnScreen(to previous: pid_t) -> Bool {
+    guard let person = NSRunningApplication(processIdentifier: previous) else { return false }
+    _ = person.activate(options: [])
+    let start = ProcessInfo.processInfo.systemUptime
+    while ProcessInfo.processInfo.systemUptime - start < 1, nativeFrontmostProcessPID() != previous {
+        Thread.sleep(forTimeInterval: 0.02)
+    }
+    return nativeFrontmostProcessPID() == previous
+}
+
