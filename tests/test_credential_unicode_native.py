@@ -23,7 +23,7 @@ class CredentialUnicodeNative(unittest.TestCase):
         from AppKit import NSPasteboard
 
         def clipboard():
-            return [[(str(t), bytes(item.dataForType_(t))) for t in item.types()]
+            return [[(str(t), None if item.dataForType_(t) is None else bytes(item.dataForType_(t))) for t in item.types()]
                     for item in NSPasteboard.generalPasteboard().pasteboardItems() or []]
 
         class Page(BaseHTTPRequestHandler):
