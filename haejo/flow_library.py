@@ -22,6 +22,9 @@ from .flow import Flow, every_step
 from .storage import write_private
 from .store import FlowStore
 
+# Windows has no signed helper and refuses --helper; never suggest it there.
+_HELPER = '' if sys.platform == 'win32' else ' --helper'
+
 # The policy levels at which a run stops for the person (or `--yes`).
 ASKS = frozenset({'confirm', 'handoff', 'blocked'})
 MAX_INTENTS = 20
@@ -350,7 +353,7 @@ def main(argv: list[str]) -> int:
             for step in entry.get('steps') or []:
                 tag = f"  [{', '.join(step['effects'])}]" if step['consequential'] else ''
                 print(f"    {step['index']:>2}. {step['action']} {step['label']}{tag}")
-            print(f"  run: haejo replay {entry['name']} --helper")
+            print(f"  run: haejo replay {entry['name']}{_HELPER}")
             return 0
         if verb == 'set' and rest:
             name, params, intents, i = rest[0], {}, None, 1
@@ -398,7 +401,7 @@ def main(argv: list[str]) -> int:
             if as_json:
                 return emit(result)
             print(f"  saved {save_result['flow']['name']} → {save_result['flow']['path']}")
-            print(f"  run: haejo replay {save_result['flow']['name']} --helper")
+            print(f"  run: haejo replay {save_result['flow']['name']}{_HELPER}")
             return 0
         raise LibraryError('invalid_arguments', USAGE)
     except LibraryError as exc:

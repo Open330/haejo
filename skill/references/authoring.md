@@ -1,7 +1,7 @@
 # Author from the current observation
 
 A selector must match one element. Prefer stable identifiers; use role/title
-when identifiers are unavailable. Do not reuse observation indices.
+when identifiers are unavailable. Observation indices belong to one observation.
 
 A deterministic Flow needs a target, steps, action meaning, and an observable
 result. This schema example illustrates one temporary edit, not app-specific

@@ -15,29 +15,29 @@ It saves the steps as a reusable **Flow**, so next time it runs with new inputs 
 [![Claude + Codex](docs/assets/badge-agents.svg)](skill/SKILL.md)
 [![Status](docs/assets/badge-status.svg)](#getting-started)
 
-[Release candidate](https://github.com/Open330/tacto/releases/tag/v1.0.0-rc.13) · [How it works](#how-it-works) · [Benchmarks](#benchmarks) · [Documentation](#documentation)
+[Release candidate](https://github.com/Open330/haejo/releases/tag/v1.0.0-rc.42) · [How it works](#how-it-works) · [Benchmarks](#benchmarks) · [Documentation](#documentation)
 
 </div>
 
-> **Renamed from Tacto (2026-11-09).** Release candidates up to v1.0.0-rc.13 were published as Tacto (`Tacto.app`, `tacto` command). The next release ships as Haejo. [What changes when you upgrade](docs/haejo-branding.md)
+> **Renamed from Tacto (2026-11-09).** Release candidates up to v1.0.0-rc.13 were published as Tacto (`Tacto.app`, `tacto` command); v1.0.0-rc.39 is the first Haejo release. [What changes when you upgrade](docs/haejo-branding.md)
 
 ## See it work in real apps
 
-[![Haejo searches Wikipedia and follows a page link in a real browser](docs/assets/haejo-wikipedia-demo.gif)](sites/haejo/dist/assets/demos/browser-wikipedia.mp4)
+[![Haejo in 40 seconds: eight card expenses entered into a demo company system, every call in the activity log, next month replayed from a saved Flow](docs/assets/haejo-film-poster.en.jpg)](https://open330.github.io/haejo/en/#film)
 
-An animated preview from an actual recorded run. Click for the full MP4. GitHub's accessibility settings can disable animated-image autoplay.
+**Haejo in 40 seconds.** Eight card receipts to enter into a company system with no API? Ask, and Haejo does it field by field. Every call shows up in the activity log with its goal and reason. Save what it did as a Flow, and next month's six rows replay with zero model calls. The expense system is a demo page; every Safari and TextEdit screen is a real capture taken after each Haejo call. [Watch on the site](https://open330.github.io/haejo/en/#film) · [MP4](sites/haejo/dist/assets/film/haejo-film.en.mp4)
 
 **Ten recorded scenarios: eight real apps or websites, plus two public test environments.**
 
 | App or site | Task and observed result | Recording |
 | :--- | :--- | :--- |
-| TextEdit | Write workshop notes; separately verify saved disk contents against the document | [10 sec](sites/haejo/dist/assets/demos/native-textedit.mp4) |
-| Finder | Sort five files by kind, then by name | [8 sec](sites/haejo/dist/assets/demos/native-finder.mp4) |
-| Google Translate | Enter a synthetic English example; separately check Korean output | [7 sec](sites/haejo/dist/assets/demos/browser-translate.mp4) |
-| GitHub | Filter open bugs and sort by comment count | [9 sec](sites/haejo/dist/assets/demos/browser-github.mp4) |
-| UnitConverters.net | Convert 3.5 m to 11.482939633 ft; compare with a separate calculation | [9 sec](sites/haejo/dist/assets/demos/browser-units.mp4) |
-| Markdown Live Preview | Edit the opening section; check heading, list, and bold text | [18 sec](sites/haejo/dist/assets/demos/browser-markdown.mp4) |
-| Wikipedia | Search Seoul and navigate to History | [14 sec](sites/haejo/dist/assets/demos/browser-wikipedia.mp4) |
+| TextEdit | Write workshop notes; separately verify saved disk contents against the document | [28 sec](sites/haejo/dist/assets/demos/native-textedit.mp4) |
+| Finder | Sort five files by kind, then by name | [22 sec](sites/haejo/dist/assets/demos/native-finder.mp4) |
+| Google Translate | Enter a synthetic English example; separately check Korean output | [8 sec](sites/haejo/dist/assets/demos/browser-translate.mp4) |
+| GitHub | Filter open bugs and sort by comment count | [20 sec](sites/haejo/dist/assets/demos/browser-github.mp4) |
+| UnitConverters.net | Convert 3.5 m to 11.482939633 ft; compare with a separate calculation | [11 sec](sites/haejo/dist/assets/demos/browser-units.mp4) |
+| Markdown Live Preview | Edit the opening section; check heading, list, and bold text | [9 sec](sites/haejo/dist/assets/demos/browser-markdown.mp4) |
+| Wikipedia | Search Seoul and navigate to History | [19 sec](sites/haejo/dist/assets/demos/browser-wikipedia.mp4) |
 | Mac Calculator | Replay the same Flow with different inputs; verify 15 and 12 | [14 sec](sites/haejo/dist/assets/demos/calculator-guided.mp4) |
 
 <a href="sites/haejo/dist/assets/demos/native-textedit.mp4"><img src="sites/haejo/dist/assets/demos/native-textedit-poster.png" alt="Actual TextEdit document editing and save verification" width="48%"></a>
@@ -45,7 +45,7 @@ An animated preview from an actual recorded run. Click for the full MP4. GitHub'
 
 Also available: [product lookup](sites/haejo/dist/assets/demos/browser-shopping.mp4) and [form filling](sites/haejo/dist/assets/demos/browser-form.mp4) in public test environments. No purchase or registration was submitted.
 
-Browser demos use **Python BrowserDriver + Flow in a separate Chromium instance**, rather than your existing Chrome or Safari tabs. TextEdit stopped when save evidence was insufficient; a separate Save verification then passed. Google Translate's output check is separate from proof of input delivery. The Markdown demo edits only the opening section and leaves other sample content intact.
+The browser demos below were recorded with **Python BrowserDriver + Flow in a separate Chromium instance**. A Safari window you already have open is found by URL or title and operated directly by the signed helper, as in the film's expense entry. TextEdit stopped when save evidence was insufficient; a separate Save verification then passed. Google Translate's output check is separate from proof of input delivery. The Markdown demo edits only the opening section and leaves other sample content intact.
 
 Recordings include illustrative pointers and capture delays. They show authored Flows executing, not natural-language authoring, and are not speed or token benchmarks. Not every demo completed without intervention. [Conditions, results, and limits](docs/haejo-everyday-examples-2026-10-15.md).
 
@@ -65,21 +65,28 @@ haejo hover <bundle-id> --helper --to 120 80 --hold 1 --capture during.png
 
 ## Know what your agent did
 
-**Delegate the work. Inspect the activity.** Haejo's in-app history shows accesses
-made through Haejo: the target app, operation, outcome and elapsed time. Search
-runs, filter failures or unconfirmed completion, and follow each operation in a
-timeline without opening a log directory.
+**Delegate the work. Inspect the activity.** Each request becomes a task
+(`--task new --goal … --why …`). Haejo's in-app history groups calls by task with
+the request, the goal, the reason for each call, the target app, outcome and
+elapsed time. Search runs, filter failures or unconfirmed completion, and follow
+each operation without opening a log directory. [Tasks](docs/tasks.md).
 
-![Haejo preview with multiple actual access records and the selected TextEdit timeline](sites/haejo/dist/assets/haejo-activity.png)
+![Haejo activity history: four real tasks from one day, with the November expense task's request, 16 calls and the reason for each](sites/haejo/dist/assets/haejo-activity.png)
 
 Records stay on this Mac. Settings control automatic logging and 7/30/90-day
-retention. Screen content, input values, prompts and internal agent reasoning
-are excluded. [Activity history and settings](docs/access-logging.md).
+retention. The agent's goals and reasons are kept; screen content, input values
+and internal agent reasoning are not. [Activity history and settings](docs/access-logging.md).
 
 Agents can use a reusable, site/app-scoped credential
 delegation to fill fields or complete login from macOS Keychain or an already
 authenticated Bitwarden Vault. Values go directly to the signed helper;
-the agent receives only the result. Available in rc.11, with in-app Vault management, reusable Flow authentication, declared multi-screen login and optional account checks. [Credential setup and delegation levels](skill/references/credentials.md).
+the agent receives only the result. Includes in-app Vault management, reusable Flow authentication, declared multi-screen login and optional account checks. [Credential setup and delegation levels](skill/references/credentials.md).
+
+`haejo parallel jobs.json --helper --json` runs one to four checked window jobs at
+once, each with its own signed session and a content-free result receipt; the
+Haejo menu shows each live run with its own stop control. `haejo windows
+<bundle-id> --helper` lists window IDs for work in different windows of the same
+app. [Parallel execution](docs/parallel-execution.md) · [Helper execution](docs/helper-execution.md).
 
 <a id="how-it-works"></a>
 
@@ -98,12 +105,12 @@ This is **computer use**: agents read app interfaces, click controls, and enter 
 | Create a Flow with Claude or Codex | Resolve targets from fresh observations and check outcomes | Use a model for judgment or supported repairs |
 | Model-independent execution format | **Zero model calls during normal deterministic replay** | Supported repair resumes at the affected step |
 
-Authoring, judgment, and repair still cost model tokens. Automatic selector repair currently belongs to the **development checkout's Codex provider**; it is not included in the packaged release candidate.
+Authoring, judgment, and repair still cost model tokens. Automatic selector repair is opt-in: add `--auto-repair codex` or `--auto-repair claude` to `run` or `batch`.
 
 <details>
 <summary>What if the interface changes or completion is uncertain?</summary>
 
-The development repair path passes only relevant candidates for supported static-selector failures. It resumes after verified checkpoints without blindly resending actions that may already have completed. It does not recover every UI change or crash. [Repair scope](docs/haejo-auto-repair-2026-10-14.md).
+The repair path passes only relevant candidates for supported static-selector failures. It resumes after verified checkpoints without blindly resending actions that may already have completed. It does not recover every UI change or crash. [Repair scope](docs/haejo-auto-repair-2026-10-14.md).
 
 Native execution uses the existing Haejo menu bar icon for task status and **현재 작업 중단**; no extra helper icon appears. Press Esc to stop. In **설정**, turn off **작업 중 배너 표시** to hide the upper-right task banner starting with the next task.
 
@@ -113,9 +120,9 @@ Native execution uses the existing Haejo menu bar icon for task status and **현
 
 [![Recorded execution of repeated workflows in the Haejo macOS test app](sites/haejo/dist/assets/demos/workflow-guided-poster.png)](sites/haejo/dist/assets/demos/workflow-guided.mp4)
 
-The same 11-step Flow ran five times with different inputs in our own macOS test app, producing 89, 34, 62, 79, and 108, with one completion per job. Pointers and click effects were added for explanation; they are not recordings of system cursor movement.
+The same 11-step Flow ran five times, one step at a time, with different inputs in our own macOS test app, producing 37, 46, 70, 27, and 48, with one completion per job. Pointers and click effects were added for explanation; they are not recordings of system cursor movement.
 
-[17-second walkthrough](sites/haejo/dist/assets/demos/workflow-guided.mp4) · [Unannotated recording](sites/haejo/dist/assets/demos/workflow-replay.mp4) · [Capture conditions](docs/haejo-recorded-demos-2026-10-15.md)
+[21-second walkthrough](sites/haejo/dist/assets/demos/workflow-guided.mp4) · [Unannotated recording](sites/haejo/dist/assets/demos/workflow-replay.mp4) · [Capture conditions](docs/haejo-film-2026-11-10.md)
 
 A separate development test completed ten jobs with zero replay-time model calls. Another repaired two changed buttons in one job using two model calls. These are dedicated test-app results, not a reliability guarantee for every business app. [Complex scenarios](docs/haejo-complex-scenarios-2026-10-14.md) · [TextEdit comparison](docs/benchmark-records.md#정확한-textedit-저장-상태의-실제-비교).
 
@@ -123,28 +130,26 @@ A separate development test completed ten jobs with zero replay-time model calls
 
 ## Get started
 
-**1.0.0-rc.13 release candidate for Apple Silicon Macs on macOS 27.0.1.**
+**1.0.0-rc.42 release candidate for Apple Silicon Macs on macOS 27.0.1.**
 
-[Release candidate](https://github.com/Open330/tacto/releases/tag/v1.0.0-rc.13). Download the notarized DMG, drag `Haejo.app` into `Applications`, and follow setup. rc.13 allows task-approved credential entry without mandatory Vault registration and adds explicitly scoped same-app AX window concurrency. Contention waits before dispatch; cancelled requests do not execute later. Existing scoped Vault login, in-app activity/settings, TextEdit first task and optional warm startup remain available. Signed app/DMG notarization, artifact/security checks and identical-bundle installation on three Macs passed. Regression: 3,046 cases, 20 skips, no unresolved failures/errors; see release validation for the initial documentation failure and its recheck. Stable qualification remains separate.
+1. [Download the notarized DMG](https://github.com/Open330/haejo/releases/download/v1.0.0-rc.42/Haejo-1.0.0-rc.42-arm64.dmg) ([release notes and validation](https://github.com/Open330/haejo/releases/tag/v1.0.0-rc.42)).
+2. Open it, drag `Haejo.app` into `Applications`, then open Haejo from `Applications`.
+3. In **1. Mac permissions**, press **Open Settings** and allow app control for **Haejo Helper** (screen recording for **Haejo** is optional).
+4. Opening the app already linked the `haejo` command and skill for Claude Code and Codex (**2. Connect agent** shows it; press it again after moving the app).
+5. **3. First task** opens a fresh Claude Code or Codex conversation that creates and verifies a TextEdit welcome note. Check anytime with `~/.local/bin/haejo doctor`.
 
-The rc.13 binary is pinned to source `f9f85c8`. Use the skill linked by the installed app for version-matched instructions.
+Upgrading from Tacto: install Haejo the same way. Your Tacto data moves to the Haejo folders, and because the app identity changed, macOS asks for both permissions again. [What changes](docs/haejo-branding.md)
 
-This is a **release candidate, not yet the approved stable release**. Stable qualification still needs a person-run fresh install, three permission revocation/regrant cycles and a limited beta ([guide](docs/beta-participant-guide.md)).
+Haejo runs in the menu bar without a Dock icon. Close the window to leave it in the background; the menu bar icon reopens it or quits.
 
-After setup, **Start first task** detects Claude Code or Codex and opens a fresh CLI conversation with one fixed Haejo command. The command launches TextEdit if needed, creates a new document and verifies its welcome text without an internal model call. The agent CLI may still ask for its normal trust or login confirmation.
-
-Haejo runs in the menu bar without a Dock icon. Close the settings window to leave it in the background; use the menu bar icon to reopen settings or quit.
-
-Installation, permissions, Claude/Codex connection and upgrades were verified on three Macs; on a second Mac, fresh Claude Code and Codex conversations completed a first Finder task. Other macOS versions, a person-run fresh install and the beta remain unverified. Windows and Intel Mac builds are not provided. The bundled onboarding UI and detailed guides are currently primarily Korean; this README is available in both languages.
-
-Under the previous development signature, Finder and Safari completed 40 tasks. The first 20 TextEdit saves required the user to bring the app forward; all 20 retries then passed. Those initial failures remain in the record. These results are not unattended 60/60 success or approval of the newly signed DMG. [Release evidence and remaining checks](docs/release-readiness.md) · [Installation details](docs/installation.md).
+The rc.42 DMG is built from source `e199157` on Python 3.14: 3,603 regression cases with no failures, Apple notarization and Gatekeeper accepted, the identical bundle installed on three Macs with data and permissions checked. It is a **release candidate, not the approved stable release**; a person-run fresh install, permission revoke/regrant cycles and a limited beta remain ([guide](docs/beta-participant-guide.md)). Windows and Intel Mac builds are not provided. The in-app onboarding is currently Korean-first. [Release evidence](docs/release-readiness.md) · [Installation details](docs/installation.md)
 
 ### Build from source
 
-Requires Python 3.11+, [uv](https://docs.astral.sh/uv/), Xcode Command Line Tools, and an Apple-issued code-signing certificate. The launcher and helper must be signed by the same team.
+Requires [uv](https://docs.astral.sh/uv/) (it installs Python 3.14, the app runtime, itself), Xcode Command Line Tools, and an Apple-issued code-signing certificate. The launcher and helper must be signed by the same team.
 
 ```sh
-git clone https://github.com/Open330/tacto.git
+git clone https://github.com/Open330/haejo.git
 cd haejo
 uv sync
 ./build.sh
@@ -166,12 +171,12 @@ Replay a saved Flow:
 [Agent skill](skill/SKILL.md) · [Flow authoring guide](docs/recipes.md)
 
 <details>
-<summary>Installation notes and development-only commands</summary>
+<summary>Installation notes and batch runs</summary>
 
 If your agent cannot find the skill, restart its session and check `./skill/install.sh --check`. The Python distribution is `haejo-runtime`; the canonical Python import is `haejo`. The Python wheel alone does not supply the signed native launcher/helper. The permission holder is **Haejo Helper** (`helper/Haejo Helper.app/Contents/MacOS/HaejoHelper`) and the launcher is `launcher/haejo`; bundle identifiers and signing requirements use `ai.callabo.haejo.*`.
 
 
-These commands belong to the development checkout, not the main-branch release:
+Run many rows through one Flow template (one JSON line of params per job):
 
 ```sh
 ~/.local/bin/haejo batch template.json --helper < jobs.jsonl
@@ -211,7 +216,7 @@ This is a small sample. Haejo was slower in one case; it is not universally fast
 
 ## Explore the onboarding site
 
-The [landing page](https://open330.github.io/tacto/) ([source](sites/haejo/README.md)) introduces replay, repair, and stopping. Its interactive walkthrough does not execute real apps or models.
+The [landing page](https://open330.github.io/haejo/) ([source](sites/haejo/README.md)) introduces replay, repair, and stopping. Its interactive walkthrough does not execute real apps or models.
 
 ```sh
 python3 sites/haejo/serve.py
@@ -241,15 +246,17 @@ Available on the main branch:
 | Execute requests and Flows | `haejo do`, `haejo run`, `haejo replay` |
 | Compile and parameterize | `haejo compile`, `haejo parameterize` |
 | Manage Flows and candidates | `haejo list`, `haejo show`, `haejo flows` (save, rename, remove, edit inputs; also the app's 저장된 Flow page), `haejo candidates`, `haejo promote` |
-| Evaluate | `haejo eval` |
+| Batch, session, repair | `haejo batch`, `haejo session`, `haejo repair` |
+| Tasks and activity | `haejo task`, `haejo logs` |
+| Windows and parallel jobs | `haejo windows`, `haejo activate`, `haejo parallel` |
+| Web and files | `haejo open-url`, `haejo web-upload`, `haejo document-attachments` |
+| Credentials | `haejo auth` |
+| Evaluate (source checkout) | `haejo eval` |
 
-Development-only commands, absent from main:
+Development-only commands:
 
 | Purpose | Commands |
 | :--- | :--- |
-| Batch, session, repair | `haejo batch`, `haejo session`, `haejo repair` |
-| Document attachments | `haejo document-attachments` |
-| Browser file registration | `haejo web-upload` |
 | Experimental VRoid diagnostics | `haejo vroid-focus`, `haejo vroid-drag` — separate build with `HAEJO_ENABLE_EXPERIMENTAL_FOREGROUND=1`; excluded from the default build |
 
 Check `haejo --help` for your checkout. Use the signed launcher for native work and `--helper` where required.
@@ -329,17 +336,6 @@ Release candidate · [MIT License](LICENSE)
 - [haejo-provider-paging-validation](docs/haejo-provider-paging-validation.md)
 - [haejo-textedit-saved-state-validation](docs/haejo-textedit-saved-state-validation.md)
 - [window-preparation-diagnostics](docs/window-preparation-diagnostics.md)
+- [Preview 3 runtime update](docs/runtime-update-2026-10-19.md)
 
 </details>
-
-[Preview 3 runtime update](docs/runtime-update-2026-10-19.md)
-
-
-rc.13 supports `haejo windows <bundle-id> --helper` for compact
-window IDs, then `haejo session <bundle-id> --window-id ID --helper --guide` for
-independent AX work in different windows of the same app. App-wide operations
-stay exclusive. See [helper execution](docs/helper-execution.md).
-
-`haejo parallel jobs.json --helper --json` runs one to four checked AX window
-jobs, each with an independent signed session and a content-free result receipt. The Haejo menu distinguishes live
-runs and offers individual stop controls. [Usage and limits](docs/parallel-execution.md).

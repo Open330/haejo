@@ -333,6 +333,50 @@ class WindowsDriverTests(unittest.TestCase):
         mismatch = self.act(self.observe(), "select_option", element_index=index, option_label="ANSI", value="x")
         self.assertEqual("not_started", mismatch["effect"])
 
+    def test_legacy_combo_list_shown_only_as_a_popup_window_is_used_and_closed(self):
+        """Windows Server shows the opened list only as a top-level popup of
+        the same process, not inside the combo box (GitHub runner)."""
+        opener = Element("Button", "Open", patterns={"invoke"})
+        opener.props["runtime_id"] = None
+        legacy = Element("ComboBox", "Fruit", automation_id="fruit", value="Apple", readonly=False,
+                         patterns={"value"}, children=[opener])
+        popup = Element("List", "Fruit", children=[Element("ListItem", label, patterns={"selection_item"})
+                                                   for label in ("Apple", "Grape")])
+        backend = self.backend
+
+        items = list(popup.kids)
+        popup.kids = []
+        backend.windows.append(popup)  # a closed list keeps its (hidden) window
+        pending = []
+
+        def invoke(element):
+            backend._record("invoke", element)
+            if element is opener:
+                if popup.kids:
+                    popup.kids = []
+                else:
+                    pending.append(True)  # posted: the items show a moment later
+
+        def sleep(_seconds):
+            if pending:
+                pending.clear()
+                popup.kids = list(items)
+        backend.invoke = invoke
+        self.driver._sleep = sleep
+        self.window.kids[0].kids.append(legacy)
+        legacy.parent = self.window.kids[0]
+        obs = self.observe()
+        result = self.act(obs, "select_option", element_index=self.index(obs, identifier="fruit"), option_label="Grape")
+        self.assertEqual("acted", result["type"], result)
+        self.assertEqual([("invoke", "Open"), ("select", "Grape"), ("invoke", "Open")], backend.calls)
+        self.assertEqual([], popup.kids)  # the list this step opened is closed again
+        # Without a single drop-down button of its own it is refused untouched.
+        legacy.kids.append(Element("Button", "Other", patterns={"invoke"}))
+        backend.calls.clear()
+        obs = self.observe()
+        refused = self.act(obs, "select_option", element_index=self.index(obs, identifier="fruit"), option_label="Grape")
+        self.assertEqual(("not_started", []), (refused["effect"], backend.calls))
+
     def test_scroll_finds_container_and_bounds_pages(self):
         obs = self.observe()
         index = self.index(obs, title="Save")

@@ -1348,6 +1348,13 @@ def run_one(task: Task, arm: str, timeout: int = 600) -> dict:
     ask = task.ask() if callable(task.ask) else task.ask
     prompt = _arm_prompt(ask, arm)
     context_evidence = None
+    # The harness's own helper connection owns every app it observed during
+    # setup; the agent's Haejo would get `target_busy` for as long as it holds
+    # them. Release before the agent starts (oracle reads re-acquire later).
+    try:
+        _driver().release_targets()
+    except Exception:
+        pass
     with tempfile.NamedTemporaryFile("r", suffix=".txt") as last, FocusWitness() as witness:
         started = time.monotonic()
         process_diagnostics = []

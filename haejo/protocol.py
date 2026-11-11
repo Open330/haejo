@@ -15,6 +15,12 @@ RETURN_CAPABILITY = "press_key.return_in_go_to_folder"
 RETURN_BOUND_CAPABILITY = "press_key.return_bound"
 
 # IR payloads cannot override the action name or smuggle an observation index.
+# What `secondary_action` will actually carry. An AX action name goes straight
+# to AXUIElementPerformAction, so the launcher enumerates what may cross. Kept
+# here, not in the macOS driver, because every platform parses saved flows.
+SECONDARY_ACTIONS = ("AXShowMenu", "AXIncrement", "AXDecrement",
+                     "AXConfirm", "AXCancel")
+
 ACTION_PARAMS = {
     "click": frozenset(), "double_click": frozenset(), "read": frozenset(), "prepare_window": frozenset(),
     "set_value": frozenset({"value", "input_method"}), "type_text": frozenset({"text"}),

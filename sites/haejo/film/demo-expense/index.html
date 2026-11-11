@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>법인카드 경비 등록 - 데모상사 그룹웨어</title>
+<style>
+/* A deliberately old-fashioned groupware screen: a demo for the Haejo film. */
+body{margin:0;font:13px/1.5 "Apple SD Gothic Neo","Malgun Gothic",sans-serif;color:#222;background:#eef1f5}
+.top{background:linear-gradient(#3d5a80,#2c4466);color:#fff;padding:9px 16px;display:flex;align-items:center;gap:14px}
+.top b{font-size:15px}.top .demo{background:#f4a259;color:#222;font-size:11px;font-weight:700;padding:1px 7px;border-radius:3px}
+.top nav{display:flex;gap:16px;margin-left:24px;font-size:12px;color:#d6e2f0}.top nav span.on{color:#fff;font-weight:700;border-bottom:2px solid #f4a259}
+.top .me{margin-left:auto;font-size:12px;color:#d6e2f0}
+.wrap{display:flex}.side{width:170px;background:#fff;border-right:1px solid #cfd6df;min-height:calc(100vh - 40px);padding:12px 0}
+.side div{padding:6px 16px;color:#445}.side .h{font-weight:700;color:#2c4466;background:#e7edf5}.side .on{color:#c0392b;font-weight:700}
+main{flex:1;padding:14px 20px}
+.crumb{font-size:12px;color:#778}.title{font-size:17px;font-weight:700;margin:4px 0 12px;color:#2c4466}
+table.form{border-collapse:collapse;width:100%;max-width:820px;background:#fff}
+table.form th{width:120px;background:#f3f5f8;text-align:left;font-weight:600;padding:7px 10px;border:1px solid #cfd6df;color:#334}
+table.form td{padding:5px 8px;border:1px solid #cfd6df}
+input[type=text]{width:240px;padding:4px 6px;border:1px solid #aab4c0;font:inherit}
+select{padding:3px 4px;font:inherit;border:1px solid #aab4c0}
+.req{color:#c0392b}
+.btns{margin:12px 0;display:flex;gap:6px;max-width:820px;justify-content:flex-end}
+button{font:inherit;padding:5px 16px;border:1px solid #2c4466;background:#3d5a80;color:#fff;cursor:pointer}
+button.sub{background:#fff;color:#2c4466}
+#status{min-height:20px;color:#1e7e34;font-weight:600;max-width:820px}
+table.list{border-collapse:collapse;width:100%;max-width:820px;background:#fff;margin-top:6px;font-size:12px}
+table.list th{background:#556e8e;color:#fff;padding:5px 6px;font-weight:600;border:1px solid #47607f}
+table.list td{padding:4px 6px;border:1px solid #d5dbe3}table.list td.n{text-align:right;font-variant-numeric:tabular-nums}
+.sum{max-width:820px;text-align:right;margin-top:6px;font-weight:700}
+</style></head><body>
+<div class="top"><b>데모상사 그룹웨어</b><span class="demo">DEMO</span><nav><span>메일</span><span>전자결재</span><span class="on">경비</span><span>근태</span><span>게시판</span></nav><span class="me">경영지원팀 김해줘 대리</span></div>
+<div class="wrap"><div class="side"><div class="h">경비 관리</div><div class="on">법인카드 경비 등록</div><div>개인경비 청구</div><div>출장비 정산</div><div>경비 내역 조회</div><div class="h">결재</div><div>결재 대기 (3)</div></div>
+<main>
+<div class="crumb">경비 &gt; 법인카드 경비 등록</div><div class="title" id="title">법인카드 경비 등록 — 2026년 11월</div>
+<form id="f" onsubmit="return false">
+<table class="form">
+<tr><th>사용일자 <span class="req">*</span></th><td><input type="text" id="date" aria-label="사용일자" placeholder="YYYY-MM-DD"></td></tr>
+<tr><th>가맹점명 <span class="req">*</span></th><td><input type="text" id="merchant" aria-label="가맹점명"></td></tr>
+<tr><th>비용 분류 <span class="req">*</span></th><td><label><input type="radio" name="category" value="식대"> 식대</label> &nbsp; <label><input type="radio" name="category" value="회의비"> 회의비</label> &nbsp; <label><input type="radio" name="category" value="교통비"> 교통비</label> &nbsp; <label><input type="radio" name="category" value="소모품비"> 소모품비</label> &nbsp; <label><input type="radio" name="category" value="도서인쇄비"> 도서인쇄비</label></td></tr>
+<tr><th>금액(원) <span class="req">*</span></th><td><input type="text" id="amount" aria-label="금액"></td></tr>
+<tr><th>프로젝트 코드</th><td><input type="text" id="project" aria-label="프로젝트 코드" placeholder="예: P-2611" style="width:120px"> <span style="color:#778;font-size:12px">P-2611 신규 고객 온보딩 · P-2608 사내 교육 · P-2603 물류 개선</span></td></tr>
+<tr><th>사용 내용</th><td><input type="text" id="memo" aria-label="사용 내용" style="width:420px"></td></tr>
+<tr><th>증빙</th><td><label><input type="radio" name="proof" id="card" value="법인카드" checked> 법인카드 전표</label> &nbsp; <label><input type="radio" name="proof" id="cash" value="현금영수증"> 현금영수증</label></td></tr>
+</table>
+<div class="btns"><button type="button" class="sub" id="reset">초기화</button><button type="button" id="save">등록</button></div>
+</form>
+<div id="status" role="status" aria-label="저장 상태"></div>
+<table class="list" aria-label="등록 내역"><thead><tr><th>No</th><th>사용일자</th><th>가맹점</th><th>분류</th><th>금액</th><th>프로젝트</th><th>사용 내용</th><th>증빙</th></tr></thead><tbody id="rows"></tbody></table>
+<div class="sum" id="sum" aria-label="합계">합계 0원 (0건)</div>
+</main></div>
+<script>
+const $=id=>document.getElementById(id),rows=[];
+const month=new URLSearchParams(location.search).get('month')||'11';$('title').textContent=`법인카드 경비 등록 — 2026년 ${month}월`;
+function render(){$('rows').innerHTML=rows.map((r,i)=>`<tr><td>${i+1}</td><td>${r.date}</td><td>${r.merchant}</td><td>${r.category}</td><td class="n">${Number(r.amount).toLocaleString('ko-KR')}</td><td>${r.project||'공통'}</td><td>${r.memo}</td><td>${r.proof}</td></tr>`).join('');
+ const total=rows.reduce((s,r)=>s+Number(r.amount),0);$('sum').textContent=`합계 ${total.toLocaleString('ko-KR')}원 (${rows.length}건)`}
+function clear(){['date','merchant','amount','memo','project'].forEach(k=>$(k).value='');document.querySelectorAll('input[name=category]').forEach(r=>r.checked=false);$('card').checked=true}
+$('reset').onclick=()=>{clear();$('status').textContent=''};
+$('save').onclick=()=>{const r={date:$('date').value.trim(),merchant:$('merchant').value.trim(),category:(document.querySelector('input[name=category]:checked')||{}).value||'',amount:$('amount').value.replace(/[^0-9]/g,''),project:$('project').value,memo:$('memo').value.trim(),proof:document.querySelector('input[name=proof]:checked').value};
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(r.date)||!r.merchant||!r.category||!r.amount){$('status').style.color='#c0392b';$('status').textContent='필수 항목을 확인하세요.';return}
+ rows.push(r);render();clear();$('status').style.color='#1e7e34';$('status').textContent=`${rows.length}번째 경비를 등록했습니다: ${r.merchant} ${Number(r.amount).toLocaleString('ko-KR')}원`};
+</script></body></html>

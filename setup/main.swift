@@ -484,9 +484,13 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
             else { showSetup() }
         }
         // Reading the helper's receipt requests nothing and changes nothing;
-        // it is what lets every row start out true. Settings, permission
-        // requests and installation still each wait for their own click.
+        // it is what lets every row start out true. Permission requests still
+        // wait for their own click.
         check()
+        // Linking the command and skill needs no permission, so do it now:
+        // an agent can use Haejo (and `haejo doctor` for the permissions)
+        // the moment the app has been opened once.
+        if connection == .missing { installConnection(automatic: true) }
     }
 
     func applicationDidBecomeActive(_ notification: Notification) {
@@ -656,7 +660,7 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
             row.show(look)
         }
         message.isHidden = message.stringValue.isEmpty
-        connectButton.isEnabled = !checkInFlight && !installing && (connection == .conflict || (known && state.ready && connection != .current))
+        connectButton.isEnabled = !checkInFlight && !installing && connection != .current
         refreshButton.isEnabled = !checkInFlight && !installing
         badge.stringValue = checkInFlight || (!known && notice == nil) ? "권한 확인 중"
             : !known ? "권한 확인 실패" : permissionsComplete ? "권한 준비 완료"
@@ -678,9 +682,6 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 connectButton.title = "충돌 위치 보기"
                 connectionInfo.stringValue = "명령 또는 스킬 위치에 다른 파일이 있어요. 기존 파일을 보호하고 있습니다."
             }
-        }
-        if connection == .missing && !installing && !state.ready {
-            connectionInfo.stringValue = known ? "앱 조작 권한을 켜면 Claude Code · Codex에 연결할 수 있어요. 화면 캡처는 선택 사항입니다." : "먼저 ‘상태 새로고침’으로 권한을 확인해 주세요."
         }
         let scope = ProcessInfo.processInfo.environment
         let custom = ["HAEJO_BIN_DIR", "CLAUDE_CONFIG_DIR", "CODEX_HOME"].contains { !(scope[$0] ?? "").isEmpty }
@@ -959,7 +960,12 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
             alert.beginSheetModal(for: window)
             return
         }
-        guard known && state.ready && !checkInFlight && !installing else { return }
+        guard !checkInFlight && !installing else { return }
+        installConnection(automatic: false)
+    }
+
+    func installConnection(automatic: Bool) {
+        guard !installing else { return }
         installing = true; connectButton.title = "연결 중…"
         connectButton.isEnabled = false; message.stringValue = "명령과 스킬을 연결하고 있어요…"
         render()
@@ -972,9 +978,13 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
             do { try process.run(); process.waitUntilExit(); ok = process.terminationStatus == 0 } catch {}
             DispatchQueue.main.async {
                 self.installing = false; self.refreshConnection()
-                self.message.stringValue = ok && self.connection == .current
-                    ? "연결했어요. Claude Code나 Codex에서 새 대화를 열고 ‘Haejo로 작업해 줘’라고 요청하세요."
-                    : "연결을 끝내지 못했어요. 기존 설치 경로나 파일 충돌을 확인해주세요."
+                if automatic && ok && self.connection == .current {
+                    self.message.stringValue = "Claude Code·Codex에 연결했어요. 권한을 켜면 바로 작업할 수 있어요."
+                } else {
+                    self.message.stringValue = ok && self.connection == .current
+                        ? "연결했어요. Claude Code나 Codex에서 새 대화를 열고 ‘Haejo로 작업해 줘’라고 요청하세요."
+                        : "연결을 끝내지 못했어요. 기존 설치 경로나 파일 충돌을 확인해주세요."
+                }
                 self.render()
             }
         }
@@ -1018,16 +1028,12 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         menu.addItem(.separator())
         let show = menu.addItem(withTitle: "Haejo 열기", action: #selector(reopen), keyEquivalent: "")
         show.target = self
-        let refresh = menu.addItem(withTitle: "권한 다시 확인", action: #selector(refreshPermissions), keyEquivalent: "")
-        refresh.target = self
         let logs = menu.addItem(withTitle: "실행 기록 보기", action: #selector(showAccessLogs), keyEquivalent: "")
         logs.target = self
         let flows = menu.addItem(withTitle: "저장된 Flow", action: #selector(showFlows), keyEquivalent: "")
         flows.target = self
         let menuPreferences = menu.addItem(withTitle: "설정…", action: #selector(showPreferences), keyEquivalent: "")
         menuPreferences.target = self
-        let setup = menu.addItem(withTitle: "Mac 권한·에이전트", action: #selector(showSetup), keyEquivalent: "")
-        setup.target = self
         menu.addItem(.separator())
         menu.addItem(withTitle: "Haejo 종료", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
         item.menu = menu; statusItem = item
@@ -1108,7 +1114,6 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         NSApp.activate(ignoringOtherApps: true)
         refreshAll()
     }
-    @objc func refreshPermissions() { refreshAll() }
     @objc func showAccessLogs() {
         workspace().present()
     }
@@ -1201,7 +1206,7 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
             assert(copied, "First request copy failed")
             try? Data("{\"clipboard_exact\":true}\n".utf8).write(to: directory.appendingPathComponent("first-run-check.json"))
         }
-        assert(connectButton.isEnabled == (known && state.ready && connection != .current))
+        assert(connectButton.isEnabled == (connection != .current))
         assert(!applicationShouldTerminateAfterLastWindowClosed(NSApp))
         assert(panel.icon.helperURL == appFor(permission))
         assert((panel.icon.draggingItem()?.item as? NSURL) == appFor(permission) as NSURL)

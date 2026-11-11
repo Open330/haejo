@@ -1,6 +1,7 @@
 """Small, native-free command help for cold-start flow authors."""
 
 import json
+import sys
 
 
 def calculator_example(*, compact=True):
@@ -111,7 +112,8 @@ def session_guide(target, *, reusable=False, document=None, save=False, steps=Fa
             'Reusable template: params is an OBJECT of current defaults, e.g. {"amount":"11"}; '
             'step value {"value":"{{amount}}"}, check equals:"{{result}}". '
             'Use --save /absolute/new.json to save the same successful template, not the bound values. '
-            'Later run file --helper --think 0 -p amount=17 -p result=85. '
+            + ('Later run file --think 0 -p amount=17 -p result=85. ' if sys.platform == 'win32' else
+               'Later run file --helper --think 0 -p amount=17 -p result=85. ') +
             'When using all_of set schema:3 (older engines refuse it); for simultaneous checks use postcondition {"all_of":[{"field":{"identifier":"observed-id"},"equals":"expected","attribute":"Value"}]}. '
             'A primary field/equals can coexist with all_of; answers:true reports the primary field. '
             'Use captures on that verified action for values needed later. Keep separate reads for a later checkpoint or new data. '
@@ -152,8 +154,9 @@ def session_guide(target, *, reusable=False, document=None, save=False, steps=Fa
         + details
         + ('' if document is not None or target == 'com.apple.calculator' else
            'Same procedure for many items (N lessons, rows, files): author it once with --reuse-guide --save, then '
-           '`haejo batch <file> --helper` with one {"params":{...}} line per item; a window that opens per item is chosen by '
-           '--window-match url=... (saved as the Flow\'s "window"). ')
+           + ('`haejo batch <file>` with one {"params":{...}} line per item. ' if sys.platform == 'win32' else
+              '`haejo batch <file> --helper` with one {"params":{...}} line per item; a window that opens per item is chosen by '
+              '--window-match url=... (saved as the Flow\'s "window"). '))
         + "Inspect uncertain outcomes before retrying. Send one minified JSON line plus newline on this session."
     )
 
@@ -172,11 +175,12 @@ def command_help(command, args):
         )
     if command == "batch":
         return (
-            'usage: haejo batch <flow.json> --helper [--max-jobs 1..1000] [--idle-timeout 1..600] [--timings] [--repair-packet /absolute/new.json] [--auto-repair codex|claude] [--max-repairs 1..10] [--repair-timeout 1..120]\n'
+            'usage: haejo batch <flow.json> --helper [--yes] [--max-jobs 1..1000] [--idle-timeout 1..600] [--timings] [--repair-packet /absolute/new.json] [--auto-repair codex|claude] [--max-repairs 1..10] [--repair-timeout 1..120]\n'
             'Wait for HAEJO_BATCH_READY; send one {"params":{"name":"value"}} JSON line per job.\n'
             'Pipe known JSONL rows once; for dependent jobs wait for each HAEJO_BATCH_RESULT.\n'
             'One template/connection; fresh checks per job. --auto-repair codex|claude enables bounded selector repair.\n'
-            'EOF ends it; default ten jobs, 90s idle. No approval or unknown-effect retry.'
+            '--yes carries the user\'s approval to confirmation steps in every job.\n'
+            'EOF ends it; default ten jobs, 90s idle. An unknown effect is not retried; inspect it.'
         )
     if command == "observe":
         return (

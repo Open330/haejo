@@ -361,7 +361,7 @@ private func activityErrorMessage(_ code: String) -> String {
      "credential_arguments_invalid":"설정에 필요한 항목을 확인하세요.",
      "vault_provider_invalid":"Vault 서버 주소와 실행·세션 파일의 절대 경로를 확인하세요.",
      "new_window_not_unique":"새 문서 창을 하나로 확인하지 못했어요.",
-     "helper_unavailable":"앱 조작 연결을 사용할 수 없어요. Mac 권한·에이전트 설정을 확인하세요.",
+     "helper_unavailable":"앱 조작 연결을 사용할 수 없어요. 설정의 ‘Mac 권한·에이전트’에서 확인하세요.",
      "target_not_found":"대상 앱을 찾지 못했어요.", "no_window_content":"아직 열린 창이 없어요.",
      "observation_unavailable":"앱 상태를 읽지 못했어요.", "aborted_by_user":"사용자가 작업을 중단했어요.",
      "new_document_not_empty":"새 문서가 비어 있지 않아 입력을 멈췄어요.",
@@ -407,6 +407,7 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
     private let saveStatus = activityLabel("변경 사항은 다음 작업부터 적용됩니다.", 12, secondary:true)
     private let logToggle = NSButton(checkboxWithTitle:"실행 기록 자동 저장", target:nil, action:nil)
     private let bannerToggle = NSButton(checkboxWithTitle:"작업 중 배너 표시", target:nil, action:nil)
+    private let setupStatus = activityLabel("",13,secondary:true)
     private let warmToggle = NSButton(checkboxWithTitle:"빠른 실행(helper 유지)", target:nil, action:nil)
     private let approvalToggle = NSButton(checkboxWithTitle:"메뉴에서 승인", target:nil, action:nil)
     private let helperIdle = NSPopUpButton(frame:.zero,pullsDown:false)
@@ -465,10 +466,9 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
         flowsButton.setAccessibilityIdentifier("haejo.activity.flows")
         for b in [historyButton,flowsButton,settingsButton] { b.font = .systemFont(ofSize:13,weight:.medium); b.target = self; b.action = #selector(navigate(_:)); b.bezelStyle = .rounded; b.isBordered = false; b.setButtonType(.pushOnPushOff); b.wantsLayer = true; b.layer?.cornerRadius = 8; b.imagePosition = .imageLeading; b.alignment = .left; b.widthAnchor.constraint(equalToConstant:176).isActive = true; b.heightAnchor.constraint(equalToConstant:38).isActive = true }
         historyButton.setAccessibilityIdentifier("haejo.activity.history"); settingsButton.setAccessibilityIdentifier("haejo.activity.settings")
-        let setup = button("Mac 권한·에이전트", "arrow.up.forward.app", #selector(openSetup))
         let tagline = activityLabel("에이전트의 작업 공간",11,secondary:true)
         let spacer = NSView(); spacer.setContentHuggingPriority(.init(1),for:.vertical)
-        let side = column([brandRow,tagline,historyButton,flowsButton,settingsButton,spacer,status,setup])
+        let side = column([brandRow,tagline,historyButton,flowsButton,settingsButton,spacer,status])
         side.spacing = 8; side.setCustomSpacing(24,after:tagline)
         status.preferredMaxLayoutWidth = 176
         status.widthAnchor.constraint(lessThanOrEqualToConstant:176).isActive = true
@@ -547,7 +547,11 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
         approvalControls.orientation = .vertical; approvalControls.alignment = .leading; approvalControls.spacing = 10
         let remove = button("저장된 기록 모두 삭제…", "trash", #selector(confirmDelete))
         let credentials = button("Vault·로그인 위임 관리", "key", #selector(openCredentials))
-        let cards = [settingsCard("로그인 위임", "Vault 연결과 앱·사이트별 위임을 관리합니다. 에이전트가 만든 위임 파일을 끌어놓고 허용 수준을 검토하세요.",credentials),
+        let setupButton = button("권한·연결 확인", "arrow.up.forward.app", #selector(openSetup))
+        setupButton.setAccessibilityIdentifier("haejo.settings.setup")
+        let setupControls = NSStackView(views:[setupStatus,setupButton]); setupControls.orientation = .vertical; setupControls.alignment = .leading; setupControls.spacing = 10
+        let cards = [settingsCard("Mac 권한·에이전트", "손쉬운 사용·화면 기록 권한과 Claude Code·Codex 연결 상태를 확인하고 다시 연결합니다.",setupControls),
+                     settingsCard("로그인 위임", "Vault 연결과 앱·사이트별 위임을 관리합니다. 에이전트가 만든 위임 파일을 끌어놓고 허용 수준을 검토하세요.",credentials),
                      settingsCard("메뉴 승인", "결제·전송·삭제처럼 확인이 필요한 단계를 이 Mac의 Haejo 메뉴 카드로 결정합니다. 기본은 꺼짐입니다. 켜면 명령의 --yes 대신 카드에서 고른 범위(이번만·이 작업 동안·항상)로 진행합니다.",approvalControls),
                      settingsCard("빠른 실행", "도우미를 잠시 유지해 다음 작업을 더 빠르게 시작합니다. 기본은 꺼짐입니다. 유휴 시간이 지나면 자동 종료하며, 환경변수로 지정한 실행 방식이 우선합니다.",warmControls),
                      settingsCard("실행 기록", "접근한 앱·동작·결과·시간을 이 Mac에 저장합니다. 화면 내용·입력값·프롬프트는 기록하지 않습니다.",logToggle),
@@ -590,7 +594,7 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
         if timer == nil { timer = Timer.scheduledTimer(withTimeInterval:2,repeats:true) { [weak self] _ in if self?.window?.isVisible == true && self?.window?.isMiniaturized == false && NSApp.isActive && self?.page == .history { self?.refresh() } } }
     }
     func presentCurrent() { if page == .flows { presentFlows() } else { present(settings:isSettings) } }
-    func updateStatus(_ text: String) { status.stringValue = text }
+    func updateStatus(_ text: String) { status.stringValue = text; setupStatus.stringValue = text }
     @objc private func openSetup() { onSetup?() }
     @objc func refresh() {
         guard !loading else { return }; loading = true

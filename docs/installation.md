@@ -1,7 +1,8 @@
 # 설치 범위와 실행 경로
 
-현재는 개발자 미리보기 단계입니다. 일반 사용자 공개 전의 지원 범위와 통과
-조건, 최종 DMG 검사 방법은 [출시 기준](release-readiness.md)에 정리합니다.
+현재 공개 배포본은 [v1.0.0-rc.42](https://github.com/Open330/haejo/releases/tag/v1.0.0-rc.42)
+정식 출시 후보입니다. 정식 안정 버전 전의 지원 범위와 통과 조건, 최종 DMG 검사
+방법은 [출시 기준](release-readiness.md)에 정리합니다.
 
 Python wheel은 Haejo의 Python 코어를 배포합니다. macOS 앱 조작에 필요한
 서명된 런처·도우미, Chromium 실행 파일, 평가 fixture는 포함하지 않습니다.
@@ -10,8 +11,8 @@ Python wheel은 Haejo의 Python 코어를 배포합니다. macOS 앱 조작에 �
 
 | 설치 방식 | 사용할 수 있는 범위 | 별도로 필요한 것 |
 | --- | --- | --- |
-| macOS 공증 DMG 미리보기 | Haejo.app의 설치·권한 안내와 번들 런타임 | Apple Silicon Mac, macOS 권한 허용; 새 Mac 검증 대기 |
-| Python wheel | flow IR, 계약·결과 검증, 후보 paging, 모델 adapter, trace 등 Python 코어 | Python 3.11 이상 |
+| macOS 공증 DMG (rc.42) | Haejo.app의 설치·권한 안내와 번들 런타임 | Apple Silicon Mac, macOS 권한 허용; 사람이 직접 하는 새 설치 검증 대기 |
+| Python wheel | flow IR, 계약·결과 검증, 후보 paging, 모델 adapter, trace 등 Python 코어 | Python 3.11 이상 (앱 런타임은 3.14) |
 | wheel + `web` extra | Playwright 기반 별도 Chromium 페이지의 BrowserDriver | Playwright가 설치하는 Chromium과 운영체제 실행 의존성 |
 | macOS source checkout | 서명된 런처를 통한 macOS 접근성 조작 | Xcode Command Line Tools, Apple 발급 코드 서명 인증서, 손쉬운 사용 권한 |
 
@@ -23,14 +24,14 @@ Python wheel은 Haejo의 Python 코어를 배포합니다. macOS 앱 조작에 �
 ```sh
 uv build --wheel
 python3 -m venv /tmp/haejo-client
-/tmp/haejo-client/bin/python -m pip install ./dist/haejo_runtime-0.1.0-py3-none-any.whl
+/tmp/haejo-client/bin/python -m pip install ./dist/haejo_runtime-1.0.0-py3-none-any.whl
 /tmp/haejo-client/bin/haejo --help
 ```
 
 브라우저가 필요한 환경에서는 같은 wheel에 `web` extra를 설치합니다.
 
 ```sh
-/tmp/haejo-client/bin/python -m pip install './dist/haejo_runtime-0.1.0-py3-none-any.whl[web]'
+/tmp/haejo-client/bin/python -m pip install './dist/haejo_runtime-1.0.0-py3-none-any.whl[web]'
 /tmp/haejo-client/bin/python -m playwright install chromium
 ```
 
@@ -55,11 +56,15 @@ wheel에는 기본 flow recipe 파일이 포함되지 않습니다. 명시적으
 런처·도우미를 서명하고, 실행 시 양쪽이 자신의 유효한 서명에서 읽은 팀과 상대의
 팀·프로그램 식별자를 비교합니다. 다른 팀·서명 없는 프로그램·ad-hoc 서명은 거부합니다.
 `HAEJO_TEAM_ID` 같은 실행 환경변수로 이 검사를 바꿀 수 없습니다.
-별도로 준비한 Apple Silicon용 DMG는 Developer ID 서명·Apple 공증·Gatekeeper
-검사를 통과했습니다. [Release 페이지](https://github.com/Open330/tacto/releases)의
-첫 배포는 개발자 미리보기입니다. [첫 작업 개선판](https://github.com/Open330/tacto/releases/tag/v0.1.0-preview.7)의 DMG를 다운로드한 사용자는
-`Haejo.app`을 `Applications`로 드래그하고 앱을 열어 권한·명령·스킬 연결 안내를
-따릅니다. 사용자 자신의 개발용 인증서는 필요하지 않습니다. macOS 27.0.1의 Apple Silicon 빌드 Mac에서 실제 설치·권한·연결·같은 팀 업데이트를 확인했습니다. 새 Mac과 다른 macOS 버전은 미검증이며 Windows·Intel Mac 빌드는 없습니다. 현재 비공개 다운로드에는 GitHub 접근 권한이 필요합니다. 자세한 근거는 [출시 기준](release-readiness.md)을 확인하세요.
+일반 사용에는 소스 빌드가 아니라 공증 DMG를 씁니다. Apple Silicon용 DMG는 Developer ID
+서명·Apple 공증·Gatekeeper 검사를 통과했으며, [v1.0.0-rc.42 릴리스](https://github.com/Open330/haejo/releases/tag/v1.0.0-rc.42)에서
+누구나 받을 수 있습니다. DMG를 열어 `Haejo.app`을 `Applications`로 끌어다 놓고, 앱을 열어
+권한·에이전트 연결·첫 작업 안내를 따릅니다. 사용자 자신의 개발용 인증서는 필요하지 않습니다.
+macOS 27.0.1 Apple Silicon Mac 세 대에서 설치·권한·연결·업데이트를 확인했습니다. 다른 macOS
+버전과 사람이 직접 하는 새 설치는 미검증이며 Windows·Intel Mac 빌드는 없습니다.
+Tacto(rc.13 이하)에서 올라오는 경우 데이터는 Haejo 폴더로 옮겨지고, 앱 신원이 바뀌어
+권한을 다시 허용해야 합니다([바뀌는 점](haejo-branding.md)).
+
 Python 코어·별도 Chromium은 위 wheel 설치 범위에서 사용할 수 있습니다.
 
 아래는 소스 설치 경로입니다. 저장소 루트에서 다음 순서로
@@ -243,7 +248,7 @@ helper만 추가했는데 화면 기록이 미완료라면, 화면 기록 단계
 요청하지 않습니다. [권한 소유자와 드래그 안내](permission-onboarding.md)를 참고하세요.
 
 
-### 첫 작업 시작 (Preview 6 first-run.5)
+### 첫 작업 시작
 
 권한과 에이전트 연결을 마치면 **첫 작업 시작**을 누릅니다.
 설치된 Claude Code·Codex CLI를 감지하며, 둘 다 있으면 선택할 수 있습니다.
@@ -273,7 +278,6 @@ Haejo로 작성했습니다.
 
 저장 명령은 실행하지 않습니다. TextEdit은 제목 없는 문서도
 자동 복구 데이터를 남길 수 있으므로 입력 확인과 영구 저장 확인은 구분합니다.
-이 기능은 `v0.1.0-preview.6-first-run.5`부터 포함됩니다. 원래 Preview 6에는 포함되지 않습니다.
 새 문서는 창 제목 대신 macOS 창 ID로 구분하므로 기존 문서의 자동 저장·이름 변경이
 새 창으로 잘못 집계되지 않습니다.
 
@@ -281,15 +285,6 @@ Haejo로 작성했습니다.
 관찰할 수 있습니다. 설치된 앱을 LaunchServices로 열며, 실행 중이면 다시 실행하지
 않습니다. 앱 실행 성공은 창 준비 완료와 구분합니다. 실행 시간 초과 시에는 앱이
 늦게 열릴 수 있으므로 재실행하기 전에 관찰하세요.
-
-### Preview 3 update
-
-[Preview 3](https://github.com/Open330/tacto/releases/tag/v0.1.0-preview.3) is
-version 0.1.0 build 3. The app and DMG are Developer ID signed, notarized and
-stapled. Local upgrade from Preview 2 retained both existing permissions and
-Claude/Codex connections. Accessibility enables AX-based tasks; screen recording
-is needed for screenshot features and is optional for basic readiness. This does
-not establish a fresh-Mac or stable-release qualification.
 
 번들 Python은 앱 실행용입니다. 번들 안에서 pip로 패키지를 추가하거나 확장 모듈을 빌드하는 경로는 지원하지 않습니다. 번들 문서는 표시된 소스 커밋의 스냅샷이며, 최신 배포 검증은 Release 페이지와 출시 기준 문서를 확인하세요.
 
@@ -299,7 +294,7 @@ Maintainers can build a Developer ID distribution from a clean committed tree:
 
 ```sh
 python setup/build_distribution.py --output /private/tmp/Haejo.app \
-  --identity 'DEVELOPER_ID_IDENTITY' --tag v0.1.0-preview.15 \
+  --identity 'DEVELOPER_ID_IDENTITY' --tag v1.0.0-rc.42 \
   --report /private/tmp/haejo-build-report.json
 ```
 

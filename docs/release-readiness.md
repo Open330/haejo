@@ -21,7 +21,7 @@ rc.12는 이전 배포 기준으로 보존하며, 후보의 결과는 동일한 
 - 회귀 3,046건, 제외20건, 미해결 실패·오류0. 초기 문서 링크 누락1건을 수정하고 문서 검사6건을 재검증했습니다. 원본 검사와 재검증 기록을 분리해 보존했습니다.
 - 앱·DMG 신규 공증·티켓·Gatekeeper, 산출물12개 검사·최종 DMG 보안 검사, 세 Mac의 동일 번들 설치·기존 데이터와 활성 권한 보존을 확인했습니다. 기존 Vault 로그인·Flow·첫 작업·앱 설정도 설치본으로 검증했습니다.
 - [창 병렬 실행의 로컬 측정](haejo-parallel-windows-benchmark-2026-10-29.md)은 앞선 동시성 소스 `c3c88c0`의 결과입니다. 에이전트 토큰은 측정하지 않았습니다. 새 사용자 설치·권한 변경 주기·제한 베타·정식 안정판 승인은 별도입니다.
-- [rc.13 검증 결과](https://github.com/Open330/tacto/releases/tag/v1.0.0-rc.13).
+- [rc.13 검증 결과](https://github.com/Open330/haejo/releases/tag/v1.0.0-rc.13).
 
 ## rc.12 배포 확인 (2026-10-29)
 
@@ -31,7 +31,7 @@ rc.12는 이전 배포 기준으로 보존하며, 후보의 결과는 동일한 
 - 풀 포화, 같은 앱의 연결 충돌, per-command 경로에서의 충돌과 소유 연결 종료 후 새 관찰을 검증했습니다. 소스의 별도 프로세스 잠금 검사에서는 소유 프로세스 강제 종료 후 잠금 해제를 확인했습니다. 같은 앱의 여러 창은 이번에도 직렬 처리합니다.
 - 설치본의 Safari 위임 로그인·재사용, 로그인 포함 Flow·후속 읽기, 실제 Vault 관리 창·서명 CLI 연결, TextEdit 첫 작업의 텍스트·최상단 표시도 통과했습니다.
 - 앱·DMG 신규 공증·티켓·Gatekeeper, 산출물12개 검사와 최종 DMG 보안 검사를 통과했습니다. 세 Mac에는 동일 번들을 설치하고 기존 데이터·활성 권한·정식 에이전트 연결·백그라운드 실행·Dock 숨김을 확인했습니다. 패키지24개·타임스탬프 Mach-O190개 구성을 유지합니다.
-- [rc.12 릴리즈](https://github.com/Open330/tacto/releases/tag/v1.0.0-rc.12)의 VALIDATION.json에 범위를 제공합니다. 병렬 수신 시험은 로컬 Mac에서 수행했으며 원격 두 Mac은 동일 번들 설치·감사를 확인했습니다. 새 사용자 설치·권한 변경 주기·제한 베타·정식 안정판 승인은 별도입니다.
+- [rc.12 릴리즈](https://github.com/Open330/haejo/releases/tag/v1.0.0-rc.12)의 VALIDATION.json에 범위를 제공합니다. 병렬 수신 시험은 로컬 Mac에서 수행했으며 원격 두 Mac은 동일 번들 설치·감사를 확인했습니다. 새 사용자 설치·권한 변경 주기·제한 베타·정식 안정판 승인은 별도입니다.
 
 ## rc.11 배포 확인 (2026-10-27)
 
@@ -40,7 +40,7 @@ rc.12는 이전 배포 기준으로 보존하며, 후보의 결과는 동일한 
 - 설치된 서명 앱으로 Safari 로그인 포함 Flow → 후속 읽기 → 재사용을 확인했습니다. 두 번 실행에 로그인 POST는 한 번입니다. 실제 앱 설정에서 Vault 관리 창을 열고 서명 CLI의 메타데이터 로드를 확인했습니다. TextEdit 첫 작업의 텍스트·최상단 표시도 통과했습니다.
 - 소유한 HTTP 두 화면의 사용자명·비밀번호 수신과 후속 작업, 재사용·다른 계정 감지는 최종 소스 회귀에서 확인했습니다. 임의 외부 서비스 계정·SSO·MFA의 자동 지원 검증은 아닙니다.
 - 앱·DMG 신규 공증·티켓·Gatekeeper, 산출물12개 검사, 최종 DMG 보안 검사와 세 Mac의 정확한 번들·에이전트 연결·기존 데이터·기존 권한 보존을 확인했습니다. 패키지24개·타임스탬프 Mach-O190개 구성을 유지합니다.
-- [rc.11 릴리즈](https://github.com/Open330/tacto/releases/tag/v1.0.0-rc.11)에 검증 메타데이터와 실제 다운로드 해시를 제공합니다. 정식 안정 버전 승인·새 사용자 설치·제한 베타·새 동일 조건 성능 비교는 이번 자동 검사 범위 밖입니다.
+- [rc.11 릴리즈](https://github.com/Open330/haejo/releases/tag/v1.0.0-rc.11)에 검증 메타데이터와 실제 다운로드 해시를 제공합니다. 정식 안정 버전 승인·새 사용자 설치·제한 베타·새 동일 조건 성능 비교는 이번 자동 검사 범위 밖입니다.
 
 ## rc.10 배포 확인 (2026-10-26)
 
@@ -50,7 +50,7 @@ rc.12는 이전 배포 기준으로 보존하며, 후보의 결과는 동일한 
 - TextEdit 첫 작업의 텍스트·최상단 표시를 4.315초, 모델0회·저장 명령 없음으로 확인했습니다. 단회 확인이며 성능 비교가 아닙니다.
 - 앱·DMG 신규 공증·티켓·Gatekeeper·산출물12개 검사·최종 DMG/공개 메타데이터 보안 검사 통과. 세 Mac의 동일 번들·서명·에이전트 연결·기존 데이터·기존 권한 보존, 백그라운드 실행과 Dock 숨김을 확인했습니다. 추가 권한 설정이 필요한 Mac은 없습니다.
 - rc.9 대비 패키지24개·타임스탬프가 있는 Mach-O190개 구성 변경/누락 없음. 과거 후보의 실제 앱60/60·복구12/12를 이 후보의 새 측정으로 사용하지 않습니다.
-- [rc.10 릴리즈](https://github.com/Open330/tacto/releases/tag/v1.0.0-rc.10)의 VALIDATION.json에 검증 범위와 미검증 항목을 제공합니다. 정식 안정 배포·Vault 관리 GUI·MFA/패스키·새 사용자 설치·제한 베타는 별도입니다.
+- [rc.10 릴리즈](https://github.com/Open330/haejo/releases/tag/v1.0.0-rc.10)의 VALIDATION.json에 검증 범위와 미검증 항목을 제공합니다. 정식 안정 배포·Vault 관리 GUI·MFA/패스키·새 사용자 설치·제한 베타는 별도입니다.
 
 ## rc.9 배포 확인 (2026-10-25)
 
@@ -350,7 +350,7 @@ GitHub 접근 권한이 필요하며 정식 안정 버전이나 일반 공개 �
 - 과거 PR·커밋 참조가 여전히 조회되어 저장소를 Private으로 유지합니다. 공개 전 GitHub 쪽 잔존 참조 정리가 필요합니다.
 
 DMG SHA-256: `05f71d93c2bc5f66d16112c5bd1b848f8da284b1a4b7e43cda503bfa545e726a`.
-[Preview 2 릴리스](https://github.com/Open330/tacto/releases/tag/v0.1.0-preview.2).
+[Preview 2 릴리스](https://github.com/Open330/haejo/releases/tag/v0.1.0-preview.2).
 
 
 ## 2026-10-19 Preview 3 update
@@ -406,14 +406,14 @@ end with their CLI session. Login auto-start is not registered.
   for rollback. These were upgrades, not fresh-Mac qualification.
 
 DMG SHA-256: `300cfe4561fe533dd14e8b61f42bbaf1cf53ce9fd35c866f6b68dc8b08aa6c8c`.
-[Preview 4 release](https://github.com/Open330/tacto/releases/tag/v0.1.0-preview.4).
+[Preview 4 release](https://github.com/Open330/haejo/releases/tag/v0.1.0-preview.4).
 The stable-release evidence gates above remain unqualified.
 
 
 ## 2026-10-19 Preview 5 helper cleanup
 
 Runtime source: `cd93ed9`; app version `0.1.0`, build `5`.
-[Preview 5 is published](https://github.com/Open330/tacto/releases/tag/v0.1.0-preview.5)
+[Preview 5 is published](https://github.com/Open330/haejo/releases/tag/v0.1.0-preview.5)
 with a Developer ID signed and notarized app/DMG, checksums and notarization notes.
 The repository remains private, so downloads require repository access.
 
@@ -456,7 +456,7 @@ as separate fields.
 ## 2026-10-19 Preview 6 qualification
 
 Runtime and packaging source: `b1d5177`; app version `0.1.0`, build `6`.
-[Preview 6 release](https://github.com/Open330/tacto/releases/tag/v0.1.0-preview.6).
+[Preview 6 release](https://github.com/Open330/haejo/releases/tag/v0.1.0-preview.6).
 This is a private developer prerelease. Stable/public qualification still requires
 the human checks listed above. The source revision's bundled documentation is an
 immutable snapshot; this post-build qualification record and release notes carry
@@ -559,7 +559,7 @@ Prepublication full regression suite: 2,651 tests in 431.247s,
 
 ## 2026-10-19 Preview 7 release
 
-[Preview 7](https://github.com/Open330/tacto/releases/tag/v0.1.0-preview.7)
+[Preview 7](https://github.com/Open330/haejo/releases/tag/v0.1.0-preview.7)
 was published as a private developer prerelease. The exact app source is
 `969583c14721f8707e3c6b5298cac43e72164951`; the manifest records the committed
 build inputs and the retained Preview 6 runtime base. This section and README
@@ -657,7 +657,7 @@ macOS permissions granted to the new identities; settings windows were opened.
 This verifies deployment, not successful GUI task execution after the identity
 change. No permission database was changed by the installer.
 
-[Download and signed validation assets](https://github.com/Open330/tacto/releases/tag/v0.1.0-preview.9).
+[Download and signed validation assets](https://github.com/Open330/haejo/releases/tag/v0.1.0-preview.9).
 
 
 ## 2026-10-20 Preview 10 setup lifecycle fix
@@ -678,7 +678,7 @@ Both permission checks were off before and after this update on all three Macs;
 this is not positive evidence of already-enabled grant retention. Settings were
 left in the background to avoid taking focus from ongoing authentication.
 
-[Preview 10 release and validation assets](https://github.com/Open330/tacto/releases/tag/v0.1.0-preview.10).
+[Preview 10 release and validation assets](https://github.com/Open330/haejo/releases/tag/v0.1.0-preview.10).
 
 ## 2026-10-20 Preview 11 partial permissions and first-task settling
 
@@ -704,7 +704,7 @@ need the user's grants. Temporary previous-app backups were removed after
 successful installation checks, as requested. OS password/Touch ID entry was
 not tested automatically. Stable human qualification remains separate.
 
-[Preview 11 release and validation assets](https://github.com/Open330/tacto/releases/tag/v0.1.0-preview.11).
+[Preview 11 release and validation assets](https://github.com/Open330/haejo/releases/tag/v0.1.0-preview.11).
 
 ## 2026-10-20 Preview 12 result presentation and automatic access receipts
 
@@ -733,7 +733,7 @@ passed post-launch audits; existing Flow data and enabled permissions were
 preserved. Temporary previous-app backups were removed after successful
 installation. Stable qualification remains separate from this developer preview.
 
-[Preview 12 release and validation assets](https://github.com/Open330/tacto/releases/tag/v0.1.0-preview.12).
+[Preview 12 release and validation assets](https://github.com/Open330/haejo/releases/tag/v0.1.0-preview.12).
 
 ## 2026-10-20 Preview 13 native activity and preferences
 
@@ -761,7 +761,7 @@ bundles and passed post-launch audits. Existing user data and enabled permission
 were preserved; only one Mac had both permissions enabled before the upgrade.
 Stable human qualification remains separate from this developer preview.
 
-[Preview 13 release and validation assets](https://github.com/Open330/tacto/releases/tag/v0.1.0-preview.13).
+[Preview 13 release and validation assets](https://github.com/Open330/haejo/releases/tag/v0.1.0-preview.13).
 
 
 ## 2026-10-20 Preview 14 native app spacing and resizing
@@ -788,7 +788,7 @@ submission. All three designated Macs received identical Preview 14 bundles,
 retained existing data and enabled permissions, and passed post-launch audits.
 Stable human qualification remains separate from this developer preview.
 
-[Preview 14 release and validation assets](https://github.com/Open330/tacto/releases/tag/v0.1.0-preview.14).
+[Preview 14 release and validation assets](https://github.com/Open330/haejo/releases/tag/v0.1.0-preview.14).
 
 
 ## 2026-10-20 development fix: narrow-gutter stop control

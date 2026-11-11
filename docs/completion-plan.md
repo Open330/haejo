@@ -564,7 +564,7 @@ Haejo다. rc.6 배포 완료는 전체 computer-use 목표의 완료와 구분�
 | 설치·최종 보고 | rc.6 공증·산출물12·세 Mac exact-bundle 설치·실제 rollback·게시첨부5개 대조 완료 | 새 사용자 DMG 설치·권한3회·제한베타는 사람 확인. 전체 목표 최종보고는 위 범위를 모두 감사한 뒤 작성. P1 |
 
 rc.6 원본은 `reviews/haejo-rc6-20261023/RC6-REPORT.md`(별도 rc.6 worktree)에,
-공개 범위는 [rc.6 VALIDATION](https://github.com/Open330/tacto/releases/tag/v1.0.0-rc.6)에
+공개 범위는 [rc.6 VALIDATION](https://github.com/Open330/haejo/releases/tag/v1.0.0-rc.6)에
 있다. 실제 앱 첫 묶음59/60, 부하 저하 후 별도 새60/60을 합쳐 최초 실패를
 지우지 않는다. 아래 오래된 '설치 미완료'·'다음 CLI scope 구현' 등은 당시 기록이며
 현재 기능 상태는 코드와 이 감사 및 최신 실행 기록을 함께 본다.

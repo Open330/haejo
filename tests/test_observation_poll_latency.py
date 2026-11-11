@@ -38,10 +38,10 @@ class ObservationPollLatencyTests(unittest.TestCase):
              patch('haejo.helper.time.sleep', side_effect=clock.sleep):
             result = driver.wait_until('fixture', lambda tree: tree == 'ready', poll_ms=50)
         self.assertEqual('ready', result['tree'])
-        self.assertEqual([.05], clock.sleeps)
+        self.assertEqual([.025], clock.sleeps)  # first gap is 25 ms, not the full poll_ms
 
     def test_false_result_times_out_and_no_new_action_is_sent(self):
-        driver = self.helper([{'type': 'observation', 'tree': 'old'}] * 3)
+        driver = self.helper([{'type': 'observation', 'tree': 'old'}] * 5)
         clock = Clock()
         with patch('haejo.helper.time.monotonic', side_effect=clock.now), \
              patch('haejo.helper.time.sleep', side_effect=clock.sleep):
@@ -127,8 +127,46 @@ class ObservationPollLatencyTests(unittest.TestCase):
         if expected_ok:
             # General's separate next-screen observation deliberately retains
             # its ordinary settle; this check is about predicate polling.
-            self.assertEqual([.25, .75] if general else [.25], clock.sleeps)
+            # Gaps start at 25 ms and double toward poll_ms (and the general walk's one-second check).
+            self.assertEqual([.025, .05, .1, .2, .625] if general else [.025, .05, .1, .2], clock.sleeps)
         else:
             self.assertEqual(1., clock.sleeps[0])
             if not general:
                 self.assertEqual('postcondition_timeout', result.log[-1]['error'])
+
+
+class SettleOnVisibleChangeTests(unittest.TestCase):
+    """After an action, the settle ends early only once the screen changed and stopped moving."""
+    def run_observe(self, before, replies):
+        import json
+        driver = object.__new__(HelperDriver)
+        driver._last_action_at = 100.
+        message = {"type": "observe", "target": "fixture", "require_window": True}
+        driver._before_action = {json.dumps(message, sort_keys=True): before} if before is not None else {}
+        driver._send = Mock(side_effect=[{'type': 'observation', 'tree': t} if isinstance(t, str) else t for t in replies])
+        clock = Clock()
+        with patch('haejo.helper.time.monotonic', side_effect=clock.now), \
+             patch('haejo.helper.time.sleep', side_effect=clock.sleep):
+            out = driver.observe('fixture')
+        return out, clock, driver
+
+    def test_changed_and_stable_screen_ends_the_wait(self):
+        out, clock, driver = self.run_observe('old', ['new', 'new'])
+        self.assertEqual('new', out['tree'])
+        self.assertEqual([.05], clock.sleeps)
+        self.assertEqual(2, driver._send.call_count)
+
+    def test_unchanged_screen_waits_the_full_second(self):
+        out, clock, driver = self.run_observe('old', ['old'] * 30)
+        self.assertEqual('old', out['tree'])
+        self.assertAlmostEqual(1.0, sum(clock.sleeps))
+
+    def test_still_moving_screen_waits_the_full_second(self):
+        out, clock, driver = self.run_observe('old', [f'frame {i}' for i in range(40)])
+        self.assertAlmostEqual(1.0, sum(clock.sleeps))
+
+    def test_error_or_no_reference_falls_back_to_the_full_second(self):
+        out, clock, driver = self.run_observe('old', [{'type': 'error', 'error': 'observation_failed'}, 'new'])
+        self.assertAlmostEqual(1.0, sum(clock.sleeps))
+        out, clock, driver = self.run_observe(None, ['new'])
+        self.assertEqual([1.0], clock.sleeps)

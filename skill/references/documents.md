@@ -28,7 +28,7 @@ A `set_value` or `type_text` step declared `write_persistent` also requires a
 host commit receipt. `missing_typed_host_commit_evidence` does not mean a file
 is absent or a Save failed: the flow may contain no Save at all. A fresh exact
 text read verifies the document body, not persistence or which writer saved it.
-Do not lower the declared effect or repeat the edit to remove this uncertainty.
+The declared effect stays as declared, and the edit has already happened.
 Report the observed body separately from the unverified persistent effect.
 
 **To work in one exact document** when an app has several open (TextEdit),

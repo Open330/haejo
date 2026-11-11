@@ -3,8 +3,8 @@
 For a new reusable task, start `haejo session <bundle-id> --helper --reuse-guide
 --save /absolute/new.json` with the normal interactive tools. The one guide
 includes the parameter format and observation. Send one Flow: the successful
-run saves that same unbound template privately. Do not write a duplicate Flow
-file or run the completed task again to save it. Existing output paths refuse
+run saves that same unbound template privately, so the completed task is
+already saved without a second file or a second run. Existing output paths refuse
 before execution; failed UI tasks are not saved.
 
 `params` is an object of current defaults, e.g. `{"amount":"11","result":"38"}`.

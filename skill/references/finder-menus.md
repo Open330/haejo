@@ -20,8 +20,8 @@ For Safari address editing and loaded-page evidence, read [Safari](safari.md).
 
 **Use `menu` for commands that live in the menu bar** — save, copy, open a
 folder, new window. It takes a title path and **no selector at all** — a menu
-step that carries one is refused. Write only the selector fields you know, and never a selector that
-carries just a role — "click a Button" is not an instruction. Each level
+step that carries one is refused. Write the selector fields you know; a selector that carries just a
+role — "click a Button" — matches nothing specific. Each level
 may list alternatives, because menu titles are localized *and* state-dependent
 (an unsaved document shows `Save…`, a saved one shows `Save`):
 
@@ -34,8 +34,8 @@ may list alternatives, because menu titles are localized *and* state-dependent
 Menu items are not in the ordinary observation tree (an app's menu bar can be
 large), so they are addressed by title. Neither backend raises the app to the
 user's foreground. A disabled responder command may require explicit observed
-window preparation and fresh menu-state verification; never infer its effect
-from successful dispatch alone.
+window preparation and fresh menu-state verification; its effect is confirmed
+by observation, since a successful dispatch alone proves delivery only.
 
 A disabled command in a background app's main window gets one temporary
 window preparation inside the same `menu` step, undone before it returns.
@@ -49,4 +49,4 @@ already closed. Verify the name on disk, not the reply:
 ```
 
 `text` is refused unless that preparation ran; a failure after the press is
-`effect: unknown` and must not be retried.
+`effect: unknown`: the press may have taken effect, so check the screen first.

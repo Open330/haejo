@@ -684,10 +684,10 @@ class HelperDriver:
             return {'type':'error', 'error':'document_snapshot_unavailable', 'effect':'not_started',
                     'detail':'helper does not support scoped document observations'}
         # Same settle contract as the in-process driver: an action's effect may
-        # land a moment after the call returns, so wait before capturing.
-        settle = self._last_action_at + 1.0 - time.monotonic()
-        if _settle_after_action and settle > 0:
-            time.sleep(settle)
+        # land a moment after the call returns, so wait before capturing — up
+        # to one second, less once the screen has visibly changed and settled.
+        settle_until = self._last_action_at + 1.0
+        settling = _settle_after_action and settle_until > time.monotonic()
         # `require_window` travels on the wire because the two drivers have to
         # return the same tree for the same app: a recipe that starts from an
         # app with nothing open must behave identically whichever one runs it.
@@ -701,9 +701,16 @@ class HelperDriver:
         if continuation is not None:
             # A page of the previous observation, not a new look at the app:
             # no settle wait was needed, and no unhide retry applies.
+            if settling:
+                time.sleep(max(0, settle_until - time.monotonic()))
             message['continuation'] = continuation
             return self._send(message)
-        out = self._send(message)
+        key = json.dumps(message, sort_keys=True)
+        out = self._settled(message, key, settle_until) if settling else self._send(message)
+        if out.get("type") == "observation" and isinstance(out.get("tree"), str):
+            if not hasattr(self, '_seen_trees'):
+                self._seen_trees = {}
+            self._seen_trees[key] = out["tree"]
         if out.get("error") == "target_not_found" and "hint" not in out:
             out = {**out, **_explain_not_found(target)}
         if out.get("error") == "no_window_content" and "reason" not in out:
@@ -724,6 +731,31 @@ class HelperDriver:
                 # evidence that the old hidden-window diagnosis still applies.
                 return again
         return out
+
+    def _settled(self, message, key, until):
+        """The observation after an action, without waiting out the full settle when it is clear.
+
+        The fixed second protects apps whose effect lands late (a dialog 0.3 s
+        after Save): reading at once would see the old screen and miss the next
+        control. So the wait ends early only when the screen differs from the
+        last look before the action AND two consecutive reads agree — the
+        effect landed and stopped moving. An unchanged screen, an error, or a
+        screen still changing waits the full second, as before."""
+        reference = getattr(self, '_before_action', {}).get(key)
+        previous = None
+        while reference is not None:
+            out = self._send(message)
+            tree = out.get("tree") if out.get("type") == "observation" else None
+            if not isinstance(tree, str):
+                break
+            if tree != reference and tree == previous:
+                return out
+            previous = tree
+            if until - time.monotonic() <= 0.05:
+                break
+            time.sleep(0.05)
+        time.sleep(max(0, until - time.monotonic()))
+        return self._send(message)
 
     def act(self, obs_id, target, action, expect=None, risk_class="none",
             intent_text="", approved=False, *, save_panel_token=None, submit_authorized=False, credential_origin=None, sensitive_input=False):
@@ -850,9 +882,11 @@ class HelperDriver:
                         "effect": "not_started"}
         if expect:
             msg["expect"] = expect
+        before = dict(getattr(self, '_seen_trees', {}))
         r = self._send(msg)
         if r.get("type") == "acted" and action.get("name") != "read":
             self._last_action_at = time.monotonic()
+            self._before_action = before
         return r
 
     def credential_input(self,obs_id,target,element_index,value,*,expected_origin=None,check_only=False,input_method=None):
@@ -1213,6 +1247,8 @@ class HelperDriver:
         from .protocol import CONTINUATION_CAPABILITY
         search_pages = bool(search_pages) and CONTINUATION_CAPABILITY in getattr(self, 'capabilities', ())
         deadline = time.monotonic() + timeout_ms / 1000
+        from .observation_wait import poll_gaps
+        gaps = poll_gaps(poll_ms)
         last = None
         pages_checked = 0
         while True:
@@ -1240,13 +1276,13 @@ class HelperDriver:
                         **({"observation_pages_checked": pages_checked} if search_pages else {})}
             if yield_between and 'session.release_targets' in getattr(self, 'capabilities', ()):
                 self.release_targets()
-            time.sleep(min(poll_ms / 1000, max(0, deadline - time.monotonic())))
+            time.sleep(min(next(gaps), max(0, deadline - time.monotonic())))
 
 
 # The L2 surface is transport-independent: observe/act/wait_until only need a
 # `_send`, so the inherited-socket driver borrows the spawn driver's
 # implementations rather than keeping a second copy in step with the first.
-for _name in ("document_mode", "release_targets", "foreground_begin", "foreground_end", "windows", "scope_window", "identity", "list_targets", "observe", "act", "credential_input", "credential_submit", "probe",
+for _name in ("document_mode", "release_targets", "foreground_begin", "foreground_end", "windows", "scope_window", "identity", "list_targets", "observe", "_settled", "act", "credential_input", "credential_submit", "probe",
               "selection", "menu_state", "menu_items", "document_text", "document_window_status", "document_rtf_export", "document_attachment_metadata", "save_panel", "capture",
               "wait_until"):
     impl = getattr(HelperDriver, _name)

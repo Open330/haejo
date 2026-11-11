@@ -1,5 +1,5 @@
 {
-  "recorded_on": "2026-10-15",
+  "recorded_on": "2026-11-10",
   "scenarios": [
     {
       "name": "textedit",
@@ -11,23 +11,23 @@
         "edit_replay_ok": false,
         "save_replay_ok": true
       },
-      "seconds": 10.152,
-      "capture_frames": 6,
+      "seconds": 28.93,
+      "capture_frames": 4,
       "width": 1312,
       "height": 844,
       "video": {
         "file": "native-textedit.mp4",
-        "sha256": "a2de3c1d7a1e3acfbfdee70f5b0ceffaef0ebb9c499d082f84f2fc8c8c96fb88",
-        "bytes": 70282
+        "sha256": "6ff74ed148c65a05bbe117f41dfc69c804e9b21b4e1be76b7e36a69d9e4083af",
+        "bytes": 103083
       },
       "screenshots": [
         {
           "file": "native-textedit-original.png",
-          "sha256": "b6c109aae87952afff72b46750a7d578182cdafd0066dcb2ba62bfeb8fa58739"
+          "sha256": "5c5e60e3453abbf3d3245d70677778e69960ee9d1c1fb5b0546ba4738ae07396"
         },
         {
           "file": "native-textedit-poster.png",
-          "sha256": "6808b9661af56480775ad91a853fda3f8960471a285f7ed7dfb0c063c4f0f6d0"
+          "sha256": "106655dda42ba432807999e9c5eed0d5f771eed34baae34f488bbc2aa28c23c3"
         }
       ],
       "annotation": "Explanatory pointer over timestamped real window captures. Last frame held 2 seconds. Not a runtime benchmark.",
@@ -41,23 +41,23 @@
         "window": "native-files",
         "result": "5 items, sorted by Name"
       },
-      "seconds": 7.651,
-      "capture_frames": 7,
+      "seconds": 23.105,
+      "capture_frames": 4,
       "width": 1520,
-      "height": 870,
+      "height": 806,
       "video": {
         "file": "native-finder.mp4",
-        "sha256": "d96da5b413f7ab4101abd1b75796e56dab734a949a5af37c5c04e5e3f35a8724",
-        "bytes": 95026
+        "sha256": "f5098082764d9e2d85fd081cc367554f1d3044537f7864f63e6b8c364e19dfe7",
+        "bytes": 201069
       },
       "screenshots": [
         {
           "file": "native-finder-original.png",
-          "sha256": "32eab00789c3e25611ebf524670f9457adc989ad7a0318929be7a8f67bc5bb7c"
+          "sha256": "627ab702d8cd55eacc2ecbc007e984bdc51f6d439cdc6e5a2485efe4f04edf04"
         },
         {
           "file": "native-finder-poster.png",
-          "sha256": "63a0cddda49bc53111d6fd5239ea3d93c9363542ca04c2127294dfede41489bf"
+          "sha256": "68528f4bddf2d0a5faf2fa479d4f19f6ffaf00de1d895193c3ea5bae22f612c8"
         }
       ],
       "annotation": "Explanatory pointer over timestamped real window captures. Last frame held 2 seconds. Not a runtime benchmark.",

@@ -6,11 +6,11 @@ command -v haejo || ls -l ~/.local/bin/haejo
 
 `haejo` is the signed launcher from the Haejo checkout, linked into `~/.local/bin`
 by that checkout's `skill/install.sh`. If neither command finds it, Haejo is not
-installed on this machine — **stop and tell the user**: it is installed by
-running `skill/install.sh` inside their Haejo checkout (after building it; the
-script says what is missing, and `skill/install.sh --check` changes nothing).
-Do not download or install an `haejo` from anywhere else, and do not look for a
-substitute — a different program by that name is not this one.
+installed on this machine. It is installed by running `skill/install.sh` inside
+the Haejo checkout (after building it; the script says what is missing, and
+`skill/install.sh --check` changes nothing), or from the notarized DMG on the
+Open330/haejo releases page. A program named `haejo` from any other source is a
+different program.
 
 ## Select the signed native backend
 
@@ -34,8 +34,8 @@ haejo do '<task>' --helper
 If `haejo` is absent from PATH but `~/.local/bin/haejo` links to this checkout's
 launcher, use that absolute command path for subsequent calls. If PATH resolves
 to another installation, inspect the link and run this checkout's
-`skill/install.sh --check` before choosing the entry point. Do not use `uv run haejo`
-or `.venv/bin/haejo` as a substitute for the signed native launcher.
+`skill/install.sh --check` before choosing the entry point. The signed native launcher is
+the entry point; `uv run haejo` and `.venv/bin/haejo` lack the signed helper.
 
 `doctor` checks the runtime's permission boundary itself; it does not need
 `--helper`. `eval` selects backends by scenario, so choose the documented signed
@@ -49,8 +49,8 @@ the host registration without browser/network/input. Read the
 before execution. Omit `--check` to review/approve; noninteractive execution needs
 `--yes`. This route needs the optional web backend and a trusted independent
 receiving endpoint; it does not reuse the user's native browser/profile or need
-`--helper`. Preserve the original `--journal-dir` on interruption and never resend
-an unverified upload merely because it failed or returned unknown.
+`--helper`. Keep the original `--journal-dir` on interruption, and check an unverified
+upload at the receiving endpoint before any resend.
 
 Driving apps needs the permissions granted to Haejo's signed helper. If
 `haejo apps --helper` reports an error or no apps, run `haejo doctor --check` and
@@ -59,13 +59,13 @@ when a launcher or helper connection fails.
 
 ## Worker restart protection
 
-For a `do`, `run`, or `replay` invocation that must not repeat input after a
+For a `do`, `run`, or `replay` invocation whose input should stay single after a
 worker restart, opt in with `--journal-dir /absolute/private/run-directory`.
 Retain that same directory when restarting that invocation. Existing slots
 refuse input even when a reply was logged; journal records do not prove the
 operation completed. On `dispatch_journal_requires_reconciliation`, read the
-actual receiving state before planning continuation. Do not delete slots or
-choose another directory merely to retry an uncertain operation. This is an
+actual receiving state before planning continuation. Keep the slots and
+the directory; an uncertain operation is resolved by reading the receiving state. This is an
 input barrier, not automatic resume; it does not cover separate visual
 executors. See [dispatch journal](../docs/dispatch-journal.md) for the scope.
 
@@ -76,14 +76,14 @@ accessibility APIs; Haejo then reports "Haejo가 샌드박스 안에서 실행�
 (exit code 3). This is separate from macOS app permissions.
 
 - With `danger-full-access` or unrestricted filesystem execution, run normally.
-  Do not request escalation or add `sandbox_permissions` when the current tool
-  policy forbids that argument. An approval policy of `never` does not itself
+  Escalation and `sandbox_permissions` apply only where the current tool policy
+  offers that argument. An approval policy of `never` does not itself
   mean the process is sandboxed.
 - If execution is actually sandboxed and the current tool policy permits it,
   use `sandbox_permissions: "require_escalated"` with a task-specific
   justification to run outside that sandbox.
 - If an actual sandbox blocks Haejo and escalation is unavailable, report the
-  blocker and ask the user to run in a GUI-capable environment, such as
+  blocker with its fix: a GUI-capable environment, such as
   `--sandbox danger-full-access`.
 
 Reading and writing recipes (`haejo list`, `haejo show`, `haejo candidates`,

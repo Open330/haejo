@@ -3,8 +3,9 @@
 Notarization, installation and publication are separate steps. No credentials
 are read; pass an existing Developer ID signing identity explicitly.
 
-Prepare .venv with `uv sync --frozen --all-extras`. Its locked dependencies are
-checked without modifying it. The previous installed app is the default
+Prepare .venv with `uv sync --frozen --all-extras`; uv takes the Python version
+from .python-version, and the build refuses an environment on another version.
+Its locked dependencies are checked without modifying it. The previous installed app is the default
 baseline; --baseline also accepts a prior SOURCE-MANIFEST.json containing the
 embedded distribution_inventory. Old releases can be compared via their .app.
 The installed baseline's identity is reported, not verified as published;
@@ -81,6 +82,7 @@ def require_release_environment(root=ROOT,run=subprocess.run):
     root=Path(root)
     if not (root/'.venv/bin/python').is_file():
         raise RuntimeError('missing release environment; run uv sync --frozen --all-extras')
+    require_release_python(root)
     environment=dict(os.environ,UV_PROJECT_ENVIRONMENT=str((root/'.venv').resolve()))
     environment.pop('UV_FROZEN',None)
     # --frozen alone ignores a newly declared extra missing from uv.lock.
@@ -96,6 +98,39 @@ def require_release_environment(root=ROOT,run=subprocess.run):
         raise RuntimeError('release environment is missing or mismatches locked dependencies/extras; '
                            'run uv sync --frozen --all-extras before building')
     return distribution_packages(root/'.venv')
+
+
+def require_release_python(root,run=subprocess.run):
+    """The bundled runtime is the release venv, so its Python is the product's.
+
+    A venv on another version (uv picks the newest installed Python when no
+    version is pinned) changes every native path in the bundle; say so here
+    rather than as hundreds of "removed" files later."""
+    pin=Path(root)/'.python-version'
+    if not pin.is_file():
+        return None
+    want=pin.read_text().split()[0]
+    have=run([str(Path(root)/'.venv/bin/python'),'-c','import sys;print("%d.%d"%sys.version_info[:2])'],
+             capture_output=True,text=True,check=True).stdout.strip()
+    if have!='.'.join(want.split('.')[:2]):
+        raise RuntimeError(f'release environment uses Python {have}; this release is built with Python {want} '
+                           f'(.python-version); run uv sync --frozen --all-extras')
+    return have
+
+
+_PYTHON_TAG=re.compile(r'(?<![0-9])(python3\.|cpython-3)(1[0-9]|[0-9])(?![0-9])')
+
+
+def python_neutral(path):
+    """The same file across Python versions: python3.11/ and cpython-311 name it, not change it."""
+    return _PYTHON_TAG.sub(lambda m: m.group(1)+'X', path)
+
+
+def bundled_python(paths):
+    for path in paths:
+        if (m:=re.search(r'/lib/python(3\.[0-9]+)/',path)):
+            return m.group(1)
+    return None
 
 
 def validate_inventory(inventory):
@@ -180,10 +215,17 @@ def require_inventory_compatibility(current,baseline,allowlist):
                 'intentional_removals':allowlist,'passed':True}
     identity=baseline.get('_baseline_identity',baseline_identity({}))
     baseline=validate_inventory(baseline)
+    # A Python upgrade renames every native path (python3.11/ -> python3.14/,
+    # cpython-311 -> cpython-314); compare by what the file is, so only real
+    # removals need a reason. The version change itself is reported.
+    present={python_neutral(path) for path in current['native_paths']}
     removed={'distributions':sorted(set(baseline['distributions'])-set(current['distributions'])),
-             'native_paths':sorted(set(baseline['native_paths'])-set(current['native_paths']))}
+             'native_paths':sorted(path for path in baseline['native_paths'] if python_neutral(path) not in present)}
     for kind,names in removed.items():
-        unapproved=set(names)-set(allowlist[kind]);unused=set(allowlist[kind])-set(names)
+        key=python_neutral if kind=='native_paths' else (lambda name: name)
+        listed={key(name) for name in allowlist[kind]}
+        unapproved={name for name in names if key(name) not in listed}
+        unused={name for name in allowlist[kind] if key(name) not in {key(n) for n in names}}
         if unapproved:
             raise RuntimeError('unapproved removed '+kind+': '+', '.join(sorted(unapproved)))
         if unused:
@@ -193,7 +235,9 @@ def require_inventory_compatibility(current,baseline,allowlist):
             'previous_distribution_count':len(baseline['distributions']),
             'previous_native_count':len(baseline['native_paths']),
             'removed_distributions':removed['distributions'],
-            'removed_native_paths':removed['native_paths'],'intentional_removals':allowlist,'passed':True}
+            'removed_native_paths':removed['native_paths'],'intentional_removals':allowlist,
+            'python':{'previous':bundled_python(baseline['native_paths']),'current':bundled_python(current['native_paths'])},
+            'passed':True}
 
 
 def require_timestamps(paths,run=subprocess.run):

@@ -139,6 +139,10 @@ class Observation:
         self.seen = set()
 
 
+# How long a list opened through a combo box's drop-down button may take to show.
+LIST_OPEN_WAIT_S = 2.0
+
+
 class WindowsDriver:
     """In-process UI Automation driver; no signed helper exists on Windows yet."""
 
@@ -424,6 +428,38 @@ class WindowsDriver:
             raise NotStarted("target changed since observation")
         return element, props
 
+    def _dropdown_button(self, obs, element, props):
+        """The one invokable button a combo box holds as its own child.
+
+        The system combo box proxy gives its parts no runtime id, so the
+        button is trusted as a direct child of the combo box just verified,
+        in the same process; the list items it shows do carry ids and are
+        checked as usual.
+        """
+        if props.get("control_type") != "ComboBox":
+            return None
+        buttons = [child for child in self._backend.children(element)
+                   for child_props in (self._backend.props(child),)
+                   if child_props.get("control_type") == "Button"
+                   and "invoke" in (child_props.get("patterns") or set())
+                   and child_props.get("pid") == obs.pid]
+        return buttons[0] if len(buttons) == 1 else None
+
+    def _options(self, container, label):
+        return [(option, props) for option in self._backend.descendants(container)
+                for props in (self._backend.props(option),)
+                if props.get("control_type") == "ListItem" and props.get("name") == label]
+
+    def _popup_lists(self, pid):
+        return [window for window in self._backend.top_windows(pid)
+                if self._backend.props(window).get("control_type") == "List"]
+
+    def _list_shown(self, pid):
+        """A popup list still showing items; a closed one keeps its window."""
+        return any(props.get("control_type") == "ListItem" and not props.get("offscreen")
+                   for popup in self._popup_lists(pid)
+                   for props in map(self._backend.props, self._backend.descendants(popup)))
+
     def _owned(self, obs, element, what):
         props = self._backend.props(element)
         if props.get("pid") != obs.pid or props.get("runtime_id") is None:
@@ -485,17 +521,40 @@ class WindowsDriver:
                 raise NotStarted("option_label_required")
             if "value" in action and action.get("value") != label:
                 raise NotStarted("native_option_value_mismatch")
+            opener = None
             if "expand_collapse" not in patterns:
-                raise NotStarted("not a selectable list")
+                # A .NET Framework WinForms combo box (legacy accessibility,
+                # common in line-of-business apps) offers only Value; its own
+                # drop-down button opens the list (jiun-home, 2026-11-10).
+                opener = self._dropdown_button(obs, element, props)
+                if opener is None:
+                    raise NotStarted("not a selectable list")
             _checkpoint(False)
             # Opening the list is already input to the app, so from here a
             # refusal is reported with an unknown effect, never not_started.
-            backend.expand(element)
+            if opener is None:
+                backend.expand(element)
+            else:
+                backend.invoke(opener)
             try:
                 # One cached read per option: each is a cross-process call.
-                options = [(option, props) for option in backend.descendants(element)
-                           for props in (backend.props(option),)
-                           if props.get("control_type") == "ListItem" and props.get("name") == label]
+                # Invoking the drop-down button only posts the open, so its
+                # list can appear a moment later (a slow CI runner missed it).
+                deadline = self._clock() + (LIST_OPEN_WAIT_S if opener is not None else 0)
+                while True:
+                    if opener is None:
+                        options = self._options(element, label)
+                    else:
+                        # The open list is its own popup window of the process.
+                        # The combo box is not searched again: while the list
+                        # is open its sibling chain runs on into the desktop's
+                        # windows (itself included), and a search of it crashed
+                        # the process on Windows Server.
+                        options = [found for popup in self._popup_lists(obs.pid)
+                                   for found in self._options(popup, label)]
+                    if options or self._clock() >= deadline:
+                        break
+                    self._sleep(0.05)
                 if len(options) != 1:
                     raise RuntimeError("option absent or ambiguous")
                 option, option_props = options[0]
@@ -510,6 +569,9 @@ class WindowsDriver:
                     raise RuntimeError("option cannot be selected") from exc
             finally:
                 # Cleanup, not a new action: put back the list this step opened.
-                backend.collapse(element)
+                if opener is None:
+                    backend.collapse(element)
+                elif self._list_shown(obs.pid):
+                    backend.invoke(opener)
             return {"input_route": "uia_selection_item"}
         raise NotStarted(f"unsupported action {name!r} on Windows")

@@ -41,6 +41,7 @@ def _requested_links(bin_dir, skill_dirs):
         dirs = [home/'.claude/skills', home/'.codex/skills']
         for key in ('CLAUDE_CONFIG_DIR', 'CODEX_HOME'):
             if os.environ.get(key): dirs.append(Path(os.environ[key])/'skills')
+        if (home/'.agents/skills').is_dir(): dirs.append(home/'.agents/skills')
         dirs.extend(p for p in (home/'Library/Application Support/asx/profiles').glob('*/skills') if p.is_dir())
     return {str(link_path(command/'haejo')):'command',
             **{str(link_path(Path(parent)/'haejo')):'skill' for parent in dirs}}

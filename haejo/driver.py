@@ -664,11 +664,9 @@ def _window_control_element(window, key):
         return None
 
 
-# What `secondary_action` will actually carry. An AX action name goes straight
-# to AXUIElementPerformAction, so the launcher enumerates what may cross, and
-# an observation that advertised anything else would be describing a refusal.
-SECONDARY_ACTIONS = ("AXShowMenu", "AXIncrement", "AXDecrement",
-                     "AXConfirm", "AXCancel")
+# What `secondary_action` will actually carry (defined with the protocol); an
+# observation that advertised anything else would be describing a refusal.
+from .protocol import SECONDARY_ACTIONS  # noqa: E402
 
 
 def _secondary_actions(el):
@@ -1782,6 +1780,8 @@ class Driver:
         from .observation_state import retryable_observation_error
         from .observation_wait import match_in_pages
         deadline = time.monotonic() + timeout_ms / 1000
+        from .observation_wait import poll_gaps
+        gaps = poll_gaps(poll_ms)
         last = None
         pages_checked = 0
         while True:
@@ -1803,7 +1803,7 @@ class Driver:
                 # after paging its obs_id is no longer the latest.
                 return {"type": "timeout", "target": target, "waited_ms": timeout_ms,
                         "last_obs": last, **({"observation_pages_checked": pages_checked} if search_pages else {})}
-            time.sleep(min(poll_ms / 1000, max(0, deadline - time.monotonic())))
+            time.sleep(min(next(gaps), max(0, deadline - time.monotonic())))
 
     # ------------------------------------------------------------ act
 

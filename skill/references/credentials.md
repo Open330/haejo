@@ -1,7 +1,7 @@
 # Credential entry and Vault-backed login
 
 Flow `authenticate`, multi-screen grants, account checks and app Vault settings
-require rc.11 or later. rc.10 supports the original single-screen CLI route.
+are all available, alongside the single-screen CLI route.
 
 For an already authorized task with a user-provided value, use `set_value` on
 its observed password field and `run --yes`. The task approval covers the input;
@@ -30,8 +30,8 @@ and the existing task approval. A Vault field can likewise declare
 This route brings the target forward, focuses the exact field and uses native
 Edit → Paste for NFC text. For decomposed/non-NFC text, it instead sends exact
 Unicode input to that field's process/window, leaving the clipboard untouched;
-the response identifies `input_route: native_unicode`. Do not normalize a secret
-to make it match. The Paste path keeps all clipboard formats in memory, restores them only while
+the response identifies `input_route: native_unicode`. The secret is sent
+exactly as stored. The Paste path keeps all clipboard formats in memory, restores them only while
 its own clipboard change count still owns the clipboard, and never records the
 secret. An unavailable snapshot (including over 8 MiB) is reported before input.
 Use a fresh field/form-state postcondition; `unverified_ok` explicitly records
@@ -80,8 +80,8 @@ haejo auth put account-password
 Bitwarden must already be unlocked; use an existing `BW_SESSION` or a private
 owner-only session file. Use the actual configured Vault server and exact item
 ID, not an ambiguous item name. Keychain `put` reads hidden terminal input or
-stdin, never a password argument. Do not retrieve credentials into agent output
-or shell command text. Local items use the `password` field; create a separate
+stdin, never a password argument. Credentials stay out of agent output and shell
+command text; the helper reads them directly. Local items use the `password` field; create a separate
 item for a username if using the local provider.
 
 Observe the login screen once with Haejo and copy fixed selectors from that
@@ -119,8 +119,8 @@ For username → password screens or checking the logged-in account, read
 
 ## Resolve a failed run
 
-- `credential_driver_upgrade_required`: update both launcher and helper; do not
-  send a credential through an older unguarded transport.
+- `credential_driver_upgrade_required`: update both launcher and helper; credentials
+  go only through the guarded transport.
 - `keychain_session_unavailable`: this shell runs outside the Mac's logged-in
   screen session (for example a tmux server started over ssh). Such a session
   keeps its own keychain lock state and cannot show a dialog. Run the command
@@ -129,7 +129,7 @@ For username → password screens or checking the logged-in account, read
 - `keychain_locked`: unlock the login keychain, then run the same command.
 - `keychain_access_denied`: allow Haejo in the keychain dialog, then rerun.
 - `vault_locked` / `vault_server_mismatch`: use the user's authenticated session
-  for the registered server. Do not repeatedly unlock or lock their Vault.
+  for the registered server. Their Vault stays unlocked; reuse that session.
 - `credential_scope_mismatch` / `credential_target_missing`: observe the actual
   login screen, then repair its destination/selectors. No secret was returned
   to the agent. Frame origins are checked again immediately before input.
@@ -145,5 +145,5 @@ For username → password screens or checking the logged-in account, read
 This credential route uses its own live verification rather than a general
 Flow's typed commit receipt. `run --yes` alone does not choose a Vault item.
 MFA, passkeys and challenges are not implemented by this credential provider.
-Use the next supported step for that actual screen; do not infer a permission
-problem from an unrelated failure.
+Use the next supported step for that actual screen; an unrelated failure is not
+a permission problem.

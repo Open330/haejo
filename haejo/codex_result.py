@@ -245,7 +245,7 @@ def codex_result(prompt: str, *, model: str | None = None,
                     raise ProviderUnavailable(reason)
                 raise CodexProtocolError('CLI returned nonzero status')
             try:
-                fields = parse_codex_events(response.stdout, output.read_text())
+                fields = parse_codex_events(response.stdout, output.read_text(encoding='utf-8'))
             except CodexProtocolError:
                 reason = classify_unavailable(response.stdout, response.stderr)
                 if reason:

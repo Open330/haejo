@@ -13,6 +13,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from datetime import datetime, timezone
 from pathlib import Path
+from .private_fs import mkdir_private
 import hashlib
 import json
 import os
@@ -67,10 +68,10 @@ def _private_dir(path, *, create):
     if create:
         for folder in (path.parent, path):
             try:
-                folder.mkdir(mode=0o700, exist_ok=True)
+                mkdir_private(folder, exist_ok=True)
             except FileNotFoundError:
-                folder.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-                folder.mkdir(mode=0o700, exist_ok=True)
+                mkdir_private(folder.parent, parents=True, exist_ok=True)
+                mkdir_private(folder, exist_ok=True)
     for folder in (path.parent, path):
         info = folder.lstat()
         if not stat.S_ISDIR(info.st_mode) or (hasattr(os, 'getuid') and info.st_uid != os.getuid()):
@@ -207,7 +208,7 @@ def start(goal, *, detail=None, root=None):
         task_id = 't-' + uuid.uuid4().hex[:24]
         directory = base/task_id
         try:
-            directory.mkdir(mode=0o700)
+            mkdir_private(directory)
         except FileExistsError:
             continue
         _private_dir(directory, create=True)
@@ -807,8 +808,10 @@ def main(args, *, root=None):
     except TaskRefused as exc:
         _emit_refusal(exc, as_json)
         return 2
-    except OSError:
-        _emit_refusal(TaskRefused('task_storage_unavailable', 'The private task directory could not be used.'), as_json)
+    except OSError as exc:
+        from .private_fs import access_repair_hint
+        _emit_refusal(TaskRefused('task_storage_unavailable', 'The private task directory could not be used.'
+                                  + access_repair_hint(exc)), as_json)
         return 2
     print(USAGE)
     return 2

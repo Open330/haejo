@@ -210,6 +210,8 @@ class DocumentScopedDriver:
 
     def wait_until(self,target,predicate,timeout_ms=4000,poll_ms=250, *, search_pages=False):
         deadline=time.monotonic()+timeout_ms/1000
+        from .observation_wait import poll_gaps
+        gaps=poll_gaps(poll_ms)
         pages_checked = 0
         while True:
             reply=self.observe(target, _settle_after_action=False)
@@ -225,7 +227,7 @@ class DocumentScopedDriver:
             if time.monotonic()>=deadline:
                 return {'type':'timeout','last_obs':reply,
                         **({'observation_pages_checked': pages_checked} if search_pages else {})}
-            time.sleep(min(poll_ms/1000, max(0, deadline-time.monotonic())))
+            time.sleep(min(next(gaps), max(0, deadline - time.monotonic())))
 
     def close(self):
         return self._inner.close()

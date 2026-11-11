@@ -14,8 +14,8 @@ A failed flow is never rerun by the session.
 
 When `HAEJO_OBSERVATION_MORE` appears, the tree omitted candidates. Before
 authoring the Flow, send `{"observe_next":true}` alone on this same session to
-read the next page. Each page replaces the previous observation; do not combine
-element indices across pages. Up to eight continuation pages share the original
+read the next page. Each page replaces the previous observation; element indices
+belong to their own page. Up to eight continuation pages share the original
 input deadline. No app input occurs. The live cursor stays inside the runtime.
 If the marker offers name lookup and the exact label is known, send
 `{"find_in_observation":"exact label"}` instead to avoid reading intervening
@@ -26,7 +26,7 @@ For agent tools, start with `exec_command`, `tty: true`, and
 Send a minified JSON line with `write_stdin` using the exact returned session ID.
 Use `yield_time_ms: 5000` when sending the flow to collect short replay completion
 without an extra status round; if still running, poll the original session.
-Never resend the flow to obtain status. Append an actual newline, not the two
+Status comes from polling; the flow is already running. Append an actual newline, not the two
 literal characters backslash+n.
 Use the original session for polling when initial observation takes longer.
 
@@ -46,8 +46,8 @@ idle session if abandoning the task; it also expires on its input deadline.
 
 If the user already approved a consent/form step, carry that approval through
 `run <flow.json> --helper --yes` with the same task ID and current bindings;
-do not hand it back solely because this session cannot approve. For a fresh
-read without any action, use `observe --helper --json`, not a session with `{}`.
+`run` has the approver this session lacks, so the task continues there. For a
+fresh read without any action, use `observe --helper --json`.
 
 
 `--guide` returns trusted minimal Flow instructions together with the observation;
@@ -64,7 +64,7 @@ and transport delays; it is not a measure of model inference alone.
 
 Reusable save: read [reuse](reuse.md) only when a saved parameterized template
 is needed. `--reuse-guide --save /absolute/new.json` executes once and saves
-the unbound template after success; do not replay a completed task to save it.
+the unbound template after success, so a completed task needs no second run to be saved.
 
 For an exact TextEdit file, add `--document /absolute/path --guide`. The same
 connection pins that file once before printing its scoped observation. All later

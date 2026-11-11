@@ -3,6 +3,7 @@ from contextvars import ContextVar
 from datetime import datetime, timezone
 from pathlib import Path
 from .preferences import load_preferences
+from .private_fs import access_repair_hint, mkdir_private
 import json
 import os
 import re
@@ -47,7 +48,7 @@ def private_directory(path):
     """Only product-owned leaf directories; never follow a Logs/Haejo symlink."""
     path = Path(path)
     for folder in (path.parent, path):
-        folder.mkdir(mode=0o700, parents=True, exist_ok=True)
+        mkdir_private(folder, parents=True, exist_ok=True)
         info = folder.lstat()
         if not stat.S_ISDIR(info.st_mode) or (hasattr(os, 'getuid') and info.st_uid != os.getuid()):
             raise OSError('unsafe_access_log_directory')
@@ -111,9 +112,9 @@ class AccessLog:
             self.path = root/name
             bound = {} if task is None else {'task_id': task.task_id, 'invocation_id': task.invocation}
             self.event('command_start', command=command, pid=os.getpid(), **bound)
-        except OSError:
+        except OSError as exc:
             self.close()
-            print('haejo: 실행 기록을 저장할 수 없습니다 (작업은 계속합니다).', file=sys.stderr)
+            print('haejo: 실행 기록을 저장할 수 없습니다 (작업은 계속합니다).' + access_repair_hint(exc), file=sys.stderr)
 
     def event(self, kind, *, force=False, **fields):
         if isinstance(fields.get('target'), str):

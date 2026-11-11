@@ -14,7 +14,7 @@
       rotationStop: "자동 넘김 멈추기",
       rotationStart: "자동 넘김 시작하기",
       exampleCount: (count) => `${count}개 사례를 표시합니다.`,
-      flowResult: (item) => `녹화에서 확인한 결과: ${item.left} + ${item.right} = ${item.result}`,
+      flowResult: (item) => `실제 실행에서 확인: ${item.date} ${item.merchant} ${item.amount}원 등록`,
       flowStep: (step, total, name) => `단계 ${step} / ${total} · ${name}`,
       demos: {
         replay: {
@@ -97,7 +97,7 @@
       rotationStop: "Pause auto-advance",
       rotationStart: "Start auto-advance",
       exampleCount: (count) => `Showing ${count} ${count === 1 ? "example" : "examples"}.`,
-      flowResult: (item) => `Result verified in the recording: ${item.left} + ${item.right} = ${item.result}`,
+      flowResult: (item) => `Verified in the real run: ${item.date} ${item.merchant} ₩${item.amount} registered`,
       flowStep: (step, total, name) => `Step ${step} / ${total} · ${name}`,
       demos: {
         replay: {
@@ -448,8 +448,8 @@
   }
 
   const flowCases = {
-    first: {left: "7", right: "8", result: "15"},
-    second: {left: "3", right: "9", result: "12"},
+    first: {date: "2026-11-03", merchant: "스타벅스 역삼점", category: "회의비", amount: "18,900", project: "P-2611", memo: "고객사 미팅 음료 4잔"},
+    second: {date: "2026-12-01", merchant: "카카오T 택시", category: "교통비", amount: "12,800", project: "P-2611", memo: "고객사 정기 점검"},
   };
   const flowWalk = document.getElementById("flow-walk");
   if (flowWalk) {
@@ -475,7 +475,7 @@
         const narrow = window.matchMedia("(max-width: 540px)").matches;
         const detour = kind === "exception" && window.matchMedia("(max-width: 1000px)").matches;
         if (detour || (narrow && from === "graph-saved")) {
-          const side = from === "graph-step-5" && narrow ? "right" : "left";
+          const side = from === "graph-step-6" && narrow ? "right" : "left";
           const p = point(from, side), q = point(to, side);
           const x = side === "left" ? 8 : bounds.width - 8;
           edges.push(`<path class="flow-edge ${kind}" d="M ${p.x} ${p.y} H ${x} V ${q.y} H ${q.x}"/><circle class="flow-connection ${kind}" cx="${p.x}" cy="${p.y}" r="3.5"/><circle class="flow-connection ${kind}" cx="${q.x}" cy="${q.y}" r="3.5"/>`);
@@ -489,9 +489,9 @@
       }
       connect("graph-agent", "graph-saved", "authoring");
       connect("graph-saved", "graph-step-0", "authoring", ["bottom", "top"]);
-      for (let i = 0; i < 5; i++) connect(`graph-step-${i}`, `graph-step-${i+1}`, "replay");
+      for (let i = 0; i < 6; i++) connect(`graph-step-${i}`, `graph-step-${i+1}`, "replay");
       connect("graph-step-3", "graph-repair", "exception", ["bottom", "top"]);
-      connect("graph-step-5", "graph-stop", "exception", ["bottom", "top"]);
+      connect("graph-step-6", "graph-stop", "exception", ["bottom", "top"]);
       edgeGroup.innerHTML = edges.join("");
     }
     new ResizeObserver(drawEdges).observe(canvas);
@@ -502,9 +502,7 @@
     function renderFlow(name) {
       stop(); selected = name;
       const item = flowCases[name];
-      document.getElementById("flow-left").textContent = item.left;
-      document.getElementById("flow-right").textContent = item.right;
-      document.getElementById("flow-result").textContent = item.result;
+      document.querySelectorAll("[data-flow-value]").forEach(el => { el.textContent = item[el.dataset.flowValue]; });
       nodes.forEach(node => node.removeAttribute("data-state"));
       status.textContent = t.flowResult(item);
       choices.forEach(button => button.setAttribute("aria-pressed", String(button.dataset.flowCase === name)));

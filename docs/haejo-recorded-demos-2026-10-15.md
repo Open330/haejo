@@ -15,7 +15,7 @@ is visible in the original captures.
 | Clip | What ran | Result |
 |---|---|---|
 | [Apple Calculator](../sites/haejo/dist/assets/demos/calculator.mp4) | A saved six-step flow; input button parameters changed for the second calculation | 7 + 8 = 15; 3 + 9 = 12 |
-| [Native workflow](../sites/haejo/dist/assets/demos/workflow-replay.mp4) | The same saved 11-step flow replayed with five input sets | 89, 34, 62, 79, 108; all five finished with one completion each |
+| [Native workflow](../sites/haejo/dist/assets/demos/workflow-replay.mp4) | The same saved 11-step flow replayed with five input sets | 37, 46, 70, 27, 48 (2026-11-10 re-shoot); all five finished with one completion each |
 
 Original screenshots:
 [Calculator](../sites/haejo/dist/assets/demos/calculator-result.png) ·
@@ -90,3 +90,7 @@ apps or call a model. The original execution video remains available in the case
 gallery. The activity screenshot loads 38 genuine saved access receipts into an
 offscreen native view, with the existing TextEdit run selected; no new receipts
 or edited outcomes were fabricated for the image.
+
+## 2026-11-10 re-shoot
+
+All recordings above were re-shot with Haejo v1.0.0-rc.39 so no Tacto name remains on screen. Conditions, results and regeneration commands: [Haejo film and landing re-shoot](haejo-film-2026-11-10.md).

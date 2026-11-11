@@ -72,7 +72,7 @@ def main(argv,*,driver_factory,store=None,confirm=None):
             yes='--yes' in args;fill='--fill-only' in args;args=[a for a in args if a not in ('--yes','--fill-only')]
             if len(args)!=(2 if command=='grant' else 1):raise CredentialError('credential_arguments_invalid')
             from .credential_grants import normalize_plan
-            plan=normalize_plan(json.loads(Path(args[-1]).read_text()))
+            plan=normalize_plan(json.loads(Path(args[-1]).read_text(encoding='utf-8')))
             digest=hashlib.sha256(json.dumps(plan,sort_keys=True).encode()).hexdigest()
             if expected_digest is not None and expected_digest!=digest:raise CredentialError('credential_plan_changed')
             if fill:

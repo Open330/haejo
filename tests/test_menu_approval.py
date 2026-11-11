@@ -228,6 +228,11 @@ class MenuApprovalTests(unittest.TestCase):
         self.assertEqual(outcome, json.loads(out.getvalue()))
         self.assertIn('두 단계 작업을 시작합니다', err.getvalue())
 
+    def test_batch_and_repair_yes_go_through_the_menu_when_on(self):
+        root = Path(__file__).resolve().parents[1]/'haejo'
+        for name in ('flow_batch.py', 'auto_repair.py'):
+            self.assertIn('_confirm=None if menu_enabled() else (lambda description:approved)', (root/name).read_text())
+
     def test_runtime_points_record_typed_outcomes(self):
         text = (Path(__file__).resolve().parents[1]/'haejo/flow.py').read_text()
         self.assertIn('gate=menu_outcome, action_effect="not_started"', text)
