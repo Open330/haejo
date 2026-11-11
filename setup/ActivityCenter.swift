@@ -13,10 +13,11 @@ struct HaejoPreferences {
     var showControlBanner = true
     var keepHelperWarm = false
     var helperIdleMinutes = 2
+    var requireMenuApproval = false
     var object: [String: Any] {
         ["schema": 1, "logging_enabled": loggingEnabled, "retention_days": retentionDays,
          "show_control_banner": showControlBanner, "keep_helper_warm": keepHelperWarm,
-         "helper_idle_minutes": helperIdleMinutes]
+         "helper_idle_minutes": helperIdleMinutes, "require_menu_approval": requireMenuApproval]
     }
     init(_ object: [String: Any] = [:]) {
         func boolean(_ key: String, _ fallback: Bool) -> Bool {
@@ -26,6 +27,7 @@ struct HaejoPreferences {
         loggingEnabled = boolean("logging_enabled", true)
         showControlBanner = boolean("show_control_banner", true)
         keepHelperWarm = boolean("keep_helper_warm", false)
+        requireMenuApproval = boolean("require_menu_approval", false)
         if let n = activityInteger(object["helper_idle_minutes"]), (1...10).contains(n) { helperIdleMinutes = n }
         if let n = activityInteger(object["retention_days"]), [7,30,90].contains(n) { retentionDays = n }
     }
@@ -406,6 +408,7 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
     private let logToggle = NSButton(checkboxWithTitle:"실행 기록 자동 저장", target:nil, action:nil)
     private let bannerToggle = NSButton(checkboxWithTitle:"작업 중 배너 표시", target:nil, action:nil)
     private let warmToggle = NSButton(checkboxWithTitle:"빠른 실행(helper 유지)", target:nil, action:nil)
+    private let approvalToggle = NSButton(checkboxWithTitle:"메뉴에서 승인", target:nil, action:nil)
     private let helperIdle = NSPopUpButton(frame:.zero,pullsDown:false)
     private let retention = NSPopUpButton(frame:.zero,pullsDown:false)
     private let historyButton = ActivityNavigationButton()
@@ -532,14 +535,20 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
         retention.setAccessibilityIdentifier("haejo.settings.retention")
         warmToggle.target = self; warmToggle.action = #selector(saveSettings)
         warmToggle.setAccessibilityIdentifier("haejo.settings.keep-helper-warm")
+        approvalToggle.target = self; approvalToggle.action = #selector(saveSettings)
+        approvalToggle.setAccessibilityIdentifier("haejo.settings.menu-approval")
         helperIdle.addItems(withTitles:(1...10).map { "\($0)분" })
         helperIdle.target = self; helperIdle.action = #selector(saveSettings)
         helperIdle.setAccessibilityIdentifier("haejo.settings.helper-idle")
         let warmControls = NSStackView(views:[warmToggle,activityLabel("사용하지 않을 때 종료",12,secondary:true),helperIdle])
         warmControls.orientation = .vertical; warmControls.alignment = .leading; warmControls.spacing = 10
+        let clearAlways = button("항상 허용 모두 지우기", "xmark.circle", #selector(clearAlwaysApprovals))
+        let approvalControls = NSStackView(views:[approvalToggle,clearAlways])
+        approvalControls.orientation = .vertical; approvalControls.alignment = .leading; approvalControls.spacing = 10
         let remove = button("저장된 기록 모두 삭제…", "trash", #selector(confirmDelete))
         let credentials = button("Vault·로그인 위임 관리", "key", #selector(openCredentials))
         let cards = [settingsCard("로그인 위임", "Vault 연결과 앱·사이트별 위임을 관리합니다. 에이전트가 만든 위임 파일을 끌어놓고 허용 수준을 검토하세요.",credentials),
+                     settingsCard("메뉴 승인", "결제·전송·삭제처럼 확인이 필요한 단계를 이 Mac의 Haejo 메뉴 카드로 결정합니다. 기본은 꺼짐입니다. 켜면 명령의 --yes 대신 카드에서 고른 범위(이번만·이 작업 동안·항상)로 진행합니다.",approvalControls),
                      settingsCard("빠른 실행", "도우미를 잠시 유지해 다음 작업을 더 빠르게 시작합니다. 기본은 꺼짐입니다. 유휴 시간이 지나면 자동 종료하며, 환경변수로 지정한 실행 방식이 우선합니다.",warmControls),
                      settingsCard("실행 기록", "접근한 앱·동작·결과·시간을 이 Mac에 저장합니다. 화면 내용·입력값·프롬프트는 기록하지 않습니다.",logToggle),
                      settingsCard("기록 보관 기간", "선택한 기간과 최대 200개·20MB 제한 안에서 다음 작업 시작 시 정리합니다.",retention),
@@ -732,6 +741,7 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
         logToggle.state = currentSettings.loggingEnabled ? .on : .off
         bannerToggle.state = currentSettings.showControlBanner ? .on : .off
         warmToggle.state = currentSettings.keepHelperWarm ? .on : .off
+        approvalToggle.state = currentSettings.requireMenuApproval ? .on : .off
         helperIdle.selectItem(at:currentSettings.helperIdleMinutes-1)
         helperIdle.isEnabled = currentSettings.keepHelperWarm
         retention.selectItem(at:[7,30,90].firstIndex(of:currentSettings.retentionDays) ?? 1)
@@ -744,10 +754,16 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
         var desired = currentSettings; desired.showControlBanner = bannerToggle.state == .on
         desired.loggingEnabled = logToggle.state == .on
         desired.keepHelperWarm = warmToggle.state == .on
+        desired.requireMenuApproval = approvalToggle.state == .on
         desired.helperIdleMinutes = max(1,helperIdle.indexOfSelectedItem+1)
         desired.retentionDays = [7,30,90][max(0,retention.indexOfSelectedItem)]
-        do { try store.save(desired); currentSettings = desired; helperIdle.isEnabled = desired.keepHelperWarm; saveStatus.stringValue = "저장했어요. 다음 작업부터 적용됩니다." }
+        do { try store.save(desired); currentSettings = desired; helperIdle.isEnabled = desired.keepHelperWarm; saveStatus.stringValue = "저장했어요. 다음 작업부터 적용됩니다."
+             NotificationCenter.default.post(name:Notification.Name("ai.callabo.haejo.menu-approval.changed"), object:nil) }
         catch { loadSettings(); saveStatus.stringValue = "설정을 저장하지 못했어요. 이전 설정을 유지합니다." }
+    }
+    @objc private func clearAlwaysApprovals() {
+        NotificationCenter.default.post(name:Notification.Name("ai.callabo.haejo.menu-approval.clear-always"), object:nil)
+        saveStatus.stringValue = "항상 허용을 모두 지웠어요."
     }
     @objc private func confirmDelete() {
         guard let window else { return }

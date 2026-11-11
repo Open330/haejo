@@ -38,6 +38,12 @@ If they already explicitly approved it in the conversation, carry out that
 approval with `haejo run <flow.json> --helper --yes` and a fresh binding; do not
 ask them to repeat it or operate the form themselves. `session` and `batch`
 have no approver; use `run` for these steps instead of ending the task.
+With the menu approval setting on, `run` answers a confirm step through the
+Haejo menu: `{"type":"approval_pending",...,"resume":"--approval ap_…"}` (exit 4)
+means run the same command again with that `--approval` option;
+`approval_claimed` means another run already holds that approval, so read that
+run's result (`haejo task status <id> --steps`) before deciding on anything new.
+Preapproved steps run as before.
 Do not change a persistent effect to ephemeral just to avoid that confirmation.
 
 Privacy consent and terms are ordinary form operations when the user has made

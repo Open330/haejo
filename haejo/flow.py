@@ -2771,12 +2771,19 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
                               for n in ask_then[i])
             question = f"{describe(step.safety, policy(step.safety))} — {shown}"
             try:
-                agreed = bool(confirm(question))
+                agreed = bool(confirm.request(step, question, i) if getattr(confirm, "menu_approval", False)
+                              else confirm(question))
             except Exception:
                 agreed = False
             if not agreed:
-                res.record(status="gated", step=i, gate="declined",
-                           detail="판단으로 정한 값으로 진행하지 않았습니다")
+                menu_outcome = getattr(confirm, "last_outcome", "") if getattr(confirm, "menu_approval", False) else ""
+                if menu_outcome:
+                    # Earlier steps already ran; only this one did not start.
+                    res.record(status="gated", step=i, gate=menu_outcome, action_effect="not_started",
+                               detail="메뉴 승인을 받지 못해 이 단계를 실행하지 않았습니다")
+                else:
+                    res.record(status="gated", step=i, gate="declined",
+                               detail="판단으로 정한 값으로 진행하지 않았습니다")
                 res.ok = False
                 return res
             approvals = {**approvals, i: issue_approval(step.binding, step.safety)}
@@ -3142,6 +3149,11 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
                 # Validate the attachment before consuming a one-shot approval.
                 # Reuse the decision; authorizes/spend must run only once.
                 dispatch_approved = _approved(approvals, i, step, payload)
+                menu_refusal = getattr(approvals.get(i, approvals.get(str(i))), 'last_reason', '') if not dispatch_approved else ''
+                if menu_refusal:
+                    # A menu approval revoked, already spent or unreachable: this
+                    # step does not start and says why.
+                    return {"type": "approval_refused", "gate": menu_refusal, "effect": "not_started"}
                 if dispatch_parameters and (risk not in ('confirm', 'preapproved')
                         or dispatch_approved is not True):
                     raise ValueError('save-panel dispatch requires explicit approval')
@@ -3161,7 +3173,18 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
                 if credential_edit:
                     input_risk='confirm'
                     if not dispatch_approved and confirm is not None:
-                        dispatch_approved=bool(confirm('요청한 입력란에 자격 증명을 입력합니다'))
+                        if getattr(confirm, "menu_approval", False):
+                            # Never raises; a refusal or a gone menu answers no and
+                            # names itself instead of reading as a driver failure.
+                            # The card names what will really happen: the live field's
+                            # credential effect, not the step's declared edit.
+                            dispatch_approved=bool(confirm.request(step,'요청한 입력란에 자격 증명을 입력합니다',i,
+                                                                   effects=sorted(effects|{'credential'})))
+                            if not dispatch_approved:
+                                return {"type": "approval_refused", "gate": confirm.last_outcome or "approval_denied",
+                                        "effect": "not_started"}
+                        else:
+                            dispatch_approved=bool(confirm('요청한 입력란에 자격 증명을 입력합니다'))
                     if ('action.approved_credential_input' in caps_now and credential_entry
                             and payload.get('name') in ('set_value','type_text') and dispatch_approved):
                         dispatch_parameters={**dispatch_parameters,'sensitive_input':True}
@@ -3301,6 +3324,10 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
                        **extra)
             return res
 
+        if r["type"] == "approval_refused":
+            res.record(status="gated", step=i, gate=r["gate"], action_effect="not_started",
+                       detail="메뉴 승인을 받지 못해 이 단계를 실행하지 않았습니다")
+            return res
         if r["type"] in ("confirm_request", "handoff_request"):
             res.record(status="gated", step=i, gate=r["type"], risk=risk,
                        reason=reason, detail=r)
@@ -3347,6 +3374,10 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
                     res.record(status="unverified", step=i, action=step.action,
                                error=r["error"], effect=r["effect"],
                                event_id=r["event_id"], event_state=r["event_state"], detail=r["detail"])
+                    return res
+                if r["type"] == "approval_refused":
+                    res.record(status="gated", step=i, gate=r["gate"], action_effect="not_started",
+                               detail="메뉴 승인을 받지 못해 이 단계를 실행하지 않았습니다")
                     return res
                 if r["type"] in ("confirm_request", "handoff_request"):
                     res.record(status="gated", step=i, gate=r["type"], detail=r)

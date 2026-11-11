@@ -747,7 +747,7 @@ class Agent:
 
     def handle(self, intent: str, approvals: dict[int, bool] | None = None,
                ask: Callable[[str], bool] | None = None,
-               think: int | None = None) -> Turn:
+               think: int | None = None, approval_id: str | None = None) -> Turn:
         if self._TAKE_IT_BACK.search(intent.strip()):
             return self.take_it_back()
         match = self.resolve(intent)
@@ -852,7 +852,18 @@ class Agent:
         # Consent before contact with the screen. Without this a save or a send
         # gated mid-run and the command simply ended there, because nothing in
         # the CLI could answer the question the gate asked.
-        if approvals is None:
+        menu = getattr(ask, "menu_approval", False)
+        if approvals is None and menu:
+            # Opt-in menu approval: one card for the flow, claimed for this run.
+            from .menu_approval import plan as menu_plan
+            approvals, blocked, outcome = menu_plan(flow, self, approval_id=approval_id)
+            if blocked:
+                return Turn("needs_handoff", "\n".join(blocked), flow.name)
+            if outcome is not None:
+                import json as _json
+                return Turn("needs_confirm", _json.dumps(outcome, ensure_ascii=False), flow.name, detail=outcome)
+            ask.target = flow.target
+        elif approvals is None:
             approvals, blocked = self.authorize(flow, ask)
             if blocked:
                 return Turn("needs_handoff", "\n".join(blocked), flow.name)
@@ -883,9 +894,17 @@ class Agent:
         res = replay(self.driver, flow, approvals=approvals,
                      narrate=self.narrate, escalate=judge, budget=think,
                      decide=self.decide, walk=walk,
-                     confirm=(lambda text: bool(ask(text))) if ask else None, **hooks)
+                     confirm=ask if menu else ((lambda text: bool(ask(text))) if ask else None), **hooks)
+        if menu:
+            from .menu_approval import finish as menu_finish
+            menu_finish(approvals, res.ok)
         self._report_what_it_asked(flow, res)
         turn = self._to_turn(flow, res)
+        if menu and res.log and str(res.log[-1].get('gate', '')).startswith('approval_'):
+            last = res.log[-1]
+            turn.detail = {'type': last['gate'], 'step': last.get('step'), 'action_effect': 'not_started',
+                           'completed_steps': sorted({e.get('step') for e in res.log[:-1]
+                                                      if e.get('status') == 'ok' and isinstance(e.get('step'), int)})}
         if read_to_find and walked and turn.status == "done":
             self._learn_phrasing(template, intent, values)
         learned = getattr(res, "learned", None)
