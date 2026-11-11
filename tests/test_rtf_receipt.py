@@ -394,7 +394,8 @@ class RTFReceiptTests(unittest.TestCase):
                 self.assertEqual(2,len(reads))
 
     def test_continuous_ctime_churn_never_issues_receipt(self):
-        adapter=self.receipt(timeout_seconds=.12)
+        # Long enough for several polls on a slow CI runner.
+        adapter=self.receipt(timeout_seconds=.6)
         context=adapter.prepare_commit(self.event)
         self.path.write_bytes(b'{\\rtf1 Hello}')
         count=[0]
