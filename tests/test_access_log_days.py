@@ -28,9 +28,10 @@ class DayLogTests(unittest.TestCase):
         write_run(self.root, old, self.rows('1' * 32), self.now - 86400)
         today = 'haejo-20261111T010203040506Z-' + 'b' * 32 + '.jsonl'
         write_run(self.root, today, self.rows('2' * 32), self.now - 7200)
-        self.assertEqual(1, al.compact(self.root, now=self.now))
+        self.assertEqual(2, al.compact(self.root, now=self.now))
         self.assertFalse((self.root/old).exists())
-        self.assertTrue((self.root/today).exists(), 'today stays a file per run')
+        self.assertFalse((self.root/today).exists(), 'a finished run of today merges too')
+        self.assertTrue((self.root/'haejo-day-20261111.jsonl').exists())
         day = (self.root/'haejo-day-20261110.jsonl').read_text().splitlines()
         self.assertTrue(all(json.loads(l)['run'] == old for l in day))
         back = [json.loads(l) for l in al.read_run(old, root=self.root).decode().splitlines()]
@@ -65,6 +66,15 @@ class DayLogTests(unittest.TestCase):
         finally:
             os.close(fd)
         self.assertEqual(1, al.compact(self.root, now=self.now))
+
+    def test_housekeeping_waits_its_interval_but_not_past_the_file_cap(self):
+        write_run(self.root, 'haejo-20261111T010203040506Z-' + '9' * 32 + '.jsonl', self.rows('9' * 32), self.now)
+        self.assertTrue(al.housekeeping(self.root, 30, now=self.now))
+        self.assertFalse(al.housekeeping(self.root, 30, now=self.now + 60), 'skipped within the interval')
+        self.assertTrue(al.housekeeping(self.root, 7, now=self.now + 60), 'a changed retention runs at once')
+        from unittest import mock
+        with mock.patch.object(al, 'MAX_FILES', 1):
+            self.assertTrue(al.housekeeping(self.root, 7, now=self.now + 120), 'the cap is checked every time')
 
     def test_limit_is_disk_usage_and_raised(self):
         self.assertEqual(100 * 1024 * 1024, al.MAX_TOTAL)
