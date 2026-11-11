@@ -133,3 +133,40 @@ class ObservationPollLatencyTests(unittest.TestCase):
             self.assertEqual(1., clock.sleeps[0])
             if not general:
                 self.assertEqual('postcondition_timeout', result.log[-1]['error'])
+
+
+class SettleOnVisibleChangeTests(unittest.TestCase):
+    """After an action, the settle ends early only once the screen changed and stopped moving."""
+    def run_observe(self, before, replies):
+        import json
+        driver = object.__new__(HelperDriver)
+        driver._last_action_at = 100.
+        message = {"type": "observe", "target": "fixture", "require_window": True}
+        driver._before_action = {json.dumps(message, sort_keys=True): before} if before is not None else {}
+        driver._send = Mock(side_effect=[{'type': 'observation', 'tree': t} if isinstance(t, str) else t for t in replies])
+        clock = Clock()
+        with patch('haejo.helper.time.monotonic', side_effect=clock.now), \
+             patch('haejo.helper.time.sleep', side_effect=clock.sleep):
+            out = driver.observe('fixture')
+        return out, clock, driver
+
+    def test_changed_and_stable_screen_ends_the_wait(self):
+        out, clock, driver = self.run_observe('old', ['new', 'new'])
+        self.assertEqual('new', out['tree'])
+        self.assertEqual([.05], clock.sleeps)
+        self.assertEqual(2, driver._send.call_count)
+
+    def test_unchanged_screen_waits_the_full_second(self):
+        out, clock, driver = self.run_observe('old', ['old'] * 30)
+        self.assertEqual('old', out['tree'])
+        self.assertAlmostEqual(1.0, sum(clock.sleeps))
+
+    def test_still_moving_screen_waits_the_full_second(self):
+        out, clock, driver = self.run_observe('old', [f'frame {i}' for i in range(40)])
+        self.assertAlmostEqual(1.0, sum(clock.sleeps))
+
+    def test_error_or_no_reference_falls_back_to_the_full_second(self):
+        out, clock, driver = self.run_observe('old', [{'type': 'error', 'error': 'observation_failed'}, 'new'])
+        self.assertAlmostEqual(1.0, sum(clock.sleeps))
+        out, clock, driver = self.run_observe(None, ['new'])
+        self.assertEqual([1.0], clock.sleeps)
