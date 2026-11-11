@@ -171,9 +171,9 @@ Haejo는 실행할 때 대상을 새 관찰에서 찾고 결과 조건을 검사
 
 ## 첫 작업 시작하기
 
-**macOS용 1.0.0-rc.42 정식 출시 후보**입니다(Apple Silicon · macOS 27.0.1에서 확인).
+**macOS용 1.0.0-rc.43 정식 출시 후보**입니다(Apple Silicon · macOS 27.0.1에서 확인).
 
-1. [공증된 DMG 다운로드](https://github.com/Open330/haejo/releases/download/v1.0.0-rc.42/Haejo-1.0.0-rc.42-arm64.dmg) ([릴리스 안내와 검증 결과](https://github.com/Open330/haejo/releases/tag/v1.0.0-rc.42))
+1. [공증된 DMG 다운로드](https://github.com/Open330/haejo/releases/download/v1.0.0-rc.43/Haejo-1.0.0-rc.43-arm64.dmg) ([릴리스 안내와 검증 결과](https://github.com/Open330/haejo/releases/tag/v1.0.0-rc.43))
 2. DMG를 열어 `Haejo.app`을 `Applications`로 끌어다 놓고, `Applications`에서 Haejo를 엽니다.
 3. **1. Mac 권한**에서 **설정 열기**를 눌러 앱 조작을 **Haejo Helper**에 허용합니다(화면 기록은 **Haejo**에, 선택).
 4. 앱을 열면 Claude Code·Codex에 `haejo` 명령과 스킬이 바로 연결됩니다(**2. 에이전트 연결**에서 확인하고, 앱을 옮긴 뒤에는 다시 누르세요).
@@ -183,7 +183,7 @@ Tacto를 쓰던 경우도 같은 방법으로 설치합니다. Tacto 데이터�
 
 Haejo는 Dock 아이콘 없이 메뉴 막대에서 실행됩니다. 창을 닫아도 백그라운드에 남고, 메뉴 막대 아이콘에서 다시 열거나 종료할 수 있습니다.
 
-rc.42 DMG는 소스 `e199157`, Python 3.14 기준입니다. 회귀 테스트 3,603개 실패 없음, Apple 공증·Gatekeeper 통과, 같은 번들을 Mac 세 대에 설치해 데이터와 권한을 확인했습니다. **정식 출시 후보이며 아직 승인된 정식 안정 버전이 아닙니다.** 사람이 직접 하는 새 설치, 권한 해제·재부여 반복, 제한 베타([안내](docs/beta-participant-guide.md))가 남아 있습니다. Windows·Intel Mac 빌드는 제공하지 않습니다.
+rc.43 DMG는 소스 `e1f539c`, Python 3.14 기준입니다. 회귀 테스트 3,633개 실패 없음, Apple 공증·Gatekeeper 통과, 같은 번들을 Mac 세 대에 설치해 데이터와 권한을 확인했습니다. **정식 출시 후보이며 아직 승인된 정식 안정 버전이 아닙니다.** 사람이 직접 하는 새 설치, 권한 해제·재부여 반복, 제한 베타([안내](docs/beta-participant-guide.md))가 남아 있습니다. Windows·Intel Mac 빌드는 제공하지 않습니다.
 [출시 검증 현황](docs/release-readiness.md) · [설치 범위와 제한](docs/installation.md)
 
 **소스에서 빌드하려면** [uv](https://docs.astral.sh/uv/)(앱 런타임용 Python 3.14를 직접 설치합니다), Xcode Command Line Tools,
