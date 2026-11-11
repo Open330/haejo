@@ -8,8 +8,8 @@
 ## 시작 전
 
 담당자가 제공한 RC의 태그·DMG SHA256을 확인하고 기록합니다.
-현재 후보는 `v1.0.0-rc.44`(DMG SHA256 `ada0b0c4d5ab04839792de7a6ee256d0a76ae65833307972c2d0fd2dbda7a222`)이며 정식 안정 버전이 아닙니다. 공증·보안 검사와 세 Mac 동일 번들 설치·데이터 보존을 확인했고, 회귀 3,635건(제외 33건)에 실패·오류가 없습니다.
-[rc.44 검증 결과](https://github.com/Open330/haejo/releases/tag/v1.0.0-rc.44)의 VALIDATION.json을 확인하세요.
+현재 후보는 `v1.0.0-rc.45`(DMG SHA256 `9569c6bdfdb37cc181d57a8a9cab3b0baffe3f70071468a9174f7dac75c7e8d3`)이며 정식 안정 버전이 아닙니다. 공증·보안 검사와 세 Mac 동일 번들 설치·데이터 보존을 확인했고, 회귀 3,642건(제외 33건)에 실패·오류가 없습니다.
+[rc.45 검증 결과](https://github.com/Open330/haejo/releases/tag/v1.0.0-rc.45)의 VALIDATION.json을 확인하세요.
 검증 중 앱이 바뀌면 담당자에게 알리고 새 후보로 결과를 구분합니다.
 
 ### 이전 rc.9의 검증 기록
