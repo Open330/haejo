@@ -19,6 +19,11 @@ let item: [String:Any] = ["class":"transmit", "kind":"press", "role":"AXButton",
 check(c.handle(["op":"native_check","item":item])["status"] as? String == "refused", "not helper refused")
 check(c.handle(["op":"native_check","item":["class":"nonsense"]], helperPeer:true)["status"] as? String == "invalid", "invalid class")
 check(ApprovalCenter.nativeDescribe(item) == "전송: 'Send' (Slack)\n창: #team", "card text \(ApprovalCenter.nativeDescribe(item))")
+var paying = item; paying["class"] = "financial"
+paying["commit"] = ["amount": "₩12,000", "site": "shop.example.com"]; paying["unreadable"] = ["truncated"]
+check(ApprovalCenter.nativeDescribe(paying) == "결제·송금: 'Send' (Slack)\n창: #team\n금액: ₩12,000\n사이트: shop.example.com\n창이 커서 일부만 읽었습니다.", "commit summary \(ApprovalCenter.nativeDescribe(paying))")
+var blind = item; blind["unreadable"] = ["body"]
+check(ApprovalCenter.nativeDescribe(blind).hasSuffix("본문을 읽을 수 없어 이 창의 현재 내용으로 보냅니다."), "unreadable said")
 check(ApprovalCenter.sensitive(["class":"financial"]) && ApprovalCenter.sensitive(["class":"credential"]) && !ApprovalCenter.sensitive(item), "sensitive classes")
 
 func answered(_ choice: ApprovalCenter.Choice?) -> String {
@@ -100,7 +105,7 @@ class NativeApprovalChannelSourceTests(unittest.TestCase):
         self.assertIn('menuDeadline = min(callerDeadline,', body)
         self.assertNotIn('min(clickDeadline ?? .infinity, ProcessInfo.processInfo.systemUptime + 10)', body)
         gate = (ROOT/'helper/NativeApproval.swift').read_text()
-        self.assertIn('reobserve() == input && context(pid) == before', gate)
+        self.assertIn('guard reobserve() == input, context(pid) == before,', gate)
 
 
 if __name__ == '__main__':

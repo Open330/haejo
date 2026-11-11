@@ -16,7 +16,7 @@ var asked: [ApprovalClass] = []
 let send = { () -> ObservedInput in observed += 1; var i = ObservedInput(kind: "press"); i.role = "AXButton"; i.labels = ["Send"]; return i }
 let save = { () -> ObservedInput in observed += 1; var i = ObservedInput(kind: "press"); i.role = "AXButton"; i.labels = ["Save"]; return i }
 NativeApproval.bundleOf = { _ in "com.tinyspeck.slackmacgap" }
-NativeApproval.decide = { _, cls, _ in asked.append(cls); return .denied }
+NativeApproval.decide = { _, cls, _, _ in asked.append(cls); return .denied }
 
 // Off (the default): nothing is read, nothing asked, nothing refused.
 check(NativeApproval.gate(name: "click", action: [:], pid: 1, observe: send) == nil, "off passes")
@@ -29,14 +29,14 @@ let denied = NativeApproval.gate(name: "click", action: [:], pid: 1, observe: se
 check(denied?["error"] as? String == "approval_denied" && denied?["effect"] as? String == "not_started", "denied refusal")
 check(asked == [.transmit], "asked with the helper's class")
 for (decision, error) in [(NativeDecision.timeout, "approval_timeout"), (.unavailable, "approval_unavailable"), (.targetChanged, "approval_target_changed")] {
-    NativeApproval.decide = { _, _, _ in decision }
+    NativeApproval.decide = { _, _, _, _ in decision }
     check(NativeApproval.gate(name: "click", action: [:], pid: 1, observe: send)?["error"] as? String == error, error)
 }
-NativeApproval.decide = { _, _, _ in .allowed }
+NativeApproval.decide = { _, _, _, _ in .allowed }
 check(NativeApproval.gate(name: "click", action: [:], pid: 1, observe: send) == nil, "allowed dispatches")
 
 // The card's wait is reported so act can move its input deadline.
-NativeApproval.decide = { _, _, _ in usleep(200_000); return .allowed }
+NativeApproval.decide = { _, _, _, _ in usleep(200_000); return .allowed }
 _ = NativeApproval.takeWaited()
 var moved = 0.0
 NativeApproval.onWaited = { moved += $0 }
@@ -50,9 +50,21 @@ NativeApproval.callerGone = { false }
 var flip = 0
 let moving = { () -> ObservedInput in flip += 1; var i = ObservedInput(kind: "press"); i.role = "AXButton"; i.labels = ["Send"]; i.identity = "e\(flip)"; return i }
 check(NativeApproval.gate(name: "click", action: [:], pid: 1, observe: moving)?["error"] as? String == "approval_target_changed", "other element")
-NativeApproval.decide = { _, _, _ in .cancelled }
+NativeApproval.decide = { _, _, _, _ in .cancelled }
 check(NativeApproval.gate(name: "click", action: [:], pid: 1, observe: send)?["error"] as? String == "client_disconnected", "cancelled decision")
-NativeApproval.decide = { _, _, _ in .allowed }
+NativeApproval.decide = { _, _, _, _ in .allowed }
+
+// What is committed changed while the card was up (another body, other items): not dispatched.
+var reads = 0
+NativeApproval.commitReader = { _, _, _, _ in reads += 1; return CommitView(digest: "d\(reads)") }
+check(NativeApproval.gate(name: "click", action: [:], pid: 1, observe: send)?["error"] as? String == "approval_target_changed", "commit changed")
+NativeApproval.commitReader = { _, _, _, payload in CommitView(digest: payload ?? "-") }
+var seen: CommitView?
+NativeApproval.decide = { _, _, _, commit in seen = commit; return .allowed }
+check(NativeApproval.gate(name: "type_text", action: ["text": "pw"], pid: 1, observe: { var i = ObservedInput(kind: "text"); i.role = "AXTextField"; i.subrole = "AXSecureTextField"; return i }) == nil, "credential allowed")
+check(seen?.digest == "pw", "payload reaches the commit reading")
+NativeApproval.commitReader = { _, _, _, _ in CommitView() }
+NativeApproval.decide = { _, _, _, _ in .allowed }
 
 // Haejo's own UI is refused even for an unclassified press.
 NativeApproval.bundleOf = { _ in "ai.callabo.haejo.setup.standalone.preview" }
@@ -60,7 +72,7 @@ check(NativeApproval.gate(name: "click", action: [:], pid: 1, observe: save)?["e
 check(NativeApproval.gate(name: "read", action: [:], pid: 1, observe: save) == nil, "reading own UI is fine")
 // A menu is decided at its resolved item, not from the path strings.
 NativeApproval.bundleOf = { _ in "com.apple.finder" }
-NativeApproval.decide = { _, _, _ in .denied }
+NativeApproval.decide = { _, _, _, _ in .denied }
 observed = 0
 check(NativeApproval.gate(name: "menu", action: ["path": ["File", "Delete"]], pid: 1, observe: send) == nil, "menu deferred")
 check(observed == 0, "menu entry reads nothing")
@@ -112,9 +124,9 @@ class NativeApprovalWiringTests(unittest.TestCase):
         # Popup options: the item itself, right before its press, after the
         # open menu is recorded.
         for item, opened in (('matches[0]', 'true'), ('items[0]', 'false')):
-            g = body.index(f'NativeApproval.gateOption({item}, pid: p, openedHere: {opened})')
+            g = body.index(f'NativeApproval.gateOption({item}, pid: p, openedHere: {opened}, control: el)')
             self.assertLess(g, body.index(f'AXUIElementPerformAction({item}', g))
-        pointer = body.index('NativeApproval.gateOption(chosen,pid:p,openedHere:false)')
+        pointer = body.index('NativeApproval.gateOption(chosen,pid:p,openedHere:false,control:el)')
         self.assertLess(pointer, body.index('let result=prepareBackgroundWindow(obsID,target,chosen', pointer))
         self.assertEqual(3, text.count('NativeApproval.gateOption('))
         custom = body.index('NativeApproval.gateOption(items[0]')

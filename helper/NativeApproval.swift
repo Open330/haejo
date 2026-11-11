@@ -14,6 +14,17 @@ import Foundation
 import ApplicationServices
 import AppKit
 
+/// What a classified input would commit, as the helper read it (R7).
+struct CommitView: Equatable {
+    var digest: String = ""
+    /// Shown on the card: "body", "items", "amount", "site".
+    var summary: [String: String] = [:]
+    /// Parts the helper could not read; the card says so.
+    var unreadable: [String] = []
+    /// Where it goes, when the helper read it (a web host). Empty: unknown.
+    var destination: String = ""
+}
+
 enum NativeDecision: Equatable {
     case allowed, denied, timeout, unavailable, targetChanged, cancelled
 }
@@ -22,7 +33,9 @@ enum NativeApproval {
     /// Set by the state store once it has a verified "enforcing" record.
     nonisolated(unsafe) static var enforcing: () -> Bool = { false }
     /// Asks the menu app (authenticated channel) for this input; blocking.
-    nonisolated(unsafe) static var decide: (_ input: ObservedInput, _ cls: ApprovalClass, _ pid: pid_t) -> NativeDecision = { _, _, _ in .unavailable }
+    nonisolated(unsafe) static var decide: (_ input: ObservedInput, _ cls: ApprovalClass, _ pid: pid_t, _ commit: CommitView) -> NativeDecision = { _, _, _, _ in .unavailable }
+    /// Reads what the input would commit (wired to NativeCommit.read).
+    nonisolated(unsafe) static var commitReader: (_ cls: ApprovalClass, _ anchor: AXUIElement?, _ pid: pid_t, _ payload: String?) -> CommitView = { _, _, _, _ in CommitView() }
     /// Process, signer and front window, compared before and after the card.
     nonisolated(unsafe) static var context: (pid_t) -> String = { _ in "" }
     /// The caller of this request has gone or pressed stop (set per request
@@ -49,6 +62,7 @@ enum NativeApproval {
 
     /// Returns a refusal to send instead of dispatching, or nil to go on.
     static func gate(name: String, action: [String: Any], pid: pid_t,
+                     anchor: () -> AXUIElement? = { nil },
                      observe: () -> ObservedInput) -> [String: Any]? {
         guard enforcing() else { return nil }
         // Reading Haejo's own windows is fine; any input into them is not.
@@ -59,7 +73,12 @@ enum NativeApproval {
         // popup option at the item about to be pressed (`gateOption`): one
         // decision per input, on the element itself.
         if ["menu", "option"].contains(kind(name: name, action: action)) { return nil }
-        return decided(observe(), pid: pid, reobserve: observe)
+        return decided(observe(), pid: pid, anchor: anchor, payload: payload(action), reobserve: observe)
+    }
+
+    /// The text an input enters, compared by digest only (never shown).
+    static func payload(_ action: [String: Any]) -> String? {
+        (action["value"] as? String) ?? (action["text"] as? String)
     }
 
     /// The resolved menu item, before anything is pressed or prepared.
@@ -71,7 +90,8 @@ enum NativeApproval {
         input.focusIsText = focusIsText(pid)
         input.identity = identity(item)
         input.window = menuWindows(pid)
-        return decided(input, pid: pid) {
+        let app = AXUIElementCreateApplication(pid)
+        return decided(input, pid: pid, anchor: { element(app, kAXFocusedWindowAttribute as String) ?? element(app, kAXMainWindowAttribute as String) }, payload: nil) {
             var again = input; again.labels = labels(item); again.focusIsText = focusIsText(pid)
             again.identity = identity(item); again.window = menuWindows(pid); return again
         }
@@ -83,14 +103,16 @@ enum NativeApproval {
     /// automatic cancel has left controls unable to post a menu again); the
     /// reply says so and that nothing was selected. `effect` describes the
     /// selection, which did not start.
-    static func gateOption(_ item: AXUIElement, pid: pid_t, openedHere: Bool) -> [String: Any]? {
+    static func gateOption(_ item: AXUIElement, pid: pid_t, openedHere: Bool, control: AXUIElement?) -> [String: Any]? {
         guard enforcing() else { return nil }
         var input = ObservedInput(kind: "press")
         input.role = "AXMenuItem"
         input.labels = labels(item)
         input.identity = identity(item)
         input.window = windowIdentity(item)
-        guard var refusal = decided(input, pid: pid, reobserve: {
+        // The option acts on its control's window (not the popup's, and not
+        // whichever window happens to be focused).
+        guard var refusal = decided(input, pid: pid, anchor: { control }, payload: nil, reobserve: {
             var again = input; again.labels = labels(item); again.identity = identity(item)
             again.window = windowIdentity(item); return again
         }) else { return nil }
@@ -105,19 +127,25 @@ enum NativeApproval {
     /// Classify; ask when it matters; after "allowed", read the input again
     /// (S6): the card answered for what it showed, so a different element,
     /// label, process or front window is not dispatched.
-    static func decided(_ input: ObservedInput, pid: pid_t, reobserve: () -> ObservedInput) -> [String: Any]? {
+    static func decided(_ input: ObservedInput, pid: pid_t, anchor: () -> AXUIElement?, payload: String?,
+                        reobserve: () -> ObservedInput) -> [String: Any]? {
         let cls = ApprovalClassifier.classify(input)
         guard cls != .none else { return nil }
         let before = context(pid)
+        // What is committed, not only what is clicked: the body, the selected
+        // items, the amount and site; read again after the answer.
+        let commit = commitReader(cls, anchor(), pid, payload)
         let asked = ProcessInfo.processInfo.systemUptime
-        let decision = decide(input, cls, pid)
+        let decision = decide(input, cls, pid, commit)
         let elapsed = ProcessInfo.processInfo.systemUptime - asked
         waited += elapsed
         onWaited(elapsed)
         switch decision {
         case .allowed:
             if callerGone() { return refusal(stopPressed() ? "aborted_by_user" : "client_disconnected") }
-            return reobserve() == input && context(pid) == before ? nil : refusal("approval_target_changed")
+            guard reobserve() == input, context(pid) == before,
+                  commitReader(cls, anchor(), pid, payload).digest == commit.digest else { return refusal("approval_target_changed") }
+            return nil
         case .denied: return refusal("approval_denied")
         case .timeout: return refusal("approval_timeout")
         case .unavailable: return refusal("approval_unavailable")
