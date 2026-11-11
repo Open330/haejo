@@ -94,7 +94,7 @@ class DistributionInventoryTests(unittest.TestCase):
             self.assertEqual({'playwright':'1.63.0'},distribution.require_release_environment(root,run))
             self.assertEqual(['uv','export','--frozen','--all-extras','--no-dev'],run.call_args_list[-1].args[0][:5])
             args,kwargs=run.call_args_list[1].args,run.call_args_list[1].kwargs
-            for flag in ('--frozen','--all-extras','--check','--inexact','--offline'):
+            for flag in ('--frozen','--all-extras','--no-dev','--check','--inexact','--offline'):
                 self.assertIn(flag,args[0])
             self.assertEqual(str((root/'.venv').resolve()),kwargs['env']['UV_PROJECT_ENVIRONMENT'])
             self.assertEqual(root,kwargs['cwd'])

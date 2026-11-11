@@ -92,7 +92,7 @@ def require_release_environment(root=ROOT,run=subprocess.run):
     if locked.returncode:
         raise RuntimeError('release lockfile is stale or cannot be checked offline; '
                            'update uv.lock intentionally and commit it before building')
-    result=run(['uv','sync','--frozen','--all-extras','--check','--inexact','--offline'],
+    result=run(['uv','sync','--frozen','--all-extras','--no-dev','--check','--inexact','--offline'],
                cwd=root,env=environment,capture_output=True,text=True,timeout=120)
     if result.returncode:
         raise RuntimeError('release environment is missing or mismatches locked dependencies/extras; '
