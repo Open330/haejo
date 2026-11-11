@@ -91,6 +91,12 @@ def group_gone(group):
         os.killpg(group, 0)
     except ProcessLookupError:
         return True
+    except PermissionError:
+        # macOS answers EPERM for a group whose members are only zombies
+        # awaiting their reaper: nothing in it can still run.
+        rows = subprocess.run(['ps', '-A', '-o', 'pgid=,stat='], capture_output=True, text=True).stdout
+        return not any(r.split()[0] == str(group) and not r.split()[1].startswith('Z')
+                       for r in rows.splitlines() if len(r.split()) == 2)
     return False
 
 

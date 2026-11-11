@@ -223,6 +223,11 @@ def _stop(process):
     process.wait()
 
 
+def signed_launcher():
+    """The fixed sibling launcher this checkout ships beside the package."""
+    return Path(__file__).resolve().parents[1] / 'launcher' / 'haejo'
+
+
 def run_parallel_jobs(manifest, *, timeout=60, on_event=None):
     """Run at most four checked AX window jobs; return results in input order.
 
@@ -235,7 +240,7 @@ def run_parallel_jobs(manifest, *, timeout=60, on_event=None):
         raise ParallelRefused('parallel_requires_macos')
     if type(timeout) is not int or not 1 <= timeout <= 600:
         raise ParallelRefused('parallel_timeout_requires_1_to_600_seconds')
-    launcher = Path(__file__).resolve().parents[1] / 'launcher' / 'haejo'
+    launcher = signed_launcher()
     # Read on the caller's thread: pool workers do not inherit ContextVars.
     # Only the parent's already-validated task, never an inherited raw value.
     from .task import current as task_binding

@@ -134,8 +134,16 @@ class BatchControlTests(unittest.TestCase):
             self.assertTrue(control.stopped)
 
 
+def fake_launcher(case):
+    """CI has no signed launcher; the coordinator only needs an executable path."""
+    directory=tempfile.TemporaryDirectory();case.addCleanup(directory.cleanup)
+    path=Path(directory.name)/'haejo';path.write_text('#!/bin/sh\n');path.chmod(0o755)
+    p=patch('haejo.parallel_run.signed_launcher',return_value=path);p.start();case.addCleanup(p.stop)
+
+
 class CoordinatorTests(unittest.TestCase):
     def setUp(self):
+        fake_launcher(self)
         class Control:
             stopped=False
             def __enter__(self):return self
@@ -249,6 +257,7 @@ class ParallelTaskPropagationTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory(); self.addCleanup(self.tmp.cleanup)
         root = Path(self.tmp.name)/'Tasks'
         p = patch.object(task_mod, 'tasks_root', lambda r=None: root); p.start(); self.addCleanup(p.stop)
+        fake_launcher(self)
 
     def test_parallel_executor_children_receive_task_env(self):
         from haejo import task as task_mod
