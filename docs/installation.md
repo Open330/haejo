@@ -304,9 +304,13 @@ Haejo로 작성했습니다.
 
 ### Building one versioned distribution
 
-Maintainers can build a Developer ID distribution from a clean committed tree:
+Maintainers can build a Developer ID distribution from a clean committed tree.
+The release environment leaves out the checkout-only dev group, and the app
+leaves out the base Python's `pip` and pyobjc-core's `PyObjCTest`
+(about 38 MB per install):
 
 ```sh
+uv sync --frozen --all-extras --no-dev
 python setup/build_distribution.py --output /private/tmp/Haejo.app \
   --identity 'DEVELOPER_ID_IDENTITY' --tag v1.0.0-rc.43 \
   --report /private/tmp/haejo-build-report.json
