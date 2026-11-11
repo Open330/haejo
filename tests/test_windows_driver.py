@@ -340,7 +340,7 @@ class WindowsDriverTests(unittest.TestCase):
         opener.props["runtime_id"] = None
         legacy = Element("ComboBox", "Fruit", automation_id="fruit", value="Apple", readonly=False,
                          patterns={"value"}, children=[opener])
-        popup = Element("List", "Fruit", children=[Element("ListItem", label, patterns={"selection_item"})
+        popup = Element("List", "Fruit", children=[Element("ListItem", label, patterns={"selection_item", "invoke"})
                                                    for label in ("Apple", "Grape")])
         backend = self.backend
 
@@ -356,6 +356,9 @@ class WindowsDriverTests(unittest.TestCase):
                     popup.kids = []
                 else:
                     pending.append(True)  # posted: the items show a moment later
+            elif element in items:  # picking an item selects it and closes the list
+                legacy.props["value"] = element.props["name"]
+                popup.kids = []
 
         def sleep(_seconds):
             if pending:
@@ -368,8 +371,20 @@ class WindowsDriverTests(unittest.TestCase):
         obs = self.observe()
         result = self.act(obs, "select_option", element_index=self.index(obs, identifier="fruit"), option_label="Grape")
         self.assertEqual("acted", result["type"], result)
-        self.assertEqual([("invoke", "Open"), ("select", "Grape"), ("invoke", "Open")], backend.calls)
-        self.assertEqual([], popup.kids)  # the list this step opened is closed again
+        # Picked as a person picks it: one Invoke selects and closes the list,
+        # so the button is not pressed a second time.
+        self.assertEqual([("invoke", "Open"), ("invoke", "Grape")], backend.calls)
+        self.assertEqual("uia_invoke_list_item", result.get("input_route"), result)
+        self.assertEqual([], popup.kids)
+        # An item without Invoke is selected, then the list closed with the button.
+        for item in items:
+            item.props["patterns"] = {"selection_item"}
+        backend.calls.clear()
+        obs = self.observe()
+        result = self.act(obs, "select_option", element_index=self.index(obs, identifier="fruit"), option_label="Apple")
+        self.assertEqual("acted", result["type"], result)
+        self.assertEqual([("invoke", "Open"), ("select", "Apple"), ("invoke", "Open")], backend.calls)
+        self.assertEqual([], popup.kids)
         # Without a single drop-down button of its own it is refused untouched.
         legacy.kids.append(Element("Button", "Other", patterns={"invoke"}))
         backend.calls.clear()

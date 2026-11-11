@@ -560,11 +560,17 @@ class WindowsDriver:
                 option, option_props = options[0]
                 if option_props.get("pid") != obs.pid or option_props.get("runtime_id") is None:
                     raise RuntimeError("option belongs to another process")
-                if "selection_item" not in (option_props.get("patterns") or set()):
+                option_patterns = option_props.get("patterns") or set()
+                # A popup list item is picked the way a person picks it: Invoke
+                # selects it and closes the list, so the app's selection events
+                # fire once. Select plus a second press of the button committed
+                # the selection twice and took another two seconds.
+                invoke_item = opener is not None and "invoke" in option_patterns
+                if not invoke_item and "selection_item" not in option_patterns:
                     raise RuntimeError("option cannot be selected")
                 _checkpoint(True)
                 try:
-                    backend.select(option)
+                    (backend.invoke if invoke_item else backend.select)(option)
                 except LookupError as exc:
                     raise RuntimeError("option cannot be selected") from exc
             finally:
@@ -573,5 +579,5 @@ class WindowsDriver:
                     backend.collapse(element)
                 elif self._list_shown(obs.pid):
                     backend.invoke(opener)
-            return {"input_route": "uia_selection_item"}
+            return {"input_route": "uia_invoke_list_item" if invoke_item else "uia_selection_item"}
         raise NotStarted(f"unsupported action {name!r} on Windows")
