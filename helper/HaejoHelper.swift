@@ -3595,6 +3595,14 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
                 "effect": "not_started", "detail": why]
     }
 
+    // Menu approval enforced here (stage 2): after the element is resolved,
+    // before anything is posted. A no-op unless the menu app reports a
+    // verified enforcing state.
+    if let refusal = NativeApproval.gate(name: name, action: action, pid: p,
+                                         observe: { NativeApproval.observe(name: name, action: action, element: element(), pid: p) }) {
+        return refusal
+    }
+
     if let origin=credentialOrigin {
         guard ["set_value","click","read"].contains(name), let selected=element(),
               credentialElementAllowed(selected,pid:p,origin:origin,write:name=="set_value") else {
@@ -4068,6 +4076,8 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
                     "reason_code": "menu_item_not_unique", "target_was_front": wasFront,
                     "detail": "메뉴를 유일하게 찾지 못했습니다"]
         }
+        // The item the helper resolved, before any preparation or press.
+        if let refusal = NativeApproval.gateMenuItem(item, pid: p) { return refusal }
         guard let enabled = attr(item, kAXEnabledAttribute as String),
               CFGetTypeID(enabled as CFTypeRef) == CFBooleanGetTypeID() else {
             return ["type": "error", "error": "menu_state_unavailable",
@@ -4635,6 +4645,7 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
                     "option_selected": false, "selections_made": 0,
                     "detail": "선택지를 여는 사이에 사용자가 중단했습니다"]
         }
+        if let refusal = NativeApproval.gateOption(matches[0], pid: p, openedHere: true) { return refusal }
         let pressed = AXUIElementPerformAction(matches[0], kAXPressAction as CFString)
         if pressed != .success, pressed != AXError(rawValue: -25204) {
             return refuseAfterPress("'\(want)' 를 고르지 못했습니다 (\(pressed.rawValue))")
@@ -4962,6 +4973,9 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
                     throw NativeWindowInputError.refused("pinned ComboBox option changed")
                 }
             }
+            if let refusal=NativeApproval.gateOption(chosen,pid:p,openedHere:false) {
+                return refusal.merging(["pin_kept":true,"menu_open":true]) {_,new in new}
+            }
             let result=prepareBackgroundWindow(obsID,target,chosen,p,deadline:deadline,
                 elementClicks:1,popup:popup,observedControl:el,selectionCheck:selectionCheck,finalTransition:{checkpoint,scope in
                     try confirmComboBoxSelectionTransition(el,menu,p,role:pending.role,
@@ -5003,6 +5017,7 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
         // never be described to the next observation as closed. The next
         // observation of this app drops it once it is really gone.
         spentMenu = (pid: p, control: el, menu: menu,popupWindowID:pending.popupWindowID,processStart:pending.processStart)
+        if let refusal = NativeApproval.gateOption(items[0], pid: p, openedHere: false) { return refusal }
         let pressed=AXUIElementPerformAction(items[0],kAXPressAction as CFString)
         if pressed != .success, pressed != AXError(rawValue: -25204) {
             // A backend error is not "no effect". The press was ALREADY
