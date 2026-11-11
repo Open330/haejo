@@ -89,15 +89,38 @@ class DistributionInventoryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder);python=root/'.venv/bin/python';python.parent.mkdir(parents=True);python.touch()
             self.package(root/'.venv')
-            run=mock.Mock(return_value=subprocess.CompletedProcess([],0,'',''))
+            exported=subprocess.CompletedProcess([],0,'playwright==1.63.0\n','')
+            run=mock.Mock(side_effect=lambda args,**kw: exported if args[:2]==['uv','export'] else subprocess.CompletedProcess([],0,'',''))
             self.assertEqual({'playwright':'1.63.0'},distribution.require_release_environment(root,run))
-            args,kwargs=run.call_args
-            for flag in ('--frozen','--all-extras','--check','--inexact','--offline'):
+            self.assertEqual(['uv','export','--frozen','--all-extras','--no-dev'],run.call_args_list[-1].args[0][:5])
+            args,kwargs=run.call_args_list[1].args,run.call_args_list[1].kwargs
+            for flag in ('--frozen','--all-extras','--no-dev','--check','--inexact','--offline'):
                 self.assertIn(flag,args[0])
             self.assertEqual(str((root/'.venv').resolve()),kwargs['env']['UV_PROJECT_ENVIRONMENT'])
             self.assertEqual(root,kwargs['cwd'])
             self.assertEqual(['uv','lock','--check','--offline'],run.call_args_list[0].args[0])
             self.assertNotIn('UV_FROZEN',kwargs['env'])
+
+    def test_checkout_only_dev_packages_cannot_ship(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);python=root/'.venv/bin/python';python.parent.mkdir(parents=True);python.touch()
+            self.package(root/'.venv'); self.package(root/'.venv','tiktoken','0.14.0')
+            exported=subprocess.CompletedProcess([],0,'playwright==1.63.0\n','')
+            run=mock.Mock(side_effect=lambda args,**kw: exported if args[:2]==['uv','export'] else subprocess.CompletedProcess([],0,'',''))
+            with self.assertRaisesRegex(RuntimeError,'checkout-only packages \\(tiktoken\\).*--no-dev'):
+                distribution.require_release_environment(root,run)
+
+    def test_unshipped_installer_and_test_package_are_removed(self):
+        import build_standalone_preview as preview
+        with tempfile.TemporaryDirectory() as folder:
+            venv=Path(folder); site=venv/'lib/python3.14/site-packages'
+            for name in ('pip','pip-25.0.dist-info','PyObjCTest','objc','playwright'):
+                (site/name).mkdir(parents=True)
+            (venv/'bin').mkdir(); (venv/'bin/pip3').write_text(''); (venv/'bin/python').write_text('')
+            removed=preview.remove_unshipped(venv)
+            self.assertEqual(['PyObjCTest','pip','pip-25.0.dist-info','bin/pip3'],removed)
+            self.assertTrue((site/'objc').exists()); self.assertTrue((site/'playwright').exists())
+            self.assertTrue((venv/'bin/python').exists())
 
     def test_missing_extras_fail_before_any_copy_or_signing(self):
         with mock.patch.object(distribution,'committed_sources',return_value={}), \

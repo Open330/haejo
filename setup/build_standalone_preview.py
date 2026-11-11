@@ -158,6 +158,25 @@ def sign(path, identity, identifier=None, req=None):
     run([*argv,str(path)])
 
 
+# Present in the copied runtime but never used by Haejo: the base Python's own
+# installer (the bundled runtime installs nothing) and pyobjc-core's test
+# package. Together ~28 MB of every install.
+UNSHIPPED = ('pip', 'PyObjCTest')
+
+
+def remove_unshipped(venv):
+    removed = []
+    for site in Path(venv).glob('lib/python*/site-packages'):
+        for path in sorted(site.iterdir()):
+            name = path.name
+            if name in UNSHIPPED or (name.startswith('pip-') and name.endswith('.dist-info')):
+                shutil.rmtree(path) if path.is_dir() and not path.is_symlink() else path.unlink()
+                removed.append(name)
+    for script in sorted(Path(venv).glob('bin/pip*')):
+        script.unlink(); removed.append('bin/' + script.name)
+    return removed
+
+
 def build(output, identity):
     if platform.system()!='Darwin':raise RuntimeError('macOS required')
     began=time.monotonic()
@@ -193,6 +212,7 @@ def build(output, identity):
         shutil.copytree(ROOT/'haejo',site/'haejo',ignore=ignored)
         report['distribution_metadata_wheel'] = refresh_distribution_metadata(runtime, Path(folder))
         report['python_metadata_normalized'] = normalize_python_metadata(runtime, base)
+        report['unshipped_removed'] = remove_unshipped(runtime/'.venv')
         # A dylib's install ID is build metadata too; preserve relocatable loads.
         for library in (runtime/'.venv/lib').glob('libpython*.dylib'):
             run(['install_name_tool', '-id', '@rpath/'+library.name, str(library)])
