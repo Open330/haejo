@@ -3,7 +3,7 @@
 Notarization, installation and publication are separate steps. No credentials
 are read; pass an existing Developer ID signing identity explicitly.
 
-Prepare .venv with `uv sync --frozen --all-extras`; uv takes the Python version
+Prepare .venv with `uv sync --frozen --all-extras --no-dev`; uv takes the Python version
 from .python-version, and the build refuses an environment on another version.
 Its locked dependencies are checked without modifying it. The previous installed app is the default
 baseline; --baseline also accepts a prior SOURCE-MANIFEST.json containing the
@@ -81,7 +81,7 @@ def require_release_environment(root=ROOT,run=subprocess.run):
     """
     root=Path(root)
     if not (root/'.venv/bin/python').is_file():
-        raise RuntimeError('missing release environment; run uv sync --frozen --all-extras')
+        raise RuntimeError('missing release environment; run uv sync --frozen --all-extras --no-dev')
     require_release_python(root)
     environment=dict(os.environ,UV_PROJECT_ENVIRONMENT=str((root/'.venv').resolve()))
     environment.pop('UV_FROZEN',None)
@@ -96,8 +96,23 @@ def require_release_environment(root=ROOT,run=subprocess.run):
                cwd=root,env=environment,capture_output=True,text=True,timeout=120)
     if result.returncode:
         raise RuntimeError('release environment is missing or mismatches locked dependencies/extras; '
-                           'run uv sync --frozen --all-extras before building')
-    return distribution_packages(root/'.venv')
+                           'run uv sync --frozen --all-extras --no-dev before building')
+    packages=distribution_packages(root/'.venv')
+    # The dev group (tiktoken and its HTTP/regex stack) is checkout tooling; the
+    # app never imports it, and shipping it cost ~10 MB per install.
+    exported=run(['uv','export','--frozen','--all-extras','--no-dev','--no-hashes',
+                  '--format','requirements-txt','--offline'],cwd=root,env=environment,
+                 capture_output=True,text=True,timeout=120)
+    allowed={re.sub(r'[-_.]+','-',re.split(r'[=<>;\[ ]',line.strip(),maxsplit=1)[0]).lower()
+             for line in (exported.stdout or '').splitlines()
+             if line.strip() and not line.lstrip().startswith(('#','-e','.'))}
+    if exported.returncode or not allowed:
+        raise RuntimeError('release dependency list could not be read from uv.lock (uv export --no-dev)')
+    extra=sorted(name for name in packages if name not in allowed and name!='haejo-runtime')
+    if extra:
+        raise RuntimeError('release environment includes checkout-only packages ('+', '.join(extra)+
+                           '); run uv sync --frozen --all-extras --no-dev before building')
+    return packages
 
 
 def require_release_python(root,run=subprocess.run):
@@ -114,7 +129,7 @@ def require_release_python(root,run=subprocess.run):
              capture_output=True,text=True,check=True).stdout.strip()
     if have!='.'.join(want.split('.')[:2]):
         raise RuntimeError(f'release environment uses Python {have}; this release is built with Python {want} '
-                           f'(.python-version); run uv sync --frozen --all-extras')
+                           f'(.python-version); run uv sync --frozen --all-extras --no-dev')
     return have
 
 
