@@ -15,7 +15,7 @@ import ApplicationServices
 import AppKit
 
 enum NativeDecision: Equatable {
-    case allowed, denied, timeout, unavailable, targetChanged
+    case allowed, denied, timeout, unavailable, targetChanged, cancelled
 }
 
 enum NativeApproval {
@@ -23,6 +23,18 @@ enum NativeApproval {
     nonisolated(unsafe) static var enforcing: () -> Bool = { false }
     /// Asks the menu app (authenticated channel) for this input; blocking.
     nonisolated(unsafe) static var decide: (_ input: ObservedInput, _ cls: ApprovalClass, _ pid: pid_t) -> NativeDecision = { _, _, _ in .unavailable }
+    /// Process, signer and front window, compared before and after the card.
+    nonisolated(unsafe) static var context: (pid_t) -> String = { _ in "" }
+    /// The caller of this request has gone or pressed stop (set per request
+    /// by the connection that carries it).
+    nonisolated(unsafe) static var callerGone: () -> Bool = { false }
+    nonisolated(unsafe) static var stopPressed: () -> Bool = { false }
+    /// Told how long a card held the request, so request deadlines move.
+    nonisolated(unsafe) static var onWaited: (Double) -> Void = { _ in }
+    /// Seconds a card held the current act; `act` adds them to its input
+    /// deadline (the wait is not input time).
+    nonisolated(unsafe) static var waited: Double = 0
+    static func takeWaited() -> Double { defer { waited = 0 }; return waited }
     /// Haejo's own apps: their approval and settings UI is never pressed
     /// through Haejo while enforcing.
     nonisolated(unsafe) static var bundleOf: (pid_t) -> String? = { NSRunningApplication(processIdentifier: $0)?.bundleIdentifier }
@@ -47,7 +59,7 @@ enum NativeApproval {
         // popup option at the item about to be pressed (`gateOption`): one
         // decision per input, on the element itself.
         if ["menu", "option"].contains(kind(name: name, action: action)) { return nil }
-        return decided(observe(), pid: pid)
+        return decided(observe(), pid: pid, reobserve: observe)
     }
 
     /// The resolved menu item, before anything is pressed or prepared.
@@ -57,7 +69,12 @@ enum NativeApproval {
         input.role = "AXMenuItem"
         input.labels = labels(item)
         input.focusIsText = focusIsText(pid)
-        return decided(input, pid: pid)
+        input.identity = identity(item)
+        input.window = menuWindows(pid)
+        return decided(input, pid: pid) {
+            var again = input; again.labels = labels(item); again.focusIsText = focusIsText(pid)
+            again.identity = identity(item); again.window = menuWindows(pid); return again
+        }
     }
 
     /// A popup option about to be pressed (AX press or pointer click), read
@@ -71,7 +88,12 @@ enum NativeApproval {
         var input = ObservedInput(kind: "press")
         input.role = "AXMenuItem"
         input.labels = labels(item)
-        guard var refusal = decided(input, pid: pid) else { return nil }
+        input.identity = identity(item)
+        input.window = windowIdentity(item)
+        guard var refusal = decided(input, pid: pid, reobserve: {
+            var again = input; again.labels = labels(item); again.identity = identity(item)
+            again.window = windowIdentity(item); return again
+        }) else { return nil }
         refusal["menu_opened_by_this_action"] = openedHere
         refusal["menu_left_open"] = true
         refusal["option_selected"] = false
@@ -80,15 +102,27 @@ enum NativeApproval {
         return refusal
     }
 
-    static func decided(_ input: ObservedInput, pid: pid_t) -> [String: Any]? {
+    /// Classify; ask when it matters; after "allowed", read the input again
+    /// (S6): the card answered for what it showed, so a different element,
+    /// label, process or front window is not dispatched.
+    static func decided(_ input: ObservedInput, pid: pid_t, reobserve: () -> ObservedInput) -> [String: Any]? {
         let cls = ApprovalClassifier.classify(input)
         guard cls != .none else { return nil }
-        switch decide(input, cls, pid) {
-        case .allowed: return nil
+        let before = context(pid)
+        let asked = ProcessInfo.processInfo.systemUptime
+        let decision = decide(input, cls, pid)
+        let elapsed = ProcessInfo.processInfo.systemUptime - asked
+        waited += elapsed
+        onWaited(elapsed)
+        switch decision {
+        case .allowed:
+            if callerGone() { return refusal(stopPressed() ? "aborted_by_user" : "client_disconnected") }
+            return reobserve() == input && context(pid) == before ? nil : refusal("approval_target_changed")
         case .denied: return refusal("approval_denied")
         case .timeout: return refusal("approval_timeout")
         case .unavailable: return refusal("approval_unavailable")
         case .targetChanged: return refusal("approval_target_changed")
+        case .cancelled: return refusal(stopPressed() ? "aborted_by_user" : "client_disconnected")
         }
     }
 
@@ -144,6 +178,38 @@ enum NativeApproval {
         }
         return out
     }
+    static func size(_ el: AXUIElement) -> CGSize? {
+        var value: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(el, kAXSizeAttribute as CFString, &value) == .success,
+              let v = value, CFGetTypeID(v) == AXValueGetTypeID() else { return nil }
+        var size = CGSize.zero
+        return AXValueGetValue(v as! AXValue, .cgSize, &size) ? size : nil
+    }
+    /// This AX element (its hash is stable for the same element) and where it is.
+    static func identity(_ el: AXUIElement) -> String {
+        let p = position(el) ?? CGPoint(x: -1, y: -1), z = size(el) ?? .zero
+        return "\(CFHash(el))@\(Int(p.x)),\(Int(p.y)),\(Int(z.width)),\(Int(z.height))"
+    }
+    /// The element's own window: identity and title (the card shows the title).
+    static func windowIdentity(_ el: AXUIElement) -> String {
+        guard let window = element(el, kAXWindowAttribute as String) else { return "" }
+        return identity(window) + "\u{1f}" + (string(window, kAXTitleAttribute as String) ?? "")
+    }
+    /// A menu acts on the app's focused or main window, not on a window of
+    /// its own: both are recorded, with the focused window's title first.
+    static func menuWindows(_ pid: pid_t) -> String {
+        let app = AXUIElementCreateApplication(pid)
+        func one(_ name: String) -> (String, String) {
+            guard let w = element(app, name) else { return ("", "") }
+            return (identity(w), string(w, kAXTitleAttribute as String) ?? "")
+        }
+        let focused = one(kAXFocusedWindowAttribute as String), main = one(kAXMainWindowAttribute as String)
+        return focused.0 + "|" + main.0 + "\u{1f}" + (focused.1.isEmpty ? main.1 : focused.1)
+    }
+    static func windowTitle(fromIdentity window: String) -> String {
+        window.split(separator: "\u{1f}", omittingEmptySubsequences: false).dropFirst().joined()
+    }
+
     static func focusIsText(_ pid: pid_t) -> Bool {
         guard let focused = element(AXUIElementCreateApplication(pid), kAXFocusedUIElementAttribute as String) else { return false }
         return ["AXTextField", "AXTextArea", "AXComboBox", "AXSearchField"].contains(string(focused, kAXRoleAttribute as String) ?? "")
@@ -187,6 +253,8 @@ enum NativeApproval {
             input.subrole = string(hit, kAXSubroleAttribute as String) ?? ""
             input.labels = labels(hit)
             input.pressable = pressable(hit)
+            input.identity = identity(hit)
+            input.window = windowIdentity(hit)
             return input
         }
         if name == "click_point" { return input }   // no element at the point: nothing to classify
@@ -194,6 +262,8 @@ enum NativeApproval {
         guard let el = focusedTarget ? Self.element(app, kAXFocusedUIElementAttribute as String) : element else { return input }
         input.role = string(el, kAXRoleAttribute as String) ?? ""
         input.subrole = string(el, kAXSubroleAttribute as String) ?? ""
+        input.identity = identity(el)
+        input.window = windowIdentity(el)
         if input.kind == "press" {
             input.labels = labels(el)
             input.pressable = pressable(el)

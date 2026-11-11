@@ -18,7 +18,7 @@ enum ApprovalClass: String {
 }
 
 /// What the helper observed about the input it is about to post.
-struct ObservedInput {
+struct ObservedInput: Equatable {
     /// Normalized input kind: "press" (click, double click, AXPress/AXConfirm,
     /// option/row press), "text" (set_value, type_text, paste), "return"
     /// (Return/Enter key or a newline in text), "key" (any other key), "menu"
@@ -40,6 +40,10 @@ struct ObservedInput {
     /// For "menu": the keyboard focus is in editable text (Edit > Delete then
     /// deletes text, not an item).
     var focusIsText: Bool = false
+    /// Not used to classify: which element and window this is, so a card's
+    /// answer is not spent on a different element with the same label.
+    var identity: String = ""
+    var window: String = ""
 }
 
 enum ApprovalClassifier {

@@ -35,6 +35,25 @@ for (decision, error) in [(NativeDecision.timeout, "approval_timeout"), (.unavai
 NativeApproval.decide = { _, _, _ in .allowed }
 check(NativeApproval.gate(name: "click", action: [:], pid: 1, observe: send) == nil, "allowed dispatches")
 
+// The card's wait is reported so act can move its input deadline.
+NativeApproval.decide = { _, _, _ in usleep(200_000); return .allowed }
+_ = NativeApproval.takeWaited()
+var moved = 0.0
+NativeApproval.onWaited = { moved += $0 }
+check(NativeApproval.gate(name: "click", action: [:], pid: 1, observe: send) == nil, "allowed after wait")
+check(moved >= 0.2 && NativeApproval.takeWaited() >= 0.2 && NativeApproval.takeWaited() == 0, "wait measured once")
+// Allowed, but the caller left meanwhile: not dispatched.
+NativeApproval.callerGone = { true }
+check(NativeApproval.gate(name: "click", action: [:], pid: 1, observe: send)?["error"] as? String == "client_disconnected", "caller gone")
+NativeApproval.callerGone = { false }
+// Allowed, but the element is another one with the same label: not dispatched.
+var flip = 0
+let moving = { () -> ObservedInput in flip += 1; var i = ObservedInput(kind: "press"); i.role = "AXButton"; i.labels = ["Send"]; i.identity = "e\(flip)"; return i }
+check(NativeApproval.gate(name: "click", action: [:], pid: 1, observe: moving)?["error"] as? String == "approval_target_changed", "other element")
+NativeApproval.decide = { _, _, _ in .cancelled }
+check(NativeApproval.gate(name: "click", action: [:], pid: 1, observe: send)?["error"] as? String == "client_disconnected", "cancelled decision")
+NativeApproval.decide = { _, _, _ in .allowed }
+
 // Haejo's own UI is refused even for an unclassified press.
 NativeApproval.bundleOf = { _ in "ai.callabo.haejo.setup.standalone.preview" }
 check(NativeApproval.gate(name: "click", action: [:], pid: 1, observe: save)?["error"] as? String == "haejo_ui_input_refused", "self UI")
