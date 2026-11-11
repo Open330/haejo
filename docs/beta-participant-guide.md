@@ -8,8 +8,8 @@
 ## 시작 전
 
 담당자가 제공한 RC의 태그·DMG SHA256을 확인하고 기록합니다.
-현재 후보는 `v1.0.0-rc.39`(DMG SHA256 `b596237c409c97230b3788e0b16c2b6ddaadde02f18ec453e17057795b572211`)이며 정식 안정 버전이 아닙니다. Tacto에서 Haejo로 이름을 바꾼 첫 릴리스입니다. 공증·보안 검사와 세 Mac 동일 번들 설치·데이터 이전·권한 재허용을 확인했고, 회귀 3,583건(제외 32건)에 실패·오류가 없습니다.
-[rc.39 검증 결과](https://github.com/Open330/haejo/releases/tag/v1.0.0-rc.39)의 VALIDATION.json을 확인하세요.
+현재 후보는 `v1.0.0-rc.42`(DMG SHA256 `f3b323bb07f1f62137a4e784c3e4cabbeea21f879a4433475c7c37c5b4ed708e`)이며 정식 안정 버전이 아닙니다. 공증·보안 검사와 세 Mac 동일 번들 설치·데이터 보존을 확인했고, 회귀 3,603건(제외 33건)에 실패·오류가 없습니다.
+[rc.42 검증 결과](https://github.com/Open330/haejo/releases/tag/v1.0.0-rc.42)의 VALIDATION.json을 확인하세요.
 검증 중 앱이 바뀌면 담당자에게 알리고 새 후보로 결과를 구분합니다.
 
 ### 이전 rc.9의 검증 기록
