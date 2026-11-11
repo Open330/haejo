@@ -104,8 +104,9 @@ class TemporaryMenuPreparationScopeTests(unittest.TestCase):
 
     def test_prepared_deadline_is_bounded_and_respects_the_caller(self):
         case = menu_case()
-        self.assertEqual(1, case.count('menuDeadline = min(clickDeadline ?? .infinity, ProcessInfo.processInfo.systemUptime + 10)'))
-        before = case[:case.index('menuDeadline = min(clickDeadline')]
+        # The caller's deadline, moved by any menu-approval card wait.
+        self.assertEqual(1, case.count('menuDeadline = min(callerDeadline, ProcessInfo.processInfo.systemUptime + 10)'))
+        before = case[:case.index('menuDeadline = min(callerDeadline')]
         self.assertNotIn('menuDeadline = ', before.replace('var menuDeadline = deadline', ''))
 
     def test_toolbar_titlebar_is_only_for_the_temporary_menu_preparation(self):

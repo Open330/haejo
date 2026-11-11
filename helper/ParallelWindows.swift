@@ -196,6 +196,10 @@ final class ParallelSession {
             return beginForeground(target,deadline:deadline,cancelled:cancelled)
         }
         if cancelled() { return parallelRefusal(stopCode()) }
+        // A native approval card waits inside handle(); it ends when this
+        // request's caller goes away or stop is pressed.
+        NativeApproval.callerGone=cancelled
+        defer { NativeApproval.callerGone={ false } }
         var reply=handle(msg)
         let ms=Int((ProcessInfo.processInfo.systemUptime-began)*1000)
         if ms>20 { reply["coordination_elapsed_ms"]=ms }

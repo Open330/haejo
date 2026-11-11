@@ -92,6 +92,9 @@ final class ApprovalCenter {
             if client < 0 { if errno == EINTR { continue }; return }
             var uid = uid_t(0), gid = gid_t(0)
             guard getpeereid(client,&uid,&gid) == 0, uid == getuid() else { close(client); continue }
+            // A caller that leaves before the answer must not take this app down.
+            var on: Int32 = 1
+            setsockopt(client, SOL_SOCKET, SO_NOSIGPIPE, &on, socklen_t(MemoryLayout<Int32>.size))
             DispatchQueue.global(qos:.userInitiated).async { [weak self] in self?.serve(client) }
         }
     }
@@ -107,7 +110,10 @@ final class ApprovalCenter {
         }
         guard let line = data.split(separator:10).first,
               let message = try? JSONSerialization.jsonObject(with:Data(line)) as? [String:Any] else { return }
-        let reply = handle(message)
+        // Only the signed helper may ask about native input; checked only for
+        // that op, from the connection itself.
+        let reply = handle(message, helperPeer: message["op"] as? String == "native_check" && Self.peerIsHelper(client),
+                           callerGone: { Self.hungUp(client) })
         guard var out = try? JSONSerialization.data(withJSONObject:reply) else { return }
         out.append(10)
         out.withUnsafeBytes { raw in _ = write(client, raw.baseAddress, raw.count) }
@@ -115,8 +121,9 @@ final class ApprovalCenter {
 
     // MARK: protocol
 
-    func handle(_ message: [String:Any]) -> [String:Any] {
+    func handle(_ message: [String:Any], helperPeer: Bool = false, callerGone: @escaping () -> Bool = { false }) -> [String:Any] {
         switch message["op"] as? String {
+        case "native_check": return helperPeer ? nativeCheck(message, callerGone: callerGone) : ["status":"refused"]
         case "plan": return plan(message)
         case "resume": return resume(message)
         case "claim": return claim(message)
@@ -135,6 +142,7 @@ final class ApprovalCenter {
     /// Payments and credential entry are approved one at a time, never by a broader grant.
     static func sensitive(_ item: [String:Any]) -> Bool {
         let effects = item["effects"] as? [String] ?? []
+        if ["financial", "credential"].contains(item["class"] as? String ?? "") { return true }
         return effects.contains("financial") || effects.contains("credential")
     }
     static func financial(_ item: [String:Any]) -> Bool { (item["effects"] as? [String] ?? []).contains("financial") }
@@ -295,6 +303,87 @@ final class ApprovalCenter {
         return state.sync { ["status": entry.status == "pending" ? "timeout" : entry.status, "scope":entry.scope] }
     }
 
+    // MARK: native input (stage 2)
+
+    var nativeWait: TimeInterval = 600     // internal for tests
+    static let classWords = ["transmit":"전송", "financial":"결제·송금", "delete":"삭제", "credential":"자격 증명 입력"]
+
+    /// The helper read this input and is holding it until the answer. The
+    /// card is built from what the helper read. Until the helper also reads
+    /// the recipient, an answer covers this one input only.
+    /// The helper closed its end (Esc, or its own caller left).
+    static func hungUp(_ fd: Int32) -> Bool {
+        var channel = pollfd(fd:fd, events:Int16(POLLIN), revents:0)
+        guard poll(&channel, 1, 0) > 0 else { return false }
+        if channel.revents & Int16(POLLHUP|POLLERR|POLLNVAL) != 0 { return true }
+        var byte: UInt8 = 0
+        return recv(fd, &byte, 1, MSG_PEEK|MSG_DONTWAIT) == 0
+    }
+
+    private func nativeCheck(_ message: [String:Any], callerGone: @escaping () -> Bool) -> [String:Any] {
+        guard let item = message["item"] as? [String:Any], let cls = item["class"] as? String,
+              Self.classWords[cls] != nil else { return ["status":"invalid"] }
+        var described = item
+        described["describe"] = Self.nativeDescribe(item)
+        let request: [String:Any] = ["target": item["target"] as? String ?? "", "team": item["team"] as? String ?? "",
+                                     "window": item["window"] as? String ?? ""]
+        let entry = Request(id:"nt_" + UUID().uuidString.replacingOccurrences(of:"-", with:"").prefix(12).lowercased(),
+                            request:request, items:[described])
+        state.sync { requests[entry.id] = entry }
+        present(entry, deadline:nativeWait, offerBroader:false)
+        // Wait in slices: a request the helper has dropped ends here and its
+        // card closes, so a late "allow" cannot reach an input nobody waits for.
+        let until = Date().addingTimeInterval(nativeWait)
+        while entry.decided.wait(timeout:.now() + 0.25) == .timedOut {
+            if callerGone() { state.sync { if entry.status == "pending" { entry.status = "cancelled" } }; break }
+            if Date() >= until { state.sync { if entry.status == "pending" { entry.status = "timeout" } }; break }
+        }
+        return state.sync {
+            let status = entry.status == "pending" ? "timeout" : entry.status
+            requests[entry.id] = nil
+            return ["status": status]
+        }
+    }
+
+    static func nativeDescribe(_ item: [String:Any]) -> String {
+        let word = classWords[item["class"] as? String ?? ""] ?? "확인이 필요한 입력"
+        let label = (item["labels"] as? [String])?.first(where: { !$0.isEmpty })
+            ?? (item["default_button"] as? [String])?.first(where: { !$0.isEmpty }) ?? ""
+        let app = item["app_name"] as? String ?? ""
+        var line = word + (label.isEmpty ? "" : ": '\(label)'")
+        if !app.isEmpty { line += " (\(app))" }
+        if let window = item["window"] as? String, !window.isEmpty { line += "\n창: \(window)" }
+        return line
+    }
+
+    /// The connecting process is Haejo Helper signed by this app's own team.
+    static func peerIsHelper(_ fd: Int32) -> Bool {
+        guard let team = ownTeam() else { return false }
+        var token = audit_token_t()
+        var length = socklen_t(MemoryLayout<audit_token_t>.size)
+        guard getsockopt(fd, SOL_LOCAL, LOCAL_PEERTOKEN, &token, &length) == 0 else { return false }
+        let data = withUnsafeBytes(of:&token) { Data($0) } as CFData
+        var code: SecCode?
+        guard SecCodeCopyGuestWithAttributes(nil, [kSecGuestAttributeAudit: data] as CFDictionary, [], &code) == errSecSuccess,
+              let code else { return false }
+        var requirement: SecRequirement?
+        let text = "identifier \"ai.callabo.haejo.helper\" and anchor apple generic and certificate leaf[subject.OU] = \"\(team)\""
+        guard SecRequirementCreateWithString(text as CFString, [], &requirement) == errSecSuccess, let requirement else { return false }
+        return SecCodeCheckValidity(code, [], requirement) == errSecSuccess
+    }
+
+    static func ownTeam() -> String? {
+        var own: SecCode?
+        guard SecCodeCopySelf([], &own) == errSecSuccess, let own else { return nil }
+        var binary: SecStaticCode?
+        guard SecCodeCopyStaticCode(own, [], &binary) == errSecSuccess, let binary else { return nil }
+        var raw: CFDictionary?
+        guard SecCodeCopySigningInformation(binary, SecCSFlags(rawValue:kSecCSSigningInformation), &raw) == errSecSuccess,
+              let info = raw as? [String:Any], let team = info[kSecCodeInfoTeamIdentifier as String] as? String,
+              team.range(of:"^[A-Z0-9]{10}$", options:.regularExpression) != nil else { return nil }
+        return team
+    }
+
     // MARK: decisions
 
     func decide(_ entry: Request, _ choice: Choice) {
@@ -379,9 +468,14 @@ final class ApprovalCenter {
         alert.buttons.first?.keyEquivalent = ""
         let timer = Timer(timeInterval:deadline, repeats:false) { _ in NSApp.abortModal() }
         RunLoop.main.add(timer, forMode:.modalPanel)
+        // A request ended elsewhere (cancelled by its caller) closes its card.
+        let watch = Timer(timeInterval:0.25, repeats:true) { [weak self] _ in
+            if self?.state.sync(execute:{ entry.status != "pending" }) == true { NSApp.abortModal() }
+        }
+        RunLoop.main.add(watch, forMode:.modalPanel)
         NSApp.activate(ignoringOtherApps:true)
         let response = alert.runModal()
-        timer.invalidate()
+        timer.invalidate(); watch.invalidate()
         let index = response.rawValue - NSApplication.ModalResponse.alertFirstButtonReturn.rawValue
         if index >= 0 && index < choices.count { decide(entry, choices[index]) }
         else { state.sync { if entry.status == "pending" { entry.status = entry.id.hasPrefix("rt_") ? "timeout" : "expired" } }; entry.decided.signal() }

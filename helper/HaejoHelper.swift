@@ -35,6 +35,14 @@ let permissionHolderName = Bundle.main.object(forInfoDictionaryKey: "CFBundleDis
 ///     log stream --predicate 'subsystem == "ai.callabo.haejo"'
 ///     log show --last 5m --predicate 'subsystem == "ai.callabo.haejo"'
 let rendezvousLog = Logger(subsystem: "ai.callabo.haejo", category: "rendezvous")
+// Stage-2 menu approval: the gate asks the signed menu app over an
+// authenticated channel. Inert while the gate is not enforcing.
+NativeApproval.decide = NativeApprovalClient.check
+NativeApproval.context = NativeApprovalClient.context
+NativeApproval.stopPressed = { abortState.isStopped }
+NativeApproval.onWaited = { waited in
+    if let d = ParallelWindowState.shared.requestDeadline { ParallelWindowState.shared.requestDeadline = d + waited }
+}
 
 @Sendable func note(_ message: String) {
     rendezvousLog.notice("\(message, privacy: .public)")
@@ -3501,7 +3509,12 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
     if ["click_point", "drag", "hover", "vroid_drag", "vroid_focus"].contains(action["name"] as? String ?? ""), !coordinateAuthorized {
         return ["type":"error", "error":"coordinate_authorization_required", "effect":"not_started"]
     }
-    let deadline = min(clickDeadline ?? .infinity, ProcessInfo.processInfo.systemUptime + 5)
+    var deadline = min(clickDeadline ?? .infinity, ProcessInfo.processInfo.systemUptime + 5)
+    // The caller's own deadline, moved by any time a menu-approval card held
+    // this act (the wait is not input time).
+    var callerDeadline = clickDeadline ?? .infinity
+    _ = NativeApproval.takeWaited()
+    func waitedForCard() { let w = NativeApproval.takeWaited(); deadline += w; callerDeadline += w }
     // Every refusal here precedes dispatch, and says so: the Python side reads
     // `effect` to decide whether re-running or undoing is even allowed, and an
     // error without it is read as "may have happened" (peer review).
@@ -3602,6 +3615,8 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
                                          observe: { NativeApproval.observe(name: name, action: action, element: element(), pid: p) }) {
         return refusal
     }
+    // A card's wait is not input time.
+    waitedForCard()
 
     if let origin=credentialOrigin {
         guard ["set_value","click","read"].contains(name), let selected=element(),
@@ -3956,7 +3971,7 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
             defer { withExtendedLifetime(popupLease) {} }
 
             var picked = act(obsID, target, ["name": "select_option", "element_index": index, "option_label": v],
-                             expect: expect, clickDeadline: clickDeadline, coordinateAuthorized: coordinateAuthorized,
+                             expect: expect, clickDeadline: callerDeadline.isFinite ? callerDeadline : nil, coordinateAuthorized: coordinateAuthorized,
                              savePanelToken: savePanelToken, windowInputAuthorized: windowInputAuthorized,
                              submitAuthorized: submitAuthorized)
             picked["routed_from"] = "set_value"
@@ -4078,6 +4093,7 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
         }
         // The item the helper resolved, before any preparation or press.
         if let refusal = NativeApproval.gateMenuItem(item, pid: p) { return refusal }
+        waitedForCard()
         guard let enabled = attr(item, kAXEnabledAttribute as String),
               CFGetTypeID(enabled as CFTypeRef) == CFBooleanGetTypeID() else {
             return ["type": "error", "error": "menu_state_unavailable",
@@ -4122,7 +4138,7 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
                 return out
             }
             guard !wasFront else { return disabled(nil) }
-            menuDeadline = min(clickDeadline ?? .infinity, ProcessInfo.processInfo.systemUptime + 10)
+            menuDeadline = min(callerDeadline, ProcessInfo.processInfo.systemUptime + 10)
             switch beginTemporaryMenuPreparation(obsID, target, p, deadline: menuDeadline) {
             case .skipped(let record):
                 return disabled(record)
@@ -4646,6 +4662,7 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
                     "detail": "선택지를 여는 사이에 사용자가 중단했습니다"]
         }
         if let refusal = NativeApproval.gateOption(matches[0], pid: p, openedHere: true) { return refusal }
+        waitedForCard()
         let pressed = AXUIElementPerformAction(matches[0], kAXPressAction as CFString)
         if pressed != .success, pressed != AXError(rawValue: -25204) {
             return refuseAfterPress("'\(want)' 를 고르지 못했습니다 (\(pressed.rawValue))")
@@ -4976,6 +4993,7 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
             if let refusal=NativeApproval.gateOption(chosen,pid:p,openedHere:false) {
                 return refusal.merging(["pin_kept":true,"menu_open":true]) {_,new in new}
             }
+            waitedForCard()
             let result=prepareBackgroundWindow(obsID,target,chosen,p,deadline:deadline,
                 elementClicks:1,popup:popup,observedControl:el,selectionCheck:selectionCheck,finalTransition:{checkpoint,scope in
                     try confirmComboBoxSelectionTransition(el,menu,p,role:pending.role,
@@ -5018,6 +5036,7 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
         // observation of this app drops it once it is really gone.
         spentMenu = (pid: p, control: el, menu: menu,popupWindowID:pending.popupWindowID,processStart:pending.processStart)
         if let refusal = NativeApproval.gateOption(items[0], pid: p, openedHere: false) { return refusal }
+        waitedForCard()
         let pressed=AXUIElementPerformAction(items[0],kAXPressAction as CFString)
         if pressed != .success, pressed != AXError(rawValue: -25204) {
             // A backend error is not "no effect". The press was ALREADY
