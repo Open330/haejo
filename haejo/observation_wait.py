@@ -45,3 +45,17 @@ def match_in_pages(observe, target, predicate, first, *, deadline, document_toke
             return page, pages
         current = page
     return None, pages
+
+
+def poll_gaps(poll_ms):
+    """Seconds to wait between readiness checks: 25 ms first, doubling up to poll_ms.
+
+    Most UI effects land within tens of milliseconds; a fixed 250 ms gap made
+    every step that missed its first check pay a quarter second. Long waits
+    still settle at poll_ms, so a 30-second wait does not observe any faster.
+    """
+    gap = min(0.025, poll_ms / 1000)
+    while True:
+        yield gap
+        gap = min(gap * 2, poll_ms / 1000)
+

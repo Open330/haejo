@@ -147,6 +147,8 @@ else
   dirs=("$HOME/.claude/skills" "$HOME/.codex/skills")
   [ -n "${CLAUDE_CONFIG_DIR:-}" ] && dirs+=("$CLAUDE_CONFIG_DIR/skills")
   [ -n "${CODEX_HOME:-}" ] && dirs+=("$CODEX_HOME/skills")
+  # The shared skills folder other agents read, when this Mac has one.
+  [ -d "$HOME/.agents/skills" ] && dirs+=("$HOME/.agents/skills")
   for d in "$HOME/Library/Application Support/asx/profiles"/*/skills; do
     [ -d "$d" ] && dirs+=("$d")
   done

@@ -90,6 +90,10 @@ func agentConnectionLinks(root: URL, home: URL, environment: [String: String]) -
     func value(_ key: String) -> String? { environment[key].flatMap { $0.isEmpty ? nil : $0 } }
     let bin = value("HAEJO_BIN_DIR") ?? home.appendingPathComponent(".local/bin").path
     var folders = [home.appendingPathComponent(".claude/skills"), home.appendingPathComponent(".codex/skills")]
+    // The shared skills folder other agents read, when this Mac has one.
+    let shared = home.appendingPathComponent(".agents/skills")
+    var isFolder: ObjCBool = false
+    if FileManager.default.fileExists(atPath: shared.path, isDirectory: &isFolder), isFolder.boolValue { folders.append(shared) }
     for key in ["CLAUDE_CONFIG_DIR", "CODEX_HOME"] {
         if let value = environment[key], !value.isEmpty {
             folders.append(URL(fileURLWithPath: value).appendingPathComponent("skills"))
