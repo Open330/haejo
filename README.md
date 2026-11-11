@@ -15,7 +15,7 @@ It saves the steps as a reusable **Flow**, so next time it runs with new inputs 
 [![Claude + Codex](docs/assets/badge-agents.svg)](skill/SKILL.md)
 [![Status](docs/assets/badge-status.svg)](#getting-started)
 
-[Release candidate](https://github.com/Open330/haejo/releases/tag/v1.0.0-rc.39) · [How it works](#how-it-works) · [Benchmarks](#benchmarks) · [Documentation](#documentation)
+[Release candidate](https://github.com/Open330/haejo/releases/tag/v1.0.0-rc.42) · [How it works](#how-it-works) · [Benchmarks](#benchmarks) · [Documentation](#documentation)
 
 </div>
 
@@ -130,19 +130,19 @@ A separate development test completed ten jobs with zero replay-time model calls
 
 ## Get started
 
-**1.0.0-rc.39 release candidate for Apple Silicon Macs on macOS 27.0.1** — the first release under the Haejo name.
+**1.0.0-rc.42 release candidate for Apple Silicon Macs on macOS 27.0.1.**
 
-1. [Download the notarized DMG](https://github.com/Open330/haejo/releases/download/v1.0.0-rc.39/Haejo-1.0.0-rc.39-arm64.dmg) ([release notes and validation](https://github.com/Open330/haejo/releases/tag/v1.0.0-rc.39)).
+1. [Download the notarized DMG](https://github.com/Open330/haejo/releases/download/v1.0.0-rc.42/Haejo-1.0.0-rc.42-arm64.dmg) ([release notes and validation](https://github.com/Open330/haejo/releases/tag/v1.0.0-rc.42)).
 2. Open it, drag `Haejo.app` into `Applications`, then open Haejo from `Applications`.
 3. In **1. Mac permissions**, press **Open Settings** and allow app control for **Haejo Helper** (screen recording for **Haejo** is optional).
-4. In **2. Connect agent**, connect Claude Code or Codex. This links the `haejo` command and skill.
+4. Opening the app already linked the `haejo` command and skill for Claude Code and Codex (**2. Connect agent** shows it; press it again after moving the app).
 5. **3. First task** opens a fresh Claude Code or Codex conversation that creates and verifies a TextEdit welcome note. Check anytime with `~/.local/bin/haejo doctor`.
 
 Upgrading from Tacto: install Haejo the same way. Your Tacto data moves to the Haejo folders, and because the app identity changed, macOS asks for both permissions again. [What changes](docs/haejo-branding.md)
 
 Haejo runs in the menu bar without a Dock icon. Close the window to leave it in the background; the menu bar icon reopens it or quits.
 
-The rc.39 DMG is built from source `225b613`: 3,583 regression cases with no failures, Apple notarization and Gatekeeper accepted, the identical bundle installed on three Macs with data and permissions checked. It is a **release candidate, not the approved stable release**; a person-run fresh install, permission revoke/regrant cycles and a limited beta remain ([guide](docs/beta-participant-guide.md)). Windows and Intel Mac builds are not provided. The in-app onboarding is currently Korean-first. [Release evidence](docs/release-readiness.md) · [Installation details](docs/installation.md)
+The rc.42 DMG is built from source `e199157` on Python 3.14: 3,603 regression cases with no failures, Apple notarization and Gatekeeper accepted, the identical bundle installed on three Macs with data and permissions checked. It is a **release candidate, not the approved stable release**; a person-run fresh install, permission revoke/regrant cycles and a limited beta remain ([guide](docs/beta-participant-guide.md)). Windows and Intel Mac builds are not provided. The in-app onboarding is currently Korean-first. [Release evidence](docs/release-readiness.md) · [Installation details](docs/installation.md)
 
 ### Build from source
 
