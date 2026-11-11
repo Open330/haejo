@@ -186,7 +186,7 @@ Haejo는 Dock 아이콘 없이 메뉴 막대에서 실행됩니다. 창을 닫�
 rc.39 DMG는 소스 `225b613` 기준입니다. 회귀 테스트 3,583개 실패 없음, Apple 공증·Gatekeeper 통과, 같은 번들을 Mac 세 대에 설치해 데이터와 권한을 확인했습니다. **정식 출시 후보이며 아직 승인된 정식 안정 버전이 아닙니다.** 사람이 직접 하는 새 설치, 권한 해제·재부여 반복, 제한 베타([안내](docs/beta-participant-guide.md))가 남아 있습니다. Windows·Intel Mac 빌드는 제공하지 않습니다.
 [출시 검증 현황](docs/release-readiness.md) · [설치 범위와 제한](docs/installation.md)
 
-**소스에서 빌드하려면** Python 3.11+, [uv](https://docs.astral.sh/uv/), Xcode Command Line Tools,
+**소스에서 빌드하려면** [uv](https://docs.astral.sh/uv/)(앱 런타임용 Python 3.14를 직접 설치합니다), Xcode Command Line Tools,
 Apple 발급 코드 서명 인증서가 필요합니다. 런처·도우미를 같은 팀으로 서명합니다.
 
 ```sh

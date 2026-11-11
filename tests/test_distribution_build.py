@@ -149,6 +149,29 @@ class DistributionInventoryTests(unittest.TestCase):
         result=distribution.require_inventory_compatibility(current,previous,{'distributions':{},'native_paths':{}})
         self.assertTrue(result['passed']);self.assertFalse(result['removed_native_paths'])
 
+    def test_python_upgrade_renames_paths_without_looking_like_removals(self):
+        old=['Contents/Resources/runtime/.venv/lib/python3.11/site-packages/objc/_objc.cpython-311-darwin.so',
+             'Contents/Resources/runtime/.venv/lib/libpython3.11.dylib','Contents/Resources/runtime/native.so']
+        previous=dict(self.inventory(),native_paths=old)
+        current=dict(self.inventory(),native_paths=[p.replace('3.11','3.14').replace('311','314') for p in old])
+        none={'distributions':{},'native_paths':{}}
+        result=distribution.require_inventory_compatibility(current,previous,none)
+        self.assertEqual([],result['removed_native_paths'])
+        self.assertEqual({'previous':'3.11','current':'3.14'},result['python'])
+        current['native_paths'].remove('Contents/Resources/runtime/native.so')
+        with self.assertRaisesRegex(RuntimeError,'native.so'):
+            distribution.require_inventory_compatibility(current,previous,none)
+
+    def test_release_venv_must_match_the_pinned_python(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);(root/'.python-version').write_text('3.14\n')
+            answer=lambda version: mock.Mock(return_value=subprocess.CompletedProcess([],0,version+'\n',''))
+            with self.assertRaisesRegex(RuntimeError,'Python 3.13.*Python 3.14'):
+                distribution.require_release_python(root,answer('3.13'))
+            self.assertEqual('3.14',distribution.require_release_python(root,answer('3.14')))
+            (root/'.python-version').unlink()
+            self.assertIsNone(distribution.require_release_python(root,answer('3.11')))
+
     def test_stale_allowlist_and_wildcards_do_not_silently_accumulate(self):
         previous=self.inventory()
         with self.assertRaisesRegex(ValueError,'stale'):

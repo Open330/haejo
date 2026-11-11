@@ -12,7 +12,7 @@ Python wheel은 Haejo의 Python 코어를 배포합니다. macOS 앱 조작에 �
 | 설치 방식 | 사용할 수 있는 범위 | 별도로 필요한 것 |
 | --- | --- | --- |
 | macOS 공증 DMG (rc.39) | Haejo.app의 설치·권한 안내와 번들 런타임 | Apple Silicon Mac, macOS 권한 허용; 사람이 직접 하는 새 설치 검증 대기 |
-| Python wheel | flow IR, 계약·결과 검증, 후보 paging, 모델 adapter, trace 등 Python 코어 | Python 3.11 이상 |
+| Python wheel | flow IR, 계약·결과 검증, 후보 paging, 모델 adapter, trace 등 Python 코어 | Python 3.11 이상 (앱 런타임은 3.14) |
 | wheel + `web` extra | Playwright 기반 별도 Chromium 페이지의 BrowserDriver | Playwright가 설치하는 Chromium과 운영체제 실행 의존성 |
 | macOS source checkout | 서명된 런처를 통한 macOS 접근성 조작 | Xcode Command Line Tools, Apple 발급 코드 서명 인증서, 손쉬운 사용 권한 |
 
