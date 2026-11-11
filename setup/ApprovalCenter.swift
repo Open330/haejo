@@ -353,6 +353,16 @@ final class ApprovalCenter {
         var line = word + (label.isEmpty ? "" : ": '\(label)'")
         if !app.isEmpty { line += " (\(app))" }
         if let window = item["window"] as? String, !window.isEmpty { line += "\n창: \(window)" }
+        // What it commits, as the helper read it; what it could not read is said.
+        let commit = item["commit"] as? [String:String] ?? [:]
+        for (key, name) in [("recipient","받는 사람"), ("body","본문"), ("items","삭제 대상"), ("amount","금액"), ("shown_amounts","화면의 금액"), ("site","사이트")] {
+            if let value = commit[key], !value.isEmpty { line += "\n\(name): \(value)" }
+        }
+        let notes = ["body":"본문을 읽을 수 없어 이 창의 현재 내용으로 보냅니다.", "items":"삭제할 항목을 읽을 수 없습니다.",
+                     "amount":"금액을 읽을 수 없습니다.", "site":"사이트를 읽을 수 없습니다.", "truncated":"창이 커서 일부만 읽었습니다.", "failed":"창의 일부를 읽지 못했습니다.",
+                     "scope":"작성 영역 경계를 확정하지 못해 이 영역만 확인했습니다.",
+                     "amount_field":"결제 금액 입력란을 찾지 못해 화면에 보이는 금액을 표시합니다."]
+        for key in item["unreadable"] as? [String] ?? [] { if let note = notes[key] { line += "\n" + note } }
         return line
     }
 

@@ -42,14 +42,15 @@ enum NativeApprovalClient {
 
 
     /// What the card shows and what a later re-check compares.
-    static func item(_ input: ObservedInput, _ cls: ApprovalClass, pid: pid_t) -> [String: Any] {
+    static func item(_ input: ObservedInput, _ cls: ApprovalClass, pid: pid_t, commit: CommitView = CommitView()) -> [String: Any] {
         let app = NSRunningApplication(processIdentifier: pid)
         return ["class": cls.rawValue, "kind": input.kind, "role": input.role, "subrole": input.subrole,
                 "labels": input.labels, "default_button": input.defaultButtonLabels,
                 "target": app?.bundleIdentifier ?? "", "app_name": app?.localizedName ?? "",
                 "team": team(of: pid) ?? "", "pid": Int(pid),
                 "process_start": app?.launchDate?.timeIntervalSince1970 ?? 0,
-                "window": NativeApproval.windowTitle(fromIdentity: input.window)]
+                "window": NativeApproval.windowTitle(fromIdentity: input.window),
+                "commit": commit.summary, "unreadable": commit.unreadable, "destination": commit.destination]
     }
 
     /// What must not change between the card and the input: the process
@@ -60,9 +61,9 @@ enum NativeApprovalClient {
                 String(app?.launchDate?.timeIntervalSince1970 ?? 0)].joined(separator: "\u{1f}")
     }
 
-    static func check(_ input: ObservedInput, _ cls: ApprovalClass, _ pid: pid_t) -> NativeDecision {
+    static func check(_ input: ObservedInput, _ cls: ApprovalClass, _ pid: pid_t, _ commit: CommitView) -> NativeDecision {
         guard let team = HaejoSigning.ownTeam(), let requirement = serverRequirement(team: team) else { return .unavailable }
-        guard let reply = ask(["op": "native_check", "item": item(input, cls, pid: pid)], requirement: requirement) else {
+        guard let reply = ask(["op": "native_check", "item": item(input, cls, pid: pid, commit: commit)], requirement: requirement) else {
             return NativeApproval.callerGone() ? .cancelled : .unavailable
         }
         switch reply["status"] as? String {

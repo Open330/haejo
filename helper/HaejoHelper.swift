@@ -40,6 +40,7 @@ let rendezvousLog = Logger(subsystem: "ai.callabo.haejo", category: "rendezvous"
 NativeApproval.decide = NativeApprovalClient.check
 NativeApproval.context = NativeApprovalClient.context
 NativeApproval.stopPressed = { abortState.isStopped }
+NativeApproval.commitReader = NativeCommit.read
 NativeApproval.onWaited = { waited in
     if let d = ParallelWindowState.shared.requestDeadline { ParallelWindowState.shared.requestDeadline = d + waited }
 }
@@ -3611,7 +3612,7 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
     // Menu approval enforced here (stage 2): after the element is resolved,
     // before anything is posted. A no-op unless the menu app reports a
     // verified enforcing state.
-    if let refusal = NativeApproval.gate(name: name, action: action, pid: p,
+    if let refusal = NativeApproval.gate(name: name, action: action, pid: p, anchor: { element() },
                                          observe: { NativeApproval.observe(name: name, action: action, element: element(), pid: p) }) {
         return refusal
     }
@@ -4661,7 +4662,7 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
                     "option_selected": false, "selections_made": 0,
                     "detail": "선택지를 여는 사이에 사용자가 중단했습니다"]
         }
-        if let refusal = NativeApproval.gateOption(matches[0], pid: p, openedHere: true) { return refusal }
+        if let refusal = NativeApproval.gateOption(matches[0], pid: p, openedHere: true, control: el) { return refusal }
         waitedForCard()
         let pressed = AXUIElementPerformAction(matches[0], kAXPressAction as CFString)
         if pressed != .success, pressed != AXError(rawValue: -25204) {
@@ -4990,7 +4991,7 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
                     throw NativeWindowInputError.refused("pinned ComboBox option changed")
                 }
             }
-            if let refusal=NativeApproval.gateOption(chosen,pid:p,openedHere:false) {
+            if let refusal=NativeApproval.gateOption(chosen,pid:p,openedHere:false,control:el) {
                 return refusal.merging(["pin_kept":true,"menu_open":true]) {_,new in new}
             }
             waitedForCard()
@@ -5035,7 +5036,7 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
         // never be described to the next observation as closed. The next
         // observation of this app drops it once it is really gone.
         spentMenu = (pid: p, control: el, menu: menu,popupWindowID:pending.popupWindowID,processStart:pending.processStart)
-        if let refusal = NativeApproval.gateOption(items[0], pid: p, openedHere: false) { return refusal }
+        if let refusal = NativeApproval.gateOption(items[0], pid: p, openedHere: false, control: el) { return refusal }
         waitedForCard()
         let pressed=AXUIElementPerformAction(items[0],kAXPressAction as CFString)
         if pressed != .success, pressed != AXError(rawValue: -25204) {
