@@ -1,6 +1,7 @@
 """Small, native-free command help for cold-start flow authors."""
 
 import json
+import sys
 
 
 def calculator_example(*, compact=True):
@@ -111,7 +112,8 @@ def session_guide(target, *, reusable=False, document=None, save=False, steps=Fa
             'Reusable template: params is an OBJECT of current defaults, e.g. {"amount":"11"}; '
             'step value {"value":"{{amount}}"}, check equals:"{{result}}". '
             'Use --save /absolute/new.json to save the same successful template, not the bound values. '
-            'Later run file --helper --think 0 -p amount=17 -p result=85. '
+            + ('Later run file --think 0 -p amount=17 -p result=85. ' if sys.platform == 'win32' else
+               'Later run file --helper --think 0 -p amount=17 -p result=85. ') +
             'When using all_of set schema:3 (older engines refuse it); for simultaneous checks use postcondition {"all_of":[{"field":{"identifier":"observed-id"},"equals":"expected","attribute":"Value"}]}. '
             'A primary field/equals can coexist with all_of; answers:true reports the primary field. '
             'Use captures on that verified action for values needed later. Keep separate reads for a later checkpoint or new data. '
@@ -152,8 +154,9 @@ def session_guide(target, *, reusable=False, document=None, save=False, steps=Fa
         + details
         + ('' if document is not None or target == 'com.apple.calculator' else
            'Same procedure for many items (N lessons, rows, files): author it once with --reuse-guide --save, then '
-           '`haejo batch <file> --helper` with one {"params":{...}} line per item; a window that opens per item is chosen by '
-           '--window-match url=... (saved as the Flow\'s "window"). ')
+           + ('`haejo batch <file>` with one {"params":{...}} line per item. ' if sys.platform == 'win32' else
+              '`haejo batch <file> --helper` with one {"params":{...}} line per item; a window that opens per item is chosen by '
+              '--window-match url=... (saved as the Flow\'s "window"). '))
         + "Inspect uncertain outcomes before retrying. Send one minified JSON line plus newline on this session."
     )
 

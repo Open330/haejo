@@ -147,6 +147,11 @@ class IntentTests(unittest.TestCase):
         self.assertIsNone(rx.fullmatch("계산기에서 49의 제곱근 구해줘 그리고 저장해"))
         self.assertIsNone(rx.fullmatch("계산기에서 abc의 제곱근 구해줘"))
 
+    def test_a_space_between_two_inputs_is_their_boundary(self):
+        rx = intent_pattern("신청서에 {{name}} {{fruit}} 채워줘", {"name": "기본값", "fruit": "배"})
+        self.assertEqual({"name": "장보고", "fruit": "포도"}, rx.fullmatch("신청서에 장보고 포도 채워줘").groupdict())
+        self.assertIsNone(rx.fullmatch("신청서에 장보고포도 채워줘"))
+
     def test_the_reading_may_fill_inputs_only_with_words_that_were_said(self):
         from haejo.ask import which_task
         q = which_task("계산기로 64의 제곱근 계산", [("sqrt", "계산기에서 {{n}}의 제곱근 구해줘")],

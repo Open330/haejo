@@ -90,14 +90,23 @@ no confirmation of its own beyond the per-step consent every platform uses.
 There is also no separate permission holder: the Python process running Haejo
 can automate any app at the same integrity level, exactly as the person who
 started it can. Private files Haejo writes use the user profile's default
-access rights.
+access rights, so the activity record and tasks (`%LOCALAPPDATA%\Haejo`)
+stay usable whether Haejo first ran from an administrator terminal, over
+OpenSSH or from an ordinary one. Standard streams are UTF-8 whatever the
+console code page.
 
 ## Not available on Windows yet
 
 - The signed helper and `--helper` (refused on Windows), menus (`menu`),
   document receipts, visual (screenshot) reads and window preparation.
-  `haejo doctor`, `launch`, `first-run`, `capture`, `drag`, onboarding and
-  the setup app are macOS-only.
+  `haejo doctor`, `launch`, `activate`, `open-url`, `windows`, `parallel`,
+  `first-run`, `document-attachments`, `capture`, `drag`, `resize`, `hover`,
+  `--journal-dir`, onboarding and the setup app are macOS-only; each says so
+  and stops before touching anything.
+- Model providers: `compile`, learning a request no saved flow knows,
+  `promote`'s review and `--auto-repair` need a model and say so. Saved flows
+  run without one: `replay`, `run`, `batch`, and `do` with a sentence a saved
+  flow's `intents` match.
 - Applications running elevated (as administrator) cannot be automated from a
   non-elevated process (Windows UIPI).
 

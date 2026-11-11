@@ -125,6 +125,86 @@ class WindowsCliTests(unittest.TestCase):
         self.assertEqual("hi", named["Text editor"].props["value"])
         self.assertTrue(any(m.startswith("HAEJO_SESSION_READY") for m in messages))
 
+    def test_output_is_utf8_on_windows_even_where_the_code_page_cannot_hold_it(self):
+        """Korean Windows pipes default to cp949; an emoji in a window title
+        raised UnicodeEncodeError (jiun-home, 2026-11-10)."""
+        import io
+        streams = {name: io.TextIOWrapper(io.BytesIO(), encoding="cp949", newline="\n") for name in ("stdin", "stdout", "stderr")}
+        with patch.object(cli.sys, "platform", "win32"), \
+             patch.multiple(cli.sys, **streams):
+            cli._utf8_streams()
+            print("신청서 \u2705", file=cli.sys.stdout, flush=True)
+            self.assertEqual("utf-8", cli.sys.stdin.encoding)
+        self.assertEqual("신청서 \u2705\n".encode("utf-8"), streams["stdout"].buffer.getvalue())
+
+    def test_journal_dir_is_refused_on_windows_before_anything_runs(self):
+        import io
+        import os
+        from contextlib import redirect_stdout
+        out = io.StringIO()
+        with patch.object(cli.sys, "platform", "win32"), \
+             patch.object(cli, "_dispatch_command", side_effect=AssertionError("dispatched")), \
+             redirect_stdout(out):
+            code = cli._dispatch("run", ["flow.json", "--journal-dir", os.path.abspath("runs-a")])
+        self.assertEqual(2, code)
+        self.assertIn("--journal-dir is macOS-only", out.getvalue())
+
+    def test_every_text_read_names_its_encoding(self):
+        """Without one, Windows reads with the ANSI code page: `batch` refused
+        a UTF-8 Flow file holding Korean as an invalid schema (jiun-home,
+        2026-11-10)."""
+        import re
+        from pathlib import Path
+        source = Path(cli.__file__).parent
+        offenders = [f"{path.name}:{number}" for path in sorted(source.glob("*.py"))
+                     for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1)
+                     if re.search(r"\.read_text\(\s*\)", line)]
+        self.assertEqual([], offenders)
+
+    def test_windows_guidance_never_suggests_the_refused_helper(self):
+        from haejo import command_help
+        with patch.object(command_help.sys, "platform", "win32"):
+            guide = command_help.session_guide("notepad.exe", reusable=True)
+        self.assertIn("haejo batch <file>", guide)
+        self.assertNotIn("--helper", guide)
+
+    def test_model_providers_are_refused_on_windows_without_starting_any(self):
+        from haejo import authoring
+        with patch.object(authoring.os, "name", "nt"), \
+             patch.object(authoring, "_try_cli", side_effect=AssertionError("started")):
+            with self.assertRaises(RuntimeError) as raised:
+                authoring._ask_model("prompt")
+        self.assertIn("macOS-only", str(raised.exception))
+
+    def test_a_locked_product_folder_names_itself_and_the_repair(self):
+        from pathlib import Path
+        from haejo import private_fs
+        folder = Path("Users/p/AppData/Local/Haejo")  # before os.name changes which Path class is made
+        with patch("haejo.preferences.product_directory", return_value=folder), \
+             patch.object(private_fs.os, "name", "nt"):
+            hint = private_fs.access_repair_hint(PermissionError(13, "denied"))
+            other = private_fs.access_repair_hint(FileNotFoundError())
+        self.assertIn("/reset", hint)
+        self.assertIn("Haejo", hint)
+        self.assertEqual("", other)
+        with patch.object(private_fs.os, "name", "posix"):
+            self.assertEqual("", private_fs.access_repair_hint(PermissionError()))
+
+    def test_private_folders_on_windows_inherit_the_profile_acl(self):
+        """A mode makes Python write an owner-only ACL, and a folder an
+        elevated process created then locks out the person's normal runs."""
+        from haejo import private_fs
+        calls = []
+        class Folder:
+            def mkdir(self, **kwargs):
+                calls.append(kwargs)
+        with patch.object(private_fs.os, "name", "nt"):
+            private_fs.mkdir_private(Folder(), parents=True, exist_ok=True)
+        with patch.object(private_fs.os, "name", "posix"):
+            private_fs.mkdir_private(Folder())
+        self.assertEqual([{"parents": True, "exist_ok": True},
+                          {"mode": 0o700, "parents": False, "exist_ok": False}], calls)
+
     @unittest.skipUnless(sys.platform == "darwin", "haejo.driver imports macOS frameworks")
     def test_macos_selection_is_unchanged(self):
         with patch.object(cli.sys, "platform", "darwin"), \

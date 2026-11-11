@@ -664,11 +664,9 @@ def _window_control_element(window, key):
         return None
 
 
-# What `secondary_action` will actually carry. An AX action name goes straight
-# to AXUIElementPerformAction, so the launcher enumerates what may cross, and
-# an observation that advertised anything else would be describing a refusal.
-SECONDARY_ACTIONS = ("AXShowMenu", "AXIncrement", "AXDecrement",
-                     "AXConfirm", "AXCancel")
+# What `secondary_action` will actually carry (defined with the protocol); an
+# observation that advertised anything else would be describing a refusal.
+from .protocol import SECONDARY_ACTIONS  # noqa: E402
 
 
 def _secondary_actions(el):

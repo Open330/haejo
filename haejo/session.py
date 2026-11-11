@@ -199,7 +199,7 @@ def _stop_locked(state, *, kill=None, now=None, identify=_process_identity):
     import json, signal, time
     record = state/'keep-awake.json'
     try:
-        entry = json.loads(record.read_text())
+        entry = json.loads(record.read_text(encoding='utf-8'))
         pid, until, started, command = entry['pid'], entry['until'], entry['started'], entry['command']
     except (OSError, ValueError, KeyError, TypeError):
         return {'type': 'keep_awake_stopped', 'stopped': False}

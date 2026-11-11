@@ -66,8 +66,8 @@ def packet_for(flow, result):
 
 
 def patch_selector(flow_path, packet_path, selector, output, *, remaining=False):
-    packet=json.loads(Path(packet_path).read_text())
-    flow=Flow.from_json(Path(flow_path).read_text())
+    packet=json.loads(Path(packet_path).read_text(encoding='utf-8'))
+    flow=Flow.from_json(Path(flow_path).read_text(encoding='utf-8'))
     if packet.get('schema')!=1 or packet.get('target')!=flow.target or packet.get('effect')!='not_started':
         raise ValueError('packet must describe same-target undispatched selector failure')
     if packet.get('error') not in ('target_missing','target_ambiguous'):
