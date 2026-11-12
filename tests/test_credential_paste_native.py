@@ -8,7 +8,10 @@ LAUNCHER=ROOT/'launcher/haejo'
 @unittest.skipUnless(sys.platform=='darwin' and os.environ.get('HAEJO_RUN_NATIVE_CREDENTIAL_TESTS')=='1','opt-in native controlled credential paste')
 class CredentialPasteNative(unittest.TestCase):
  def test_paste_updates_controlled_state_and_restores_all_clipboard_formats(self):
-  from tests._clipboard import restored,snapshot as clipboard
+  try:
+      from tests._clipboard import restored, snapshot as clipboard
+  except ImportError:  # discovered with tests/ as the top level
+      from _clipboard import restored, snapshot as clipboard
   class Page(BaseHTTPRequestHandler):
    def log_message(self,*args):pass
    def do_GET(self):

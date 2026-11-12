@@ -20,7 +20,10 @@ ROOT = Path(__file__).resolve().parents[1]
                      'opt-in owned Safari Unicode credential receiving')
 class CredentialUnicodeNative(unittest.TestCase):
     def test_nfc_nfd_replacement_input_events_and_clipboard(self):
-        from tests._clipboard import restored, snapshot as clipboard
+        try:
+            from tests._clipboard import restored, snapshot as clipboard
+        except ImportError:  # discovered with tests/ as the top level
+            from _clipboard import restored, snapshot as clipboard
 
         class Page(BaseHTTPRequestHandler):
             def log_message(self, *args):
