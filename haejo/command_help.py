@@ -233,7 +233,7 @@ def _specific_help(command, args):
         )
     if command == "session":
         text = (
-            "usage: haejo session <bundle-id> --helper [--document /absolute/path] [--guide | --reuse-guide] [--steps] [--save /absolute/new.json] [--receipt /absolute/new.json] [--timings] [--idle-timeout 1..600] [--task new --goal '<goal>' | --task <id>] [--finish-task]\n"
+            "usage: haejo session <bundle-id> --helper [--document /absolute/path] [--guide | --reuse-guide] [--steps] [--save /absolute/new.json] [--receipt /absolute/new.json] [--timings] [--idle-timeout 1..600] [--task new --goal '<goal>' | --task <id>] [--finish-task] [--then <bundle-id> [--document /absolute/path]]...\n"
             "exec_command tty=true, yield_time_ms=1000; wait for observation and\n"
             "HAEJO_SESSION_READY. write_stdin: one compact Flow JSON line + newline, yield_time_ms=5000.\n"
             "Poll the same session. One flow then exit. --document pins one TextEdit file.\n"

@@ -255,14 +255,53 @@ def run_session(args, *, make_driver, run_flow, stdin, emit):
     return code
 
 
+MAX_CHAINED_APPS = 4
+_INHERITED = ('--helper', '--timings', '--guide', '--steps')
+
+
 def _run_session(args, *, make_driver, run_flow, stdin, emit):
+    """One app, or several in order with `--then <bundle-id> [its options]`.
+
+    Each later app starts only after the previous one finished with a checked
+    result; its guide and observation follow that result in the same output,
+    so the author reads the value and writes the next Flow without another
+    command. Each app is its own session: its own target, observation,
+    replay and checks."""
+    args = list(args)
+    if '--then' not in args:
+        return _run_one_session(args, make_driver=make_driver, run_flow=run_flow, stdin=stdin, emit=emit)
+    segments, current = [], []
+    for value in args:
+        if value == '--then':
+            segments.append(current); current = []
+        else:
+            current.append(value)
+    segments.append(current)
+    if len(segments) > MAX_CHAINED_APPS or any(not seg or seg[0].startswith('-') for seg in segments[1:]):
+        emit('session_then: use --then <bundle-id> [--document /absolute/path] after the first app, up to '
+             + str(MAX_CHAINED_APPS) + ' apps'); return 2
+    inherited = [flag for flag in _INHERITED if flag in segments[0]]
+    result = 0
+    for index, segment in enumerate(segments):
+        if index:
+            segment = segment + [flag for flag in inherited if flag not in segment]
+            emit('HAEJO_SESSION_NEXT ' + segment[0] + ' (' + str(index + 1) + '/' + str(len(segments)) + ')')
+        result = _run_one_session(segment, make_driver=make_driver, run_flow=run_flow, stdin=stdin, emit=emit)
+        if result != 0:
+            if index + 1 < len(segments):
+                emit('HAEJO_SESSION_STOPPED later apps not started: ' + ', '.join(seg[0] for seg in segments[index + 1:]))
+            return result
+    return result
+
+
+def _run_one_session(args, *, make_driver, run_flow, stdin, emit):
     args = list(args)
     # Windows has no signed helper: the session drives UI Automation in this
     # process, so --helper is refused there and required on macOS.
     windows = sys.platform == "win32"
     helper = [] if windows else ['--helper']
     usage = ('usage: session <app.exe | pid:N> [--guide] [--steps] [--timings] [--idle-timeout 1..600]' if windows
-             else 'usage: session <bundle-id> --helper [--document /absolute/path] [--guide] [--steps] [--timings] [--idle-timeout 1..600]')
+             else 'usage: session <bundle-id> --helper [--document /absolute/path] [--guide] [--steps] [--timings] [--idle-timeout 1..600] [--then <bundle-id> [--document /absolute/path]]')
     from .window_scope import take_window_arg, bind_window
     try:args,window_id=take_window_arg(args)
     except ValueError as error:emit(str(error));return 2
