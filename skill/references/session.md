@@ -21,6 +21,22 @@ If the marker offers name lookup and the exact label is known, send
 `{"find_in_observation":"exact label"}` instead to avoid reading intervening
 pages. Lookup and continuation share the eight-request limit and deadline.
 
+## Several apps in order
+
+`haejo session <first-bundle-id> --helper --guide --steps --then <next-bundle-id> [--document /absolute/path]`
+runs the first app's session; when its Flow finishes with a checked result,
+`HAEJO_SESSION_NEXT <bundle-id> (n/total)` is printed and the next app's guide,
+observation and `HAEJO_SESSION_READY` follow in the same output. Send that app's
+Flow with `write_stdin` on the same session, using the value from the previous
+result. `--helper`, `--timings`, `--guide` and `--steps` carry over; options
+written after a `--then` apply to that app only. Up to four apps. Each app is
+its own session with its own observation, replay and checks; a failed app ends
+the command with `HAEJO_SESSION_STOPPED` naming the apps not started, and
+`HAEJO_SESSION_RESUME` gives the command that continues from the app that stopped
+once its failure is handled (for example, after the recovery its hint names);
+when the app's task already ran and only `--save` failed, it starts at the next
+app. A `--window-id` pin ends with its app.
+
 For agent tools, start with `exec_command`, `tty: true`, and
 `yield_time_ms: 1000`. Wait for both the observation and `HAEJO_SESSION_READY`.
 Send a minified JSON line with `write_stdin` using the exact returned session ID.

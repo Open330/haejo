@@ -33,6 +33,9 @@ one session does the whole goal, on that session command together with
   `yield_time_ms:5000`), then poll the same session. `done — 결과: <value>` is
   the checked result: report it. Use the guide's steps-only form; leave out
   defaults. [Session](references/session.md).
+- **Several apps in order** (a value from one into the next): one session
+  command, `--then <bundle-id> [--document …]` after the first app; the next
+  app's guide and observation follow the previous result on the same session.
 - **Read only:** `haejo observe <bundle-id> --helper --json`.
 - **One TextEdit file:** session with `--document /absolute/path --guide`;
   Save and attachments: [documents](references/documents.md).

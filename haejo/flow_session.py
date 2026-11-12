@@ -1,5 +1,6 @@
 """One signed connection: observe, accept one bounded flow, replay, exit."""
 import json
+import shlex
 import os
 import select
 import sys
@@ -130,7 +131,7 @@ def decode_session_flow(raw, target, document=None, *, steps=False):
 def read_session_flow(fd, timeout, emit, *, prepare=None, observe_next=None, find_observation=None, metrics=None, decode=None):
     """Repair interactive schema errors before dispatch on the same connection."""
     deadline = time.monotonic() + timeout
-    reader = _windows_reader(fd) if sys.platform == 'win32' else None
+    reader = (_CHAIN_READER.get(fd) or _windows_reader(fd)) if sys.platform == 'win32' else None
     while True:
         # Framing, EOF and budget errors are terminal; only a complete JSON line
         # rejected by Flow parsing can be corrected without starting over.
@@ -255,14 +256,125 @@ def run_session(args, *, make_driver, run_flow, stdin, emit):
     return code
 
 
+MAX_CHAINED_APPS = 4
+# Chained apps read their Flows from one stdin. On Windows a reader is a thread
+# blocked on that pipe, so the chain owns one reader for every app; a second
+# would race the first for the next app's line.
+_CHAIN_READER = {}
+_INHERITED = ('--helper', '--timings', '--guide', '--steps')
+
+
 def _run_session(args, *, make_driver, run_flow, stdin, emit):
+    """One app, or several in order with `--then <bundle-id> [its options]`.
+
+    Each later app starts only after the previous one finished with a checked
+    result; its guide and observation follow that result in the same output,
+    so the author reads the value and writes the next Flow without another
+    command. Each app is its own session: its own target, observation,
+    replay and checks."""
+    args = list(args)
+    if '--then' not in args:
+        return _run_one_session(args, make_driver=make_driver, run_flow=run_flow, stdin=stdin, emit=emit)
+    segments, current = [], []
+    for value in args:
+        if value == '--then':
+            segments.append(current); current = []
+        else:
+            current.append(value)
+    segments.append(current)
+    if len(segments) > MAX_CHAINED_APPS or any(not seg or seg[0].startswith('-') for seg in segments[1:]):
+        emit('session_then: use --then <bundle-id> [--document /absolute/path] after the first app, up to '
+             + str(MAX_CHAINED_APPS) + ' apps'); return 2
+    inherited = [flag for flag in _INHERITED if flag in segments[0]]
+    # The signed launcher hands this process one helper channel; every app in
+    # the chain uses it, and it closes once at the end.
+    shared = {}
+
+    class _Kept:
+        def __init__(self, inner):
+            self._inner = inner
+        def __getattr__(self, name):
+            return getattr(self._inner, name)
+        def close(self):
+            pass
+
+    def kept_driver(flags):
+        key = tuple(flags)
+        if key not in shared:
+            shared[key] = make_driver(flags)
+        return _Kept(shared[key])
+
+    def end_app():
+        # The next app starts unpinned: the previous app's window scope and
+        # leases end with it, exactly as if its own command had ended.
+        for driver in shared.values():
+            if getattr(driver, '_window_scope', None) is None:
+                continue
+            release = getattr(driver, 'release_targets', None)
+            try:
+                if callable(release):
+                    release()
+            except Exception:
+                pass
+            if getattr(driver, '_window_scope', None) is not None:
+                return False
+        return True
+
+    def stop(index, segment, completed):
+        later = segments[index + 1:]
+        emit('HAEJO_SESSION_STOPPED later apps not started: ' + ', '.join(seg[0] for seg in later))
+        later = [later[0] + [flag for flag in inherited if flag not in later[0]]] + later[1:]
+        if completed:
+            emit('HAEJO_SESSION_RESUME ' + segment[0] + ' already finished its task; continue with the next app: '
+                 'haejo session ' + ' --then '.join(shlex.join(seg) for seg in later))
+        else:
+            emit('HAEJO_SESSION_RESUME after handling the failure above, continue from this app: haejo session '
+                 + ' --then '.join(shlex.join(seg) for seg in [segment] + segments[index + 1:]))
+
+    fd = None
+    try:
+        fd = stdin.fileno()
+    except Exception:
+        pass
+    if sys.platform == 'win32' and fd is not None:
+        _CHAIN_READER[fd] = _windows_reader(fd)
+    result = 0
+    try:
+        for index, segment in enumerate(segments):
+            if index:
+                if not end_app():
+                    emit('session_then: the previous app\'s window pin could not be released')
+                    stop(index - 1, segments[index - 1], True)
+                    return 1
+                segment = segment + [flag for flag in inherited if flag not in segment]
+                emit('HAEJO_SESSION_NEXT ' + segment[0] + ' (' + str(index + 1) + '/' + str(len(segments)) + ')')
+            saved = []
+
+            def watch(line, saved=saved):
+                # A save failure comes after the app's task already ran.
+                if isinstance(line, str) and line.startswith('session_save_failed'):
+                    saved.append(line)
+                emit(line)
+            result = _run_one_session(segment, make_driver=kept_driver, run_flow=run_flow, stdin=stdin, emit=watch)
+            if result != 0:
+                if index + 1 < len(segments):
+                    stop(index, segment, bool(saved))
+                return result
+        return result
+    finally:
+        _CHAIN_READER.pop(fd, None)
+        for driver in shared.values():
+            driver.close()
+
+
+def _run_one_session(args, *, make_driver, run_flow, stdin, emit):
     args = list(args)
     # Windows has no signed helper: the session drives UI Automation in this
     # process, so --helper is refused there and required on macOS.
     windows = sys.platform == "win32"
     helper = [] if windows else ['--helper']
     usage = ('usage: session <app.exe | pid:N> [--guide] [--steps] [--timings] [--idle-timeout 1..600]' if windows
-             else 'usage: session <bundle-id> --helper [--document /absolute/path] [--guide] [--steps] [--timings] [--idle-timeout 1..600]')
+             else 'usage: session <bundle-id> --helper [--document /absolute/path] [--guide] [--steps] [--timings] [--idle-timeout 1..600] [--then <bundle-id> [--document /absolute/path]]')
     from .window_scope import take_window_arg, bind_window
     try:args,window_id=take_window_arg(args)
     except ValueError as error:emit(str(error));return 2
