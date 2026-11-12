@@ -4141,11 +4141,17 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
             // An app validates its menus while it is the active one, so a
             // background app reports items disabled that are perfectly fine.
             func disabled(_ record: [String: Any]?) -> [String: Any] {
+                // With no window at all the command has nothing to act on even in
+                // front; a window opened in the background is the route.
+                let noWindow = !wasFront && record?["skipped"] as? String == "focused_main_window_unavailable"
+                    && ((attr(AXUIElementCreateApplication(p), "AXWindows") as? [AnyObject])?.isEmpty ?? false)
                 var out: [String: Any] = ["type": "error", "error": "action_failed",
                     "effect": "not_started", "reason_code": "menu_item_disabled",
-                    "needs_foreground": !wasFront, "target_was_front": wasFront,
+                    "needs_foreground": !wasFront && !noWindow, "target_was_front": wasFront,
+                    "target_has_no_window": noWindow,
                     "detail": "메뉴 '\(walked.joined(separator: " > "))' 가 비활성 상태입니다"
-                              + (wasFront ? "" : " (이 앱이 앞에 있지 않아 그렇게 보일 수 있습니다)")]
+                              + (noWindow ? " (이 앱에 열린 창이 없습니다. 창을 뒤에서 연 뒤 다시 관찰하세요)"
+                                 : wasFront ? "" : " (이 앱이 앞에 있지 않아 그렇게 보일 수 있습니다)")]
                 if let record { out["temporary_preparation"] = record }
                 return out
             }

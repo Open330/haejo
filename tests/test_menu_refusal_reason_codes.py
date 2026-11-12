@@ -33,7 +33,14 @@ class MenuRefusalReasonTests(unittest.TestCase):
                     if (m := re.search(r'"reason_code": "([a-z_]+)"', r))}
         disabled = refusals['menu_item_disabled']
         self.assertIn('"effect": "not_started"', disabled)
-        self.assertIn('"needs_foreground": !wasFront', disabled)
+        self.assertIn('"needs_foreground": !wasFront && !noWindow', disabled)
+        self.assertIn('"target_has_no_window": noWindow', disabled)
+        # Only an app with no window at all; a background window is not that.
+        case = menu_case()
+        rule = case[case.index('let noWindow ='):case.index('"reason_code": "menu_item_disabled"')]
+        self.assertIn('"focused_main_window_unavailable"', rule)
+        self.assertIn('"AXWindows"', rule)
+        self.assertIn('.isEmpty ?? false', rule)
         self.assertIn('"target_was_front": wasFront', disabled)
         press = refusals['menu_press_failed']
         self.assertIn('"effect": axActionFailureEffect(menuError)', press)

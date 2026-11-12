@@ -50,6 +50,10 @@ The helper first waits, without a model call or input retransmission, for up to 
 Then start with a fresh observation and continue from what it shows, since an
 earlier action may already have been sent. `helper_busy` instead means all four warm workers are busy.
 
+`target_has_no_window: true` with `menu_item_disabled` means the app has no
+window for the command; open one in the background (Finder `open_folder`, or
+the document itself), observe again and send the menu once more.
+
 `needs_foreground` with `effect: not_started` means the app disabled that menu
 in the background. First look for a background route: the element's own
 accessibility action, Finder `open_folder`, or the document or file itself.
