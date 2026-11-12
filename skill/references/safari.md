@@ -17,6 +17,29 @@ nothing needs installing.
    first 2,500 nodes with the paging step the observation names
    ([session](session.md)). Each window shows its selected tab.
 
+Each web action has a route that the page was measured to receive (Safari 27.2,
+2026-11-12; [matrix](../docs/safari-capability-matrix.md)). Haejo takes the
+quietest one and moves up by itself; the run prints `HAEJO_ROUTE` with
+`input_route` and `route_level` (L1 accessibility · L2 keys to the window,
+Safari behind · L3 Safari in front for that input, then the previous app again).
+
+| page action | step | route |
+|---|---|---|
+| link, button, checkbox, radio, `click`-opened dropdown, alert button | `click` | L1 |
+| text input, textarea, `contenteditable`, framework-controlled input | `set_value` | L1 `ax_value_focused` |
+| field that reacts to key presses only | `type_text` | L2 `window_keys` |
+| native `<select>` | `select_option` with `option_label` | L1 `web_popup_menu` |
+| `<input type="date">` | `set_value` with `YYYY-MM-DD` | L1 picker, L2 close |
+| control that opens on pointer-down (the press shows no result) | `click` with a `postcondition` | L3 `foreground_element_click`, sent automatically after the press |
+| the same, known in advance | `click` with `"params":{"route":"pointer"}` | L3 |
+| scroll, long lists, delayed text, new tab/window, iframes | `scroll`, reveal by label, `wait_until`, `--window-match url=` | L1 |
+| hover-revealed menu | `haejo activate`, `haejo hover`, then `click` the revealed item | L3, real pointer ([hover](hover.md)) |
+
+Give every page `click` its `postcondition`: it is what tells the run that a
+press was answered without effect and that pointer events are the next route.
+An L3 reply carries `foreground_taken`, `front_restored` and `previous_front`;
+say in the result that Safari was in front for that step.
+
 `--front` shows Safari to a person who asked to see the page. The page opens in
 Safari's main window; when another task shares the browser, `--window "<part of
 the intended window's title>"` brings that window forward first

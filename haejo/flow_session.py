@@ -522,7 +522,7 @@ def _run_one_session(args, *, make_driver, run_flow, stdin, emit):
                     stored = (' --save stores the selector as the Flow\'s "window", so each replay picks the matching window again.'
                               if isinstance(window_id, dict) else
                               ' The live ID is not stored; for a reusable Flow start with --window-match url=... (or title=..., newest).')
-                    emit(f'HAEJO_WINDOW_SCOPE {chosen}: read/set_value/type_text and supported AXPress only; menus/keys/pointer require a separate app-wide session.' + stored)
+                    emit(f'HAEJO_WINDOW_SCOPE {chosen}: read/set_value/type_text and supported AXPress; in a web page also select_option, scroll, typed text and click with params {"route":"pointer"}. App menus, other keys and other pointer work use a separate app-wide session.' + stored)
                 show_observation()
                 timing['input_ready_seconds'] = time.monotonic() - started
                 flow, template = read_session_flow(stdin.fileno(), timeout, emit,

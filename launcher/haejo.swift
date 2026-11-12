@@ -94,7 +94,9 @@ let actionSchema: [String: (required: Set<String>, optional: Set<String>)] = [
     // Exactly one of the two, checked below — both would be two answers to one
     // question. `prepare_window` is not in the set on purpose: it takes a
     // WINDOW, and a point inside one resolves to whatever is drawn there.
-    "click":            (["name"], ["element_index", "point", "window_index"]),
+    // `route: "pointer"` asks for real pointer events on an observed element
+    // (a control that opens on pointerdown and answers AXPress with nothing).
+    "click":            (["name"], ["element_index", "point", "window_index", "route"]),
     "click_point":      (["name", "element_index", "point"], []),
     "drag":             (["name", "element_index", "from", "to", "duration"], ["via"]),
     "resize_window":    (["name", "element_index", "width", "height"], []),
@@ -658,6 +660,11 @@ func vetted(_ msg: [String: Any]) -> String? {
         } else if action["point"] != nil || action["window_index"] != nil {
             return "\(name) 은 point 를 받지 않습니다"
         }
+        if name == "click", let route = action["route"] {
+            guard route as? String == "pointer", action["element_index"] != nil, action["point"] == nil else {
+                return "click route 는 element_index 와 함께 \"pointer\" 만 받습니다"
+            }
+        }
         if name == "window_input" {
             guard let index = action["element_index"] as? NSNumber,
                   CFGetTypeID(index) != CFBooleanGetTypeID(),
@@ -751,6 +758,7 @@ func vetted(_ msg: [String: Any]) -> String? {
                     return "window_index 형식 오류"
                 }
             case "input_method": if name != "set_value" || v as? String != "paste" {return "invalid paste input"}
+            case "route": if name != "click" || v as? String != "pointer" { return "route 형식 오류" }
             case "width", "height":
                 guard name == "resize_window",let number=v as? NSNumber,
                       CFGetTypeID(number) != CFBooleanGetTypeID(),number.doubleValue.isFinite,

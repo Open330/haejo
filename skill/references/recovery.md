@@ -24,6 +24,9 @@ Inspect the verified/unverified result before requesting another compile.
 | `target_uniqueness_unverified` | the target was found past a list's cap, but the scan did not reach the list's end, so another element of that name may exist; a step with consequences (delete, send, save…) was not run. Nothing was pressed. Narrow the list (a smaller folder, a search, a filter) or select the item by a path the app offers, then run again |
 | `target_seen_in_front` | an earlier step's app was observed in front afterwards (e.g. Finder after Go > Go to Folder…), so nothing more was sent to it — the person may be using it now. What the earlier step did stays done; use a path that keeps the app behind (for Finder folders, `open_folder`) |
 | `focused_document_guard_unavailable` | a File > Save bound to one file (`focused_document`, e.g. `textedit_save`) on a backend that cannot check the focused file at the press — nothing was sent. Use `--helper` with a helper that announces `action.menu.focused_document` |
+| `use_select_option` | a `click` on a web page's `<select>`: nothing was pressed. Choose with `select_option` and `option_label` (or `set_value` with the label) |
+| `input_not_received` | keys were posted to a web field with the browser in front and its value did not change; the reply carries `characters_posted`. Observe the field before typing again |
+| `invalid_click_route` | `click` `params.route` is `"pointer"` on a selected element, with a helper that announces `click.route_pointer`; nothing was sent |
 | `expect_not_met` | the step's `expect` text never appeared |
 | `retry_refused` | after a recovery, the one allowed re-run of an idempotent step was refused |
 | `capture_failed` | a non-optional `capture` found nothing to read |
@@ -41,6 +44,18 @@ Inspect the verified/unverified result before requesting another compile.
 | `screen_locked` | the Mac's screen is locked: nothing behind it can be read, launched or brought forward until it is unlocked; continue the screen steps after that. Before long unattended or remote work, `haejo keep-awake --minutes N` prevents the idle display and system sleep that commonly lead to the lock; it does not prevent a screen-saver, manual or policy lock (`--stop` ends it) |
 | `application_process_unavailable` | macOS lists the app as running but reports its process identifier as -1, so nothing can be launched into, activated or observed. Quit and reopen the app (check for unsaved work first), then continue |
 | `gui_session_unavailable` | this process can't see the GUI (tmux without a user session) |
+
+### Which route delivered an input
+
+A step's reply names its route: `input_route` and `route_level` (L1
+accessibility · L2 events addressed to the window, the app behind · L3 the app
+in front for that input, then the previous app again). A run prints
+`HAEJO_ROUTE {…}` for each step that used a named route. `"status":"route_fallback"`
+means a web page `click` was answered and its `postcondition` never showed, so
+the same click went once more as pointer events (`from`, `to`). With
+`foreground_taken`, read `front_restored`: true means the app that was in front
+is in front again; false ends the run's inputs like `target_seen_in_front`.
+[Safari](safari.md) lists the route per web action.
 
 ### When a menu needs the app in front
 
