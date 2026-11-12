@@ -8,9 +8,7 @@ LAUNCHER=ROOT/'launcher/haejo'
 @unittest.skipUnless(sys.platform=='darwin' and os.environ.get('HAEJO_RUN_NATIVE_CREDENTIAL_TESTS')=='1','opt-in native controlled credential paste')
 class CredentialPasteNative(unittest.TestCase):
  def test_paste_updates_controlled_state_and_restores_all_clipboard_formats(self):
-  from AppKit import NSPasteboard
-  def clipboard():
-   return [[(str(t),bytes(item.dataForType_(t)) if item.dataForType_(t) is not None else None) for t in item.types()] for item in NSPasteboard.generalPasteboard().pasteboardItems() or []]
+  from tests._clipboard import restored,snapshot as clipboard
   class Page(BaseHTTPRequestHandler):
    def log_message(self,*args):pass
    def do_GET(self):
@@ -35,7 +33,7 @@ class CredentialPasteNative(unittest.TestCase):
     while server.proof.get('inputs')!=['2']:
      self.assertLess(time.monotonic(),deadline);time.sleep(.05)
     self.assertEqual(['true'],server.proof.get('dom'));self.assertEqual(['true'],server.proof.get('state'))
-    self.assertTrue(before==clipboard(),'Clipboard item/type bytes were not preserved')
+    self.assertTrue(restored(before,clipboard()),'Clipboard item/type bytes were not preserved')
     self.assertNotIn('owned-Synthetic-47!',r.stdout+r.stderr+trace.read_text())
     # The same route must work without exposing a Vault value to the agent.
     from haejo.credential_grants import CredentialStore
@@ -53,7 +51,7 @@ class CredentialPasteNative(unittest.TestCase):
      deadline=time.monotonic()+3
      while server.proof.get('inputs')!=['3']:
       self.assertLess(time.monotonic(),deadline);time.sleep(.05)
-     self.assertEqual(['true'],server.proof.get('state'));self.assertTrue(before==clipboard(),'Vault paste changed clipboard bytes')
+     self.assertEqual(['true'],server.proof.get('state'));self.assertTrue(restored(before,clipboard()),'Vault paste changed clipboard bytes')
     finally:
      store.revoke(name);store._path('vault',name).unlink(missing_ok=True);discard(vault,name)
     print('Native paste: two replacement inputs received by controlled form; clipboard formats restored; no secret in output/trace',flush=True)
