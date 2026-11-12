@@ -137,5 +137,35 @@ class WebRuntime(unittest.TestCase):
         self.assertNotIn('all-extras', (ROOT/'setup/build_distribution.py').read_text())
 
 
+class WebUploadWithoutTheRuntime(unittest.TestCase):
+    def test_an_upload_without_the_web_runtime_names_the_install_command(self):
+        import contextlib
+        import io
+        from haejo import web_upload_cli
+        started = mock.Mock(side_effect=AssertionError('upload started without a browser'))
+        with mock.patch.object(web_upload_cli, 'load_registration', return_value=object()), \
+             mock.patch.object(web_upload_cli, 'execute', started), \
+             mock.patch.object(web_runtime, 'activate', return_value=False), \
+             contextlib.redirect_stdout(io.StringIO()) as out:
+            code = web_upload_cli.main(['/private/config.json', '--scope', 'owned', '--yes'])
+        reply = json.loads(out.getvalue().splitlines()[-1])
+        self.assertEqual(1, code)
+        self.assertEqual('web_runtime_missing', reply['error'])
+        self.assertEqual('not_started', reply['effect'])
+        self.assertEqual('haejo web install', reply['next'])
+
+    def test_checking_a_registration_needs_no_web_runtime(self):
+        import contextlib
+        import io
+        from types import SimpleNamespace
+        from haejo import web_upload_cli
+        registration = SimpleNamespace(scope=SimpleNamespace(digest='d'))
+        with mock.patch.object(web_upload_cli, 'load_registration', return_value=registration), \
+             mock.patch.object(web_runtime, 'activate', side_effect=AssertionError('not needed')), \
+             contextlib.redirect_stdout(io.StringIO()) as out:
+            self.assertEqual(0, web_upload_cli.main(['/private/config.json', '--scope', 'owned', '--check']))
+        self.assertTrue(json.loads(out.getvalue().splitlines()[-1])['checked'])
+
+
 if __name__ == '__main__':
     unittest.main()

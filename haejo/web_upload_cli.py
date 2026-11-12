@@ -280,7 +280,13 @@ def main(argv, *, wrap_driver=lambda driver: driver):
                 if not __import__('sys').stdin.isatty():
                     return False
                 return input('Upload these files to this receiver? [y/N] ').strip().lower() == 'y'
-            result = execute(registration, confirm=confirm, wrap_driver=wrap_driver)
+            from . import web_runtime
+            if not web_runtime.activate():
+                # Say what to run next; a refusal alone left the missing download unnamed.
+                result = {'ok': False, 'error': 'web_runtime_missing', 'effect': 'not_started',
+                          'next': 'haejo web install'}
+            else:
+                result = execute(registration, confirm=confirm, wrap_driver=wrap_driver)
     except Exception as error:
         result = {'ok': False, 'error': 'web_upload_refused', 'error_class': type(error).__name__}
     finally:
