@@ -2,7 +2,7 @@
 import json
 import os
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from haejo.flow_session import run_session
 
@@ -10,12 +10,13 @@ from haejo.flow_session import run_session
 def driver(target_tree='AXWindow'):
     d = Mock()
     d.capabilities = ()
+    d._window_scope = None
     d.observe.return_value = {'type': 'observation', 'tree': target_tree}
     return d
 
 
 class SessionThenTests(unittest.TestCase):
-    def run_chain(self, args, flows, results):
+    def run_chain(self, args, flows, results, prepare=None):
         read, write = os.pipe()
         messages, ran = [], []
         pending = list(flows)
@@ -35,7 +36,10 @@ class SessionThenTests(unittest.TestCase):
         drivers = []
 
         def make(flags):
-            drivers.append(driver()); return drivers[-1]
+            drivers.append(driver())
+            if prepare:
+                prepare(drivers[-1])
+            return drivers[-1]
 
         with os.fdopen(read) as stream:
             code = run_session(args, make_driver=make, run_flow=run_flow, stdin=stream, emit=emit)
@@ -94,6 +98,56 @@ class SessionThenTests(unittest.TestCase):
             self.assertEqual(2, code, bad)
             self.assertEqual([], drivers)
             self.assertTrue(messages[-1].startswith('session_then:'), messages)
+
+    def test_window_pin_ends_with_its_app(self):
+        step = {'steps': [{'action': 'read'}]}
+        released = []
+
+        def make_pinned(d):
+            d._window_scope = ('com.example.a', 7)
+            def release():
+                released.append(True); d._window_scope = None
+                return {'type': 'targets_released', 'observation_invalidated': True}
+            d.release_targets.side_effect = release
+        code, _, ran, drivers = self.run_chain(
+            ['com.example.a', '--helper', '--steps', '--then', 'com.example.b'], [step, step], [0, 0],
+            prepare=make_pinned)
+        self.assertEqual((0, ['com.example.a', 'com.example.b'], [True]), (code, ran, released))
+
+        def make_stuck(d):
+            d._window_scope = ('com.example.a', 7)
+        code, messages, ran, _ = self.run_chain(
+            ['com.example.a', '--helper', '--steps', '--then', 'com.example.b'], [step, step], [0, 0],
+            prepare=make_stuck)
+        self.assertEqual((1, ['com.example.a']), (code, ran))
+        self.assertIn('HAEJO_SESSION_STOPPED later apps not started: com.example.b', messages)
+        self.assertTrue(messages[-1].startswith('HAEJO_SESSION_RESUME com.example.a already finished its task'), messages)
+
+    def test_save_failure_after_the_task_resumes_with_the_next_app(self):
+        step = {'steps': [{'action': 'read'}]}
+        with patch('haejo.storage.write_private', side_effect=OSError('disk')):
+            code, messages, ran, _ = self.run_chain(
+                ['com.example.a', '--helper', '--steps', '--save', '/tmp/never-written.json', '--then', 'com.example.b'],
+                [step, step], [0, 0])
+        self.assertEqual((1, ['com.example.a']), (code, ran))
+        self.assertEqual('HAEJO_SESSION_RESUME com.example.a already finished its task; continue with the next app: '
+                         'haejo session com.example.b --helper --steps', messages[-1])
+
+    def test_windows_chain_reads_every_flow_through_one_reader(self):
+        import haejo.flow_session as fs
+        made = []
+        real = fs._windows_reader
+
+        def counting(fd, **kw):
+            made.append(fd); return real(fd, **kw)
+        step = {'steps': [{'action': 'read'}]}
+        with patch.object(fs.sys, 'platform', 'win32'), patch.object(fs, '_windows_reader', counting), \
+                patch.object(fs, 'flow_input_mode', lambda fd: __import__('contextlib').nullcontext()):
+            code, _, ran, _ = self.run_chain(['com.example.a', '--steps', '--then', 'com.example.b'],
+                                             [step, step], [0, 0])
+        self.assertEqual((0, ['com.example.a', 'com.example.b']), (code, ran))
+        self.assertEqual(1, len(made))
+        self.assertEqual({}, fs._CHAIN_READER)
 
 
 if __name__ == '__main__':

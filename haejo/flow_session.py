@@ -131,7 +131,7 @@ def decode_session_flow(raw, target, document=None, *, steps=False):
 def read_session_flow(fd, timeout, emit, *, prepare=None, observe_next=None, find_observation=None, metrics=None, decode=None):
     """Repair interactive schema errors before dispatch on the same connection."""
     deadline = time.monotonic() + timeout
-    reader = _windows_reader(fd) if sys.platform == 'win32' else None
+    reader = (_CHAIN_READER.get(fd) or _windows_reader(fd)) if sys.platform == 'win32' else None
     while True:
         # Framing, EOF and budget errors are terminal; only a complete JSON line
         # rejected by Flow parsing can be corrected without starting over.
@@ -257,6 +257,10 @@ def run_session(args, *, make_driver, run_flow, stdin, emit):
 
 
 MAX_CHAINED_APPS = 4
+# Chained apps read their Flows from one stdin. On Windows a reader is a thread
+# blocked on that pipe, so the chain owns one reader for every app; a second
+# would race the first for the next app's line.
+_CHAIN_READER = {}
 _INHERITED = ('--helper', '--timings', '--guide', '--steps')
 
 
@@ -300,22 +304,65 @@ def _run_session(args, *, make_driver, run_flow, stdin, emit):
             shared[key] = make_driver(flags)
         return _Kept(shared[key])
 
+    def end_app():
+        # The next app starts unpinned: the previous app's window scope and
+        # leases end with it, exactly as if its own command had ended.
+        for driver in shared.values():
+            if getattr(driver, '_window_scope', None) is None:
+                continue
+            release = getattr(driver, 'release_targets', None)
+            try:
+                if callable(release):
+                    release()
+            except Exception:
+                pass
+            if getattr(driver, '_window_scope', None) is not None:
+                return False
+        return True
+
+    def stop(index, segment, completed):
+        later = segments[index + 1:]
+        emit('HAEJO_SESSION_STOPPED later apps not started: ' + ', '.join(seg[0] for seg in later))
+        later = [later[0] + [flag for flag in inherited if flag not in later[0]]] + later[1:]
+        if completed:
+            emit('HAEJO_SESSION_RESUME ' + segment[0] + ' already finished its task; continue with the next app: '
+                 'haejo session ' + ' --then '.join(shlex.join(seg) for seg in later))
+        else:
+            emit('HAEJO_SESSION_RESUME after handling the failure above, continue from this app: haejo session '
+                 + ' --then '.join(shlex.join(seg) for seg in [segment] + segments[index + 1:]))
+
+    fd = None
+    try:
+        fd = stdin.fileno()
+    except Exception:
+        pass
+    if sys.platform == 'win32' and fd is not None:
+        _CHAIN_READER[fd] = _windows_reader(fd)
     result = 0
     try:
         for index, segment in enumerate(segments):
             if index:
+                if not end_app():
+                    emit('session_then: the previous app\'s window pin could not be released')
+                    stop(index - 1, segments[index - 1], True)
+                    return 1
                 segment = segment + [flag for flag in inherited if flag not in segment]
                 emit('HAEJO_SESSION_NEXT ' + segment[0] + ' (' + str(index + 1) + '/' + str(len(segments)) + ')')
-            result = _run_one_session(segment, make_driver=kept_driver, run_flow=run_flow, stdin=stdin, emit=emit)
+            saved = []
+
+            def watch(line, saved=saved):
+                # A save failure comes after the app's task already ran.
+                if isinstance(line, str) and line.startswith('session_save_failed'):
+                    saved.append(line)
+                emit(line)
+            result = _run_one_session(segment, make_driver=kept_driver, run_flow=run_flow, stdin=stdin, emit=watch)
             if result != 0:
                 if index + 1 < len(segments):
-                    emit('HAEJO_SESSION_STOPPED later apps not started: ' + ', '.join(seg[0] for seg in segments[index + 1:]))
-                    rest = [segment] + segments[index + 1:]
-                    emit('HAEJO_SESSION_RESUME after handling the failure above, continue from this app: haejo session '
-                         + ' --then '.join(shlex.join(seg) for seg in rest))
+                    stop(index, segment, bool(saved))
                 return result
         return result
     finally:
+        _CHAIN_READER.pop(fd, None)
         for driver in shared.values():
             driver.close()
 
