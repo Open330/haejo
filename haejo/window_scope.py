@@ -4,11 +4,17 @@ A live window ID (`--window-id`) is never persisted inside a Flow: a popup
 opened per run gets a new ID every time. A *selector* (`--window-match`, or a
 Flow's `window` field) is persisted instead and resolved to the one live
 window it names when the run starts.
+
+`tab=` names one tab of a browser window by its title (or, for the tab that is
+showing, its address). The window is chosen as usual, the tab is selected in
+it, and the pin then covers the page that tab shows.
 """
 import time
 from urllib.parse import urlsplit
 
-SELECTOR_KEYS = ('url', 'title', 'newest')
+SELECTOR_KEYS = ('url', 'title', 'tab', 'route', 'newest')
+TAB_ROUTES = ('ax_press', 'window_pointer', 'front_pointer')
+TAB_SETTLE_POLLS = 8
 MATCH_WAIT_SECONDS = 10.0
 MATCH_POLL_SECONDS = 0.5
 # Listing states that mean "not available now", not "not there". A Flow that
@@ -24,8 +30,8 @@ def selector_problem(value):
     if not isinstance(value, dict) or not value:
         return 'window selector must be a non-empty object'
     if set(value) - set(SELECTOR_KEYS):
-        return 'window selector keys: url, title, newest'
-    for key in ('url', 'title'):
+        return 'window selector keys: url, title, tab, route, newest'
+    for key in ('url', 'title', 'tab'):
         if key in value and (not isinstance(value[key], str) or not value[key].strip()
                              or len(value[key]) > 512 or '{{' in value[key]):
             return f'window.{key} must be a non-empty literal substring'
@@ -36,21 +42,23 @@ def selector_problem(value):
             host = ''
         if not host or '.' not in host and host != 'localhost':
             return 'window.url must name a host, e.g. player.example.com or https://player.example.com/play'
+    if 'route' in value and ('tab' not in value or value['route'] not in TAB_ROUTES):
+        return 'window.route goes with tab and is one of ' + ', '.join(TAB_ROUTES)
     if 'newest' in value and value['newest'] is not True:
         return 'window.newest must be true when given'
     return None
 
 
 def parse_match(specs):
-    """`url=host/path`, `title=text`, `newest` -> selector dict."""
+    """`url=host/path`, `title=text`, `tab=text`, `route=name`, `newest` -> selector dict."""
     selector = {}
     for spec in specs:
         if spec == 'newest':
             key, text = 'newest', True
-        elif '=' in spec and spec.split('=', 1)[0] in ('url', 'title'):
+        elif '=' in spec and spec.split('=', 1)[0] in ('url', 'title', 'tab', 'route'):
             key, text = spec.split('=', 1)
         else:
-            raise ValueError('--window-match takes url=SUBSTRING, title=SUBSTRING or newest')
+            raise ValueError('--window-match takes url=SUBSTRING, title=SUBSTRING, tab=SUBSTRING or newest')
         if key in selector:
             raise ValueError(f'--window-match {key} given twice')
         selector[key] = text
@@ -77,7 +85,7 @@ def take_window_arg(args):
         while '--window-match' in args:
             at = args.index('--window-match')
             if at + 1 >= len(args) or args[at + 1].startswith('-'):
-                raise ValueError('--window-match takes url=SUBSTRING, title=SUBSTRING or newest')
+                raise ValueError('--window-match takes url=SUBSTRING, title=SUBSTRING, tab=SUBSTRING or newest')
             specs.append(args[at + 1])
             del args[at:at + 2]
         return args, parse_match(specs)
@@ -137,13 +145,55 @@ def _matches(row, selector):
     return True
 
 
-def _candidate(row):
-    return {k: row[k] for k in ('window_id', 'title', 'url') if k in row}
+def _candidate(row, tab=None):
+    found = {k: row[k] for k in ('window_id', 'title', 'url') if k in row}
+    if tab is not None:
+        found['tab'] = {k: tab[k] for k in ('index', 'title', 'selected', 'url') if k in tab}
+    elif isinstance(row.get('tabs'), list) and len(row['tabs']) > 1:
+        found['tabs'] = [t.get('title') for t in row['tabs'] if isinstance(t, dict)][:32]
+    return found
+
+
+def tab_matches(tab, text):
+    """`text` is part of the tab's title, or of its address when the listing
+    knows it (the tab that is showing). Case-insensitive."""
+    want = text.casefold()
+    return any(isinstance(tab.get(key), str) and want in tab[key].casefold() for key in ('title', 'url'))
+
+
+def _tabs(row):
+    return [t for t in row.get('tabs') or () if isinstance(t, dict) and type(t.get('index')) is int
+            and isinstance(t.get('title'), str)]
+
+
+def _pairs(rows, selector):
+    """(window row, tab row or None) for every match."""
+    rows = [r for r in rows if _matches(r, selector)]
+    if 'tab' not in selector:
+        return [(r, None) for r in rows]
+    return [(r, t) for r in rows for t in _tabs(r) if tab_matches(t, selector['tab'])]
+
+
+def _newest(pairs):
+    window_id = max(row['window_id'] for row, _ in pairs)
+    tabs = [tab for row, tab in pairs if row['window_id'] == window_id]
+    if tabs[0] is None:
+        return window_id, None
+    showing = [tab for tab in tabs if tab.get('selected') is True]
+    return window_id, (showing or tabs)[-1]
 
 
 def resolve_window(driver, target, selector, *, wait=None, sleep=time.sleep, clock=time.monotonic,
                    patient=False):
-    """Return (window_id, None) or (None, error reply).
+    """Return (window_id, None) or (None, error reply)."""
+    window_id, _, problem = resolve_target(driver, target, selector, wait=wait, sleep=sleep, clock=clock,
+                                           patient=patient)
+    return window_id, problem
+
+
+def resolve_target(driver, target, selector, *, wait=None, sleep=time.sleep, clock=time.monotonic,
+                   patient=False):
+    """Return (window_id, tab row or None, None) or (None, None, error reply).
 
     Waits briefly when nothing matches yet: the popup a previous step opened
     can take a moment to appear. `patient` also waits (up to
@@ -154,15 +204,15 @@ def resolve_window(driver, target, selector, *, wait=None, sleep=time.sleep, clo
     pause_started = pause_limit = None
     listing = getattr(driver, 'windows', None)
     if listing is None or 'observe.window_list' not in getattr(driver, 'capabilities', ()):
-        return None, {'type': 'error', 'error': 'window_list_unavailable', 'effect': 'not_started'}
+        return None, None, {'type': 'error', 'error': 'window_list_unavailable', 'effect': 'not_started'}
     deadline = clock() + (MATCH_WAIT_SECONDS if wait is None else wait)
     while True:
         polled = clock()
         reply = listing(target)
         if not isinstance(reply, dict):
-            return None, {'type': 'error', 'error': 'window_list_unavailable', 'effect': 'not_started'}
+            return None, None, {'type': 'error', 'error': 'window_list_unavailable', 'effect': 'not_started'}
         if reply.get('type') != 'windows' and not (patient and reply.get('reason') in PAUSE_REASONS):
-            return None, reply
+            return None, None, reply
         # Settle the pause that ended with this poll (measured, so host sleep
         # or oversleep counts) before anything is accepted.
         if pause_started is not None:
@@ -171,16 +221,16 @@ def resolve_window(driver, target, selector, *, wait=None, sleep=time.sleep, clo
             deadline += spent
             pause_started = None
             if paused >= pause_limit:
-                return None, {'type': 'error', 'error': 'window_match_paused_too_long', 'effect': 'not_started',
+                return None, None, {'type': 'error', 'error': 'window_match_paused_too_long', 'effect': 'not_started',
                               'selector': selector, 'paused_seconds': round(paused, 3)}
         rows = [r for r in reply.get('windows', []) if isinstance(r, dict) and type(r.get('window_id')) is int]
-        found = [r for r in rows if _matches(r, selector)]
+        found = _pairs(rows, selector)
         if found and (len(found) == 1 or selector.get('newest')):
-            return max(r['window_id'] for r in found), None
+            return (*_newest(found), None)
         if found:
-            return None, {'type': 'error', 'error': 'window_match_ambiguous', 'effect': 'not_started',
-                          'selector': selector, 'candidates': [_candidate(r) for r in found][:16],
-                          'hint': 'add url=/title= text that only one window has, or newest to take the most recently opened'}
+            return None, None, {'type': 'error', 'error': 'window_match_ambiguous', 'effect': 'not_started',
+                          'selector': selector, 'candidates': [_candidate(r, t) for r, t in found][:16],
+                          'hint': 'add url=/title=/tab= text that only one window or tab has, or newest to take the most recently opened'}
         locked = reply.get('reason') in PAUSE_REASONS
         # An unlisted window has no title or URL, so it may not be the one
         # wanted: wait for another Space for a shorter time than for a lock.
@@ -194,14 +244,14 @@ def resolve_window(driver, target, selector, *, wait=None, sleep=time.sleep, clo
             sleep(PAUSE_POLL_SECONDS)
             continue
         if reply.get('type') != 'windows':
-            return None, reply
+            return None, None, reply
         if clock() >= deadline:
             error = {'type': 'error', 'error': 'window_match_none', 'effect': 'not_started',
                      'selector': selector, 'listed': [_candidate(r) for r in rows][:16]}
             for key in ('reason', 'unlisted', 'screen'):
                 if key in reply:
                     error[key] = reply[key]
-            return None, error
+            return None, None, error
         sleep(MATCH_POLL_SECONDS)
 
 
@@ -210,8 +260,9 @@ def bind_window(driver, target, window, *, patient=False):
 
     Returns None on success, else the error reply to print.
     """
+    tab = None
     if isinstance(window, dict):
-        window_id, problem = resolve_window(driver, target, window, patient=patient)
+        window_id, tab, problem = resolve_target(driver, target, window, patient=patient)
         if problem is not None:
             return problem
     else:
@@ -222,12 +273,71 @@ def bind_window(driver, target, window, *, patient=False):
     result = bind(target, window_id)
     if result.get('type') != 'window_scope':
         return result
+    if tab is not None:
+        problem = _select_tab(driver, target, window['tab'], tab, window.get('route'))
+        if problem is not None:
+            return problem
     # What chose this pin: a later Flow may reuse it only for the same selector.
     try:
         driver._window_selector = (target, dict(window)) if isinstance(window, dict) else None
     except AttributeError:
         pass
     return None
+
+
+def _select_tab(driver, target, text, tab, route=None):
+    """Show `tab` in the pinned window and check the page it shows.
+
+    The route is the helper's: AXPress on the tab button, then a click bound
+    to the window, then the real pointer with the browser in front (the app
+    that was in front is restored). `route` names the one route to use.
+    """
+    select = getattr(driver, 'select_tab', None)
+    if select is None or 'session.tab_select' not in getattr(driver, 'capabilities', ()):
+        return {'type': 'error', 'error': 'tab_select_unavailable', 'effect': 'not_started'}
+    for _ in range(3):
+        reply = select(target, tab['index'], tab['title'], route=route)
+        if not isinstance(reply, dict):
+            return {'type': 'error', 'error': 'tab_select_unavailable', 'effect': 'not_started'}
+        if reply.get('error') != 'tab_changed':
+            break
+        # A tab that finished loading got its page title, or tabs moved: take
+        # the one the same text names in the list the helper just read.
+        again = [t for t in _tabs(reply) if tab_matches(t, text)]
+        if len(again) != 1:
+            return reply
+        tab = again[0]
+    if reply.get('type') != 'tab_selected':
+        return reply
+    # A page still loading shows "Untitled" and no address for a moment.
+    for _ in range(TAB_SETTLE_POLLS):
+        if tab_matches(reply, text):
+            break
+        time.sleep(MATCH_POLL_SECONDS)
+        fresh = select(target, reply['index'], None, route=route)
+        if not isinstance(fresh, dict) or fresh.get('type') != 'tab_selected':
+            break
+        reply = dict(fresh, **{k: reply[k] for k in ('route', 'attempts', 'front_taken', 'front_restored')
+                               if k in reply})
+    chosen = {k: reply[k] for k in ('window_id', 'index', 'title', 'url', 'route', 'attempts',
+                                     'front_taken', 'front_restored') if k in reply}
+    if not tab_matches(reply, text):
+        return {'type': 'error', 'error': 'tab_select_unverified', 'effect': 'unknown', 'selected': chosen,
+                'hint': 'the selected tab shows another page; list tabs with `haejo windows` and choose again'}
+    try:
+        driver._tab_selection = chosen
+    except AttributeError:
+        pass
+    return None
+
+
+def tab_note(driver):
+    """One line that says which tab was selected and by which route."""
+    chosen = getattr(driver, '_tab_selection', None)
+    if not isinstance(chosen, dict):
+        return None
+    import json
+    return 'HAEJO_TAB_SELECTED ' + json.dumps(chosen, ensure_ascii=False)
 
 
 def pin_for_flow(driver, flow, *, patient=False):

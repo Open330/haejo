@@ -78,6 +78,20 @@ class InputRoutingSourceTests(unittest.TestCase):
                                'postToPid'):
                     self.assertNotIn(banned, code, f'{banned} in hover')
                 continue
+            if path.name == 'TabFrontPointer.swift':
+                # The last route for selecting a browser tab: one click of the
+                # real pointer (down, up), the cursor put back once, the
+                # browser activated once and the previous front app returned.
+                self.assertEqual(1, code.count('CGWarpMouseCursorPosition('))
+                self.assertEqual(2, code.count('.post(tap:'))
+                self.assertEqual(['mouseType:.leftMouseDown', 'mouseType:.leftMouseUp'],
+                                 re.findall(r'mouseType:\.\w+', code))
+                self.assertEqual(1, code.count('.activate('))
+                self.assertEqual(1, code.count('returnScreen(to:previous)'))
+                for banned in ('CGEventPost(', 'CGDisplayMoveCursorToPoint(', 'keyboardEvent', 'MouseDragged',
+                               'scrollWheel', 'postToPid', 'NSWorkspace.shared.open('):
+                    self.assertNotIn(banned, code, f'{banned} in tab front pointer')
+                continue
             for banned in ('CGEventPost(', 'CGWarpMouseCursorPosition(',
                            'CGDisplayMoveCursorToPoint(', '.post(tap:',
                            'NSApplication.shared.activate('):

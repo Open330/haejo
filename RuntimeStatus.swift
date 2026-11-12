@@ -57,7 +57,7 @@ enum HaejoRuntimeStatus {
             "press_key":"키 입력", "resize_window":"창 크기 조절", "probe":"상태 확인", "capture":"화면 캡처",
             "menu_state":"메뉴 확인", "menu_items":"메뉴 확인", "selection":"선택 읽기", "document_text":"문서 읽기",
             "foreground_begin":"앞으로 가져오기", "foreground_end":"앞으로 가져오기 해제",
-            "release_targets":"대상 해제", "window_list":"창 목록"]
+            "release_targets":"대상 해제", "window_list":"창 목록", "tab_select":"탭 선택"]
         var actionLabel: String? { action.map { Run.actionLabels[$0] ?? $0 } }
         /// One menu line: app, window and the helper's own current state.
         var summary: String {

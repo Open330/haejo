@@ -16,6 +16,19 @@ nothing needs installing.
    `observe --until-text` instead of polling. A long page continues past the
    first 2,500 nodes with the paging step the observation names
    ([session](session.md)). Each window shows its selected tab.
+4. **Work in another tab:** `haejo windows` lists every window's `tabs`
+   (`index`, `title`, `selected`, and `url` for the tab that is showing; a
+   tab opened in the background may carry a title made from its address).
+   `--window-match tab=<title text>` on `session`/`observe`/`run` selects
+   that tab and works in its page; add `url=`/`title=` for the window or
+   `newest` when several tabs match (`window_match_ambiguous` lists them).
+   `HAEJO_TAB_SELECTED {… "route": …}` reports the page now showing and how:
+   `ax_press` (the tab button, Safari stays behind), `window_pointer` (a
+   click sent to that window, Safari stays behind), `front_pointer` (Safari
+   comes forward for one click and the app that was in front returns;
+   `front_taken`/`front_restored` say so). Routes are tried in that order;
+   `--window-match route=<name>` uses one. The selected tab stays selected
+   in the person's window, so say which tab now shows when reporting.
 
 Each web action has a route that the page was measured to receive (Safari 27.2,
 2026-11-12; [matrix](../docs/safari-capability-matrix.md)). Haejo takes the

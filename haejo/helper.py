@@ -652,6 +652,15 @@ class HelperDriver:
         self._window_scope = (target,window_id)
         return {'type':'window_scope','window_id':window_id}
 
+    def select_tab(self, target, index, title=None, route=None):
+        """Show one tab of the pinned browser window; the reply names the route."""
+        if getattr(self,'_window_scope',None) is None or type(index) is not int or index < 0:
+            return {'type':'error','error':'invalid_tab_select','effect':'not_started'}
+        tab = {'index':index}
+        if title is not None: tab['title'] = title
+        if route is not None: tab['route'] = route
+        return self._send({'type':'tab_select','target':target,'tab':tab})
+
     def identity(self, target: str) -> str:
         return target
 
@@ -1288,7 +1297,7 @@ class HelperDriver:
 # The L2 surface is transport-independent: observe/act/wait_until only need a
 # `_send`, so the inherited-socket driver borrows the spawn driver's
 # implementations rather than keeping a second copy in step with the first.
-for _name in ("document_mode", "release_targets", "foreground_begin", "foreground_end", "windows", "scope_window", "identity", "list_targets", "observe", "_settled", "act", "credential_input", "credential_submit", "probe",
+for _name in ("document_mode", "release_targets", "foreground_begin", "foreground_end", "windows", "scope_window", "select_tab", "identity", "list_targets", "observe", "_settled", "act", "credential_input", "credential_submit", "probe",
               "selection", "menu_state", "menu_items", "document_text", "document_window_status", "document_rtf_export", "document_attachment_metadata", "save_panel", "capture",
               "wait_until"):
     impl = getattr(HelperDriver, _name)

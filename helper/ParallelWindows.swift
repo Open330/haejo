@@ -46,7 +46,7 @@ func windowScopePointerRefusal() -> [String:Any]? {
     ParallelWindowState.shared.current == nil ? nil : parallelRefusal("window_scope_requires_ax")
 }
 func windowScopeActionProblem(_ msg:[String:Any], _ scope:ParallelWindowScope) -> String? {
-    guard ["observe","act","probe"].contains(msg["type"] as? String ?? ""),
+    guard ["observe","act","probe","tab_select"].contains(msg["type"] as? String ?? ""),
           msg["document_token"] == nil else { return "window_scope_requires_app" }
     guard msg["type"] as? String == "act" else { return nil }
     guard msg["credential_origin"] == nil, msg["sensitive_input_authorized"] == nil, msg["save_panel_token"] == nil,
@@ -184,7 +184,7 @@ final class ParallelSession {
             if let fixed=scope {
                 guard fixed.pid==pid,fixed.id==id,fixed.start==start else { return parallelRefusal("window_scope_changed") }
             } else {
-                guard msg["type"] as? String=="observe" else { return parallelRefusal("window_scope_requires_observation") }
+                guard ["observe","tab_select"].contains(msg["type"] as? String ?? "") else { return parallelRefusal("window_scope_requires_observation") }
             }
             guard waitForResource(targets,"app:\(pid)",shared:true,deadline:deadline,cancelled:cancelled),
                   waitForResource(targets,"window:\(pid):\(start):\(id)",deadline:deadline,cancelled:cancelled)
@@ -238,6 +238,8 @@ func parallelWindowList(_ target:String) -> [String:Any] {
         var row:[String:Any]=["window_id":Int(id),"title":String((str(window,kAXTitleAttribute as String) ?? "").prefix(200))]
         if let url=windowPageURL(window) { row["url"]=url }
         if let onScreen=server[id] { row["on_screen"]=onScreen }
+        let tabs=browserTabRows(window,url:row["url"] as? String,title:row["title"] as? String ?? "")
+        if !tabs.isEmpty { row["tabs"]=tabs }
         return row
     }
     guard nativeProcessStartIdentity(pid)==start else { return parallelRefusal("target_changed") }
@@ -354,4 +356,183 @@ func windowPageURL(_ window:AXUIElement) -> String? {
         for child in children.prefix(64) { queue.append((child,depth+1)) }
     }
     return addressURL
+}
+
+// MARK: - Browser tabs
+
+struct BrowserTab {
+    let element:AXUIElement
+    let title:String
+    let selected:Bool
+    let pinned:Bool
+}
+
+/// The tabs of a browser window, in tab-bar order. Safari 27.2 lists them as
+/// AXRadioButton (subrole AXTabButton) children of a group identified
+/// "TabBar?isSeparate=…"; each carries AXTitle, AXValue 1 when selected, an
+/// identifier "TabBarTab?…isPinned=…&isActive=…", AXPress, and no address.
+/// Empty when the window shows no tab bar (one tab, or not a browser).
+func browserTabs(_ window:AXUIElement) -> [BrowserTab] {
+    var queue:[(AXUIElement,Int)]=[(window,0)]
+    var visited=0
+    let deadline=ProcessInfo.processInfo.systemUptime+0.4
+    while !queue.isEmpty && visited<300 && ProcessInfo.processInfo.systemUptime<deadline {
+        let (node,depth)=queue.removeFirst();visited+=1
+        _ = AXUIElementSetMessagingTimeout(node,0.25)
+        let role=str(node,kAXRoleAttribute as String) ?? ""
+        if role=="AXWebArea" { continue }
+        guard let children=attr(node,kAXChildrenAttribute as String) as? [AXUIElement] else { continue }
+        if str(node,kAXIdentifierAttribute as String)?.hasPrefix("TabBar?")==true {
+            let tabs=children.prefix(512).compactMap { child -> BrowserTab? in
+                let id=str(child,kAXIdentifierAttribute as String) ?? ""
+                guard str(child,kAXRoleAttribute as String)=="AXRadioButton",id.hasPrefix("TabBarTab") else { return nil }
+                let title=str(child,kAXTitleAttribute as String) ?? str(child,kAXDescriptionAttribute as String) ?? ""
+                let selected=id.contains("isActive=") ? id.contains("isActive=true")
+                    : (attr(child,kAXValueAttribute as String) as? NSNumber)?.boolValue==true
+                return BrowserTab(element:child,title:String(title.prefix(200)),selected:selected,
+                                  pinned:id.contains("isPinned=true"))
+            }
+            if !tabs.isEmpty { return tabs }
+        }
+        guard depth<5 else { continue }
+        for child in children.prefix(64) { queue.append((child,depth+1)) }
+    }
+    return []
+}
+
+/// Listing rows: `index`, `title`, `selected`, `pinned` when set, and `url`
+/// for the selected tab (the only page whose web area exists; Safari gives a
+/// background tab a title and no address). A browser window that shows no tab
+/// bar has one tab: its page.
+func browserTabRows(_ window:AXUIElement,url:String?,title:String) -> [[String:Any]] {
+    let tabs=browserTabs(window)
+    if tabs.isEmpty {
+        guard let url else { return [] }
+        return [["index":0,"title":title,"selected":true,"url":url]]
+    }
+    return tabs.prefix(256).enumerated().map { index,tab in
+        // A tab opened in the background keeps a title made from its address
+        // on its button even after its page loaded (Safari 27.2); the window
+        // title is the page title of the tab that is showing.
+        var row:[String:Any]=["index":index,"title":tab.selected && !title.isEmpty ? title : tab.title,"selected":tab.selected]
+        if tab.pinned { row["pinned"]=true }
+        if tab.selected, let url { row["url"]=url }
+        return row
+    }
+}
+
+let browserTabRoutes=["ax_press","window_pointer","front_pointer"]
+
+/// Select one tab of the window this connection is pinned to, and say how.
+/// Routes in order: AXPress on the tab button (background); a click bound to
+/// the window, posted to the process (background); the real pointer with the
+/// browser in front, the previous front app restored afterwards. Each route
+/// is checked by the tab reporting selected; the reply carries the page the
+/// window shows then.
+func parallelTabSelect(_ request:[String:Any]) -> [String:Any] {
+    guard Set(request.keys)==Set(["type","target","window_scope_id","tab"]),
+          let msg=request["tab"] as? [String:Any],Set(msg.keys).isSubset(of:["index","title","route"]),
+          let scope=ParallelWindowState.shared.current,
+          let number=msg["index"] as? NSNumber,CFGetTypeID(number) != CFBooleanGetTypeID(),
+          number.doubleValue==Double(number.intValue),number.intValue>=0,
+          msg["title"] == nil || msg["title"] is String,
+          msg["route"] == nil || browserTabRoutes.contains(msg["route"] as? String ?? "") else {
+        return parallelRefusal("invalid_tab_select")
+    }
+    let window=scope.window,pid=scope.pid,index=number.intValue
+    let before=windowPageURL(window)
+    func page(_ route:String,_ extra:[String:Any]=[:]) -> [String:Any] {
+        // The newly shown tab's web area can take a moment to replace the
+        // previous one (two tabs on one address settle at the time limit).
+        var url=windowPageURL(window)
+        let until=ProcessInfo.processInfo.systemUptime+1.5
+        while (url==nil || (route != "already_selected" && url==before)) && ProcessInfo.processInfo.systemUptime<until {
+            usleep(100_000);url=windowPageURL(window)
+        }
+        let tabs=browserTabs(window)
+        let shown=String((str(window,kAXTitleAttribute as String) ?? "").prefix(200))
+        var reply:[String:Any]=["type":"tab_selected","window_id":Int(scope.id),"index":index,"route":route,
+            "title":shown.isEmpty && tabs.indices.contains(index) ? tabs[index].title : shown]
+        if let url { reply["url"]=url }
+        return reply.merging(extra) { current,_ in current }
+    }
+    let tabs=browserTabs(window)
+    if tabs.isEmpty {
+        guard index==0,windowPageURL(window) != nil else { return parallelRefusal("tab_not_found") }
+        return page("already_selected")
+    }
+    let windowTitle=String((str(window,kAXTitleAttribute as String) ?? "").prefix(200))
+    guard tabs.indices.contains(index),
+          (msg["title"] as? String).map({ $0==tabs[index].title || (tabs[index].selected && $0==windowTitle) }) ?? true else {
+        var refusal=parallelRefusal("tab_changed")
+        refusal["tabs"]=browserTabRows(window,url:windowPageURL(window),title:windowTitle)
+        return refusal
+    }
+    if tabs[index].selected { return page("already_selected") }
+    let tab=tabs[index].element
+    func selected(within seconds:Double) -> Bool {
+        let until=ProcessInfo.processInfo.systemUptime+seconds
+        while true {
+            let now=browserTabs(window)
+            if now.indices.contains(index),now[index].selected { return true }
+            if ProcessInfo.processInfo.systemUptime>=until || abortState.isStopped { return false }
+            usleep(50_000)
+        }
+    }
+    func described(_ error:Error) -> String {
+        switch error {
+        case NativeWindowInputError.refused(let text),NativeWindowInputError.unavailable(let text),
+             NativeWindowInputError.needsForeground(let text): return text
+        default: return "failed"
+        }
+    }
+    func pointerFree(_ lease:HaejoScopeLease) -> String? {
+        guard waitForResource(lease,"global-input",deadline:ProcessInfo.processInfo.systemUptime+5) else { return "input_busy" }
+        return CGEventSource.buttonState(.combinedSessionState,button:.left) ? "pointer_in_use" : nil
+    }
+    var attempts:[[String:Any]]=[]
+    var extra:[String:Any]=[:]
+    for route in (msg["route"] as? String).map({ [$0] }) ?? browserTabRoutes {
+        if abortState.isStopped { return parallelRefusal("aborted_by_user") }
+        var problem:String?
+        switch route {
+        case "ax_press":
+            var names:CFArray?
+            if AXUIElementCopyActionNames(tab,&names) != .success || !(names as? [String] ?? []).contains(kAXPressAction as String) {
+                problem="no_press_action"
+            } else {
+                let error=AXUIElementPerformAction(tab,kAXPressAction as CFString)
+                // -25204 can report a press that did happen; the check decides.
+                if error != .success && error.rawValue != -25204 { problem="press_failed_\(error.rawValue)" }
+            }
+        case "window_pointer":
+            let lease=HaejoScopeLease()
+            problem=pointerFree(lease)
+            if problem==nil {
+                _ = AXUIElementPerformAction(tab,"AXScrollToVisible" as CFString)
+                do {
+                    let click=try buildNativeWindowClick(captureNativeWindowBinding(tab,pid,expectedStart:scope.start))
+                    try nativePIDPost(click.down,pid);usleep(40_000);try nativePIDPost(click.up,pid)
+                    withExtendedLifetime(click.owners) {}
+                } catch { problem=described(error) }
+            }
+            withExtendedLifetime(lease) {}
+        default:
+            let lease=HaejoScopeLease()
+            problem=pointerFree(lease)
+            if problem==nil { problem=frontPointerPress(tab,window:window,pid:pid,windowID:scope.id,done:{ selected(within:2) },report:&extra) }
+            withExtendedLifetime(lease) {}
+        }
+        if problem==nil,selected(within:2) {
+            if !attempts.isEmpty { extra["attempts"]=attempts }
+            return page(route,extra)
+        }
+        attempts.append(["route":route,"result":problem ?? "not_selected"])
+    }
+    // A press or click that went out and left the tab unselected may have
+    // landed on something else; a route that never sent one did nothing.
+    var refusal=parallelRefusal("tab_select_failed")
+    refusal["effect"]=attempts.contains { $0["result"] as? String=="not_selected" } ? "unknown" : "not_started"
+    refusal["attempts"]=attempts
+    return refusal.merging(extra) { current,_ in current }
 }

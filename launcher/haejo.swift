@@ -61,7 +61,7 @@ guard FileManager.default.isExecutableFile(atPath: python.path) else {
 // and hand back the text. That is the whole reason the child's PATH is fixed —
 // it holds screen content, which is exactly what must not be able to choose
 // what runs. Asking needs neither the helper channel nor a program name.
-let allowedTypes: Set<String> = ["ask_cancel","release_targets","foreground_begin","foreground_end","window_list","ping", "list_targets", "observe", "act",
+let allowedTypes: Set<String> = ["ask_cancel","release_targets","foreground_begin","foreground_end","window_list","tab_select","ping", "list_targets", "observe", "act",
                                  "probe", "selection", "ask", "document_text", "document_mode", "document_window_status", "document_rtf_export", "document_attachment_metadata", "save_panel", "menu_state",
                                  "menu_items", "capture", "readiness_read_cost", "readiness_preflight"]
 // The largest complete document this channel will carry, in UTF-16 units. The
@@ -182,7 +182,7 @@ let allowedAXActions: Set<String> = ["AXPress", "AXShowMenu", "AXIncrement",
                                      "AXDecrement", "AXConfirm", "AXCancel"]
 let topLevelKeys: Set<String> = ["sensitive_input_authorized", "window_scope_id","credential_origin", "save_panel_token", "window_input_authorized", "coordinate_authorized", "submit_authorized", "click_deadline_uptime", "type", "obs_id", "target", "action", "mode",
                                  "require_window", "window_identity", "reveal", "prompt", "image", "model", "json", "path",
-                                 "expect", "element_index", "provider",
+                                 "expect", "element_index", "provider", "tab",
                                  "document_token", "document_path", "max_utf16_units", "timeout_seconds",
                                  "window_index", "window_element_index", "panel_token", "require_format", "element_indices", "read_strategy", "titlebar_probe", "cancel_id", "continuation", "commit_element_index"]
 
@@ -257,8 +257,19 @@ func vetted(_ msg: [String: Any]) -> String? {
     if type == "window_list", !Set(msg.keys).isSubset(of:["type","target"]) {
         return "invalid window_list fields"
     }
+    // One tab of the pinned browser window: its place in the tab bar, the
+    // title the listing gave it, and optionally one named route.
+    if type == "tab_select" || msg["tab"] != nil {
+        guard type == "tab_select", Set(msg.keys) == Set(["type","target","window_scope_id","tab"]),
+              let tab = msg["tab"] as? [String:Any], Set(tab.keys).isSubset(of:["index","title","route"]),
+              let index = tab["index"] as? NSNumber, CFGetTypeID(index) != CFBooleanGetTypeID(),
+              index.doubleValue == Double(index.intValue), (0..<4096).contains(index.intValue),
+              tab["title"] == nil || (tab["title"] as? String).map({ $0.utf16.count <= 512 }) == true,
+              tab["route"] == nil || ["ax_press","window_pointer","front_pointer"].contains(tab["route"] as? String ?? "")
+        else { return "invalid tab_select fields" }
+    }
     if let raw = msg["window_scope_id"] {
-        guard ["observe","act","probe"].contains(type), let n = raw as? NSNumber,
+        guard ["observe","act","probe","tab_select"].contains(type), let n = raw as? NSNumber,
               CFGetTypeID(n) != CFBooleanGetTypeID(), n.doubleValue.isFinite, n.doubleValue == Double(n.uint32Value),
               n.uint32Value > 0 else { return "invalid window_scope_id" }
     }
