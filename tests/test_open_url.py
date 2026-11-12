@@ -104,5 +104,59 @@ class OpenURLTests(unittest.TestCase):
             opener.assert_not_called()
 
 
+class FrontBackend(Backend):
+    def open_url(self, url, path, front=False):
+        self.front = front
+        return super().open_url(url, path)
+
+
+class Leased(Browser):
+    capabilities = frozenset({'session.foreground_lease'})
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs); self.leases = []
+    def foreground_begin(self, target):
+        self.leases.append(('begin', target)); return {'type': 'foreground_lease', 'acquired': True}
+    def foreground_end(self, target):
+        self.leases.append(('end', target))
+
+
+class BackgroundByDefault(unittest.TestCase):
+    def open(self, **kwargs):
+        b = FrontBackend(); b.front = None
+        driver = Leased(b, 'https://example.com/')
+        return open_url('https://example.com/', driver=driver, backend=b, clock=lambda: b.time,
+                        sleep=lambda s: None, **kwargs), b, driver
+
+    def test_a_page_opens_behind_the_app_in_use_and_holds_no_screen(self):
+        r, b, driver = self.open()
+        self.assertEqual(('url_opened', True, False), (r['type'], r['loaded_verified'], r['front']))
+        self.assertIs(False, b.front)       # no activation asked for
+        self.assertEqual([], driver.leases)
+
+    def test_front_shows_the_browser_inside_the_foreground_lease(self):
+        r, b, driver = self.open(front=True)
+        self.assertEqual(('url_opened', True), (r['type'], r['front']))
+        self.assertIs(True, b.front)
+        self.assertEqual([('begin', 'com.apple.Safari'), ('end', 'com.apple.Safari')], driver.leases)
+
+    def test_the_native_hand_off_activates_only_when_asked(self):
+        import inspect
+        from haejo.open_url import NativeURLBackend
+        source = inspect.getsource(NativeURLBackend.open_url)
+        self.assertIn('front=False', source)
+        self.assertIn('config.setActivates_(bool(front))', source)
+
+    def test_the_command_passes_front_only_for_front_or_window(self):
+        import contextlib, io
+        from haejo import cli
+        seen = []
+        def fake(url, **kwargs):
+            seen.append(kwargs['front']); return {'type': 'url_opened', 'url': url}
+        with mock.patch('haejo.open_url.open_url', fake), contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(0, cli._main(['open-url', 'https://example.com/']))
+            self.assertEqual(0, cli._main(['open-url', 'https://example.com/', '--front']))
+        self.assertEqual([False, True], seen)
+
+
 if __name__ == '__main__':
     unittest.main()
