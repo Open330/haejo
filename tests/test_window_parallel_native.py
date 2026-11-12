@@ -12,11 +12,11 @@ class WindowParallelNative(unittest.TestCase):
             base=Path(directory);root=ROOT;cli=LAUNCHER
             app=base/'OwnedWindows.app';binary=app/'Contents/MacOS/OwnedWindows';binary.parent.mkdir(parents=True,exist_ok=True)
             subprocess.run(['swiftc',str(root/'tests/fixtures/NativeWindowParallelFixture.swift'),'-o',str(binary)],check=True,capture_output=True)
-            (app/'Contents/Info.plist').write_bytes(plistlib.dumps({'CFBundleIdentifier':'ai.callabo.haejo.scopedfixture','CFBundleName':'Haejo Scoped Fixture','CFBundleExecutable':'OwnedWindows','CFBundlePackageType':'APPL','LSUIElement':True}))
+            (app/'Contents/Info.plist').write_bytes(plistlib.dumps({'CFBundleIdentifier':'open330.haejo.scopedfixture','CFBundleName':'Haejo Scoped Fixture','CFBundleExecutable':'OwnedWindows','CFBundlePackageType':'APPL','LSUIElement':True}))
             subprocess.run(['codesign','--force','--sign','-',str(app)],check=True,capture_output=True)
             state=base/'window-state.json';state.unlink(missing_ok=True)
             p=subprocess.Popen([str(binary),str(state)],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
-            target='ai.callabo.haejo.scopedfixture';env=dict(os.environ,HAEJO_HELPER_MODE='warm',HAEJO_HELPER_WAIT_SECONDS='1',HAEJO_HELPER_IDLE_SECONDS='30');sessions=[]
+            target='open330.haejo.scopedfixture';env=dict(os.environ,HAEJO_HELPER_MODE='warm',HAEJO_HELPER_WAIT_SECONDS='1',HAEJO_HELPER_IDLE_SECONDS='30');sessions=[]
             def read_state():return json.loads(state.read_text())
             def start(window):
              args=[str(cli),'session',target,'--helper','--window-id',str(window)]

@@ -10,7 +10,7 @@ import tempfile
 import time
 from contextlib import ExitStack
 
-TARGET = 'ai.callabo.haejo.opaque-input-fixture'
+TARGET = 'open330.haejo.opaque-input-fixture'
 TITLE = 'HAEJO Opaque Input Fixture '
 
 

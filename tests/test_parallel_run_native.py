@@ -25,7 +25,7 @@ class ParallelCommandNative(unittest.TestCase):
             base=Path(directory);app=base/'OwnedParallel.app'
             binary=app/'Contents/MacOS/OwnedParallel';binary.parent.mkdir(parents=True)
             subprocess.run(['swiftc',str(ROOT/'tests/fixtures/NativeWindowParallelFixture.swift'),'-o',str(binary)],check=True,capture_output=True)
-            target='ai.callabo.haejo.parallelcommandfixture';name='Haejo Parallel Command Fixture'
+            target='open330.haejo.parallelcommandfixture';name='Haejo Parallel Command Fixture'
             (app/'Contents/Info.plist').write_bytes(plistlib.dumps({'CFBundleIdentifier':target,
                 'CFBundleExecutable':'OwnedParallel','CFBundleName':name,'CFBundlePackageType':'APPL','LSUIElement':True}))
             subprocess.run(['codesign','--force','--sign','-',str(app)],check=True,capture_output=True)
@@ -87,7 +87,7 @@ let observer = center.addObserver(forName:HaejoRuntimeStatus.status,object:nil,q
     if let window=stopAllWindow {
         guard run.active, run.windowID==window else { return }
         done=true
-        center.postNotificationName(Notification.Name("ai.callabo.haejo.runtime.stop-all"),object:nil,
+        center.postNotificationName(Notification.Name("open330.haejo.runtime.stop-all"),object:nil,
             userInfo:["schema":1,"uid":getuid(),"targets":[CommandLine.arguments[4]]],deliverImmediately:true)
         try! JSONSerialization.data(withJSONObject:["stop_all":true]).write(to:URL(fileURLWithPath:output))
         return

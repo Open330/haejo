@@ -12,7 +12,7 @@ import Security
 
 enum NativeApprovalClient {
     /// The shipped menu app only; a dev preview build is not an approver.
-    static let menuIdentifiers = ["ai.callabo.haejo.setup.standalone.preview"]
+    static let menuIdentifiers = ["open330.haejo.app"]
     /// Longer than the card's own wait, so the menu app's "timeout" arrives.
     static let replyWait: TimeInterval = 630
 
@@ -143,7 +143,7 @@ enum NativeApprovalAnchor {
     static func query(data: Bool) -> OSStatus {
         var out: CFTypeRef?
         var q: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
-                                kSecAttrService as String: "ai.callabo.haejo.native-approval",
+                                kSecAttrService as String: "open330.haejo.native-approval",
                                 kSecAttrAccount as String: "anchor", kSecMatchLimit as String: kSecMatchLimitOne,
                                 kSecUseAuthenticationUI as String: kSecUseAuthenticationUIFail]
         q[data ? kSecReturnData as String : kSecReturnAttributes as String] = true

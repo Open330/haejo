@@ -22,7 +22,7 @@ def main(output):
     subprocess.run(['xcrun', 'swiftc', '-parse-as-library', '-warnings-as-errors', str(copied), '-o', str(binary)],
                    check=True, capture_output=True, timeout=45)
     (bundle / 'Contents/Info.plist').write_bytes(plistlib.dumps({
-        'CFBundleExecutable': 'TypingWitness', 'CFBundleIdentifier': 'ai.callabo.haejo.user-typing-witness',
+        'CFBundleExecutable': 'TypingWitness', 'CFBundleIdentifier': 'open330.haejo.user-typing-witness',
         'CFBundleName': 'HAEJO Typing Witness', 'CFBundlePackageType': 'APPL',
         'NSHighResolutionCapable': True}))
     subprocess.run(['codesign', '--force', '--sign', '-', str(bundle)], check=True, capture_output=True, timeout=15)

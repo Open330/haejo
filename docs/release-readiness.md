@@ -643,7 +643,7 @@ remains outside this route's supported scope.
 ## 2026-10-20 Preview 9 namespace migration
 
 Preview 9 is built from `d6bc0fea36800658ce3de5183ab9dee3f1b18e46` and uses
-`ai.callabo.haejo.*` signing identities. The app and DMG passed secure-timestamped
+`open330.haejo.*` signing identities. The app and DMG passed secure-timestamped
 Developer ID signing, Apple notarization, stapled tickets, and Gatekeeper.
 All twelve automated artifact checks passed. Stable qualification evidence
 remains incomplete; this is a developer prerelease.

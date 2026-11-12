@@ -22,7 +22,7 @@ from haejo.flow_session import run_session
 def manifest(count=2):
     return {'schema':1, 'jobs':[
         {'id':f'job-{i}', 'window_id':100+i, 'flow':{
-            'schema':2, 'name':f'flow-{i}', 'target':'ai.callabo.haejo.fixture', 'steps':[
+            'schema':2, 'name':f'flow-{i}', 'target':'open330.haejo.fixture', 'steps':[
                 {'action':'set_value', 'selector':{'identifier':'editor'}, 'params':{'value':f'private-{i}'},
                  'safety':{'effects':['write_ephemeral'],'reversibility':'reversible',
                            'resource':{'object_type':'fixture entry','scope':'entry'}},

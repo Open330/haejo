@@ -436,7 +436,7 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
     var onSetup: (() -> Void)?
     /// Runs `haejo uninstall --yes [--remove-data]`; the app quits after it.
     var onUninstall: ((Bool) -> Void)?
-    private let queue = DispatchQueue(label:"ai.callabo.haejo.activity-reader", qos:.userInitiated)
+    private let queue = DispatchQueue(label:"open330.haejo.activity-reader", qos:.userInitiated)
     private let table = NSTableView()
     private let search = NSSearchField()
     private let filter = NSSegmentedControl(labels:["전체", "실패", "완료 확인 없음"], trackingMode:.selectOne, target:nil, action:nil)
@@ -822,7 +822,7 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
                  approvalToggle.state = actual ? .on : .off
                  saveStatus.stringValue = actual ? "메뉴에서 승인을 끄지 못했어요. 켜진 상태를 유지합니다." : "메뉴에서 승인을 켜지 못했어요. 꺼진 상태를 유지합니다."
              }
-             NotificationCenter.default.post(name:Notification.Name("ai.callabo.haejo.menu-approval.changed"), object:nil) }
+             NotificationCenter.default.post(name:Notification.Name("open330.haejo.menu-approval.changed"), object:nil) }
         catch { loadSettings(); saveStatus.stringValue = "설정을 저장하지 못했어요. 이전 설정을 유지합니다." }
     }
     /// Once, when menu approval is turned on: which existing credential
@@ -843,7 +843,7 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
         return boxes.map { $0.state == .on }
     }
     @objc private func clearAlwaysApprovals() {
-        NotificationCenter.default.post(name:Notification.Name("ai.callabo.haejo.menu-approval.clear-always"), object:nil)
+        NotificationCenter.default.post(name:Notification.Name("open330.haejo.menu-approval.clear-always"), object:nil)
         saveStatus.stringValue = "항상 허용을 모두 지웠어요."
     }
     @objc private func confirmUninstall() {
@@ -922,7 +922,7 @@ final class CredentialPlanDrop: NSView {
 final class CredentialCenter: NSWindowController, NSWindowDelegate {
     typealias Runner = ([String],Data?) throws -> [String:Any]
     private let runner:Runner
-    private let queue=DispatchQueue(label:"ai.callabo.haejo.credential-settings",qos:.userInitiated)
+    private let queue=DispatchQueue(label:"open330.haejo.credential-settings",qos:.userInitiated)
     private let providerName=NSTextField(string:"")
     private let provider=NSPopUpButton(frame:.zero,pullsDown:false)
     private let providers=NSPopUpButton(frame:.zero,pullsDown:false)
@@ -1206,7 +1206,7 @@ final class FlowLibraryPage: NSObject, NSTableViewDataSource, NSTableViewDelegat
     let split = NSSplitView()
     weak var window: NSWindow?
     private let runner: Runner
-    private let queue = DispatchQueue(label:"ai.callabo.haejo.flow-library", qos:.userInitiated)
+    private let queue = DispatchQueue(label:"open330.haejo.flow-library", qos:.userInitiated)
     private(set) var flows: [FlowSummary] = []
     private(set) var filtered: [FlowSummary] = []
     private(set) var current: FlowSummary?

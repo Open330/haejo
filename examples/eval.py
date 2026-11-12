@@ -4044,7 +4044,7 @@ def _coordinate_fixture_self_contained(driver):
     root = Path(__file__).resolve().parents[1]
     _sys.path.insert(0, str(root / "examples/probes"))
     from focus_witness import FocusWitness
-    target = "ai.callabo.haejo.coordinate-fixture"
+    target = "open330.haejo.coordinate-fixture"
     sdks = sorted(Path("/Library/Developer/CommandLineTools/SDKs").glob("MacOSX*.sdk"))
     if not sdks:
         return "macOS SDK 없음"
@@ -4829,7 +4829,7 @@ def scenario_signed_save_panel():
 def scenario_signed_window_capture():
     """One owned window, photographed by the side that holds the grant.
 
-    Screen recording is granted to `ai.callabo.haejo.helper`, not to whatever
+    Screen recording is granted to `open330.haejo.helper`, not to whatever
     Python is running: on a shared interpreter that permission would belong to
     every script on it, and a screenshot reaches further than a click.
     """
@@ -5169,12 +5169,12 @@ def scenario_native_select_observe_json_fixture():
             driver=InheritedHelperDriver()
             audit=ProcessInputAudit(strategy='application_frontmost',interval=.005,startup_timeout=10,stop_timeout=3)
             with audit:
-                obs=driver.observe('ai.callabo.haejo.select-fixture','tree_full')
+                obs=driver.observe('open330.haejo.select-fixture','tree_full')
                 index,_=Selector(role='ComboBox',identifier='haejo-fixture-choice').resolve(obs['tree'])
-                report['open_receipt']=driver.act(obs['obs_id'],'ai.callabo.haejo.select-fixture',{'name':'open_select','element_index':index})
+                report['open_receipt']=driver.act(obs['obs_id'],'open330.haejo.select-fixture',{'name':'open_select','element_index':index})
                 captured=io.StringIO()
                 with contextlib.redirect_stdout(captured):
-                    report['cli_exit_code']=_dispatch('observe',['ai.callabo.haejo.select-fixture','--helper','--json'])
+                    report['cli_exit_code']=_dispatch('observe',['open330.haejo.select-fixture','--helper','--json'])
                 report['json_observation']=json.loads(captured.getvalue())
                 result=report['json_observation']
                 report['same_driver']=InheritedHelperDriver() is driver

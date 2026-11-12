@@ -13,7 +13,7 @@ import subprocess
 import tempfile
 import time
 
-TARGET='ai.callabo.haejo.modality-fixture'
+TARGET='open330.haejo.modality-fixture'
 MODES=('clear','window_sheet','deep_sheet','app_modal','panel','popover_transient','popover_semitransient','nested_sheet')
 STATE_FLAGS=('appkit_sheet_attached','appkit_modal_window','custom_sheet_is_synthetic',
              'panel_visible','popover_shown','nested_sheet_attached')

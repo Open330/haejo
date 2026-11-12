@@ -1,6 +1,6 @@
 # Native peers trust the same Apple-issued signing team, not one developer team.
-HAEJO_LAUNCHER_ID=ai.callabo.haejo
-HAEJO_HELPER_ID=ai.callabo.haejo.helper
+HAEJO_LAUNCHER_ID=open330.haejo
+HAEJO_HELPER_ID=open330.haejo.helper
 # The oldest macOS every native binary and bundle is built for. One value for
 # the compiler target and each Info.plist; setup/build_standalone_preview.py
 # reads this line, so the floor never follows the build Mac's own version.

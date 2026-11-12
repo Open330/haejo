@@ -8,7 +8,7 @@ import subprocess
 import tempfile
 import time
 
-TARGET = 'ai.callabo.haejo.opaque-point-fixture'
+TARGET = 'open330.haejo.opaque-point-fixture'
 
 
 def main(output, *, public_driver=None, vision_provider=None, general_visual=False, flow_visual=False, receiving_cancel=False):

@@ -3,7 +3,7 @@
 Notarization, installation and publication are separate steps. No credentials
 are read; pass an existing Developer ID signing identity explicitly.
 
-Prepare .venv with `uv sync --frozen --all-extras --no-dev`; uv takes the Python version
+Prepare .venv with `uv sync --frozen --extra native-visual --extra web-bridge --no-dev`; uv takes the Python version
 from .python-version, and the build refuses an environment on another version.
 Its locked dependencies are checked without modifying it. The previous installed app is the default
 baseline; --baseline also accepts a prior SOURCE-MANIFEST.json containing the
@@ -35,6 +35,12 @@ def release_version(tag):
         raise ValueError('expected vMAJOR.MINOR.PATCH, vMAJOR.MINOR.PATCH-preview.N or vMAJOR.MINOR.PATCH-rc.N')
     return '.'.join(match.groups()[:3]),match.group(4)
 
+
+# What Haejo.app carries. The `web` extra (Playwright) is fetched on the user's
+# Mac by `haejo web install`, so it is never part of the release environment;
+# web-bridge is the signed greenlet that fetched Playwright imports.
+RELEASE_EXTRA_NAMES=('native-visual','web-bridge')
+RELEASE_EXTRAS=tuple(part for name in RELEASE_EXTRA_NAMES for part in ('--extra',name))
 
 def committed_sources(root=ROOT):
     def git(*args):
@@ -81,7 +87,7 @@ def require_release_environment(root=ROOT,run=subprocess.run):
     """
     root=Path(root)
     if not (root/'.venv/bin/python').is_file():
-        raise RuntimeError('missing release environment; run uv sync --frozen --all-extras --no-dev')
+        raise RuntimeError('missing release environment; run uv sync --frozen --extra native-visual --extra web-bridge --no-dev')
     require_release_python(root)
     environment=dict(os.environ,UV_PROJECT_ENVIRONMENT=str((root/'.venv').resolve()))
     environment.pop('UV_FROZEN',None)
@@ -92,15 +98,15 @@ def require_release_environment(root=ROOT,run=subprocess.run):
     if locked.returncode:
         raise RuntimeError('release lockfile is stale or cannot be checked offline; '
                            'update uv.lock intentionally and commit it before building')
-    result=run(['uv','sync','--frozen','--all-extras','--no-dev','--check','--inexact','--offline'],
+    result=run(['uv','sync','--frozen',*RELEASE_EXTRAS,'--no-dev','--check','--inexact','--offline'],
                cwd=root,env=environment,capture_output=True,text=True,timeout=120)
     if result.returncode:
         raise RuntimeError('release environment is missing or mismatches locked dependencies/extras; '
-                           'run uv sync --frozen --all-extras --no-dev before building')
+                           'run uv sync --frozen --extra native-visual --extra web-bridge --no-dev before building')
     packages=distribution_packages(root/'.venv')
     # The dev group (tiktoken and its HTTP/regex stack) is checkout tooling; the
     # app never imports it, and shipping it cost ~10 MB per install.
-    exported=run(['uv','export','--frozen','--all-extras','--no-dev','--no-hashes',
+    exported=run(['uv','export','--frozen',*RELEASE_EXTRAS,'--no-dev','--no-hashes',
                   '--format','requirements-txt','--offline'],cwd=root,env=environment,
                  capture_output=True,text=True,timeout=120)
     allowed={re.sub(r'[-_.]+','-',re.split(r'[=<>;\[ ]',line.strip(),maxsplit=1)[0]).lower()
@@ -111,7 +117,7 @@ def require_release_environment(root=ROOT,run=subprocess.run):
     extra=sorted(name for name in packages if name not in allowed and name!='haejo-runtime')
     if extra:
         raise RuntimeError('release environment includes checkout-only packages ('+', '.join(extra)+
-                           '); run uv sync --frozen --all-extras --no-dev before building')
+                           '); run uv sync --frozen --extra native-visual --extra web-bridge --no-dev before building')
     return packages
 
 
@@ -129,7 +135,7 @@ def require_release_python(root,run=subprocess.run):
              capture_output=True,text=True,check=True).stdout.strip()
     if have!='.'.join(want.split('.')[:2]):
         raise RuntimeError(f'release environment uses Python {have}; this release is built with Python {want} '
-                           f'(.python-version); run uv sync --frozen --all-extras --no-dev')
+                           f'(.python-version); run uv sync --frozen --extra native-visual --extra web-bridge --no-dev')
     return have
 
 
@@ -320,11 +326,11 @@ def build(output,identity,tag,*,baseline=None,initial_distribution=False,removal
     for path in sorted(native,key=lambda p:(p.parent.name=='bin',str(p))):
         sign(path)
     helper=runtime/'helper/Haejo Helper.app'
-    for path,identifier in ((helper/'Contents/MacOS/HaejoHelper','ai.callabo.haejo.helper'),
-                            (helper,'ai.callabo.haejo.helper'),
-                            (runtime/'launcher/haejo','ai.callabo.haejo'),
-                            (output/'Contents/MacOS/HaejoSetup','ai.callabo.haejo.setup.standalone.preview'),
-                            (output,'ai.callabo.haejo.setup.standalone.preview')):
+    for path,identifier in ((helper/'Contents/MacOS/HaejoHelper','open330.haejo.helper'),
+                            (helper,'open330.haejo.helper'),
+                            (runtime/'launcher/haejo','open330.haejo'),
+                            (output/'Contents/MacOS/HaejoSetup','open330.haejo.app'),
+                            (output,'open330.haejo.app')):
         sign(path,identifier)
     subprocess.run(['codesign','--verify','--deep','--strict',str(output)],check=True,capture_output=True)
     if before != committed_sources():
@@ -342,7 +348,7 @@ def build(output,identity,tag,*,baseline=None,initial_distribution=False,removal
             'signed_with_timestamp':True,'minimum_macos':macos_target,'native_runtime_files_timestamped':len(native),
             'all_packaged_macho_timestamped':True,'packaged_macho_count':len(all_native),
             'private_paths_absent':True,'scanned_files':scanned,
-            'all_extras_verified':True,'distribution_inventory':inventory,
+            'release_extras_verified':list(RELEASE_EXTRA_NAMES),'distribution_inventory':inventory,
             'inventory_compatibility':compatibility}
 
 

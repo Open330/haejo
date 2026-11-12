@@ -19,8 +19,8 @@ class ParallelHelperNative(unittest.TestCase):
             for i in range(4):
                 app=b/f'Fixture{i}.app';binary=app/'Contents/MacOS/Fixture'
                 binary.parent.mkdir(parents=True);shutil.copy2(b/'fixture',binary)
-                (app/'Contents/Info.plist').write_bytes(plistlib.dumps({'CFBundleIdentifier':f'ai.callabo.haejo.parallelfixture{i}','CFBundleName':f'Haejo Parallel {i}','CFBundleExecutable':'Fixture','CFBundlePackageType':'APPL','LSUIElement':True}))
-                signed=subprocess.run(['codesign','--force','--sign','-','--identifier',f'ai.callabo.haejo.parallelfixture{i}',str(app)],capture_output=True,text=True,timeout=20)
+                (app/'Contents/Info.plist').write_bytes(plistlib.dumps({'CFBundleIdentifier':f'open330.haejo.parallelfixture{i}','CFBundleName':f'Haejo Parallel {i}','CFBundleExecutable':'Fixture','CFBundlePackageType':'APPL','LSUIElement':True}))
+                signed=subprocess.run(['codesign','--force','--sign','-','--identifier',f'open330.haejo.parallelfixture{i}',str(app)],capture_output=True,text=True,timeout=20)
                 self.assertEqual(0,signed.returncode,signed.stderr)
             cli=LAUNCHER;env=dict(os.environ,HAEJO_HELPER_MODE='warm',HAEJO_HELPER_WAIT_SECONDS='0',HAEJO_HELPER_IDLE_SECONDS='30')
             fixtures=[];sessions=[]
@@ -30,7 +30,7 @@ class ParallelHelperNative(unittest.TestCase):
              end=time.monotonic()+10
              while not out.exists():
               assert time.monotonic()<end and p.poll() is None;time.sleep(.05)
-             return f'ai.callabo.haejo.parallelfixture{i}'
+             return f'open330.haejo.parallelfixture{i}'
             def start(target):
              p=subprocess.Popen([str(cli),'session',target,'--helper','--idle-timeout','90'],env=env,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,bufsize=1)
              q=queue.Queue();lines=[]

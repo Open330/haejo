@@ -95,7 +95,7 @@ def manifest():
 
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--output',required=True);args=parser.parse_args()
-    base=Path(args.output).resolve();base.mkdir(mode=0o700);target='ai.callabo.haejo.complex.'+uuid.uuid4().hex[:8]
+    base=Path(args.output).resolve();base.mkdir(mode=0o700);target='open330.haejo.complex.'+uuid.uuid4().hex[:8]
     fixture=Fixture(base,target);template=recipe(target);client=None;cases=[];before=manifest()
     def open_client(name,flow,maximum=1):
         directory=base/name;directory.mkdir(mode=0o700);path=directory/'flow.json'

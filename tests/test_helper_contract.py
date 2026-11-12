@@ -437,7 +437,7 @@ def _view_popup(d):
     skip("이 Finder 창에는 보기 팝업이 없습니다")
 
 
-SELECT_FIXTURE = "ai.callabo.haejo.select-fixture"
+SELECT_FIXTURE = "open330.haejo.select-fixture"
 _FIXTURE = {}          # built once per process, torn down by its own timeout
 
 
@@ -547,7 +547,7 @@ def _select_fixture(d, lifetime=180):
         # `-g`: LaunchServices activates what it opens unless told not to,
         # so dropping `--foreground` from the fixture was not enough — the
         # launch itself took the screen. Measured by the focus witness during a
-        # default run: ['ai.callabo.haejo.select-fixture', 'com.apple.finder'],
+        # default run: ['open330.haejo.select-fixture', 'com.apple.finder'],
         # with Finder frontmost at both ends. In foreground mode the fixture
         # still comes forward, because `--foreground` makes it activate itself.
         ["open", "-g", "-n", "-a", str(app), "--args",

@@ -13,7 +13,7 @@ import subprocess
 import tempfile
 import time
 
-TARGET = 'ai.callabo.haejo.readiness-scale-fixture'
+TARGET = 'open330.haejo.readiness-scale-fixture'
 COUNTS = (0, 512, 6000)
 
 

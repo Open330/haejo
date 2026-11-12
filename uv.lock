@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.11"
 
 [[package]]
@@ -386,6 +386,50 @@ wheels = [
 ]
 
 [[package]]
+name = "haejo-runtime"
+version = "1.0.0"
+source = { editable = "." }
+dependencies = [
+    { name = "ada-url" },
+    { name = "comtypes", marker = "sys_platform == 'win32'" },
+    { name = "pyobjc-framework-applicationservices", marker = "sys_platform == 'darwin'" },
+    { name = "pyobjc-framework-cocoa", marker = "sys_platform == 'darwin'" },
+    { name = "pyobjc-framework-quartz", marker = "sys_platform == 'darwin'" },
+]
+
+[package.optional-dependencies]
+native-visual = [
+    { name = "pyobjc-framework-screencapturekit", marker = "sys_platform == 'darwin'" },
+]
+web = [
+    { name = "playwright" },
+]
+web-bridge = [
+    { name = "greenlet" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "tiktoken" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "ada-url", specifier = ">=1.32,<2" },
+    { name = "comtypes", marker = "sys_platform == 'win32'", specifier = ">=1.4,<2" },
+    { name = "greenlet", marker = "extra == 'web-bridge'", specifier = ">=3.1.1,<4" },
+    { name = "playwright", marker = "extra == 'web'", specifier = ">=1.40" },
+    { name = "pyobjc-framework-applicationservices", marker = "sys_platform == 'darwin'", specifier = ">=10.0" },
+    { name = "pyobjc-framework-cocoa", marker = "sys_platform == 'darwin'", specifier = ">=10.0" },
+    { name = "pyobjc-framework-quartz", marker = "sys_platform == 'darwin'", specifier = ">=10.0" },
+    { name = "pyobjc-framework-screencapturekit", marker = "sys_platform == 'darwin' and extra == 'native-visual'", specifier = ">=10.0" },
+]
+provides-extras = ["web", "web-bridge", "native-visual"]
+
+[package.metadata.requires-dev]
+dev = [{ name = "tiktoken", specifier = ">=0.14,<1" }]
+
+[[package]]
 name = "idna"
 version = "3.20"
 source = { registry = "https://pypi.org/simple" }
@@ -707,46 +751,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/ac/c3/e2a2b89f2d3e2179a
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a0/f4/c67b0b3f1b9245e8d266f0f112c500d50e5b4e83cb6f3b71b6528104182a/requests-2.34.2-py3-none-any.whl", hash = "sha256:2a0d60c172f83ac6ab31e4554906c0f3b3588d37b5cb939b1c061f4907e278e0", size = 73075, upload-time = "2026-05-14T19:25:26.443Z" },
 ]
-
-[[package]]
-name = "haejo-runtime"
-version = "1.0.0"
-source = { editable = "." }
-dependencies = [
-    { name = "ada-url" },
-    { name = "comtypes", marker = "sys_platform == 'win32'" },
-    { name = "pyobjc-framework-applicationservices", marker = "sys_platform == 'darwin'" },
-    { name = "pyobjc-framework-cocoa", marker = "sys_platform == 'darwin'" },
-    { name = "pyobjc-framework-quartz", marker = "sys_platform == 'darwin'" },
-]
-
-[package.optional-dependencies]
-native-visual = [
-    { name = "pyobjc-framework-screencapturekit", marker = "sys_platform == 'darwin'" },
-]
-web = [
-    { name = "playwright" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "tiktoken" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "ada-url", specifier = ">=1.32,<2" },
-    { name = "comtypes", marker = "sys_platform == 'win32'", specifier = ">=1.4,<2" },
-    { name = "playwright", marker = "extra == 'web'", specifier = ">=1.40" },
-    { name = "pyobjc-framework-applicationservices", marker = "sys_platform == 'darwin'", specifier = ">=10.0" },
-    { name = "pyobjc-framework-cocoa", marker = "sys_platform == 'darwin'", specifier = ">=10.0" },
-    { name = "pyobjc-framework-quartz", marker = "sys_platform == 'darwin'", specifier = ">=10.0" },
-    { name = "pyobjc-framework-screencapturekit", marker = "sys_platform == 'darwin' and extra == 'native-visual'", specifier = ">=10.0" },
-]
-provides-extras = ["web", "native-visual"]
-
-[package.metadata.requires-dev]
-dev = [{ name = "tiktoken", specifier = ">=0.14,<1" }]
 
 [[package]]
 name = "tiktoken"

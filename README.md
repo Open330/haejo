@@ -173,7 +173,7 @@ Replay a saved Flow:
 <details>
 <summary>Installation notes and batch runs</summary>
 
-If your agent cannot find the skill, restart its session and check `./skill/install.sh --check`. The Python distribution is `haejo-runtime`; the canonical Python import is `haejo`. The Python wheel alone does not supply the signed native launcher/helper. The permission holder is **Haejo Helper** (`helper/Haejo Helper.app/Contents/MacOS/HaejoHelper`) and the launcher is `launcher/haejo`; bundle identifiers and signing requirements use `ai.callabo.haejo.*`.
+If your agent cannot find the skill, restart its session and check `./skill/install.sh --check`. The Python distribution is `haejo-runtime`; the canonical Python import is `haejo`. The Python wheel alone does not supply the signed native launcher/helper. The permission holder is **Haejo Helper** (`helper/Haejo Helper.app/Contents/MacOS/HaejoHelper`) and the launcher is `launcher/haejo`; bundle identifiers and signing requirements use `open330.haejo.*`.
 
 
 Run many rows through one Flow template (one JSON line of params per job):

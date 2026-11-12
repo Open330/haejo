@@ -32,9 +32,9 @@ let permissionHolderName = Bundle.main.object(forInfoDictionaryKey: "CFBundleDis
 /// the launcher saw only that we had gone. The unified log is the one channel
 /// that survives having no parent:
 ///
-///     log stream --predicate 'subsystem == "ai.callabo.haejo"'
-///     log show --last 5m --predicate 'subsystem == "ai.callabo.haejo"'
-let rendezvousLog = Logger(subsystem: "ai.callabo.haejo", category: "rendezvous")
+///     log stream --predicate 'subsystem == "open330.haejo"'
+///     log show --last 5m --predicate 'subsystem == "open330.haejo"'
+let rendezvousLog = Logger(subsystem: "open330.haejo", category: "rendezvous")
 // Stage-2 menu approval: the gate asks the signed menu app over an
 // authenticated channel. Inert while the gate is not enforcing.
 NativeApproval.decide = NativeApprovalClient.check
@@ -2196,7 +2196,7 @@ func readinessPreflight(_ msg: [String: Any]) -> [String: Any] {
           msg["titlebar_probe"] == nil || CFGetTypeID(msg["titlebar_probe"]! as CFTypeRef) == CFBooleanGetTypeID(),
           msg["type"] as? String == "readiness_preflight",
           let target = msg["target"] as? String,
-          ["com.apple.finder","ai.callabo.haejo.modality-fixture"].contains(target),
+          ["com.apple.finder","open330.haejo.modality-fixture"].contains(target),
           let obs = msg["obs_id"] as? String, obs == latestObsID,
           latestTargetName == target, latestDocumentToken == nil,
           let number = documentIsWholeNumber(msg["element_index"]), number.intValue >= 0,
@@ -5496,7 +5496,7 @@ final class RuntimePublisher {
                 guard let self, self.active else { return }; self.publish()
             }
             // Launch only the same signed product, in the background, if needed.
-            let identifier = "ai.callabo.haejo.setup.standalone.preview"
+            let identifier = "open330.haejo.app"
             if NSRunningApplication.runningApplications(withBundleIdentifier:identifier).isEmpty,
                let team = HaejoSigning.ownTeam(),
                let text = HaejoSigning.requirement(identifier:identifier,team:team) {
@@ -5831,7 +5831,7 @@ func sha256Hex(_ data: Data) -> String {
 /// The screen-recording grant lives on this helper for the same reason the
 /// accessibility grant does: a permission held by a shared Python interpreter
 /// is a permission held by every script that runs on it, and a screenshot
-/// reaches further than a click. `ai.callabo.haejo.helper` is one identity the
+/// reaches further than a click. `open330.haejo.helper` is one identity the
 /// person can see in System Settings and revoke by itself.
 ///
 /// Pixels are written to a file this process creates and owns, not returned
@@ -8490,7 +8490,7 @@ guard connectPath != nil || persistentMode != nil else {
 // and feed it well-formed JSON, so authenticating it proved nothing (advisor
 // finding). The relay now lives inside the launcher, which hands its child an
 // inherited socket nothing else can obtain.
-let clientRequirement = HaejoSigning.peerRequirement(identifier: "ai.callabo.haejo")
+let clientRequirement = HaejoSigning.peerRequirement(identifier: "open330.haejo")
 
 /// The PID of `pid`'s parent, via sysctl.
 func parentOf(_ pid: pid_t) -> pid_t? {

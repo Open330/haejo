@@ -8,7 +8,7 @@ class NativeLabels(unittest.TestCase):
   with tempfile.TemporaryDirectory(prefix='haejo-label-test-') as directory:
    base=Path(directory);app=base/'OwnedLabels.app';binary=app/'Contents/MacOS/OwnedLabels';binary.parent.mkdir(parents=True)
    subprocess.run(['swiftc',str(ROOT/'tests/fixtures/NativeLabelFixture.swift'),'-o',str(binary)],check=True,capture_output=True)
-   target='ai.callabo.haejo.labelfixture'
+   target='open330.haejo.labelfixture'
    (app/'Contents/Info.plist').write_bytes(plistlib.dumps({'CFBundleIdentifier':target,'CFBundleName':'Haejo Label Fixture','CFBundleExecutable':'OwnedLabels','CFBundlePackageType':'APPL','LSUIElement':True}))
    subprocess.run(['codesign','--force','--sign','-',str(app)],check=True,capture_output=True)
    state=base/'state.json';p=subprocess.Popen([str(binary),str(state)],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)

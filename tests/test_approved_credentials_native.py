@@ -14,7 +14,7 @@ class ApprovedCredentialsNative(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix='haejo-credentials-') as directory:
             base=Path(directory);app=base/'OwnedCredentials.app';binary=app/'Contents/MacOS/OwnedCredentials';binary.parent.mkdir(parents=True)
             subprocess.run(['swiftc',str(ROOT/'tests/fixtures/NativeCredentialFixture.swift'),'-o',str(binary)],check=True,capture_output=True)
-            target='ai.callabo.haejo.credentialfixture'
+            target='open330.haejo.credentialfixture'
             (app/'Contents/Info.plist').write_bytes(plistlib.dumps({'CFBundleIdentifier':target,'CFBundleExecutable':'OwnedCredentials','CFBundleName':'Haejo Credential Fixture','CFBundlePackageType':'APPL','LSUIElement':True}))
             subprocess.run(['codesign','--force','--sign','-',str(app)],check=True,capture_output=True)
             state=base/'received.json';process=subprocess.Popen([str(binary),str(state)],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)

@@ -35,7 +35,7 @@ class FloatingDragNative(unittest.TestCase):
             binary.parent.mkdir(parents=True)
             subprocess.run(['xcrun', 'swiftc', '-parse-as-library', str(ROOT / 'tests/fixtures/NativeDragFixture.swift'),
                             '-o', str(binary)], check=True, capture_output=True)
-            target = 'ai.callabo.haejo.floatingfixture'
+            target = 'open330.haejo.floatingfixture'
             (app / 'Contents/Info.plist').write_bytes(plistlib.dumps({
                 'CFBundleIdentifier': target, 'CFBundleExecutable': 'OwnedFloating',
                 'CFBundleName': 'Haejo Floating Fixture', 'CFBundlePackageType': 'APPL', 'LSUIElement': True}))

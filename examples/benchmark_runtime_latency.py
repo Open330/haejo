@@ -110,7 +110,7 @@ def main():
             or launcher_changed != args.launcher_optimized):
         write(base/'mismatch.json', {'manifests': before, 'differences': differences, 'native_equal': native_equal})
         raise ValueError('runtimes must match the declared Python changes and optional launcher change')
-    target = 'ai.callabo.haejo.latency.' + uuid.uuid4().hex[:8]
+    target = 'open330.haejo.latency.' + uuid.uuid4().hex[:8]
     app = base/'Latency Benchmark.app'; contents = app/'Contents'
     (contents/'MacOS').mkdir(parents=True)
     (contents/'Info.plist').write_bytes(plistlib.dumps({'CFBundleIdentifier': target,

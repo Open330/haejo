@@ -252,7 +252,7 @@ def build(output, identity):
         shutil.copytree(ROOT/'docs',runtime/'docs',symlinks=False,ignore=ignored)
         (runtime/'helper').mkdir()
         shutil.copytree(ROOT/'helper/Haejo Helper.app',runtime/'helper/Haejo Helper.app',symlinks=True)
-        run(['codesign','--verify','--deep','--strict','-R='+requirement('ai.callabo.haejo.helper'),str(runtime/'helper/Haejo Helper.app')])
+        run(['codesign','--verify','--deep','--strict','-R='+requirement('open330.haejo.helper'),str(runtime/'helper/Haejo Helper.app')])
         for path in runtime.rglob('*'):
             if path.is_symlink():
                 try:path.resolve(strict=True).relative_to(runtime.resolve())
@@ -262,8 +262,8 @@ def build(output, identity):
         launcher_source=Path(folder)/'launcher-source';launcher_source.mkdir()
         shutil.copy2(ROOT/'launcher/haejo.swift',launcher_source/'main.swift')
         run(['swiftc','-O','-target',swift_target(),'-file-prefix-map',str(ROOT)+'=/haejo-source',str(launcher_source/'main.swift'),str(ROOT/'SigningPolicy.swift'),str(ROOT/'HelperModeProtocol.swift'),str(ROOT/'RuntimeStatus.swift'),str(ROOT/'launcher/HelperModeClient.swift'),'-o',str(launcher)])
-        sign(launcher,identity,'ai.callabo.haejo',requirement('ai.callabo.haejo'))
-        run(['codesign','--verify','-R='+requirement('ai.callabo.haejo'),str(launcher)])
+        sign(launcher,identity,'open330.haejo',requirement('open330.haejo'))
+        run(['codesign','--verify','-R='+requirement('open330.haejo'),str(launcher)])
         native=list(native_files(runtime/'.venv'))
         # Native extensions/dylibs before the interpreter, all same identity.
         for path in sorted(native,key=lambda p:(p.parent.name=='bin',str(p))):sign(path,identity)
@@ -291,21 +291,21 @@ def build(output, identity):
             (localized/'InfoPlist.strings').write_bytes(plistlib.dumps({
                 'CFBundleName':'Haejo Helper','CFBundleDisplayName':'Haejo Helper'}))
         helper_plist.write_bytes(plistlib.dumps(helper_info))
-        sign(helper_app,identity,'ai.callabo.haejo.helper',requirement('ai.callabo.haejo.helper'))
-        run(['codesign','--verify','--deep','--strict','-R='+requirement('ai.callabo.haejo.helper'),str(helper_app)])
+        sign(helper_app,identity,'open330.haejo.helper',requirement('open330.haejo.helper'))
+        run(['codesign','--verify','--deep','--strict','-R='+requirement('open330.haejo.helper'),str(helper_app)])
         compile_setup(executable, Path(folder))
         import plistlib
         (contents/'Info.plist').write_bytes(plistlib.dumps({
             'CFBundleDisplayName':'Haejo','CFBundleName':'Haejo',
             'CFBundleIconFile':'haejo-app.icns',
-            'CFBundleExecutable':'HaejoSetup','CFBundleIdentifier':'ai.callabo.haejo.setup.standalone.preview',
+            'CFBundleExecutable':'HaejoSetup','CFBundleIdentifier':'open330.haejo.app',
             'CFBundlePackageType':'APPL','CFBundleShortVersionString':'1.0.0','CFBundleVersion':'1',
             'LSUIElement':True,
             'LSMinimumSystemVersion':deployment_target()}))
         (resources/'runtime.json').write_text(json.dumps({'bundledRoot':'runtime'}))
-        owner_requirement=requirement('ai.callabo.haejo.setup.standalone.preview')
-        sign(executable,identity,'ai.callabo.haejo.setup.standalone.preview',owner_requirement)
-        sign(app,identity,'ai.callabo.haejo.setup.standalone.preview',owner_requirement)
+        owner_requirement=requirement('open330.haejo.app')
+        sign(executable,identity,'open330.haejo.app',owner_requirement)
+        sign(app,identity,'open330.haejo.app',owner_requirement)
         run(['codesign','--verify','--deep','--strict','-R='+owner_requirement,str(app)])
         shutil.copytree(app,output,dirs_exist_ok=True,symlinks=True)
     # Relocation happened after signing. Run no GUI command and write no caches.

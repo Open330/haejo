@@ -40,14 +40,14 @@ def build(output: Path):
         (contents / "Info.plist").write_bytes(plistlib.dumps({
             "CFBundleDisplayName": "Haejo", "CFBundleName": "Haejo",
             "CFBundleIconFile": "haejo-app.icns",
-            "CFBundleExecutable": "HaejoSetup", "CFBundleIdentifier": "ai.callabo.haejo.setup.preview",
+            "CFBundleExecutable": "HaejoSetup", "CFBundleIdentifier": "open330.haejo.app.dev",
             "CFBundlePackageType": "APPL", "CFBundleShortVersionString": "1.0.0",
             "LSUIElement": True,
         }))
         (contents / "Resources/runtime.json").write_text(json.dumps({"root": str(root)}))
         for target in (executable, app):
             subprocess.run(["codesign", "--force", "--sign", identity, "--identifier",
-                            "ai.callabo.haejo.setup.preview", "--options", "runtime",
+                            "open330.haejo.app.dev", "--options", "runtime",
                             "--timestamp=none", str(target)], check=True)
         subprocess.run(["codesign", "--verify", "--deep", "--strict", str(app)], check=True)
         shutil.move(str(app), str(output))

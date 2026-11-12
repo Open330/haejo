@@ -217,7 +217,7 @@ uv sync
 스킬을 찾지 못하면 에이전트 세션을 다시 열고 `./skill/install.sh --check`로 연결을 확인하세요.
 Python 배포 이름은 `haejo-runtime`이고 기본 import는 `haejo`입니다.
 Python wheel만으로는 서명된 macOS 런처·helper를 사용할 수 없습니다.
-권한용 앱은 **Haejo Helper**(`helper/Haejo Helper.app/Contents/MacOS/HaejoHelper`)이고 실행기는 `launcher/haejo`입니다. 번들 식별자와 서명 요구조건은 `ai.callabo.haejo.*`를 사용합니다.
+권한용 앱은 **Haejo Helper**(`helper/Haejo Helper.app/Contents/MacOS/HaejoHelper`)이고 실행기는 `launcher/haejo`입니다. 번들 식별자와 서명 요구조건은 `open330.haejo.*`를 사용합니다.
 
 선택적 Playwright backend는 별도 Chromium 페이지를 사용합니다.
 

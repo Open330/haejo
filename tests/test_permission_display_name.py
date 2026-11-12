@@ -16,7 +16,7 @@ class PermissionDisplayNameTests(unittest.TestCase):
             for name in ['Haejo Helper', 'Renamed Helper']:
                 with self.subTest(name=name):
                     (binary.parent.parent / 'Info.plist').write_bytes(plistlib.dumps({
-                        'CFBundleDisplayName': name, 'CFBundleIdentifier': 'ai.callabo.haejo.helper'}))
+                        'CFBundleDisplayName': name, 'CFBundleIdentifier': 'open330.haejo.helper'}))
                     actual = helper_display_name(binary)
                     self.assertEqual(name, actual)
                     check = _screen_recording_for(Check('screen_recording', False, '', '', ''),

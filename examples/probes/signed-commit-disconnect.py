@@ -13,7 +13,7 @@ import subprocess
 import tempfile
 import time
 
-TARGET = 'ai.callabo.haejo.list-fixture'
+TARGET = 'open330.haejo.list-fixture'
 BODY = 'lost_reply_once'
 
 
@@ -97,7 +97,7 @@ def main(driver, output):
                                      'peer_pid_version':identity.peer_pid_version}
         from AppKit import NSRunningApplication
         helper = NSRunningApplication.runningApplicationWithProcessIdentifier_(identity.pid)
-        assert (helper is not None and helper.bundleIdentifier() == 'ai.callabo.haejo.helper'
+        assert (helper is not None and helper.bundleIdentifier() == 'open330.haejo.helper'
                 and Path(str(helper.executableURL().path())).resolve() ==
                     (root / 'helper/Haejo Helper.app/Contents/MacOS/HaejoHelper').resolve())
         report['helper_before'] = helper_instance_status(identity)

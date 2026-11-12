@@ -8,7 +8,7 @@ import time
 import hashlib
 import os
 
-TARGET = 'ai.callabo.haejo.navigation-fixture'
+TARGET = 'open330.haejo.navigation-fixture'
 
 
 def main(driver, output, *, model_provider=None, require_selection=False):

@@ -10,8 +10,8 @@ import CommonCrypto
 /// no operation that decides, it only asks, claims and consumes.
 final class ApprovalCenter {
     static let shared = ApprovalCenter()
-    static let changed = Notification.Name("ai.callabo.haejo.menu-approval.changed")
-    static let clearAlways = Notification.Name("ai.callabo.haejo.menu-approval.clear-always")
+    static let changed = Notification.Name("open330.haejo.menu-approval.changed")
+    static let clearAlways = Notification.Name("open330.haejo.menu-approval.clear-always")
 
     enum Choice: String { case once, task, always, deny }
 
@@ -35,7 +35,7 @@ final class ApprovalCenter {
     }
 
     let directory: URL
-    private let state = DispatchQueue(label:"ai.callabo.haejo.approval.state")
+    private let state = DispatchQueue(label:"open330.haejo.approval.state")
     var requests: [String:Request] = [:]   // internal for tests
     private var taskGrants: [Grant] = []
     private var listener: Int32 = -1
@@ -466,7 +466,7 @@ final class ApprovalCenter {
         guard SecCodeCopyGuestWithAttributes(nil, [kSecGuestAttributeAudit: data] as CFDictionary, [], &code) == errSecSuccess,
               let code else { return false }
         var requirement: SecRequirement?
-        let text = "identifier \"ai.callabo.haejo.helper\" and anchor apple generic and certificate leaf[subject.OU] = \"\(team)\""
+        let text = "identifier \"open330.haejo.helper\" and anchor apple generic and certificate leaf[subject.OU] = \"\(team)\""
         guard SecRequirementCreateWithString(text as CFString, [], &requirement) == errSecSuccess, let requirement else { return false }
         return SecCodeCheckValidity(code, [], requirement) == errSecSuccess
     }
@@ -625,7 +625,7 @@ protocol NativeAnchorKeychain {
 enum NativeAnchorRead: Equatable { case missing, unreadable, value(Data) }
 
 final class SystemAnchorKeychain: NativeAnchorKeychain {
-    static let service = "ai.callabo.haejo.native-approval"
+    static let service = "open330.haejo.native-approval"
     static let account = "anchor"
     /// Apps allowed to read the item besides this one (the helper).
     var trusted: [String] = []
