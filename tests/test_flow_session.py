@@ -1,4 +1,8 @@
 """A session reuses only its driver, accepts one bounded flow and closes it."""
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 import contextlib
 import io
 import json

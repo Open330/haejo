@@ -43,7 +43,6 @@ def build(output: Path):
             "CFBundleExecutable": "HaejoSetup", "CFBundleIdentifier": "ai.callabo.haejo.setup.preview",
             "CFBundlePackageType": "APPL", "CFBundleShortVersionString": "1.0.0",
             "LSUIElement": True,
-            "LSMinimumSystemVersion": "13.0",
         }))
         (contents / "Resources/runtime.json").write_text(json.dumps({"root": str(root)}))
         for target in (executable, app):

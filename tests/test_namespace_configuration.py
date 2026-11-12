@@ -1,4 +1,8 @@
 """Haejo settings use one namespace without mutating unrelated user data."""
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 import os
 import tempfile
 import unittest

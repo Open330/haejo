@@ -1,4 +1,8 @@
 """`replay`/`run` refuse bad names and parameters with a named reason, not a traceback."""
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 import io
 import tempfile
 import unittest

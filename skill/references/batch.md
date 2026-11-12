@@ -9,8 +9,8 @@ full Flow JSON each time. For interactive tools use tty:true; wait for
 `HAEJO_BATCH_READY`, then send `{"params":{"amount":"17","result":"85"}}` plus
 a newline with write_stdin. All values are text; defaults fill omitted params.
 For interactive/dependent work, wait for `HAEJO_BATCH_RESULT` with exit:0 before starting the next job. EOF or the
-job limit ends the batch. The default limit is10 jobs and idle deadline90s;
-`--idle-timeout` allows1..600s. Records are bounded to64KiB.
+job limit ends the batch. The default limit is 10 jobs and idle deadline 90s;
+`--idle-timeout` allows 1..600s. Records are bounded to 64KiB.
 
 Each job binds the immutable template and runs the ordinary replay engine with
 fresh observations, authorization and completion checks. Each successful result

@@ -1,4 +1,8 @@
 """Transport fixtures only: these results do not attest a physical iPhone."""
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 from dataclasses import replace
 import io
 import json

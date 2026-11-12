@@ -1,4 +1,8 @@
 """A checked continuation must still publish answers read before the failure."""
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 import contextlib
 import io
 import unittest

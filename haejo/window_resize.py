@@ -7,7 +7,7 @@ from .flow import Selector
 
 
 def main(argv, driver):
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(prog='haejo resize', description=__doc__)
     parser.add_argument('target')
     parser.add_argument('--helper', required=True, action='store_true')
     parser.add_argument('--window', help='exact observed window title')

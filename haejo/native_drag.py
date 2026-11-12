@@ -41,7 +41,7 @@ def drag_event_count(action):
 
 
 def _main(argv, driver):
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(prog='haejo drag', description=__doc__)
     parser.add_argument('target', help='application bundle ID')
     parser.add_argument('--helper', action='store_true', required=True)
     parser.add_argument('--prepare', action='store_true', help='Prepare the background AppKit window before this stroke')
@@ -123,7 +123,7 @@ def capture_main(argv, driver):
     from .native_visual_actions import capture_window
     from .flow import Selector
     from .access_log import record_failure
-    parser=argparse.ArgumentParser(description=__doc__)
+    parser=argparse.ArgumentParser(prog='haejo capture',description=capture_main.__doc__)
     parser.add_argument('target')
     parser.add_argument('--helper',action='store_true',required=True)
     parser.add_argument('--window')

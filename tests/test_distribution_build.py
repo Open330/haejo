@@ -291,8 +291,11 @@ class DistributionInventoryTests(unittest.TestCase):
                  mock.patch.object(distribution.preview,'build',side_effect=fake_build), \
                  mock.patch.object(distribution.preview,'requirement',return_value='fixture'), \
                  mock.patch.object(distribution.subprocess,'run',side_effect=fake_run), \
+                 mock.patch.object(distribution,'require_minimum_macos',return_value='27.0') as floor, \
                  mock.patch.object(distribution,'require_timestamps',side_effect=lambda paths:timestamps(paths,run=fake_run)):
                 report=distribution.build(output,'fixture','v1.0.0-rc.4')
+            floor.assert_called_once_with(output)
+            self.assertEqual('27.0',report['minimum_macos'])
             sealed=json.loads((output/'Contents/Resources/first-run-source.json').read_text())
             info=distribution.plistlib.loads((output/'Contents/Info.plist').read_bytes())
             self.assertEqual('1.0.0',info['CFBundleShortVersionString'])

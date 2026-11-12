@@ -1,4 +1,8 @@
 """Long read-only waits, paused clocks and session/batch input lifetimes."""
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 from contextlib import contextmanager, nullcontext, redirect_stdout
 import io
 import json

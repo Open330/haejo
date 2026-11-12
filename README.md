@@ -226,7 +226,7 @@ Open `http://127.0.0.1:8787`.
 
 <a id="documentation"></a>
 
-Optional macOS **fast startup** keeps the signed helper warm between commands. Enable it in Haejo Settings (off by default, idle timeout 1–10 minutes), or use `HAEJO_HELPER_MODE=warm`; `per_command` overrides it off. Concurrent commands wait up to 10 seconds before `helper_busy`. [Details and measured scope](docs/helper-execution.md). rc.13 supports up to four isolated workers and explicitly scoped independent AX windows in one app; app-wide operations remain exclusive.
+Optional macOS **fast startup** keeps the signed helper warm between commands. Enable it in Haejo Settings (off by default, idle timeout 1–10 minutes), or use `HAEJO_HELPER_MODE=warm`; `per_command` overrides it off. Concurrent commands wait up to 10 seconds before `helper_busy`. [Details and measured scope](docs/helper-execution.md). Haejo supports up to four isolated workers and explicitly scoped independent AX windows in one app; app-wide operations remain exclusive.
 
 ## Documentation
 

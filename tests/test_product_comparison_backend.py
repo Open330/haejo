@@ -1,4 +1,8 @@
 """The comparison host requires a signed inherited channel, never a fallback."""
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path

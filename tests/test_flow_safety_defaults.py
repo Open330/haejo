@@ -1,4 +1,8 @@
 """Compact authoring preserves expanded replay behavior and refusal boundaries."""
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 import contextlib
 import copy
 import io

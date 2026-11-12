@@ -1,4 +1,8 @@
 """The CLI picks the UI Automation driver on Windows and refuses --helper there."""
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 import sys
 import unittest
 from unittest.mock import patch

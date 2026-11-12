@@ -3,6 +3,10 @@
 Seen 2026-10-07: an agent wrote `"absent": {"role": "Sheet", ...}`; it loaded,
 then `haejo run` died mid-replay with `TypeError: 'in <string>' requires string`
 and the agent got a traceback instead of the one line naming the field."""
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 import io
 import json
 import os

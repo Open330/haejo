@@ -196,7 +196,7 @@ haejo candidates
 | `branch_walk_failed` | 이어서 조작했지만 끝까지 가지 못함 |
 | `gated` / `declined` | 실행 중 승인 질문에 아니오 |
 
-나머지 재실행 오류는 [`../skill/SKILL.md`](../skill/SKILL.md#when-a-run-fails)를 보세요.
+나머지 재실행 오류는 [`../skill/references/recovery.md`](../skill/references/recovery.md#when-a-run-fails)를 보세요.
 
 ## 한계
 

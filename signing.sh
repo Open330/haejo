@@ -1,6 +1,11 @@
 # Native peers trust the same Apple-issued signing team, not one developer team.
 HAEJO_LAUNCHER_ID=ai.callabo.haejo
 HAEJO_HELPER_ID=ai.callabo.haejo.helper
+# The oldest macOS every native binary and bundle is built for. One value for
+# the compiler target and each Info.plist; setup/build_standalone_preview.py
+# reads this line, so the floor never follows the build Mac's own version.
+HAEJO_MACOS_TARGET=27.0
+HAEJO_SWIFT_TARGET="$(/usr/bin/uname -m)-apple-macos$HAEJO_MACOS_TARGET"
 
 haejo_select_identity() {
   if [ -n "${HAEJO_SIGN_IDENTITY:-}" ]; then

@@ -1,4 +1,8 @@
 """An explicit backbone must reach every model boundary of haejo do."""
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 import contextlib
 import io
 from types import SimpleNamespace

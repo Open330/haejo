@@ -1,4 +1,8 @@
 """Provider selection is explicit; parsing never issues a model request."""
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 import unittest
 from unittest.mock import patch
 from haejo.auto_repair import AutoRepair, parse_options, choose_candidate, RepairRefused

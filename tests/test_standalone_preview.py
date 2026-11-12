@@ -1,4 +1,8 @@
 """Preview packaging contracts; no app launch, signing or permissions."""
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 import importlib.util
 from pathlib import Path
 import subprocess

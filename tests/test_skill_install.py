@@ -4,6 +4,10 @@ Reported from a Codex session (2026-09-28): the skill was there, `haejo` was
 not — the installer only copied SKILL.md, and every copy was stale. These run
 the real script against a throwaway HOME.
 """
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 import os
 import subprocess
 import tempfile

@@ -6,6 +6,10 @@ promotion found that step, and the recipe then asked once per run: 8 → 16,
 13 → 39, 22 → 44. Separately, a rephrased square-root request found its recipe
 through the reading step, was learned, and the next one cost no model call.
 """
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 import json
 import unittest
 from unittest.mock import patch

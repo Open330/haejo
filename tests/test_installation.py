@@ -1,4 +1,8 @@
 """Import portability and opt-in wheel installation, without any UI access."""
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 import contextlib
 import io
 import os

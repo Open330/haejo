@@ -39,10 +39,11 @@ id_rsa
 id_ed25519
 credentials.json
 
-# Native build outputs; build from source or use notarized Release assets.
+# Wheel and setuptools outputs at the root (sites/haejo/dist is tracked).
+/dist/
+/build/
 
-# Canonical Haejo native outputs (old output names remain ignored above).
+# Native build outputs; build from source or use notarized Release assets.
 /launcher/haejo
 /helper/haejo-helper
 /helper/Haejo Helper.app/
-/broker/haejo-broker

@@ -1,4 +1,8 @@
 """CLI read commands must respect an explicitly selected permission boundary."""
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 import contextlib
 import io
 import json

@@ -1,4 +1,8 @@
 """open-url --window brings the intended browser window forward before opening."""
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 import io
 import json
 import unittest

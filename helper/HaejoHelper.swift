@@ -8158,6 +8158,9 @@ func readSavePanelForCommit(_ msg: [String: Any]) -> [String: Any] {
 // launcher starts IS such a descendant, so it could spawn this helper itself
 // and reach handle() without passing through the launcher's message vetting
 // (advisor finding: a bypass of the boundary we had just built). No fallback.
+// Indicator probes run before the peer check and can photograph the display,
+// so they exist only in a build that asks for them (-D HAEJO_PROBES).
+#if HAEJO_PROBES
 // `--indicator-menu-probe <seconds>`: show the indicator, then CHOOSE STOP
 // from its own menu and report whether the run is actually stopped.
 //
@@ -8384,6 +8387,7 @@ if let index = CommandLine.arguments.firstIndex(of: "--recording-indicator-probe
     }
     exit(0)
 }
+#endif
 
 // `--request-accessibility`: ask for the grant in this process's own name.
 //

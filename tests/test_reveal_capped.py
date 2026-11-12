@@ -1,4 +1,8 @@
 """Finding a named element past the per-container cap without walking the rest."""
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 import unittest
 from unittest import mock
 
