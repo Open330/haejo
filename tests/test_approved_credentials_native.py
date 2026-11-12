@@ -2,6 +2,10 @@
 import json,os,plistlib,subprocess,sys,tempfile,time,unittest
 from pathlib import Path
 from uuid import uuid4
+try:
+    from tests._safari import close_origin, running as safari_running
+except ImportError:  # discovered with tests/ as the top level
+    from _safari import close_origin, running as safari_running
 ROOT=Path(__file__).resolve().parents[1]
 LAUNCHER=ROOT/'launcher/haejo'
 @unittest.skipUnless(sys.platform=='darwin' and os.environ.get('HAEJO_RUN_NATIVE_CREDENTIAL_TESTS')=='1','opt-in signed secure-field receiving test')
@@ -48,6 +52,7 @@ class ApprovedCredentialsNative(unittest.TestCase):
                 self.wfile.write(b'''<title>Haejo owned approval credential fixture</title><input type="password" aria-label="Owned password" id="p"><input type="password" aria-label="Owned confirmation" id="c"><input aria-label="Owned ordinary field"><script>setInterval(()=>{if(p.value==='owned-Synthetic-47!'&&c.value==='owned-Synthetic-47!')fetch('/proof?both=matched')},100)</script>'''.replace(b'Haejo owned approval credential fixture',self.server.fixture_title.encode()))
         server=ThreadingHTTPServer(('127.0.0.1',0),Page);server.matched=False;server.fixture_title='Haejo owned approval credential fixture '+uuid4().hex
         thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
+        started_safari=not safari_running()
         def command(*args):
             return subprocess.run([str(LAUNCHER),*args],capture_output=True,text=True,
                 env=dict(os.environ,HAEJO_HELPER_MODE='warm'),timeout=40)
@@ -67,4 +72,5 @@ class ApprovedCredentialsNative(unittest.TestCase):
                 self.assertNotIn('owned-Synthetic-47!',out.stdout+out.stderr+(base/'trace.json').read_text())
                 print('Safari page verified password + confirmation persist after blur; no Vault setup; no secret in trace',flush=True)
         finally:
+            close_origin(f'http://127.0.0.1:{server.server_port}',quit_if_idle=started_safari)
             server.shutdown();server.server_close();thread.join()

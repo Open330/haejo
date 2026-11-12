@@ -3,6 +3,10 @@ import json,os,subprocess,sys,tempfile,threading,time,unittest
 from pathlib import Path
 from uuid import uuid4
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
+try:
+    from tests._safari import close_origin, running as safari_running
+except ImportError:  # discovered with tests/ as the top level
+    from _safari import close_origin, running as safari_running
 ROOT=Path(__file__).resolve().parents[1]
 LAUNCHER=ROOT/'launcher/haejo'
 @unittest.skipUnless(sys.platform=='darwin' and os.environ.get('HAEJO_RUN_NATIVE_CREDENTIAL_TESTS')=='1','opt-in native controlled credential paste')
@@ -21,6 +25,7 @@ class CredentialPasteNative(unittest.TestCase):
     self.send_response(200);self.send_header('Content-Type','text/html');self.end_headers()
     self.wfile.write(b'''<title>Haejo owned controlled password</title><input type="password" aria-label="Owned password" id="p"><script>let state='',inputs=0;p.addEventListener('input',()=>{state=p.value;inputs++});setInterval(()=>fetch('/proof?dom='+String(p.value==='owned-Synthetic-47!')+'&state='+String(state==='owned-Synthetic-47!')+'&inputs='+inputs),100)</script>'''.replace(b'Haejo owned controlled password',self.server.fixture_title.encode()))
   server=ThreadingHTTPServer(('127.0.0.1',0),Page);server.proof={};server.fixture_title='Haejo owned controlled password '+uuid4().hex;thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
+  started_safari=not safari_running()
   def command(*args):return subprocess.run([str(LAUNCHER),*args],capture_output=True,text=True,timeout=40,env=dict(os.environ,HAEJO_HELPER_MODE='warm'))
   try:
    opened=command('open-url',f'http://127.0.0.1:{server.server_port}','--browser','com.apple.Safari','--helper')
@@ -58,4 +63,6 @@ class CredentialPasteNative(unittest.TestCase):
     finally:
      store.revoke(name);store._path('vault',name).unlink(missing_ok=True);discard(vault,name)
     print('Native paste: two replacement inputs received by controlled form; clipboard formats restored; no secret in output/trace',flush=True)
-  finally:server.shutdown();server.server_close();thread.join()
+  finally:
+   close_origin(f'http://127.0.0.1:{server.server_port}',quit_if_idle=started_safari)
+   server.shutdown();server.server_close();thread.join()

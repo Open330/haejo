@@ -12,6 +12,10 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 from uuid import uuid4
+try:
+    from tests._safari import close_origin, running as safari_running
+except ImportError:  # discovered with tests/ as the top level
+    from _safari import close_origin, running as safari_running
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -56,6 +60,7 @@ class CredentialUnicodeNative(unittest.TestCase):
         server.interrupt = False
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
+        started_safari = not safari_running()
 
         def command(*args):
             return subprocess.run([str(ROOT / 'launcher/haejo'), *args], capture_output=True,
@@ -161,6 +166,7 @@ class CredentialUnicodeNative(unittest.TestCase):
                 self.assertEqual(['false'], server.proof.get('exact'))
                 self.assertTrue(restored(before, clipboard()), 'clipboard was not restored')
         finally:
+            close_origin(f'http://127.0.0.1:{server.server_port}', quit_if_idle=started_safari)
             server.shutdown()
             server.server_close()
             thread.join()
