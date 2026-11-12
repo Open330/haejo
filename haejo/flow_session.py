@@ -281,17 +281,39 @@ def _run_session(args, *, make_driver, run_flow, stdin, emit):
         emit('session_then: use --then <bundle-id> [--document /absolute/path] after the first app, up to '
              + str(MAX_CHAINED_APPS) + ' apps'); return 2
     inherited = [flag for flag in _INHERITED if flag in segments[0]]
+    # The signed launcher hands this process one helper channel; every app in
+    # the chain uses it, and it closes once at the end.
+    shared = {}
+
+    class _Kept:
+        def __init__(self, inner):
+            self._inner = inner
+        def __getattr__(self, name):
+            return getattr(self._inner, name)
+        def close(self):
+            pass
+
+    def kept_driver(flags):
+        key = tuple(flags)
+        if key not in shared:
+            shared[key] = make_driver(flags)
+        return _Kept(shared[key])
+
     result = 0
-    for index, segment in enumerate(segments):
-        if index:
-            segment = segment + [flag for flag in inherited if flag not in segment]
-            emit('HAEJO_SESSION_NEXT ' + segment[0] + ' (' + str(index + 1) + '/' + str(len(segments)) + ')')
-        result = _run_one_session(segment, make_driver=make_driver, run_flow=run_flow, stdin=stdin, emit=emit)
-        if result != 0:
-            if index + 1 < len(segments):
-                emit('HAEJO_SESSION_STOPPED later apps not started: ' + ', '.join(seg[0] for seg in segments[index + 1:]))
-            return result
-    return result
+    try:
+        for index, segment in enumerate(segments):
+            if index:
+                segment = segment + [flag for flag in inherited if flag not in segment]
+                emit('HAEJO_SESSION_NEXT ' + segment[0] + ' (' + str(index + 1) + '/' + str(len(segments)) + ')')
+            result = _run_one_session(segment, make_driver=kept_driver, run_flow=run_flow, stdin=stdin, emit=emit)
+            if result != 0:
+                if index + 1 < len(segments):
+                    emit('HAEJO_SESSION_STOPPED later apps not started: ' + ', '.join(seg[0] for seg in segments[index + 1:]))
+                return result
+        return result
+    finally:
+        for driver in shared.values():
+            driver.close()
 
 
 def _run_one_session(args, *, make_driver, run_flow, stdin, emit):

@@ -53,11 +53,11 @@ class SessionThenTests(unittest.TestCase):
         nxt = messages.index('HAEJO_SESSION_NEXT com.example.b (2/2)')
         self.assertLess(messages.index(ready[0]), nxt)
         self.assertLess(nxt, messages.index(ready[1]))
-        # Each app is its own session: one connection each, closed.
-        self.assertEqual(2, len(drivers))
-        for d in drivers:
-            d.close.assert_called_once()
-        self.assertEqual('com.example.b', drivers[1].observe.call_args.args[0])
+        # One helper channel per process: every app uses it; it closes once at the end.
+        self.assertEqual(1, len(drivers))
+        drivers[0].close.assert_called_once()
+        self.assertEqual(['com.example.a', 'com.example.b'],
+                         [c.args[0] for c in drivers[0].observe.call_args_list])
 
     def test_failure_stops_before_later_apps(self):
         step = {'steps': [{'action': 'read'}]}
@@ -66,6 +66,7 @@ class SessionThenTests(unittest.TestCase):
         self.assertEqual(1, code)
         self.assertEqual(['com.example.a'], ran)
         self.assertEqual(1, len(drivers))
+        drivers[0].close.assert_called_once()
         self.assertIn('HAEJO_SESSION_STOPPED later apps not started: com.example.b', messages)
 
     def test_flags_are_inherited_and_misuse_is_refused(self):
