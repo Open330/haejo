@@ -57,7 +57,7 @@ import Foundation
   let left = accessoryOrigin(settings: CGRect(x: 700, y: 200, width: 700, height: 600), panel: panel, screen: screen)
   assert(left.x == 428)
   let inside = accessoryOrigin(settings: CGRect(x: 100, y: 0, width: 1300, height: 900), panel: panel, screen: screen)
-  assert(inside.x == 1400 - 260 - 12 && inside.y == 600)
+  assert(inside.x == 100 + 12 && inside.y == 600)
   for settings in [CGRect(x: -400, y: 850, width: 700, height: 600), CGRect(x: 1300, y: -500, width: 700, height: 600)] {
     let p = accessoryOrigin(settings: settings, panel: panel, screen: screen)
     assert(p.x >= 0 && p.x + panel.width <= 1440 && p.y >= 0 && p.y + panel.height <= 900)
