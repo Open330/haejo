@@ -106,7 +106,7 @@ Haejo로 통일합니다. 이전 이름의 명령·import·환경 변수를 런�
 | macOS 앱 아이콘 | `docs/assets/haejo-app.icns` (16–1024 px, 10개 크기) |
 | 아이콘 벡터 원본 | `docs/assets/haejo-app-icon.svg` (64 px 이상), `docs/assets/haejo-app-icon-small.svg` (16·32 px) |
 | 앱·사이트용 마크와 로크업 | `docs/assets/haejo-logo.svg`, `docs/assets/haejo-wordmark.svg`, `sites/haejo/dist/assets/` |
-| 설정 메뉴 막대 template | `docs/assets/haejo-menu-template.svg` |
+| 메뉴 막대 template (Haejo 마크) | `docs/assets/haejo-menu-template.svg` |
 
 - 모든 SVG와 `.icns`는 `python3 setup/build_brand_assets.py`가 만듭니다. SVG를 직접 고치지 말고
   스크립트 상수를 고친 뒤 다시 생성합니다. `--check`는 렌더링 없이 추적 중인 SVG가 생성기와
