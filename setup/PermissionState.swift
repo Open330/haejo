@@ -239,7 +239,9 @@ func accessoryOrigin(settings: CGRect, panel: CGSize, screen: CGRect, gap: CGFlo
     } else if settings.minX - gap - panel.width >= screen.minX {
         x = settings.minX - gap - panel.width
     } else {
-        x = settings.maxX - panel.width - gap
+        // No room beside Settings: cover its sidebar, which this step never
+        // needs. The app list and its switches sit on the right.
+        x = settings.minX + gap
     }
     x = max(screen.minX, min(x, screen.maxX - panel.width))
     let y = max(screen.minY, min(top, screen.maxY - panel.height))

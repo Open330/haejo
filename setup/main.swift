@@ -427,6 +427,8 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var permissionGuideID: UUID?
     var settingsAnchorID: CGWindowID?
     var settingsWindowSeen = false
+    // Set when the person drags the guide; it then stays where they put it.
+    var guideMovedByPerson = false
     let settingsWaitHint = "시스템 설정 창을 찾지 못했어요. Dock에서 시스템 설정을 열어 주세요."
     var checkInFlight = false
     var pollTimer: Timer?
@@ -811,6 +813,7 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         panel.orderOut(nil)
         settingsAnchorID = nil
         settingsWindowSeen = false
+        guideMovedByPerson = false
         if !NSWorkspace.shared.open(permission.settingsURL) { notice = settingsWaitHint }
         panel.show(for: permission, app: appFor(permission))
         permissionGuideID = UUID()
@@ -845,7 +848,9 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         if notice == settingsWaitHint { notice = nil; render() }
         let screen = NSScreen.screens.first(where: { $0.frame.intersects(settings) })?.visibleFrame
             ?? NSScreen.main?.visibleFrame ?? settings
-        panel.setFrameOrigin(accessoryOrigin(settings: settings, panel: panel.frame.size, screen: screen))
+        if !guideMovedByPerson {
+            panel.setFrameOrigin(accessoryOrigin(settings: settings, panel: panel.frame.size, screen: screen))
+        }
         panel.pointTowardSettings(settings)
         if !panel.isVisible { panel.orderFrontRegardless() }
     }
@@ -1140,6 +1145,11 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         reopen(); return true
     }
+    // Sent only when the person starts dragging a window, not for setFrameOrigin.
+    func windowWillMove(_ notification: Notification) {
+        if (notification.object as? NSWindow) === panel { guideMovedByPerson = true }
+    }
+
     func windowWillClose(_ notification: Notification) {
         guard let closing = notification.object as? NSWindow,
               closing === window || closing === panel else { return }
