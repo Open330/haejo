@@ -38,6 +38,7 @@ let rendezvousLog = Logger(subsystem: "ai.callabo.haejo", category: "rendezvous"
 // Stage-2 menu approval: the gate asks the signed menu app over an
 // authenticated channel. Inert while the gate is not enforcing.
 NativeApproval.decide = NativeApprovalClient.check
+NativeApproval.enforcing = NativeApprovalAnchor.enforcing
 NativeApproval.context = NativeApprovalClient.context
 NativeApproval.stopPressed = { abortState.isStopped }
 NativeApproval.commitReader = NativeCommit.read

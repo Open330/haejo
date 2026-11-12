@@ -474,6 +474,15 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         root = runtime
         bundledRuntime = object["bundledRoot"] == "runtime"
         helper = root.appendingPathComponent("helper/Haejo Helper.app")
+        ApprovalCenter.shared.trustHelper(helper)
+        MenuApprovalHooks.enforcing = { ApprovalCenter.shared.store.enforcing }
+        MenuApprovalHooks.anchorLost = { ApprovalCenter.shared.store.anchorLost }
+        MenuApprovalHooks.setEnforcing = { on, confirm in
+            ApprovalCenter.shared.setEnforcing(on) { list in
+                let keep = confirm(list.map { "\($0.name) — \($0.host)" })
+                return zip(list, keep).filter { $0.1 }.map { $0.0 }
+            }
+        }
         refreshConnection()
         build()
         installMenus()

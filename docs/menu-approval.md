@@ -50,10 +50,41 @@ This replaces the CLI's own yes for confirm steps on the `run`, `replay` and
 (`~/Library/Application Support/Haejo/approval.sock`, mode 0600, same-user
 peers only) can ask, claim and spend approvals but has no operation that
 decides one. It does not cover a caller that edits Haejo's own files or that
-drives the screen without Haejo; enforcing approvals inside the signed helper
-is a separate later stage. The task a grant belongs to is the caller's
+drives the screen without Haejo; the helper stage below covers that case. The task a grant belongs to is the caller's
 `HAEJO_TASK`; it separates ordinary tasks from each other, and its
 authenticity is not verified at this stage. The app's signing team is read by
 the menu app from the running copies (or, with none running, the copy
 LaunchServices opens); when copies from different teams are running, or the
 target is not a bundle id, only **이번만 허용** and **거절** are offered.
+
+## Helper stage
+
+Turning **메뉴에서 승인** on in the menu app's own window also turns on the
+decision inside the signed Haejo Helper. The switch is the only way to turn it
+on or off; editing `preferences.json` changes neither.
+
+- Every input the helper is about to post is classified from what the helper
+  reads on the screen (the button, the default button for Return, a secure
+  text field, a menu item or popup option), not from the flow's declarations.
+  Sending, payment, deletion and credential entry get one card in the menu app,
+  built from what the helper read: the app, the window, the recipient, the
+  first line of the body, the selected items, the amount and the site. Parts
+  it could not read are named on the card.
+- With this on, the card before a `run` is not shown; each risky input is
+  decided at the moment it is posted. After an allow, the helper reads the
+  input again and posts it only if the element, window, process and what it
+  commits are unchanged; otherwise the step ends with `approval_target_changed`.
+- **이 작업 동안 허용(1시간)** and **항상 허용** are offered for sending when the
+  site was read (the grant is for that app, its signer, that site and, when
+  read, that recipient), **이 작업 동안 허용** for deletion. Payments are confirmed
+  every time. Credential entry runs without a card for the delegated logins
+  confirmed in the list shown when the switch is turned on.
+- Input into Haejo's own windows is refused while this is on
+  (`haejo_ui_input_refused`); reading them works.
+- The time a card is open does not count toward the step's input time.
+- The state and grants are signed with a key kept in the login keychain,
+  readable by the menu app and the helper without a prompt. An edited, forged
+  or older copy of the grant file is ignored. If the keychain item cannot be
+  read, risky inputs are refused with `approval_unavailable` until the switch
+  is turned off and on again. Removing the keychain item reads as "never turned
+  on"; the settings window then says so.

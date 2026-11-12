@@ -1,6 +1,16 @@
 import AppKit
 import Darwin
 
+/// Menu approval state, wired by the app to its approval center (this file
+/// does not depend on it).
+enum MenuApprovalHooks {
+    nonisolated(unsafe) static var enforcing: () -> Bool = { false }
+    nonisolated(unsafe) static var anchorLost: () -> Bool = { false }
+    /// Turns enforcement on or off; the closure asks which listed
+    /// delegations keep running (one Bool per entry).
+    nonisolated(unsafe) static var setEnforcing: (_ on: Bool, _ confirm: ([String]) -> [Bool]) -> Bool = { _, _ in true }
+}
+
 private func activityInteger(_ value: Any?) -> Int? {
     guard let n = value as? NSNumber, CFGetTypeID(n) != CFBooleanGetTypeID(),
           !["d","f"].contains(String(cString:n.objCType)), Double(n.intValue) == n.doubleValue else { return nil }
@@ -782,7 +792,10 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
         logToggle.state = currentSettings.loggingEnabled ? .on : .off
         bannerToggle.state = currentSettings.showControlBanner ? .on : .off
         warmToggle.state = currentSettings.keepHelperWarm ? .on : .off
-        approvalToggle.state = currentSettings.requireMenuApproval ? .on : .off
+        approvalToggle.state = currentSettings.requireMenuApproval || MenuApprovalHooks.enforcing() ? .on : .off
+        if MenuApprovalHooks.anchorLost() {
+            saveStatus.stringValue = "메뉴에서 승인 상태가 키체인에서 지워져 꺼진 상태입니다. 다시 켜면 이어서 적용됩니다."
+        }
         helperIdle.selectItem(at:currentSettings.helperIdleMinutes-1)
         helperIdle.isEnabled = currentSettings.keepHelperWarm
         retention.selectItem(at:[7,30,90].firstIndex(of:currentSettings.retentionDays) ?? 1)
@@ -791,7 +804,7 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
         if credentialCenter == nil {credentialCenter=CredentialCenter()}
         credentialCenter?.present()
     }
-    @objc private func saveSettings() {
+    @objc private func saveSettings(_ sender: Any? = nil) {
         var desired = currentSettings; desired.showControlBanner = bannerToggle.state == .on
         desired.loggingEnabled = logToggle.state == .on
         desired.keepHelperWarm = warmToggle.state == .on
@@ -799,8 +812,35 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
         desired.helperIdleMinutes = max(1,helperIdle.indexOfSelectedItem+1)
         desired.retentionDays = [7,30,90][max(0,retention.indexOfSelectedItem)]
         do { try store.save(desired); currentSettings = desired; helperIdle.isEnabled = desired.keepHelperWarm; saveStatus.stringValue = "저장했어요. 다음 작업부터 적용됩니다."
+             // The switch itself (a click in this window) turns enforcement on or off.
+             if (sender as AnyObject?) === approvalToggle,
+                !MenuApprovalHooks.setEnforcing(desired.requireMenuApproval, Self.confirmDelegations) {
+                 // Show what is actually in effect.
+                 let actual = MenuApprovalHooks.enforcing()
+                 desired.requireMenuApproval = actual
+                 try? store.save(desired); currentSettings = desired
+                 approvalToggle.state = actual ? .on : .off
+                 saveStatus.stringValue = actual ? "메뉴에서 승인을 끄지 못했어요. 켜진 상태를 유지합니다." : "메뉴에서 승인을 켜지 못했어요. 꺼진 상태를 유지합니다."
+             }
              NotificationCenter.default.post(name:Notification.Name("ai.callabo.haejo.menu-approval.changed"), object:nil) }
         catch { loadSettings(); saveStatus.stringValue = "설정을 저장하지 못했어요. 이전 설정을 유지합니다." }
+    }
+    /// Once, when menu approval is turned on: which existing credential
+    /// delegations keep signing in without a card.
+    static func confirmDelegations(_ list: [String]) -> [Bool] {
+        guard !list.isEmpty else { return [] }
+        let alert = NSAlert()
+        alert.messageText = "위임해 둔 로그인을 계속 카드 없이 쓸까요?"
+        alert.informativeText = "선택한 위임은 메뉴에서 승인을 켠 뒤에도 확인 카드 없이 로그인합니다."
+        let boxes = list.map { d -> NSButton in
+            let box = NSButton(checkboxWithTitle: d, target: nil, action: nil); box.state = .on; return box
+        }
+        let stack = NSStackView(views: boxes); stack.orientation = .vertical; stack.alignment = .leading
+        stack.frame = NSRect(x: 0, y: 0, width: 360, height: CGFloat(boxes.count) * 24)
+        alert.accessoryView = stack
+        alert.addButton(withTitle: "확인")
+        alert.runModal()
+        return boxes.map { $0.state == .on }
     }
     @objc private func clearAlwaysApprovals() {
         NotificationCenter.default.post(name:Notification.Name("ai.callabo.haejo.menu-approval.clear-always"), object:nil)
