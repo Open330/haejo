@@ -1034,6 +1034,8 @@ SIGNED_HELPER_ONLY = frozenset({
     "observe.window_identity",
     # Live app/frame-origin checks on the signed credential transport.
     "action.credential_input",
+    # Page content: replies name the route; click takes route:"pointer".
+    "web.input_routes", "click.route_pointer",
 })
 
 

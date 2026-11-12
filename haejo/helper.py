@@ -780,6 +780,12 @@ class HelperDriver:
                     or risk_class!='preapproved' or approved is not True
                     or 'action.credential_input' not in getattr(self,'capabilities',())):
                 return {'type':'error','error':'credential_scope_unavailable','effect':'not_started'}
+        if 'route' in action:
+            if (action.get('name') != 'click' or action['route'] != 'pointer'
+                    or type(action.get('element_index')) is not int or 'point' in action
+                    or save_panel_token is not None
+                    or 'click.route_pointer' not in getattr(self, 'capabilities', ())):
+                return {'type':'error','error':'invalid_click_route','effect':'not_started'}
         if action.get('name') == 'open_select':
             from .protocol import native_opening_parameters_problem
             problem = native_opening_parameters_problem(action)

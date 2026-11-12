@@ -1068,3 +1068,32 @@ from `check_defaults`, and it does not create a Save/dispatch receipt. Omitting
 Normal parameter binding, sensitive-value handling and runtime verification apply.
 Saved templates serialize the expanded Flow, not the shorthand or a native token.
 The session performs no extra read, write or model call to expand the input.
+
+### Input routes in web pages (signed macOS helper)
+
+A helper that announces `web.input_routes` names the means it used in every
+reply that dispatched input: `input_route` and `route_level` (`L1`
+accessibility, `L2` events addressed to the window with the app behind, `L3`
+the app in front for that input and the previous app in front again
+afterwards). `haejo.input_route.route_of(reply)` turns a reply into the record
+replay stores on the step's event and `ok` log entry (`route`), and the CLI
+prints as `HAEJO_ROUTE {…}`.
+
+Inside a `WebArea` the helper chooses per control: `set_value` focuses a text
+control, writes and reads back (`ax_value_focused`), then types
+(`window_keys`, `foreground_keys`) when the value was not kept; `type_text`
+sends key events; `select_option` (and `set_value` on a `<select>`) chooses
+from the control's own pop-up menu (`web_popup_menu`); `set_value` on a date
+field takes `YYYY-MM-DD` (`web_date_picker`). An L3 reply adds
+`foreground_taken`, `front_restored`, `previous_front` and `pointer_moved`;
+`front_restored: false` comes with `activated_target: true`.
+
+With `click.route_pointer`, `click` accepts `params: {"route": "pointer"}`: the
+click is sent as pointer events at the element's centre (page content: with the
+browser in front, `foreground_element_click`; elsewhere the window-bound
+element click). Replay sends that route once by itself when a plain page
+`click` was answered, its `postcondition` did not show, the step has no
+binding and its effects are within `read`/`write_ephemeral`; the log then
+holds a `route_fallback` entry with `from`, `to`, `route_level` and
+`dispatched`. The measured routes are in
+[the Safari capability matrix](safari-capability-matrix.md).

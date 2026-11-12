@@ -22,7 +22,9 @@ SECONDARY_ACTIONS = ("AXShowMenu", "AXIncrement", "AXDecrement",
                      "AXConfirm", "AXCancel")
 
 ACTION_PARAMS = {
-    "click": frozenset(), "double_click": frozenset(), "read": frozenset(), "prepare_window": frozenset(),
+    # `route: "pointer"` sends the click as pointer events on the element
+    # (a page control that opens on pointerdown); see haejo/input_route.py.
+    "click": frozenset({"route"}), "double_click": frozenset(), "read": frozenset(), "prepare_window": frozenset(),
     "set_value": frozenset({"value", "input_method"}), "type_text": frozenset({"text"}),
     "select_option": frozenset({"value", "option_label"}),
     "open_select": frozenset({"opening_action"}),
@@ -110,12 +112,17 @@ def double_click_reobservation(action, response, capabilities):
 def element_click_reobservation(action, response, capabilities):
     """A click on an element that offers no AXPress, made as one window-bound
     click at its centre (2 events): reobserve, never retry."""
+    asked = isinstance(action, dict) and action.get('route') == 'pointer'
     return ("click.window_bound_element" in (capabilities or ())
-            and isinstance(action, dict) and set(action) == {'name', 'element_index'}
+            and isinstance(action, dict)
+            and (set(action) == {'name', 'element_index', 'route'} and 'click.route_pointer' in capabilities
+                 if asked else set(action) == {'name', 'element_index'})
             and action.get('name') == 'click'
             and type(action.get('element_index')) is int and action['element_index'] >= 0
             and isinstance(response, dict) and response.get('type') == 'acted'
-            and response.get('input_route') == 'window_bound_element_click'
+            # With the browser in front for a page control, the same two events.
+            and response.get('input_route') in (('window_bound_element_click', 'foreground_element_click')
+                                                if asked else ('window_bound_element_click',))
             and response.get('unverified') == 'observe_effect'
             and response.get('reobserve_required') is True
             and type(response.get('posted_events')) is int and response['posted_events'] == 2)

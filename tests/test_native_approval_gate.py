@@ -128,7 +128,14 @@ class NativeApprovalWiringTests(unittest.TestCase):
             self.assertLess(g, body.index(f'AXUIElementPerformAction({item}', g))
         pointer = body.index('NativeApproval.gateOption(chosen,pid:p,openedHere:false,control:el)')
         self.assertLess(pointer, body.index('let result=prepareBackgroundWindow(obsID,target,chosen', pointer))
-        self.assertEqual(3, text.count('NativeApproval.gateOption('))
+        # A page's <select> takes the same gate inside its own route, before any press.
+        web = body.index('webSelectOption(el, pid: p, want: want, obsID: obsID, name: name) { item in')
+        self.assertLess(web, body.index('NativeApproval.gateOption(item, pid: p, openedHere: true, control: el)', web))
+        web_route = (ROOT/'helper/WebInput.swift').read_text()
+        choose = web_route[web_route.index('func choose(_ menu: AXUIElement)'):]
+        self.assertLess(choose.index('gate(matches[0].item)'),
+                        choose.index('AXUIElementPerformAction(matches[0].item, kAXPressAction as CFString)'))
+        self.assertEqual(4, text.count('NativeApproval.gateOption('))
         custom = body.index('NativeApproval.gateOption(items[0]')
         self.assertLess(body.rindex('spentMenu = (pid: p, control: el, menu: menu,popupWindowID:pending.popupWindowID', 0, custom), custom)
         self.assertIn('NativeApproval.swift', (ROOT/'helper/build.sh').read_text())

@@ -60,6 +60,10 @@ func prepareBackgroundWindow(_ obsID:String, _ target:String, _ element:AXUIElem
                              deadline:Double, expectation:[String:Any]?, elementClicks:Int) -> [String:Any] {
     pointerCalls += 1; return ["type":"acted", "input_route":"window_bound_element_click"]
 }
+// Page routes never apply to this button (not web content, not a dialog).
+func webClickRoute(_ action:[String:Any], _ el:AXUIElement, pid:pid_t, obsID:String, target:String,
+                   deadline:Double, guarded:Bool, pointerClick:() -> [String:Any]) -> [String:Any]? { nil }
+func pageDialogPress(_ el:AXUIElement) -> Bool? { nil }
 // The list-selection route never applies to this button (no parent list).
 func selectListItem(_ el:AXUIElement, deadline:Double) -> [String:Any]? { nil }
 func selectTableRow(_ el:AXUIElement, deadline:Double) -> [String:Any]? { nil }

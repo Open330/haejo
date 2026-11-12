@@ -52,7 +52,7 @@ func windowScopeActionProblem(_ msg:[String:Any], _ scope:ParallelWindowScope) -
     guard msg["credential_origin"] == nil, msg["sensitive_input_authorized"] == nil, msg["save_panel_token"] == nil,
           let action=msg["action"] as? [String:Any],
           let name=action["name"] as? String,
-          ["read","click","set_value","type_text"].contains(name), action["point"] == nil,
+          ["read","click","set_value","type_text","select_option","scroll"].contains(name), action["point"] == nil,
           let raw=action["element_index"] as? NSNumber,
           CFGetTypeID(raw) != CFBooleanGetTypeID(), raw.doubleValue==Double(raw.intValue),
           latestObsID==msg["obs_id"] as? String, latestTargetPID==scope.pid,
@@ -70,8 +70,21 @@ func windowScopeActionProblem(_ msg:[String:Any], _ scope:ParallelWindowScope) -
     let element=latestElements[raw.intValue]
     do { try documentValidateElement(element,window:window) }
     catch { return "window_scope_changed" }
+    // Page content in this window: its <select>, its pointer-only controls
+    // and its typed text stay in the window's own session (WebInput.swift
+    // takes the shared input lease for anything past accessibility).
+    let role=str(element,kAXRoleAttribute as String) ?? ""
+    let web=webAreaAncestor(element) != nil
+    // Scrolling writes this window's own scroll bar value.
+    if name=="scroll" { return web ? nil : "window_scope_requires_app" }
+    if name=="select_option" {
+        return web && role=="AXPopUpButton" ? nil : "window_scope_requires_app"
+    }
     if name=="click" {
-        if ["AXPopUpButton","AXComboBox","AXMenuItem","AXMenu","AXMenuButton"].contains(str(element,kAXRoleAttribute as String) ?? "") {
+        if action["route"] != nil { return web ? nil : "window_scope_requires_app" }
+        // A page's <select> reaches the click case, which names select_option.
+        if web && role=="AXPopUpButton" { return nil }
+        if ["AXPopUpButton","AXMenuItem","AXMenu","AXMenuButton"].contains(role) || (role=="AXComboBox" && !web) {
             return "window_scope_requires_app"
         }
         var names: CFArray?
@@ -81,7 +94,8 @@ func windowScopeActionProblem(_ msg:[String:Any], _ scope:ParallelWindowScope) -
         }
     }
     if ["set_value","type_text"].contains(name),
-       !["AXTextField","AXTextArea","AXSearchField"].contains(str(element,kAXRoleAttribute as String) ?? "") {
+       !["AXTextField","AXTextArea","AXSearchField"].contains(role),
+       !(web && (name=="set_value" ? ["AXPopUpButton","AXComboBox","AXDateTimeArea"] : ["AXComboBox"]).contains(role)) {
         return "window_scope_requires_app"
     }
     return nil

@@ -653,6 +653,18 @@ def _run_flow(flow, argv, walked: bool = False, *, _driver=None, _confirm=None, 
         diagnostic = preparation_diagnostic(candidate)
         if diagnostic is not None:
             print(MARKER + json.dumps(diagnostic, ensure_ascii=True, separators=(',', ':')))
+    # Which means delivered each input, when the driver named one: a route
+    # past plain accessibility, or a click re-sent as pointer events.
+    for entry in result.log:
+        if not isinstance(entry, dict):
+            continue
+        if entry.get('status') == 'route_fallback':
+            print('HAEJO_ROUTE ' + json.dumps({k: entry.get(k) for k in ('step', 'action', 'status', 'from', 'to', 'route_level', 'dispatched')},
+                                              ensure_ascii=True, separators=(',', ':')))
+        route = entry.get('route')
+        if isinstance(route, dict) and route.get('input_route') != 'ax_action':
+            print('HAEJO_ROUTE ' + json.dumps({'step': entry.get('step'), 'action': entry.get('action'), **route},
+                                              ensure_ascii=True, separators=(',', ':')))
     if not result.ok:
         from .access_log import record_failure
         last = result.log[-1] if result.log else {}
