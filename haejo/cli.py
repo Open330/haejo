@@ -44,6 +44,9 @@ Usage:
       (--journal-dir /absolute/private/run-directory — do/run/replay: reserve input
        before dispatch; reuse this directory on restart to refuse duplicate input.
        This does not automatically resume.)
+  haejo attach <name> /absolute/file [...] | --list | --forget <name>
+      (register files for a page's file control in Safari, pinned by SHA-256; a Flow
+       step {"action":"attach_files","params":{"scope":"<name>"}} attaches them)
   haejo web-upload /absolute/private/config.json --scope name --check
       (register immutable browser files; omit --check to review/approve and
        verify independent receiving evidence; supports --journal-dir and --report)
@@ -653,6 +656,10 @@ def _run_flow(flow, argv, walked: bool = False, *, _driver=None, _confirm=None, 
         diagnostic = preparation_diagnostic(candidate)
         if diagnostic is not None:
             print(MARKER + json.dumps(diagnostic, ensure_ascii=True, separators=(',', ':')))
+    for event in getattr(result, 'events', ()):
+        # Which way each attach_files step drove the open panel.
+        if isinstance(event, dict) and isinstance(event.get('attach'), dict):
+            print('HAEJO_ATTACH ' + json.dumps(event['attach'], ensure_ascii=False, separators=(',', ':')))
     if not result.ok:
         from .access_log import record_failure
         last = result.log[-1] if result.log else {}
@@ -1046,6 +1053,10 @@ def _dispatch_command(cmd, rest):
         from .flow_session import run_session
         return run_session(rest, make_driver=_make_driver, run_flow=_run_flow,
                            stdin=sys.stdin, emit=lambda text: print(text, flush=True))
+
+    if cmd == 'attach':
+        from .page_attach import main as attach_main
+        return attach_main(rest)
 
     if cmd == 'web':
         from .web_runtime import main as web_main

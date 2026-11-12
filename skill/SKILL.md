@@ -48,7 +48,8 @@ one session does the whole goal, on that session command together with
   delegated secrets `haejo auth login <grant> --helper`. [Credentials](references/credentials.md),
   [safety](references/safety.md).
 - **Web page:** the person's Safari, in the background: `haejo open-url <URL> --helper`
-  (`loaded_verified`), then a session on that page with `--window-match url=<text>`. [Safari](references/safari.md).
+  (`loaded_verified`), then a session on that page with `--window-match url=<text>`; files go in with
+  `haejo attach` and an `attach_files` step. [Safari](references/safari.md).
 - **Drag/resize** [drag](references/drag.md) · **hover** [hover](references/hover.md) ·
   **approval, judgment, no interactive tools** [run](references/run.md).
 - **App not running:** `haejo launch <bundle-id> --helper`, then observe.

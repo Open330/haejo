@@ -119,6 +119,10 @@ let actionSchema: [String: (required: Set<String>, optional: Set<String>)] = [
     // Finder only (the helper checks): an existing folder's absolute path,
     // opened by LaunchServices without activating Finder — no keys, no sheet.
     "open_folder":      (["name", "path"], []),
+    // Registered files into a page's file control through the open panel it
+    // shows: absolute paths with the SHA-256 pinned at registration, which the
+    // helper checks again before it chooses.
+    "choose_files":     (["name", "element_index", "files"], []),
     "reopen_window":    (["name"], []),
     // The app's own menu bar icon (AXExtrasMenuBar), pressed through AX; the
     // optional title picks one icon when the app shows several.
@@ -770,6 +774,16 @@ func vetted(_ msg: [String: Any]) -> String? {
                       !text.unicodeScalars.contains(where: { $0.properties.generalCategory == .control }) else {
                     return "focused_document 형식 오류"
                 }
+            case "files":
+                guard name == "choose_files", let list = v as? [[String: Any]], (1...16).contains(list.count),
+                      list.allSatisfy({ entry in
+                          guard Set(entry.keys) == Set(["path", "sha256"]),
+                                let path = entry["path"] as? String, path.hasPrefix("/"), path.utf8.count <= 1024,
+                                !path.unicodeScalars.contains(where: { $0.properties.generalCategory == .control }),
+                                let digest = entry["sha256"] as? String, digest.utf8.count == 64,
+                                digest.utf8.allSatisfy({ ($0 >= 48 && $0 <= 57) || ($0 >= 97 && $0 <= 102) }) else { return false }
+                          return true
+                      }) else { return "choose_files files 형식 오류" }
             case "path":
                 if name == "open_folder" {
                     guard let text = v as? String, text.hasPrefix("/"), text.utf8.count <= 1024,

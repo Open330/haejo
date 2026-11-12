@@ -52,7 +52,7 @@ func windowScopeActionProblem(_ msg:[String:Any], _ scope:ParallelWindowScope) -
     guard msg["credential_origin"] == nil, msg["sensitive_input_authorized"] == nil, msg["save_panel_token"] == nil,
           let action=msg["action"] as? [String:Any],
           let name=action["name"] as? String,
-          ["read","click","set_value","type_text"].contains(name), action["point"] == nil,
+          ["read","click","set_value","type_text","choose_files"].contains(name), action["point"] == nil,
           let raw=action["element_index"] as? NSNumber,
           CFGetTypeID(raw) != CFBooleanGetTypeID(), raw.doubleValue==Double(raw.intValue),
           latestObsID==msg["obs_id"] as? String, latestTargetPID==scope.pid,
@@ -70,7 +70,7 @@ func windowScopeActionProblem(_ msg:[String:Any], _ scope:ParallelWindowScope) -
     let element=latestElements[raw.intValue]
     do { try documentValidateElement(element,window:window) }
     catch { return "window_scope_changed" }
-    if name=="click" {
+    if name=="click" || name=="choose_files" {
         if ["AXPopUpButton","AXComboBox","AXMenuItem","AXMenu","AXMenuButton"].contains(str(element,kAXRoleAttribute as String) ?? "") {
             return "window_scope_requires_app"
         }

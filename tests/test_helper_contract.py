@@ -1007,6 +1007,9 @@ SIGNED_HELPER_ONLY = frozenset({
     "press_key.return_in_go_to_folder",
     # Finder folder open through LaunchServices without activation.
     "action.open_folder",
+    # A page's file control through its open panel; the panel's remote view
+    # is reachable with the helper's own permission.
+    "action.choose_files",
     # File > Save bound to one file, checked at the press.
     "action.menu.focused_document",
     "evidence.document_rtf_export",

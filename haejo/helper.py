@@ -759,6 +759,15 @@ class HelperDriver:
 
     def act(self, obs_id, target, action, expect=None, risk_class="none",
             intent_text="", approved=False, *, save_panel_token=None, submit_authorized=False, credential_origin=None, sensitive_input=False):
+        if action.get('name') == 'attach_files':
+            # The step names a registration; the helper is given the pinned
+            # paths and digests, and hashes the bytes again before choosing.
+            if 'action.choose_files' not in getattr(self, 'capabilities', ()):
+                return {'type': 'error', 'error': 'attach_unavailable', 'effect': 'not_started'}
+            from .page_attach import helper_action
+            action, problem = helper_action(action)
+            if problem is not None:
+                return problem
         if action.get('name') == 'resize_window' and 'action.resize_window' not in getattr(self,'capabilities',()):
             return {'type':'error','error':'resize_unavailable','effect':'not_started'}
         if 'input_method' in action:
