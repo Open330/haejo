@@ -75,6 +75,18 @@ close / markDeliverable / markHandoff`. 인벤토리는 `cua.initialize()` →
 - 액션 시도 ≠ 완료. **반환된 UI 상태에 결과가 보여야 완료**로 판정 (verify-after-action).
 - AppleScript/osascript/JXA 대체 금지 — 단일 경로 강제.
 
+> **Haejo 보정 (2026-11-12) — 선택형 예외 하나: Safari 페이지 스크립트.**
+> Haejo의 기본 경로는 그대로 접근성(AX)이다. 사람이 Safari의 "Apple Events의
+> JavaScript 허용"과 실행 호스트의 자동화 권한을 켜 둔 경우에 한해, Safari의
+> `do JavaScript`를 AX 옆의 추가 경로(`haejo page …`, `haejo/safari_js.py`)로
+> 쓴다. 이유: 사람이 로그인해 둔 실제 Safari 세션에서, 앞으로 가져오지 않고,
+> 선택되지 않은 탭까지 읽고 입력 이벤트를 정확히 보낼 수 있는 유일한 방법이기
+> 때문이다. 페이지는 AX가 쓰는 것과 같은 식별자(창 WebArea의 URL)로 지정하고,
+> 스크립트가 실행된 URL이 그것과 일치할 때만 결과를 돌려준다. 돌아온 값은 크기가
+> 제한된 페이지 데이터이며 지시나 승인으로 쓰이지 않는다. 두 스위치 중 하나라도
+> 꺼져 있으면 아무 것도 보내지 않고 AX 경로가 이전과 똑같이 동작한다. 앱 실행·
+> 창 조작·클릭 같은 다른 일에는 AppleScript를 쓰지 않는다.
+
 ### 1.2 OpenAI 공개 API (Responses API `computer` tool)
 
 - 액션 스키마: `click(x,y,button) / double_click / drag(path[]) / move / scroll

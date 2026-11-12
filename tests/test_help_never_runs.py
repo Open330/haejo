@@ -13,7 +13,7 @@ from haejo.command_help import command_help
 
 
 class HelpNeverRuns(unittest.TestCase):
-    COMMANDS = ('doctor', 'compile', 'do', 'launch', 'activate', 'open-url', 'apps', 'list', 'candidates',
+    COMMANDS = ('doctor', 'compile', 'do', 'launch', 'activate', 'open-url', 'page', 'apps', 'list', 'candidates',
                 'promote', 'logs', 'uninstall', 'keep-awake', 'first-run', 'windows', 'menu-state', 'repair',
                 'replay', 'parameterize', 'show', 'document-attachments', 'parallel', 'batch', 'observe',
                 'session', 'run')

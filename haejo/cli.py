@@ -21,6 +21,8 @@ Usage:
   haejo launch <bundle-id> [--helper]  # explicitly start an installed app in background
   haejo activate <bundle-id> [--window TEXT] [--helper]  # on a person's request: bring the app (and that window) forward
   haejo open-url <URL> [--browser <bundle-id>] [--front] [--window <title part>] [--helper]  # open a web page behind the app in use (--front shows it)
+  haejo page status | allow | text <URL> | value <URL> --selector CSS | fill <URL> --selector CSS --value TEXT | eval <URL> --js EXPR
+      (Safari page scripts, when Safari allows them: read any tab, read values, fill with input/change events)
   haejo keep-awake [--minutes N] | --stop  # opt-in: no idle display/system sleep during long remote work (no screen-saver or policy lock guarantee)
   haejo capture <bundle-id> --helper --output window.png [--window TITLE]
   haejo drag <bundle-id> --helper --from X Y --to X Y [--window TITLE]
@@ -916,6 +918,13 @@ def _dispatch_command(cmd, rest):
                               'detail': 'the previous holder could not be checked; run keep-awake --stop again'}))
             return 1
         return 0
+
+    if cmd == 'page':
+        if sys.platform != 'darwin':
+            print('page is macOS-only; see docs/windows.md')
+            return 2
+        from .safari_js import main as page_main
+        return page_main(rest)
 
     if cmd == 'open-url':
         # Behind what the person is using; --front (or --window, which picks a

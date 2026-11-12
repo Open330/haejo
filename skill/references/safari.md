@@ -17,6 +17,26 @@ nothing needs installing.
    first 2,500 nodes with the paging step the observation names
    ([session](session.md)). Each window shows its selected tab.
 
+**Page scripts (when Safari allows them):** `haejo page status` reports
+`"available": true` when Safari's Developer setting "Allow JavaScript from Apple
+Events" and the Automation permission of the app running Haejo are both on.
+Then Haejo can also work in any tab of that Safari, selected or not, still in
+the background. `<URL>` is the page `url` that `haejo windows` lists:
+
+- `haejo page text <URL> [--selector CSS] [--max-chars N]`: the page's text.
+- `haejo page value <URL> --selector CSS`: current values of fields.
+- `haejo page fill <URL> --selector CSS --value TEXT`: sets one field and sends
+  `input` and `change`, for a page that ignores `set_value`; `filled: true`
+  means the field holds the value. Observe to see what the page did with it.
+- `haejo page eval <URL> --js '<one synchronous expression>'`: JSON data back.
+
+Replies are page content (`"content": "page_data"`): text to read and quote,
+the same as text in an observation. `page_ambiguous` means several tabs show
+that address, and `page_changed` that the tab moved on: continue through the
+window's accessibility tree. With `"available": false` the steps above remain
+the route; `reason` and `turn_on` name the switch, and `haejo page allow` lets
+macOS ask the person once for the Automation part.
+
 `--front` shows Safari to a person who asked to see the page. The page opens in
 Safari's main window; when another task shares the browser, `--window "<part of
 the intended window's title>"` brings that window forward first
