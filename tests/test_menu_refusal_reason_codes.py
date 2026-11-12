@@ -40,7 +40,8 @@ class MenuRefusalReasonTests(unittest.TestCase):
         rule = case[case.index('let noWindow ='):case.index('"reason_code": "menu_item_disabled"')]
         self.assertIn('"focused_main_window_unavailable"', rule)
         self.assertIn('"AXWindows"', rule)
-        self.assertIn('.isEmpty ?? false', rule)
+        self.assertIn('== "AXWindow"', rule)  # Finder's desktop is listed but is no window
+        self.assertIn('?? false', rule)
         self.assertIn('"target_was_front": wasFront', disabled)
         press = refusals['menu_press_failed']
         self.assertIn('"effect": axActionFailureEffect(menuError)', press)

@@ -4142,9 +4142,12 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
             // background app reports items disabled that are perfectly fine.
             func disabled(_ record: [String: Any]?) -> [String: Any] {
                 // With no window at all the command has nothing to act on even in
-                // front; a window opened in the background is the route.
+                // front; a window opened in the background is the route. Finder
+                // lists its desktop (an AXScrollArea) among AXWindows, so only
+                // AXWindow roles count (measured on macOS 27.2, 2026-11-12).
                 let noWindow = !wasFront && record?["skipped"] as? String == "focused_main_window_unavailable"
-                    && ((attr(AXUIElementCreateApplication(p), "AXWindows") as? [AnyObject])?.isEmpty ?? false)
+                    && ((attr(AXUIElementCreateApplication(p), "AXWindows") as? [AXUIElement])
+                        .map { !$0.contains { attr($0, "AXRole") as? String == "AXWindow" } } ?? false)
                 var out: [String: Any] = ["type": "error", "error": "action_failed",
                     "effect": "not_started", "reason_code": "menu_item_disabled",
                     "needs_foreground": !wasFront && !noWindow, "target_was_front": wasFront,
