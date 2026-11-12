@@ -31,7 +31,9 @@ Flow with `write_stdin` on the same session, using the value from the previous
 result. `--helper`, `--timings`, `--guide` and `--steps` carry over; options
 written after a `--then` apply to that app only. Up to four apps. Each app is
 its own session with its own observation, replay and checks; a failed app ends
-the command with `HAEJO_SESSION_STOPPED` naming the apps not started.
+the command with `HAEJO_SESSION_STOPPED` naming the apps not started, and
+`HAEJO_SESSION_RESUME` gives the command that continues from the app that stopped
+once its failure is handled (for example, after the recovery its hint names).
 
 For agent tools, start with `exec_command`, `tty: true`, and
 `yield_time_ms: 1000`. Wait for both the observation and `HAEJO_SESSION_READY`.

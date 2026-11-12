@@ -68,6 +68,19 @@ class SessionThenTests(unittest.TestCase):
         self.assertEqual(1, len(drivers))
         drivers[0].close.assert_called_once()
         self.assertIn('HAEJO_SESSION_STOPPED later apps not started: com.example.b', messages)
+        # The rest of the chain is one command away, starting at the app that stopped.
+        self.assertEqual('HAEJO_SESSION_RESUME after handling the failure above, continue from this app: '
+                         'haejo session com.example.a --helper --steps --then com.example.b', messages[-1])
+
+    def test_resume_starts_at_the_middle_app_and_keeps_its_options(self):
+        step = {'steps': [{'action': 'read'}]}
+        _, messages, ran, _ = self.run_chain(
+            ['com.example.a', '--helper', '--steps', '--then', 'com.example.b',
+             '--then', 'com.example.c', '--document', '/tmp/x y.txt'], [step, step], [0, 1])
+        self.assertEqual(['com.example.a', 'com.example.b'], ran)
+        self.assertEqual("HAEJO_SESSION_RESUME after handling the failure above, continue from this app: "
+                         "haejo session com.example.b --helper --steps --then com.example.c --document '/tmp/x y.txt'",
+                         messages[-1])
 
     def test_flags_are_inherited_and_misuse_is_refused(self):
         step = {'steps': [{'action': 'read'}]}

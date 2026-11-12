@@ -1,5 +1,6 @@
 """One signed connection: observe, accept one bounded flow, replay, exit."""
 import json
+import shlex
 import os
 import select
 import sys
@@ -309,6 +310,9 @@ def _run_session(args, *, make_driver, run_flow, stdin, emit):
             if result != 0:
                 if index + 1 < len(segments):
                     emit('HAEJO_SESSION_STOPPED later apps not started: ' + ', '.join(seg[0] for seg in segments[index + 1:]))
+                    rest = [segment] + segments[index + 1:]
+                    emit('HAEJO_SESSION_RESUME after handling the failure above, continue from this app: haejo session '
+                         + ' --then '.join(shlex.join(seg) for seg in rest))
                 return result
         return result
     finally:
