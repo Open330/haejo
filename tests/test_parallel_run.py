@@ -45,7 +45,7 @@ class ValidationTests(unittest.TestCase):
             m=manifest();m['jobs'][0]['window_id']=window;cases.append(m)
         for field in ('id','window_id'):
             m=manifest();m['jobs'][1][field]=m['jobs'][0][field];cases.append(m)
-        m=manifest();m['jobs'][1]['window_id']=100;m['jobs'][1]['flow']['target']='AI.CALLABO.HAEJO.FIXTURE';cases.append(m)
+        m=manifest();m['jobs'][1]['window_id']=100;m['jobs'][1]['flow']['target']='OPEN330.HAEJO.FIXTURE';cases.append(m)
         m=manifest();del m['jobs'][1]['window_id'];cases.append(m)
         for m in cases:
             with self.subTest(m=m),patch('haejo.parallel_run.subprocess.Popen') as launch:
