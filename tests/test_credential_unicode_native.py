@@ -20,11 +20,10 @@ ROOT = Path(__file__).resolve().parents[1]
                      'opt-in owned Safari Unicode credential receiving')
 class CredentialUnicodeNative(unittest.TestCase):
     def test_nfc_nfd_replacement_input_events_and_clipboard(self):
-        from AppKit import NSPasteboard
-
-        def clipboard():
-            return [[(str(t), None if item.dataForType_(t) is None else bytes(item.dataForType_(t))) for t in item.types()]
-                    for item in NSPasteboard.generalPasteboard().pasteboardItems() or []]
+        try:
+            from tests._clipboard import restored, snapshot as clipboard
+        except ImportError:  # discovered with tests/ as the top level
+            from _clipboard import restored, snapshot as clipboard
 
         class Page(BaseHTTPRequestHandler):
             def log_message(self, *args):
@@ -103,7 +102,7 @@ class CredentialUnicodeNative(unittest.TestCase):
                                 time.sleep(.05)
                             self.assertEqual(['true'], server.proof.get('exact'))
                             self.assertEqual(['true'], server.proof.get('state'))
-                            self.assertEqual(before, clipboard())
+                            self.assertTrue(restored(before, clipboard()), 'clipboard was not restored')
                             self.assertNotIn(value, result.stdout + result.stderr + trace.read_text())
                             if kind == 'password' and value == values[1]:
                                 from haejo.credential_grants import CredentialStore
@@ -129,7 +128,7 @@ class CredentialUnicodeNative(unittest.TestCase):
                                         time.sleep(.05)
                                     self.assertEqual(['true'], server.proof.get('exact'))
                                     self.assertEqual(['true'], server.proof.get('state'))
-                                    self.assertEqual(before, clipboard())
+                                    self.assertTrue(restored(before, clipboard()), 'clipboard was not restored')
                                 finally:
                                     store.revoke(name)
                                     store._path('vault', name).unlink(missing_ok=True)
@@ -160,7 +159,7 @@ class CredentialUnicodeNative(unittest.TestCase):
                     time.sleep(.05)
                 self.assertEqual(['true'], server.proof.get('other_empty'))
                 self.assertEqual(['false'], server.proof.get('exact'))
-                self.assertEqual(before, clipboard())
+                self.assertTrue(restored(before, clipboard()), 'clipboard was not restored')
         finally:
             server.shutdown()
             server.server_close()
