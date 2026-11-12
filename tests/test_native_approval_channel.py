@@ -81,9 +81,9 @@ class NativeApprovalChannelSourceTests(unittest.TestCase):
         client = (ROOT/'helper/NativeApprovalClient.swift').read_text()
         # The helper checks the listener before sending anything.
         self.assertLess(client.index('PeerAuth.satisfies(fd: fd, requirement: requirement)'), client.index('write(fd'))
-        self.assertIn('ai.callabo.haejo.setup.standalone.preview', client)
+        self.assertIn('open330.haejo.app', client)
         center = (ROOT/'setup/ApprovalCenter.swift').read_text()
-        self.assertIn('identifier \\"ai.callabo.haejo.helper\\"', center)
+        self.assertIn('identifier \\"open330.haejo.helper\\"', center)
         self.assertIn('LOCAL_PEERTOKEN', center)
         helper = (ROOT/'helper/HaejoHelper.swift').read_text()
         self.assertIn('NativeApproval.decide = NativeApprovalClient.check', helper)
@@ -97,7 +97,7 @@ class NativeApprovalChannelSourceTests(unittest.TestCase):
         center = (ROOT/'setup/ApprovalCenter.swift').read_text()
         self.assertIn('SO_NOSIGPIPE', center)
         self.assertIn('timer.invalidate(); watch.invalidate()', center)
-        self.assertNotIn('ai.callabo.haejo.setup.preview"', client)   # dev preview is not an approver
+        self.assertNotIn('open330.haejo.app.dev"', client)   # dev preview is not an approver
         helper = (ROOT/'helper/HaejoHelper.swift').read_text()
         body = helper[helper.index('func act(_ obsID: String'):]
         self.assertIn('var deadline = min(clickDeadline', body)

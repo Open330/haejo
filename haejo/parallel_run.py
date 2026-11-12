@@ -35,7 +35,7 @@ class BatchControl:
     This notification can only stop a batch. It cannot start input, reset an
     abort, supply a Flow, or grant permissions. Individual run stops stay local.
     """
-    name = 'ai.callabo.haejo.runtime.stop-all'
+    name = 'open330.haejo.runtime.stop-all'
 
     def __init__(self, *, targets=()):
         self.targets = frozenset(target.lower() for target in targets)

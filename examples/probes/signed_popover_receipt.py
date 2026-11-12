@@ -10,7 +10,7 @@ import subprocess
 import tempfile
 import time
 
-TARGET='ai.callabo.haejo.popover-receipt-fixture'
+TARGET='open330.haejo.popover-receipt-fixture'
 MODES=('clear','transient','semitransient')
 
 

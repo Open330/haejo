@@ -5,7 +5,7 @@ import subprocess
 import tempfile
 import time
 
-TARGET='ai.callabo.haejo.continuation-fixture'
+TARGET='open330.haejo.continuation-fixture'
 
 
 def run(driver,guard):

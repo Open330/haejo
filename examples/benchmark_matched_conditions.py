@@ -137,7 +137,7 @@ def main():
     requested_efforts={'haejo':args.reasoning_effort if args.haejo_provider=='codex' else None,'sky':args.reasoning_effort}
     if args.preflight_only:return
     config_hash=config_before['sha256']
-    target='ai.callabo.haejo.matched.'+uuid.uuid4().hex[:8]
+    target='open330.haejo.matched.'+uuid.uuid4().hex[:8]
     app=build(base,target);rows=[]
     cases=[('bonus_on',jobs()[0],False),('bonus_off',jobs()[1],False),('renamed_button',jobs()[6],True)]
     cases=[case for case in cases if case[0] in args.cases]

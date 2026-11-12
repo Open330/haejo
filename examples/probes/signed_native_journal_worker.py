@@ -6,7 +6,7 @@ from pathlib import Path
 import re
 import stat
 
-TARGET = 'ai.callabo.haejo.save-writer-fixture'
+TARGET = 'open330.haejo.save-writer-fixture'
 
 
 def private_json(path):

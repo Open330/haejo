@@ -92,6 +92,24 @@ wheel의 `haejo` console script는 Python CLI입니다. 서명된 `./launcher/ha
 네이티브 `doctor`, `apps`, `observe`, `do`, `run`, `replay`에는 macOS 실행
 환경과 해당 경로의 권한이 필요합니다.
 
+## 웹 실행 환경 (Playwright·Chromium)
+
+Haejo.app에는 Playwright와 Chromium이 들어 있지 않습니다. `haejo web-upload`처럼 별도
+브라우저를 쓰는 기능이 필요할 때 한 번 받습니다.
+
+```sh
+haejo web install                      # 최신 Playwright와 그에 맞는 Chromium
+haejo web install --playwright 1.65.1  # 버전을 지정해서
+haejo web status                       # 설치된 버전과 위치
+haejo web remove                       # 받은 것 지우기
+```
+
+`~/Library/Application Support/Haejo/Web`에 받으며, Haejo를 업데이트해도 그대로
+남습니다. 새 Playwright로 올리려면 `haejo web install`을 다시 실행합니다. 앱에는
+Playwright가 불러오는 네이티브 모듈 `greenlet`만 들어 있습니다(앱의 서명된 Python은
+Haejo 서명이 있는 네이티브 코드만 불러옵니다). Haejo가 쓰는 Python 버전이 바뀌면
+`haejo web status`가 다시 설치하라고 알려 줍니다.
+
 ## Haejo 제거
 
 설정의 **Haejo 제거…** 또는 `haejo uninstall`로 지웁니다. 이 설치가 만든 링크
@@ -232,7 +250,7 @@ swiftc setup/PermissionState.swift setup/state-check.swift -o /tmp/haejo-setup-s
 ```
 
 Haejo 설치는 `haejo` 명령을 서명된 런처(`launcher/haejo`)에 연결합니다.
-번들·서명 식별자는 `ai.callabo.haejo.*`입니다. 서명 ID가 다른 기존 앱에서 이전하면
+번들·서명 식별자는 `open330.haejo.*`입니다. 서명 ID가 다른 기존 앱에서 이전하면
 권한을 다시 허용해야 할 수 있습니다. [이름·배포 식별자](haejo-branding.md)를 확인하세요.
 
 ### 드래그로 권한용 앱 추가하기
@@ -310,7 +328,7 @@ leaves out the base Python's `pip` and pyobjc-core's `PyObjCTest`
 (about 38 MB per install):
 
 ```sh
-uv sync --frozen --all-extras --no-dev
+uv sync --frozen --extra native-visual --extra web-bridge --no-dev
 python setup/build_distribution.py --output /private/tmp/Haejo.app \
   --identity 'DEVELOPER_ID_IDENTITY' --tag v1.0.0-rc.47 \
   --report /private/tmp/haejo-build-report.json

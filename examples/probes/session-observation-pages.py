@@ -19,7 +19,7 @@ import time
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-TARGET = 'ai.callabo.haejo.observation-pages-fixture'
+TARGET = 'open330.haejo.observation-pages-fixture'
 
 
 def check(launcher):

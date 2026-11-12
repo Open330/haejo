@@ -12,7 +12,7 @@ class SnapshotPlanningTests(unittest.TestCase):
     def fixture(self, root):
         path=root/'snapshot.json'
         path.write_text(json.dumps({'evaluation_kind':'real_model_owned_appkit',
-            'target':'ai.callabo.haejo.select-fixture','requested_option':'Choice127',
+            'target':'open330.haejo.select-fixture','requested_option':'Choice127',
             'plans':[{'candidates':screen()}]}))
         return path
 

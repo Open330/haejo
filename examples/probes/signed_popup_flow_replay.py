@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 import stat
 
-TARGET='ai.callabo.haejo.select-fixture'
+TARGET='open330.haejo.select-fixture'
 ROOT=Path(__file__).resolve().parents[2]
 
 

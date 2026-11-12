@@ -206,8 +206,8 @@ class NativeApprovalAnchorSourceTests(unittest.TestCase):
         self.assertIn('NativeApproval.enforcing = NativeApprovalAnchor.enforcing', (ROOT/'helper/HaejoHelper.swift').read_text())
         center = (ROOT/'setup/ApprovalCenter.swift').read_text()
         self.assertIn('kSecUseAuthenticationUIFail', center)
-        self.assertIn('ai.callabo.haejo.native-approval', center)
-        self.assertIn('ai.callabo.haejo.native-approval', body)
+        self.assertIn('open330.haejo.native-approval', center)
+        self.assertIn('open330.haejo.native-approval', body)
 
     def test_only_the_switch_turns_enforcement_on_or_off(self):
         activity = (ROOT/'setup/ActivityCenter.swift').read_text()

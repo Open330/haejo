@@ -7,8 +7,8 @@ import argparse, os, plistlib, shutil, subprocess, tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-AGENT = 'ai.callabo.haejo.prototype.agent'
-SERVICE = 'ai.callabo.haejo.prototype.resident'
+AGENT = 'open330.haejo.prototype.agent'
+SERVICE = 'open330.haejo.prototype.resident'
 
 
 def build(output, identity, idle_seconds=120):
@@ -29,15 +29,15 @@ def build(output, identity, idle_seconds=120):
         subprocess.run(['xcrun', 'swiftc', '-O', str(source), str(ROOT / 'spike/helper-modes/ResidentProtocol.swift'),
                         '-o', str(macos / 'HaejoModes')], check=True)
     (app / 'Contents/Info.plist').write_bytes(plistlib.dumps({
-        'CFBundleIdentifier': 'ai.callabo.haejo.prototype.host', 'CFBundleExecutable': 'HaejoModes',
+        'CFBundleIdentifier': 'open330.haejo.prototype.host', 'CFBundleExecutable': 'HaejoModes',
         'CFBundlePackageType': 'APPL', 'CFBundleVersion': '1', 'LSUIElement': True}))
     (agents / (AGENT + '.plist')).write_bytes(plistlib.dumps({
         'Label': AGENT, 'BundleProgram': 'Contents/Resources/Haejo Helper.app/Contents/MacOS/HaejoHelper',
         'ProgramArguments': ['HaejoHelper', '--resident-agent', '--mode-idle', str(idle_seconds)],
         'MachServices': {SERVICE: True}, 'ProcessType': 'Interactive',
-        'AssociatedBundleIdentifiers': ['ai.callabo.haejo.prototype.host']}))
+        'AssociatedBundleIdentifiers': ['open330.haejo.prototype.host']}))
     subprocess.run(['codesign', '--force', '--sign', identity, '--options', 'runtime', '--timestamp=none',
-                    '--identifier', 'ai.callabo.haejo.prototype.host', str(app)], check=True)
+                    '--identifier', 'open330.haejo.prototype.host', str(app)], check=True)
     subprocess.run(['codesign', '--verify', '--deep', '--strict', str(app)], check=True)
     print(app / 'Contents/MacOS/HaejoModes')
 

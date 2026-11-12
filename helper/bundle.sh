@@ -25,7 +25,7 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
   <key>CFBundleName</key>            <string>Haejo Helper</string>
   <key>CFBundleDisplayName</key>     <string>Haejo Helper</string>
   <key>CFBundleIconFile</key>        <string>haejo-app.icns</string>
-  <key>CFBundleIdentifier</key>      <string>ai.callabo.haejo.helper</string>
+  <key>CFBundleIdentifier</key>      <string>open330.haejo.helper</string>
   <key>CFBundleExecutable</key>      <string>HaejoHelper</string>
   <key>CFBundlePackageType</key>     <string>APPL</string>
   <key>CFBundleShortVersionString</key> <string>1.0.0</string>

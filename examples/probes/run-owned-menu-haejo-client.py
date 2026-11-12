@@ -11,7 +11,7 @@ sys.path.insert(0, str(ROOT))
 def main(driver=None, control_dir=None, coordinate_only=False, test_abort=False, model_provider=None, prepare_window=False, general_prepare=False):
     from haejo.driver import Driver
     control = Path(control_dir if control_dir is not None else sys.argv[1]).resolve()
-    target = 'ai.callabo.haejo.menu-fixture'
+    target = 'open330.haejo.menu-fixture'
     driver = driver if driver is not None else Driver()
     resolver = Driver()
     def live():

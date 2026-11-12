@@ -23,7 +23,7 @@ import subprocess
 import time
 from pathlib import Path
 
-TARGET = 'ai.callabo.haejo.canvas-fixture'
+TARGET = 'open330.haejo.canvas-fixture'
 ROOT = Path(__file__).resolve().parents[2]
 
 

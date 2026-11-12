@@ -7,7 +7,7 @@ import subprocess
 import tempfile
 import time
 
-TARGET = 'ai.callabo.haejo.save-settings-fixture'
+TARGET = 'open330.haejo.save-settings-fixture'
 
 
 def main(driver, output, *, guarded_commit=False):

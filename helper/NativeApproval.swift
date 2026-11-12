@@ -52,8 +52,8 @@ enum NativeApproval {
     /// through Haejo while enforcing.
     nonisolated(unsafe) static var bundleOf: (pid_t) -> String? = { NSRunningApplication(processIdentifier: $0)?.bundleIdentifier }
     static let haejoBundles: Set<String> = [
-        "ai.callabo.haejo.setup.standalone.preview", "ai.callabo.haejo.setup.preview",
-        "ai.callabo.haejo.setup", "ai.callabo.haejo.helper", "ai.callabo.haejo",
+        "open330.haejo.app", "open330.haejo.app.dev",
+        "open330.haejo.helper", "open330.haejo",
     ]
 
     static func refusal(_ error: String) -> [String: Any] {

@@ -17,8 +17,8 @@ import time
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-WITNESS = 'ai.callabo.haejo.user-typing-witness'
-TARGET = 'ai.callabo.haejo.navigation-fixture'
+WITNESS = 'open330.haejo.user-typing-witness'
+TARGET = 'open330.haejo.navigation-fixture'
 EXPECTED = 'haejo typing 12345'
 STATE = re.compile(r'downs=(\d+) ups=(\d+) wrongWindow=(\d+) utf16=(\d+) '
                    r'selection=(\d+),(\d+) key=(true|false) focused=(true|false) sha256=([0-9a-f]{64})')

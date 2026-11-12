@@ -147,9 +147,9 @@ This observation also corrected the earlier transient-pane interpretation.
 After the person added Haejo Helper and the Settings toggle showed on, a fresh
 standalone receipt still reported screen capture unavailable. A read-only TCC
 log correlated the exact preflight request IDs with services and subjects:
-standalone ScreenCapture used `ai.callabo.haejo.setup.standalone.preview`, while
-Accessibility used `ai.callabo.haejo.helper`. The external source helper used
-`ai.callabo.haejo.helper` for both services. This establishes why telling the
+standalone ScreenCapture used `open330.haejo.app`, while
+Accessibility used `open330.haejo.helper`. The external source helper used
+`open330.haejo.helper` for both services. This establishes why telling the
 person to add only the embedded helper could not complete the screen grant.
 
 The standalone GUI now gives the person Haejo.app for screen capture and the

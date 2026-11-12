@@ -85,16 +85,17 @@ class DistributionInventoryTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError,'site-packages'):
                 distribution.distribution_packages(folder)
 
-    def test_all_extras_check_pins_packaged_environment_without_installing(self):
+    def test_release_extras_check_pins_packaged_environment_without_installing(self):
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder);python=root/'.venv/bin/python';python.parent.mkdir(parents=True);python.touch()
             self.package(root/'.venv')
             exported=subprocess.CompletedProcess([],0,'playwright==1.63.0\n','')
             run=mock.Mock(side_effect=lambda args,**kw: exported if args[:2]==['uv','export'] else subprocess.CompletedProcess([],0,'',''))
             self.assertEqual({'playwright':'1.63.0'},distribution.require_release_environment(root,run))
-            self.assertEqual(['uv','export','--frozen','--all-extras','--no-dev'],run.call_args_list[-1].args[0][:5])
+            self.assertEqual(['uv','export','--frozen','--extra','native-visual','--extra','web-bridge','--no-dev'],run.call_args_list[-1].args[0][:8])
+            self.assertFalse(any('web' in call.args[0] or '--all-extras' in call.args[0] for call in run.call_args_list))
             args,kwargs=run.call_args_list[1].args,run.call_args_list[1].kwargs
-            for flag in ('--frozen','--all-extras','--no-dev','--check','--inexact','--offline'):
+            for flag in ('--frozen','--extra','native-visual','web-bridge','--no-dev','--check','--inexact','--offline'):
                 self.assertIn(flag,args[0])
             self.assertEqual(str((root/'.venv').resolve()),kwargs['env']['UV_PROJECT_ENVIRONMENT'])
             self.assertEqual(root,kwargs['cwd'])
@@ -133,7 +134,7 @@ class DistributionInventoryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             python=Path(folder)/'.venv/bin/python';python.parent.mkdir(parents=True);python.touch()
             run=mock.Mock(side_effect=[subprocess.CompletedProcess([],0,'',''),subprocess.CompletedProcess([],1,'','missing playwright')])
-            with self.assertRaisesRegex(RuntimeError,'uv sync --frozen --all-extras'):
+            with self.assertRaisesRegex(RuntimeError,'uv sync --frozen --extra native-visual --extra web-bridge'):
                 distribution.require_release_environment(Path(folder),run)
 
     def test_package_deletion_still_fails_before_final_timestamp_signing(self):
@@ -305,7 +306,7 @@ class DistributionInventoryTests(unittest.TestCase):
             self.assertEqual(report['distribution_inventory'],sealed['distribution_inventory'])
             self.assertEqual(prior['distributions'],sealed['distribution_inventory']['distributions'])
             self.assertEqual(4,len(sealed['distribution_inventory']['native_paths']))
-            self.assertTrue(report['all_extras_verified'])
+            self.assertEqual(['native-visual','web-bridge'],report['release_extras_verified'])
             self.assertEqual('previous_release',sealed['inventory_compatibility']['baseline'])
 
 

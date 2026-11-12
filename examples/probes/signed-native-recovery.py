@@ -14,7 +14,7 @@ import time
 import sys
 import socket
 
-TARGET = 'ai.callabo.haejo.recovery-fixture'
+TARGET = 'open330.haejo.recovery-fixture'
 
 
 def main(driver, output, *, repeated=False, exhaust_budget=False, interleave_textedit=False,

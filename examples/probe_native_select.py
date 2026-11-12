@@ -1,6 +1,6 @@
 """Owned AppKit popup probe. Does not launch or activate any application.
 
-Requires ai.callabo.haejo.select-fixture already running in the background with
+Requires open330.haejo.select-fixture already running in the background with
 Alpha selected and selection count zero. No user app is used or restarted.
 """
 import argparse
@@ -13,7 +13,7 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-TARGET = 'ai.callabo.haejo.select-fixture'
+TARGET = 'open330.haejo.select-fixture'
 
 
 def _record_native_call(receipts,operation,obs_id,target,action,*args,**kwargs):

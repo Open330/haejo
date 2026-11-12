@@ -47,6 +47,8 @@ Usage:
   haejo web-upload /absolute/private/config.json --scope name --check
       (register immutable browser files; omit --check to review/approve and
        verify independent receiving evidence; supports --journal-dir and --report)
+  haejo web status | install [--playwright X.Y.Z] | remove   # Playwright and Chromium for web-upload,
+      (downloaded on request into the Haejo data folder; not part of Haejo.app)
   haejo parameterize <flow> -p 12=a -p 34=b --digits   # concrete IR -> template
   haejo parallel <manifest.json> --helper [--json]  # 1..4 checked AX window jobs, isolated signed sessions
       (--helper routes through the signed Swift helper that holds the permissions)
@@ -1041,6 +1043,10 @@ def _dispatch_command(cmd, rest):
         from .flow_session import run_session
         return run_session(rest, make_driver=_make_driver, run_flow=_run_flow,
                            stdin=sys.stdin, emit=lambda text: print(text, flush=True))
+
+    if cmd == 'web':
+        from .web_runtime import main as web_main
+        return web_main(rest)
 
     if cmd == 'web-upload':
         from .web_upload_cli import main as upload_main

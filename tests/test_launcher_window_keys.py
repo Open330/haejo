@@ -77,7 +77,7 @@ print(String(data:try! JSONSerialization.data(withJSONObject:requests.map {vette
         schema=source[source.index('let allowedTypes:'):source.index('// MARK: - Socket plumbing')]
         checks=r'''
 let base:[String:Any]=["type":"readiness_preflight","target":"com.apple.finder","obs_id":"owned","element_index":0]
-var fixture=base;fixture["target"]="ai.callabo.haejo.modality-fixture"
+var fixture=base;fixture["target"]="open330.haejo.modality-fixture"
 var single=base;single["read_strategy"]="single"
 var batch=base;batch["read_strategy"]="batch"
 var probe=single;probe["titlebar_probe"]=true

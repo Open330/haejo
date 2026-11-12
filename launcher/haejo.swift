@@ -274,7 +274,7 @@ func vetted(_ msg: [String: Any]) -> String? {
               msg["read_strategy"] == nil || ["batch","single"].contains(msg["read_strategy"] as? String ?? ""),
               msg["titlebar_probe"] == nil || CFGetTypeID(msg["titlebar_probe"]! as CFTypeRef) == CFBooleanGetTypeID(),
               let target = msg["target"] as? String,
-              ["com.apple.finder","ai.callabo.haejo.modality-fixture"].contains(target),
+              ["com.apple.finder","open330.haejo.modality-fixture"].contains(target),
               let obs = msg["obs_id"] as? String, !obs.isEmpty, obs.count <= 128,
               let value = msg["element_index"], isInt(value), let number = value as? NSNumber,
               !CFNumberIsFloatType(number as CFNumber), (0..<2500).contains(number.intValue) else {
@@ -801,7 +801,7 @@ func vetted(_ msg: [String: Any]) -> String? {
     return addr
 }
 
-let helperRequirement = HaejoSigning.peerRequirement(identifier: "ai.callabo.haejo.helper")
+let helperRequirement = HaejoSigning.peerRequirement(identifier: "open330.haejo.helper")
 
 /// Authenticate the SERVER we just connected to.
 ///
@@ -1077,7 +1077,7 @@ var helperRunning: NSRunningApplication?
         helperRunning = nil
         FileHandle.standardError.write(Data((vanished
             ? "haejo: 도우미가 연결 직후 종료했습니다 — 이유는 다음에서 확인하세요:\n"
-              + "    log show --last 2m --predicate 'subsystem == \"ai.callabo.haejo\"'\n"
+              + "    log show --last 2m --predicate 'subsystem == \"open330.haejo\"'\n"
             : "haejo: \(why)\n").utf8))
         return nil
     }

@@ -21,7 +21,7 @@ def main():
     app=b/'Benchmark.app';binary=app/'Contents/MacOS/Benchmark';binary.parent.mkdir(parents=True)
     built=subprocess.run(['swiftc',str(ROOT/'tests/fixtures/NativeWindowParallelFixture.swift'),'-o',str(binary)],capture_output=True,text=True,timeout=60)
     (b/'fixture-build.log').write_text(built.stdout+built.stderr);built.check_returncode()
-    target='ai.callabo.haejo.windowbenchmark'
+    target='open330.haejo.windowbenchmark'
     (app/'Contents/Info.plist').write_bytes(plistlib.dumps({'CFBundleIdentifier':target,'CFBundleExecutable':'Benchmark','CFBundleName':'Haejo Window Benchmark','CFBundlePackageType':'APPL','LSUIElement':True}))
     subprocess.run(['codesign','--force','--sign','-',str(app)],check=True,capture_output=True)
     state=b/'state.json';fixture=subprocess.Popen([str(binary),str(state)],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)

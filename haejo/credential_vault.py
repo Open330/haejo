@@ -91,7 +91,10 @@ def keychain_error(status,default,state=keychain_state):
 
 
 class KeychainVault:
-    service=b'ai.callabo.tacto.credentials'
+    service=b'open330.haejo.credentials'
+    # Items saved before the 1.0 identifier change. Found here on first use,
+    # an item moves to `service`; nothing new is written under this name.
+    legacy_service=b'ai.callabo.tacto.credentials'
     def __init__(self):
         if sys.platform!='darwin':raise CredentialError('keychain_requires_macos')
         self.api=ctypes.CDLL(_SECURITY)
@@ -104,8 +107,20 @@ class KeychainVault:
         self.api.SecKeychainItemDelete.argtypes=[P]
         self.cf.CFRelease.argtypes=[P]
     def _find(self,item):
+        try:return self._find_in(self.service,item)
+        except CredentialError as missing:
+            if missing.code!='keychain_item_unavailable':raise
+        value,old=self._find_in(self.legacy_service,item)
+        try:
+            key=item.encode();raw=value.encode();buffer=ctypes.create_string_buffer(raw)
+            status=self.api.SecKeychainAddGenericPassword(None,len(self.service),self.service,len(key),key,len(raw),buffer,None)
+            if status:raise keychain_error(status,'keychain_write_failed')
+            self.api.SecKeychainItemDelete(old)   # the copy under the new name is already saved
+        finally:self.cf.CFRelease(old)
+        return self._find_in(self.service,item)
+    def _find_in(self,service,item):
         key=item.encode();length=ctypes.c_uint32();data=ctypes.c_void_p();ref=ctypes.c_void_p()
-        status=self.api.SecKeychainFindGenericPassword(None,len(self.service),self.service,len(key),key,
+        status=self.api.SecKeychainFindGenericPassword(None,len(service),service,len(key),key,
             ctypes.byref(length),ctypes.byref(data),ctypes.byref(ref))
         if status:raise keychain_error(status,'keychain_item_unavailable')
         try:return ctypes.string_at(data,length.value).decode('utf-8'),ref

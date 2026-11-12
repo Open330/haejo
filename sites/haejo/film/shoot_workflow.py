@@ -30,7 +30,7 @@ def sh(*args, timeout=180):
 def main():
     ap = argparse.ArgumentParser(description=__doc__); ap.add_argument('--out', type=Path, required=True)
     a = ap.parse_args(); base = a.out.resolve(); base.mkdir(parents=True)
-    target = 'ai.callabo.haejo.workflowdemo.'+uuid.uuid4().hex[:8]
+    target = 'open330.haejo.workflowdemo.'+uuid.uuid4().hex[:8]
     app = base/'Haejo Workflow Demo.app'; binary = app/'Contents/MacOS'; binary.mkdir(parents=True)
     plistlib.dump({'CFBundleIdentifier': target, 'CFBundleName': 'Haejo Workflow Demo', 'CFBundleExecutable': 'WorkflowDemo',
                    'CFBundlePackageType': 'APPL', 'LSUIElement': True}, (app/'Contents/Info.plist').open('wb'))

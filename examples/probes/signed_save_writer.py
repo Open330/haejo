@@ -10,7 +10,7 @@ import subprocess
 import tempfile
 import time
 
-TARGET='ai.callabo.haejo.save-writer-fixture'
+TARGET='open330.haejo.save-writer-fixture'
 PANEL_REASONS={'column browser absent or ambiguous','column container absent or ambiguous',
     'folder column chain unavailable','terminal selection present','selected folder absent or ambiguous',
     'selected folder URL absent or ambiguous','directory absent','save panel hierarchy changed',

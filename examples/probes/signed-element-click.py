@@ -17,7 +17,7 @@ import subprocess
 import tempfile
 import time
 
-TARGET = 'ai.callabo.haejo.list-fixture'
+TARGET = 'open330.haejo.list-fixture'
 
 
 def main(driver, output):

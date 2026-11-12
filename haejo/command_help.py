@@ -161,7 +161,7 @@ def session_guide(target, *, reusable=False, document=None, save=False, steps=Fa
     )
 
 # These parse their own arguments and print their own help.
-_OWN_HELP = frozenset(("task", "auth", "web-upload", "flows", "capture", "drag", "hover",
+_OWN_HELP = frozenset(("task", "auth", "web", "web-upload", "flows", "capture", "drag", "hover",
                        "resize", "vroid-drag", "vroid-focus"))
 
 

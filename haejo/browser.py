@@ -3,8 +3,8 @@
 Not required for computer use of the user's real browser: to the macOS AX driver
 a browser (Chrome/Safari/Arc) is just another app, driven through the same
 accessibility layer as everything else. This module is a separate, optional path
-for headless / programmatic web automation — install it with the `web` extra
-(`uv sync --extra web`). The on-philosophy way to reach the *user's own* browser
+for headless / programmatic web automation — `haejo web install` fetches its
+Playwright and Chromium (a checkout can use `uv sync --extra web` instead). The on-philosophy way to reach the *user's own* browser
 is to attach to its running instance (Codex's iab/extension/cdp providers do
 this), not to spawn a headless Chromium; that attach path is future work.
 
@@ -32,6 +32,11 @@ from __future__ import annotations
 
 import uuid
 
+from . import web_runtime
+
+# Playwright is not part of Haejo.app: `haejo web install` fetches it (and
+# Chromium) into the data folder, and a checkout may have the `web` extra.
+web_runtime.activate()
 try:
     from playwright.sync_api import sync_playwright
 except Exception:  # pragma: no cover - import guarded so the pkg stays optional
@@ -45,8 +50,7 @@ class BrowserDriver:
 
     def __init__(self, headless: bool = True):
         if sync_playwright is None:
-            raise RuntimeError("playwright not installed: pip install playwright "
-                               "&& python -m playwright install chromium")
+            raise RuntimeError(web_runtime.missing_message())
         self._pw = sync_playwright().start()
         self._browser = None
         self._custom_select = None

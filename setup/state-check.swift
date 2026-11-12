@@ -3,25 +3,25 @@ import Foundation
  static func main() {
   var state = SetupState()
   func json(_ text:String)->Data { text.data(using:.utf8)! }
-  assert(state.receive(json("{\"accessibility_trusted\":true,\"screen_capture_preflight\":false,\"bundle_id\":\"ai.callabo.haejo.helper\",\"pid\":123}"),expected:"ai.callabo.haejo.helper"))
+  assert(state.receive(json("{\"accessibility_trusted\":true,\"screen_capture_preflight\":false,\"bundle_id\":\"open330.haejo.helper\",\"pid\":123}"),expected:"open330.haejo.helper"))
   assert(state.accessibility && !state.screen && state.ready && !state.captureReady)
-  for text in ["{}", "{\"accessibility_trusted\":true,\"screen_capture_preflight\":true,\"bundle_id\":\"wrong\",\"pid\":123}", "{\"accessibility_trusted\":true,\"screen_capture_preflight\":true,\"bundle_id\":\"ai.callabo.haejo.helper\",\"pid\":0}", "{\"accessibility_trusted\":\"true\",\"screen_capture_preflight\":true,\"bundle_id\":\"ai.callabo.haejo.helper\",\"pid\":123}", "not json"] {
-   assert(!state.receive(json(text),expected:"ai.callabo.haejo.helper"))
+  for text in ["{}", "{\"accessibility_trusted\":true,\"screen_capture_preflight\":true,\"bundle_id\":\"wrong\",\"pid\":123}", "{\"accessibility_trusted\":true,\"screen_capture_preflight\":true,\"bundle_id\":\"open330.haejo.helper\",\"pid\":0}", "{\"accessibility_trusted\":\"true\",\"screen_capture_preflight\":true,\"bundle_id\":\"open330.haejo.helper\",\"pid\":123}", "not json"] {
+   assert(!state.receive(json(text),expected:"open330.haejo.helper"))
    assert(!state.accessibility && !state.screen)
   }
   for ax in [false, true] {
    for screen in [false, true] {
-    let receipt = "{\"accessibility_trusted\":\(ax),\"screen_capture_preflight\":\(screen),\"bundle_id\":\"ai.callabo.haejo.helper\",\"pid\":123}"
-    assert(state.receive(json(receipt),expected:"ai.callabo.haejo.helper"))
+    let receipt = "{\"accessibility_trusted\":\(ax),\"screen_capture_preflight\":\(screen),\"bundle_id\":\"open330.haejo.helper\",\"pid\":123}"
+    assert(state.receive(json(receipt),expected:"open330.haejo.helper"))
     assert(state.ready == ax)
     assert(state.captureReady == (ax && screen))
    }
   }
   assert(state.ready)
-  assert(!state.refresh(nil, expected: "ai.callabo.haejo.helper"))
+  assert(!state.refresh(nil, expected: "open330.haejo.helper"))
   assert(!state.ready && !state.accessibility && !state.screen)
   state.accessibility = true; state.screen = true
-  assert(!state.refresh(json("{}"), expected: "ai.callabo.haejo.helper"))
+  assert(!state.refresh(json("{}"), expected: "open330.haejo.helper"))
   assert(!state.ready)
   print("Permission state: 12 cases PASS; AX required; capture permission optional for readiness")
 

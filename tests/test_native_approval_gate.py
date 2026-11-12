@@ -67,7 +67,7 @@ NativeApproval.commitReader = { _, _, _, _ in CommitView() }
 NativeApproval.decide = { _, _, _, _ in .allowed }
 
 // Haejo's own UI is refused even for an unclassified press.
-NativeApproval.bundleOf = { _ in "ai.callabo.haejo.setup.standalone.preview" }
+NativeApproval.bundleOf = { _ in "open330.haejo.app" }
 check(NativeApproval.gate(name: "click", action: [:], pid: 1, observe: save)?["error"] as? String == "haejo_ui_input_refused", "self UI")
 check(NativeApproval.gate(name: "read", action: [:], pid: 1, observe: save) == nil, "reading own UI is fine")
 // A menu is decided at its resolved item, not from the path strings.

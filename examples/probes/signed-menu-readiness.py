@@ -8,7 +8,7 @@ import subprocess
 import tempfile
 import time
 
-TARGET='ai.callabo.haejo.menu-readiness-fixture'
+TARGET='open330.haejo.menu-readiness-fixture'
 
 
 def main(driver,output):

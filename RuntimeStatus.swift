@@ -3,11 +3,11 @@ import CoreFoundation
 
 /// Ephemeral UI metadata only. Notifications never authorize input or reset an abort.
 enum HaejoRuntimeStatus {
-    static let status = Notification.Name("ai.callabo.haejo.runtime.status")
-    static let query = Notification.Name("ai.callabo.haejo.runtime.query")
-    static let stop = Notification.Name("ai.callabo.haejo.runtime.stop")
+    static let status = Notification.Name("open330.haejo.runtime.status")
+    static let query = Notification.Name("open330.haejo.runtime.query")
+    static let stop = Notification.Name("open330.haejo.runtime.stop")
     /// Batch coordinators hear this even before a worker acquires a helper.
-    static let stopAll = Notification.Name("ai.callabo.haejo.runtime.stop-all")
+    static let stopAll = Notification.Name("open330.haejo.runtime.stop-all")
 
     struct Run {
         let id: String

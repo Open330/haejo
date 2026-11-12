@@ -22,7 +22,7 @@ import tempfile
 import time
 from pathlib import Path
 
-TARGET = 'ai.callabo.haejo.menu-fixture'
+TARGET = 'open330.haejo.menu-fixture'
 ROOT = Path(__file__).resolve().parents[2]
 
 

@@ -348,7 +348,7 @@ def main():
     missing=sorted({p for p,*_ in parsed if not os.access(Path.home()/'.local/bin'/p,os.X_OK)})
     if missing:parser.error('agent CLI not executable: '+', '.join(f'~/.local/bin/{p}' for p in missing))
     base=Path(args.output).resolve();base.mkdir(mode=0o700)
-    target='ai.callabo.haejo.repeatbench.'+uuid.uuid4().hex[:8]
+    target='open330.haejo.repeatbench.'+uuid.uuid4().hex[:8]
     app=build(base,target);results=[]
     for rep,arm in [(r,a) for r in range(1,args.reps+1) for a in args.arms]:
         arm_base=base/arm if args.reps==1 else base/f'rep-{rep:02d}'/arm

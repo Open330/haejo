@@ -47,7 +47,8 @@ For an explicitly authorized upload in a fresh headless browser, use
 the host registration without browser/network/input. Read the
 [configuration and independent inbox contract](../docs/api.md#cli-browser-upload-registration)
 before execution. Omit `--check` to review/approve; noninteractive execution needs
-`--yes`. This route needs the optional web backend and a trusted independent
+`--yes`. This route needs the web runtime (`haejo web install` downloads Playwright
+and Chromium once; `haejo web status` shows what is there) and a trusted independent
 receiving endpoint; it does not reuse the user's native browser/profile or need
 `--helper`. Keep the original `--journal-dir` on interruption, and check an unverified
 upload at the receiving endpoint before any resend.

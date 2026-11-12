@@ -159,7 +159,7 @@ class LauncherAskCancelTests(unittest.TestCase):
         (self.base / 'bin').mkdir()
         self.ready, self.marker = self.base / 'ready', self.base / 'survived'
         # A private notification name: the person's Haejo menu never sees it.
-        self.status_name = 'ai.callabo.haejo.test.status.' + uuid.uuid4().hex
+        self.status_name = 'open330.haejo.test.status.' + uuid.uuid4().hex
 
     def post(self, pid, *, active=True, stopped=True, uid=None):
         subprocess.run([str(self.poster), self.status_name, str(pid), str(int(active)), str(int(stopped)),

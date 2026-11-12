@@ -32,9 +32,14 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# Optional headless/programmatic web backend (haejo/browser.py). NOT needed for
-# computer use of the user's real browser, which the AX driver already handles.
+# Optional headless/programmatic web backend (haejo/browser.py) for a checkout.
+# NOT needed for computer use of the user's real browser, which the AX driver
+# already handles, and never built into Haejo.app (see web-bridge).
 web = ["playwright>=1.40"]
+# The one compiled module Playwright imports. Haejo.app's signed Python loads
+# native code only when it carries Haejo's signature, so this ships inside the
+# app; Playwright itself and Chromium are fetched by `haejo web install`.
+web-bridge = ["greenlet>=3.1.1,<4"]
 native-visual = ["pyobjc-framework-ScreenCaptureKit>=10.0; sys_platform == 'darwin'"]
 
 [dependency-groups]

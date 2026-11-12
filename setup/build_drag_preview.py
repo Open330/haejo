@@ -50,9 +50,9 @@ def verify_app(app):
     spec=importlib.util.spec_from_file_location('standalone_builder',ROOT/'setup/build_standalone_preview.py')
     module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
     runtime=app/'Contents/Resources/runtime'
-    for target,identifier in ((app,'ai.callabo.haejo.setup.standalone.preview'),
-            (runtime/'helper/Haejo Helper.app','ai.callabo.haejo.helper'),
-            (runtime/'launcher/haejo','ai.callabo.haejo')):
+    for target,identifier in ((app,'open330.haejo.app'),
+            (runtime/'helper/Haejo Helper.app','open330.haejo.helper'),
+            (runtime/'launcher/haejo','open330.haejo')):
         run(['codesign','--verify','--deep','--strict','-R='+module.requirement(identifier,signed_reference=app),str(target)])
     if not (runtime/'.venv/bin/python').is_file():raise ValueError('standalone_python_missing')
 

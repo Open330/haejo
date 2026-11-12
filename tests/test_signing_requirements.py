@@ -8,8 +8,8 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-LAUNCHER_ID = 'ai.callabo.haejo'
-HELPER_ID = 'ai.callabo.haejo.helper'
+LAUNCHER_ID = 'open330.haejo'
+HELPER_ID = 'open330.haejo.helper'
 
 
 def requirement(identifier, team):
@@ -33,13 +33,13 @@ class ShellDefinition(unittest.TestCase):
 codesign() {
   case "${@: -1}" in
     */previous) printf 'Identifier=ai.example.previous\nTeamIdentifier=ABCDE12345\n' >&2 ;;
-    *) printf 'Identifier=ai.callabo.haejo\nTeamIdentifier=ABCDE12345\n' >&2 ;;
+    *) printf 'Identifier=open330.haejo\nTeamIdentifier=ABCDE12345\n' >&2 ;;
   esac
 }
 haejo_warn_team_change "$2" "$3"
 ''', 'transition-test', str(ROOT/'signing.sh'), str(old), str(replacement)], capture_output=True, text=True)
             self.assertEqual(0, result.returncode, result.stderr)
-            self.assertIn('Signing identifier changed: ai.example.previous -> ai.callabo.haejo', result.stderr)
+            self.assertIn('Signing identifier changed: ai.example.previous -> open330.haejo', result.stderr)
             self.assertIn('Accessibility and Screen Recording', result.stderr)
             self.assertNotIn('Signing team changed', result.stderr)
 
@@ -114,7 +114,7 @@ class LiveSigningPolicy(unittest.TestCase):
 import Security
 let a=CommandLine.arguments
 if a[1]=="own" { print(HaejoSigning.ownTeam() ?? "UNTRUSTED") }
-else if a[1]=="peer" { print(HaejoSigning.peerRequirement(identifier:"ai.callabo.haejo.helper")) }
+else if a[1]=="peer" { print(HaejoSigning.peerRequirement(identifier:"open330.haejo.helper")) }
 else if let text=HaejoSigning.requirement(identifier:a[3],team:a[4]) {
  var code:SecStaticCode?;var req:SecRequirement?
  let loaded=SecStaticCodeCreateWithPath(URL(fileURLWithPath:a[2]) as CFURL,[],&code)
@@ -127,13 +127,13 @@ else if let text=HaejoSigning.requirement(identifier:a[3],team:a[4]) {
             def run(*args,**kwargs):return subprocess.run([str(binary),*map(str,args)],capture_output=True,text=True,timeout=15,**kwargs)
             self.assertEqual('UNTRUSTED',run('own').stdout.strip())
             self.assertEqual(78,run('peer').returncode)
-            signed=subprocess.run(['bash','-c','. "$1"; haejo_select_identity && haejo_sign "$2" ai.callabo.haejo.policy-test',
+            signed=subprocess.run(['bash','-c','. "$1"; haejo_select_identity && haejo_sign "$2" open330.haejo.policy-test',
                                    'policy-test',str(ROOT/'signing.sh'),str(binary)],capture_output=True,text=True,timeout=30)
             self.assertEqual(0,signed.returncode,signed.stderr)
             team=run('own').stdout.strip();self.assertRegex(team,r'^[A-Z0-9]{10}$')
-            self.assertEqual('true',run('check',binary,'ai.callabo.haejo.policy-test',team).stdout.strip())
+            self.assertEqual('true',run('check',binary,'open330.haejo.policy-test',team).stdout.strip())
             other='ABCDE12345' if team!='ABCDE12345' else 'ZYXWV98765'
-            self.assertEqual('false',run('check',binary,'ai.callabo.haejo.policy-test',other).stdout.strip())
-            self.assertEqual('false',run('check',binary,'ai.callabo.haejo.wrong',team).stdout.strip())
+            self.assertEqual('false',run('check',binary,'open330.haejo.policy-test',other).stdout.strip())
+            self.assertEqual('false',run('check',binary,'open330.haejo.wrong',team).stdout.strip())
             env={**os.environ,'HAEJO_TEAM_ID':other,'HAEJO_HELPER_REQUIREMENT':'true'}
             self.assertEqual(requirement(HELPER_ID,team),run('peer',env=env).stdout.strip())

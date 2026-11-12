@@ -1,6 +1,6 @@
 """Signed transport: a picture of one owned window, taken by the grant holder.
 
-The screen-recording permission belongs to `ai.callabo.haejo.helper` rather than
+The screen-recording permission belongs to `open330.haejo.helper` rather than
 to whatever Python happens to be running, for the same reason the
 accessibility one does — on a shared interpreter it would be a permission
 every script on that interpreter holds, and a screenshot reaches further than
@@ -19,7 +19,7 @@ import tempfile
 import time
 from pathlib import Path
 
-TARGET = 'ai.callabo.haejo.menu-fixture'
+TARGET = 'open330.haejo.menu-fixture'
 
 
 def main(driver, output: Path) -> dict:
@@ -48,7 +48,7 @@ def _capture_owned_window(driver, output: Path) -> dict:
     assert local._resolve(TARGET, launch=False) is None, 'fixture already running'
 
     report: dict = {'transport': type(driver).__name__, 'target': TARGET,
-                    'grant_holder': 'ai.callabo.haejo.helper',
+                    'grant_holder': 'open330.haejo.helper',
                     'scope': 'one owned window; never the desktop or a region',
                     'steps': []}
     process = None

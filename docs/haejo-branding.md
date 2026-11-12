@@ -13,10 +13,23 @@ Haejo로 통일합니다. 이전 이름의 명령·import·환경 변수를 런�
 | 서명된 실행기 | `launcher/haejo` |
 | 권한용 helper | `helper/Haejo Helper.app/Contents/MacOS/HaejoHelper` |
 | GUI 실행 파일 | `HaejoSetup` |
-| 번들 ID·서명 식별자 | `ai.callabo.haejo.*` |
+| 번들 ID·서명 식별자 | `open330.haejo`(실행기), `open330.haejo.helper`, `open330.haejo.app`(앱) |
 | 환경 변수 | `HAEJO_*` |
 | 사용자 데이터 | `~/Library/Application Support/Haejo`, Flow는 `<data>/haejo/flows` |
 | 랜딩페이지 | `sites/haejo/dist` |
+
+## 1.0.0에서 바뀐 식별자 — 2026-11-12
+
+1.0.0부터 번들 ID·서명 식별자·알림 이름·Keychain 서비스가 `open330.haejo.*`입니다.
+출시 후보(rc.39~rc.47)는 `ai.callabo.haejo.*`였습니다.
+
+- **권한을 다시 허용합니다.** macOS는 새 ID의 Haejo Helper를 새 앱으로 봅니다. 출시
+  후보에서 올리면 접근성·화면 기록을 한 번 더 허용해야 하고, 시스템 설정 목록에 예전
+  항목이 남아 있으면 지워도 됩니다.
+- **저장된 자격 증명은 옮겨집니다.** Keychain 서비스는 `open330.haejo.credentials`입니다.
+  예전 서비스(`ai.callabo.tacto.credentials`)에 저장된 항목은 처음 읽을 때 새 서비스로
+  옮기고 예전 항목을 지웁니다. 코드에 남은 예전 이름은 이 이전 경로 하나뿐입니다.
+- **사용자 데이터 위치는 그대로입니다.** `~/Library/Application Support/Haejo`.
 
 ## Tacto에서 옮길 때 — 2026-11-09
 
@@ -31,7 +44,6 @@ Haejo로 통일합니다. 이전 이름의 명령·import·환경 변수를 런�
   실행 기록 탭에 그대로 표시됩니다. 새 기록은 `haejo-*.jsonl`로 씁니다.
 - **바꾸지 않은 저장 식별자.** 아래 값은 이미 디스크와 Keychain에 저장된 데이터를 찾는
   키라서 그대로 둡니다. 사용자에게 보이지 않습니다.
-  - Keychain 서비스 `ai.callabo.tacto.credentials` (저장된 자격 증명)
   - 저장 형식 `tacto-links-v1`(설치 링크 기록), `tacto-dispatch-v1`(실행 저널),
     `tacto-resource-leases-v1`(자원 임대)
   - 헬퍼의 서명 신원이 바뀌므로 Keychain이 처음 한 번 접근 허용을 물을 수 있습니다.

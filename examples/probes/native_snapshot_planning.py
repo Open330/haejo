@@ -18,7 +18,7 @@ def snapshot(path, index):
         raise ValueError('snapshot_report_too_large')
     report = json.loads(raw)
     if (report.get('evaluation_kind') != 'real_model_owned_appkit'
-            or report.get('target') != 'ai.callabo.haejo.select-fixture'
+            or report.get('target') != 'open330.haejo.select-fixture'
             or type(index) is not int or index < 0):
         raise ValueError('owned_native_snapshot_required')
     candidates = report['plans'][index]['candidates']

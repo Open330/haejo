@@ -6,6 +6,6 @@ import Foundation
 }
 
 enum HaejoResident {
-    static let service = "ai.callabo.haejo.prototype.resident"
-    static let agent = "ai.callabo.haejo.prototype.agent"
+    static let service = "open330.haejo.prototype.resident"
+    static let agent = "open330.haejo.prototype.agent"
 }
