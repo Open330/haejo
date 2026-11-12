@@ -19,6 +19,10 @@ from test_credential_browser import Page, SECRET
 from haejo.credential_grants import CredentialStore
 from haejo.credential_vault import KeychainVault
 
+try:
+    from tests._safari import close_origin, running as safari_running
+except ImportError:  # discovered with tests/ as the top level
+    from _safari import close_origin, running as safari_running
 ROOT=Path(__file__).resolve().parents[1]
 
 @unittest.skipUnless(sys.platform=='darwin' and os.environ.get('HAEJO_RUN_NATIVE_CREDENTIAL_TESTS')=='1','explicit native GUI credential fixture required')
@@ -29,6 +33,7 @@ class NativeLogin(unittest.TestCase):
         def stop():server.shutdown();server.server_close();thread.join()
         self.addCleanup(stop)
         url=f'http://127.0.0.1:{server.server_port}'
+        self.addCleanup(close_origin,url,not safari_running())
         name='owned-native-'+uuid.uuid4().hex
         from keychain_fixture import discard,require_keychain
         require_keychain(self)
