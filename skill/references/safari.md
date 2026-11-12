@@ -1,16 +1,27 @@
-To just open an address the person asked for, use `haejo open-url <URL>
---helper` (LaunchServices, no typing; `loaded_verified` from the page's web area,
-`page_not_shown` for a redirect, never reopened). `already_open: true` with
-`loaded_verified: false` means the page was already in front: done, not a failure;
-the page is already there. `open_unconfirmed` may still finish later; observe it
-before any resend. The page opens in the browser's front window; when another task shares the
-browser, add `--window "<part of the intended window's title>"` and Haejo brings
-that window forward first (`window_not_found`/`window_ambiguous` list `windows`).
-Use the steps below only when a Flow must navigate an existing window.
+Web work runs in the person's own Safari, behind what they are using, through
+the page's accessibility tree. Their logins and tabs are already there, and
+nothing needs installing.
 
-For a page already open, start with its accessibility tree and window-scoped
-selectors. Read/click/fill the page in the background; activation and address-bar
-edits are for steps that need them.
+1. **Open:** `haejo open-url <URL> --helper` hands the address to Safari through
+   LaunchServices (no typing) while the app in front stays in front. The reply
+   carries `loaded_verified` from the page's web area; `page_not_shown` means a
+   redirect landed elsewhere (it is never reopened); `already_open: true` with
+   `loaded_verified: false` means the page was already there: done.
+   `open_unconfirmed` may still finish later; observe before any resend.
+2. **Pick the page:** `haejo windows com.apple.Safari --helper` lists each
+   window's `url`; `haejo session com.apple.Safari --window-match url=<text>
+   --helper --guide --steps` works on that page ([windows](windows.md)).
+3. **Work in the page:** read the `WebArea` subtree, `click` links and buttons,
+   `set_value` fields, `select_option` menus, and wait with `wait_until` /
+   `observe --until-text` instead of polling. A long page continues past the
+   first 2,500 nodes with the paging step the observation names
+   ([session](session.md)). Each window shows its selected tab.
+
+`--front` shows Safari to a person who asked to see the page. The page opens in
+Safari's main window; when another task shares the browser, `--window "<part of
+the intended window's title>"` brings that window forward first
+(`window_not_found`/`window_ambiguous` list `windows`). Address-bar steps below
+are for a Flow that must navigate an existing window.
 
 For Safari address navigation, use File > Open Location… to start editing,
 then `set_value` on `WEB_BROWSER_ADDRESS_AND_SEARCH_FIELD` and a bound submit

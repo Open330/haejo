@@ -24,7 +24,9 @@ class OpenURLWindowTests(unittest.TestCase):
         calls = []
         def activate(browser, window, driver):
             calls.append(('activate', browser, window)); return {'foreground_verified': True, 'window_verified': True}
-        def opened(url, browser, driver):
+        def opened(url, browser, driver, front):
+            # The chosen window was brought forward, so the page is shown there.
+            self.assertIs(True, front)
             calls.append(('open', url)); return {'type': 'url_opened', 'url': url}
         code, result = self.run_cli(['open-url', 'https://example.com/', '--window', 'OOC', '--helper'], activate, opened)
         self.assertEqual(0, code)

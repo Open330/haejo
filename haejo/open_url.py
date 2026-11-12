@@ -1,10 +1,12 @@
-"""Open a web address in a browser, on a person's request, as a link click does.
+"""Open a web address in a browser as a link click does, behind what the person is using.
 
 LaunchServices hands the URL to the browser: no typing into an address bar, no
-click, no accessibility input. The browser comes to the front, so this exists
-for a person who asked for it, like `haejo activate`. With an observing driver
-the page is confirmed by the URL its window's web area reports, the same
-evidence the Safari navigation receipt uses.
+click, no accessibility input. The browser stays where it is and the app in
+front stays in front (measured 2026-11-12: Safari took the page in its main
+window while another app kept the screen). `front=True` brings the browser
+forward, for a person who asked to see the page. With an observing driver the
+page is confirmed by the URL its window's web area reports, the same evidence
+the Safari navigation receipt uses.
 """
 import re
 import time
@@ -16,11 +18,11 @@ DEFAULT_BROWSER = 'com.apple.Safari'
 
 
 class NativeURLBackend(NativeLaunchBackend):
-    def open_url(self, url, app_path):
+    def open_url(self, url, app_path, front=False):
         from AppKit import NSWorkspaceOpenConfiguration
         from Foundation import NSURL
         config = NSWorkspaceOpenConfiguration.configuration()
-        config.setActivates_(True)
+        config.setActivates_(bool(front))
         config.setAddsToRecentItems_(False)
         # LaunchServices answers later, on this thread's run loop.
         result = {'state': 'pending'}
@@ -38,7 +40,7 @@ def front_page(tree):
     return _page_url(focused[0]) if len(focused) == 1 else None
 
 
-def _open_url(url, *, browser=DEFAULT_BROWSER, driver=None, backend=None,
+def _open_url(url, *, browser=DEFAULT_BROWSER, driver=None, backend=None, front=False,
              timeout=10, clock=time.monotonic, sleep=time.sleep):
     def error(code, effect='not_started', **extra):
         return {'type': 'error', 'error': code, 'url': url, 'browser': browser, 'effect': effect, **extra}
@@ -60,10 +62,10 @@ def _open_url(url, *, browser=DEFAULT_BROWSER, driver=None, backend=None,
         if driver is not None:
             seen = driver.observe(browser)
             before = front_page(seen.get('tree', '')) if seen.get('type') == 'observation' else None
-        request = backend.open_url(target, path)
+        request = backend.open_url(target, path, front) if front else backend.open_url(target, path)
     except Exception:
         return error('native_open_unavailable', 'unknown')
-    result = {'type': 'url_opened', 'url': target, 'browser': browser}
+    result = {'type': 'url_opened', 'url': target, 'browser': browser, 'front': bool(front)}
     deadline = clock() + timeout
     # The hand-off first: LaunchServices must have accepted it before any
     # page counts, and a failure it reports later is never hidden by one.
@@ -89,9 +91,12 @@ def _open_url(url, *, browser=DEFAULT_BROWSER, driver=None, backend=None,
         sleep(0)
 
 
-def open_url(url,*,browser=DEFAULT_BROWSER,driver=None,backend=None,timeout=10,clock=time.monotonic,sleep=time.sleep):
+def open_url(url,*,browser=DEFAULT_BROWSER,driver=None,backend=None,front=False,timeout=10,clock=time.monotonic,sleep=time.sleep):
     from .foreground_scope import foreground_scope,native_driver
     driver=native_driver(driver,backend)
+    if not front:
+        # Nothing comes forward, so there is no screen to hold for the duration.
+        return _open_url(url,browser=browser,driver=driver,backend=backend,timeout=timeout,clock=clock,sleep=sleep)
     with foreground_scope(driver,browser) as problem:
         if problem is not None:return problem
-        return _open_url(url,browser=browser,driver=driver,backend=backend,timeout=timeout,clock=clock,sleep=sleep)
+        return _open_url(url,browser=browser,driver=driver,backend=backend,front=True,timeout=timeout,clock=clock,sleep=sleep)

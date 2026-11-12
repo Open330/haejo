@@ -20,7 +20,7 @@ Usage:
   haejo uninstall [--remove-data] [--yes]  # remove links and app (data kept unless asked) to the Trash
   haejo launch <bundle-id> [--helper]  # explicitly start an installed app in background
   haejo activate <bundle-id> [--window TEXT] [--helper]  # on a person's request: bring the app (and that window) forward
-  haejo open-url <URL> [--browser <bundle-id>] [--window <title part>] [--helper]  # open a web page as a link click does
+  haejo open-url <URL> [--browser <bundle-id>] [--front] [--window <title part>] [--helper]  # open a web page behind the app in use (--front shows it)
   haejo keep-awake [--minutes N] | --stop  # opt-in: no idle display/system sleep during long remote work (no screen-saver or policy lock guarantee)
   haejo capture <bundle-id> --helper --output window.png [--window TITLE]
   haejo drag <bundle-id> --helper --from X Y --to X Y [--window TITLE]
@@ -918,8 +918,10 @@ def _dispatch_command(cmd, rest):
         return 0
 
     if cmd == 'open-url':
-        # Only on a person's request: the browser comes to the front.
-        args = [value for value in rest if value != '--helper']
+        # Behind what the person is using; --front (or --window, which picks a
+        # window by bringing it forward) shows the browser.
+        args = [value for value in rest if value not in ('--helper', '--front')]
+        front = '--front' in rest
         browser = None
         if '--browser' in args:
             at = args.index('--browser')
@@ -933,10 +935,11 @@ def _dispatch_command(cmd, rest):
             at = args.index('--window')
             window = args[at + 1] if at + 1 < len(args) else None
             args = args[:at] + args[at + 2:]
-        if len(args) != 1 or rest.count('--helper') > 1 or ('--browser' in rest and browser is None) \
+        if len(args) != 1 or rest.count('--helper') > 1 or rest.count('--front') > 1 or ('--browser' in rest and browser is None) \
                 or ('--window' in rest and (window is None or '--helper' not in rest)):
-            print('usage: open-url <http(s) URL> [--browser <bundle-id>] [--window <part of its title>] [--helper]'
-                  '  (--helper confirms the page loaded; --window needs --helper)')
+            print('usage: open-url <http(s) URL> [--browser <bundle-id>] [--front] [--window <part of its title>] [--helper]'
+                  '  (opens behind the app in use; --front shows the browser; --helper confirms the page loaded;'
+                  ' --window needs --helper and brings that window forward)')
             return 2
         from .open_url import open_url, DEFAULT_BROWSER
         driver = None
@@ -959,7 +962,7 @@ def _dispatch_command(cmd, rest):
                           'effect': 'not_started', 'window': window,
                           **({'windows': shown['windows']} if 'windows' in shown else {})}
         if result is None:
-            result = open_url(args[0], browser=browser or DEFAULT_BROWSER, driver=driver)
+            result = open_url(args[0], browser=browser or DEFAULT_BROWSER, driver=driver, front=front or window is not None)
         from .access_log import current
         if current.get() is not None:
             current.get().task_result({k: v for k, v in result.items() if k != 'url'})
