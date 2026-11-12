@@ -154,6 +154,7 @@ let clickDeadline: Double? = nil
 var callerDeadline = Double.infinity
 func waitedForCard() {}
 func AXUIElementCreateApplication(_ pid: pid_t) -> Int { 0 }
+typealias AXUIElement = Int
 let kAXFocusedUIElementAttribute = "AXFocusedUIElement"
 struct AbortStub { var isStopped = false }
 let abortState = AbortStub()
