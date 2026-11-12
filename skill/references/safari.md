@@ -53,7 +53,7 @@ press was answered without effect and that pointer events are the next route.
 An L3 reply carries `foreground_taken`, `front_restored` and `previous_front`;
 say in the result that Safari was in front for that step.
 
-4. **Attach files:** `haejo attach <name> /absolute/file [/absolute/file ...]`
+5. **Attach files:** `haejo attach <name> /absolute/file [/absolute/file ...]`
    registers the files the person named and pins their size and SHA-256. On
    the page, one step puts them into the file control (the `Button` that reads
    "no file selected", or the page's own "Attach" button):

@@ -91,6 +91,7 @@ class InputRoutingSourceTests(unittest.TestCase):
                 for banned in ('CGEventPost(', 'CGDisplayMoveCursorToPoint(', 'keyboardEvent', 'MouseDragged',
                                'scrollWheel', 'postToPid', 'NSWorkspace.shared.open('):
                     self.assertNotIn(banned, code, f'{banned} in tab front pointer')
+                continue
             if path.name == 'OpenPanelUpload.swift':
                 # The other global route: real keys for an open panel's Go to
                 # Folder sheet, which has no accessibility control and ignores
