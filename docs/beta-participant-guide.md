@@ -8,8 +8,8 @@
 ## 시작 전
 
 담당자가 제공한 RC의 태그·DMG SHA256을 확인하고 기록합니다.
-현재 후보는 `v1.0.0-rc.47`(DMG SHA256 `9f94d1df7f965c7a161ed9a6543ca1c01acdba66c86a82a54318baab81bcd18e`)이며 정식 안정 버전이 아닙니다. 공증·보안 검사와 세 Mac 동일 번들 설치·데이터 보존을 확인했고, 회귀 3,648건(제외 33건)에 실패·오류가 없습니다.
-[rc.47 검증 결과](https://github.com/Open330/haejo/releases/tag/v1.0.0-rc.47)의 VALIDATION.json을 확인하세요.
+현재 후보는 `v1.0.0-rc.48`(DMG SHA256 `4a5c6e416ba5d68fae0da95931c2c5076d50716a00487b54fdc3489d75aaf301`)이며 정식 안정 버전이 아닙니다. 공증·보안 검사와 VM 안 새 macOS 계정의 처음 설치를 확인했고, 회귀 3,681건(제외 33건)에 실패·오류가 없습니다. 새 식별자(`open330.haejo`) 때문에 이전 후보에서 올리면 앱 조작과 화면 캡처 권한을 다시 허용해야 하고, 웹 작업에는 `haejo web install`이 한 번 필요합니다.
+[rc.48 검증 결과](https://github.com/Open330/haejo/releases/tag/v1.0.0-rc.48)의 VALIDATION.json을 확인하세요.
 검증 중 앱이 바뀌면 담당자에게 알리고 새 후보로 결과를 구분합니다.
 
 ### 이전 rc.9의 검증 기록
