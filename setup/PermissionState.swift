@@ -298,6 +298,13 @@ struct SettingsWindowCandidate {
     let id: UInt32
     let bounds: CGRect
 }
+/// A password sheet or other small modal is up in System Settings. The guide
+/// floats above every window, so it steps aside until the modal closes
+/// (on macOS 27.2 the password dialog is a 260x348 Settings window).
+func settingsModalOpen(_ candidates: [SettingsWindowCandidate]) -> Bool {
+    candidates.contains { $0.bounds.width < 500 || $0.bounds.height < 400 }
+}
+
 func settingsMainWindow(_ candidates: [SettingsWindowCandidate], anchoredID: UInt32?) -> SettingsWindowCandidate? {
     let windows = candidates.filter { $0.bounds.width >= 500 && $0.bounds.height >= 400 }
     if let anchoredID {

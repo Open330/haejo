@@ -873,6 +873,8 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
         guard let selected = settingsMainWindow(candidates, anchoredID: settingsAnchorID) else { return nil }
         settingsAnchorID = selected.id
+        // Hidden while a password sheet is up, so the guide never covers it.
+        if settingsModalOpen(candidates) { return nil }
         return cocoaRect(fromWindowList: selected.bounds, primaryHeight: primary)
     }
 

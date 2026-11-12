@@ -80,6 +80,8 @@ import Foundation
   let reopened = SettingsWindowCandidate(id: 20, bounds: mainWindow.bounds)
   assert(settingsMainWindow([reopened], anchoredID: 10)?.id == 20)
   assert(settingsMainWindow([password, reopened], anchoredID: 10) == nil)
+  assert(settingsModalOpen([password, mainWindow]))
+  assert(!settingsModalOpen([mainWindow]) && !settingsModalOpen([largeModal, mainWindow]))
   print("Settings anchor: delayed window, password-only, modal front, lost anchor and movement PASS")
 
   // Real isolated filesystem layouts: readiness must follow the installed
