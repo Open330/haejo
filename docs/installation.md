@@ -339,3 +339,22 @@ and applies secure timestamp signatures to the bundled native runtime. It refuse
 uncommitted sources or a source change during packaging. The command does not
 notarize, install or publish: notarize the app and installer, validate their
 stapled tickets and Gatekeeper assessment, and deploy the same verified archive.
+
+### First-run check on a fresh Mac
+
+Before publishing, run the notarized DMG through a first install on a throwaway
+macOS VM. It does what a new person does, with no one at the keyboard: the DMG
+is quarantined as a Safari download, dragged to Applications, opened through the
+Gatekeeper prompt, both permissions are turned on in System Settings (password
+prompts included), and one Finder menu task runs. VNC input is real keyboard and
+mouse to the VM, and the screen is read with Vision OCR. The VM runs without a
+window on the host and is deleted afterwards.
+
+```sh
+uv run --no-project --python 3.14 --with vncdotool==1.4.2 --with pillow==12.0.0 \
+  python setup/first_run_vm/check.py --dmg Haejo-1.0.0-rc.NN-arm64.dmg --out /private/tmp/first-run
+```
+
+It needs [tart](https://github.com/cirruslabs/tart) and about 50 GB of free disk,
+takes about five minutes, and writes `first-run-vm.json` with a screenshot per
+step. `--keep` leaves the VM running for inspection.
