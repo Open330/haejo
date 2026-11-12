@@ -1083,7 +1083,7 @@ class Flow:
             problem = selector_problem(d['window'])
             if problem:
                 raise FlowFieldError('Flow.' + problem if problem.startswith('window.') else 'Flow.window: ' + problem,
-                                     'window', 'Example: "window": {"url": "player.example.com"} or {"title": "Player", "newest": true}.')
+                                     'window', 'Example: "window": {"url": "player.example.com"}, {"title": "Player", "newest": true} or {"tab": "Inbox"}.')
         if d.get('literal_params') and schema < 4:
             raise ValueError('literal data requires Flow schema 4')
         for name,value in d.get('literal_params',{}).items():

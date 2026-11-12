@@ -5,7 +5,7 @@ Usage:
       (--until-text TEXT | --until-gone TEXT [--timeout SECONDS] waits inside one command)
   haejo session <bundle-id> --helper --guide --steps   # observe, then run one Flow on the same connection
   haejo batch <flow.json | name> --helper   # one Flow, one {"params":{...}} line per item
-  haejo windows <bundle-id> --helper   # list an app's windows
+  haejo windows <bundle-id> --helper   # list an app's windows (and a browser's tabs)
   haejo menu-state <bundle-id> <Menu> <Item> [<Submenu item> ...] [--helper] [--wait-enabled SECONDS]
   haejo hover <bundle-id> --helper --to X Y [--window TITLE] [--capture new.png]
   haejo resize <bundle-id> --helper --width W --height H [--window TITLE]
@@ -534,6 +534,9 @@ def _run_flow(flow, argv, walked: bool = False, *, _driver=None, _confirm=None, 
     from .window_scope import pin_for_flow
     problem=pin_for_flow(driver,flow,patient=patient)
     if problem is not None:print(json.dumps(problem,ensure_ascii=False));return 1
+    from .window_scope import tab_note
+    note=tab_note(driver)
+    if note:print(note,file=sys.stderr)
     timed_driver = None
     if document is not None:
         from .document_scope import DocumentScopedDriver, DocumentScopeUnavailable
@@ -1221,6 +1224,9 @@ def _dispatch_command(cmd, rest):
         if window_id is not None:
             problem=bind_window(driver,targets[0],window_id)
             if problem is not None:print(json.dumps(problem));return 1
+            from .window_scope import tab_note
+            note=tab_note(driver)
+            if note:print(note,file=sys.stderr)
         if until is not None:
             import time as _time
             started = _time.monotonic()

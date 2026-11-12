@@ -184,5 +184,6 @@ longer has it), `not_on_active_space` (it exists on another Space),
 `screen_locked`, `display_asleep` or `session_not_on_console` (wait for the
 session; the window was not closed). `window_match_none` / `window_match_ambiguous`
 come from `--window-match` or a Flow `"window"`: the first carries the listing
-`reason`/`unlisted`, the second the `candidates`; add `url=`/`title=` text only
-one window has, or `newest`.
+`reason`/`unlisted`, the second the `candidates`; add `url=`/`title=`/`tab=` text only
+one window or tab has, or `newest`. `tab_select_failed` lists each route's
+`attempts`; list `haejo windows` again and retry, or name `route=`.

@@ -6357,7 +6357,7 @@ let helperCapabilities: [String] = [
     // Reading only, and deliberately NOT document_snapshot: this witnesses what
     // a document contains and where it lives, never its source format or where
     // a save panel would put it.
-    "diagnostic.readiness_read_cost", "diagnostic.readiness_preflight", "observe.window_identity", "session.window_scope", "session.foreground_lease", "session.release_targets", "observe.window_list",
+    "diagnostic.readiness_read_cost", "diagnostic.readiness_preflight", "observe.window_identity", "session.window_scope", "session.foreground_lease", "session.release_targets", "observe.window_list", "observe.window_tabs", "session.tab_select",
     "evidence.document_window_status", "evidence.document_text", "evidence.document_text.path_selector",
     "evidence.document_text.window_selector", "evidence.document_mode", "evidence.save_panel.commit_selector", "observe.document_token", "evidence.save_panel",
     "action.click.save_panel_guard", "evidence.document_rtf_export", "evidence.document_attachment_metadata",
@@ -7748,7 +7748,7 @@ func handle(_ msg: [String: Any]) -> [String: Any] {
     // the outline for reads too is what keeps confidentiality protected, not
     // just integrity. So these refuse when the outline cannot be drawn,
     // exactly as `observe` does.
-    let reaching: Set<String> = ["menu_state", "menu_items", "probe",
+    let reaching: Set<String> = ["menu_state", "menu_items", "probe", "tab_select",
                                  "selection", "document_text", "save_panel", "document_rtf_export", "document_attachment_metadata", "readiness_read_cost", "readiness_preflight"]
     if let kind, reaching.contains(kind) || kind == "capture",
        let target = msg["target"] as? String, let p = pid(forBundle: target) {
@@ -7783,6 +7783,8 @@ func handle(_ msg: [String: Any]) -> [String: Any] {
         return reply
     case "window_list":
         return parallelWindowList(msg["target"] as? String ?? "")
+    case "tab_select":
+        return parallelTabSelect(msg)
     case "list_targets":
         let apps = NSWorkspace.shared.runningApplications
             .filter { $0.activationPolicy == .regular }

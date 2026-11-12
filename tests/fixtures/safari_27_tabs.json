@@ -1,0 +1,58 @@
+{
+  "source": "Safari 27.2 on macOS 27.2 (26B123), jiun-MBP 2026-11-12: `haejo observe com.apple.Safari --window-id` and `haejo windows`; page content replaced by one decoy radio button; the showing tab keeps its address-made button title as measured on a tab opened in the background",
+  "four_tabs": {
+    "role": "AXWindow", "title": "Tabfix gamma",
+    "identifier": "SafariWindow?IsSecure=false&UUID=F33AC93D-7ED6-4593-BB72-DEE2A6AD87C3",
+    "children": [
+      {"role": "AXSplitGroup", "children": [
+        {"role": "AXTabGroup", "children": [
+          {"role": "AXGroup", "identifier": "BrowserView?IsPageLoaded=true&WebViewProcessID=46369", "children": [
+            {"role": "AXWebArea", "description": "Tabfix gamma", "children": [
+              {"role": "AXRadioButton", "title": "page radio", "identifier": "TabBarTab?page-content"}]}]}]},
+        {"role": "AXGroup", "children": [
+          {"role": "AXButton", "identifier": "SidebarButton"},
+          {"role": "AXMenuButton", "identifier": "TabGroupPickerButton?TabGroup="}]},
+        {"role": "AXGroup", "children": [
+          {"role": "AXTextField", "identifier": "WEB_BROWSER_ADDRESS_AND_SEARCH_FIELD", "value": "127.0.0.1:8821/gamma.html"}]},
+        {"role": "AXButton", "identifier": "NewTabButton"}]},
+      {"role": "AXOpaqueProviderGroup", "subrole": "AXOpaqueProviderList", "description": "Tab bar, 4 tabs",
+       "identifier": "TabBar?isSeparate=false", "children": [
+        {"role": "AXRadioButton", "subrole": "AXTabButton", "title": "Tabfix alpha", "value": 0,
+         "identifier": "TabBarTab?isNarrow=false&isExpanded=false&tabCount=&isPinned=false&isCluster=false&clusterID=&isActive=false"},
+        {"role": "AXRadioButton", "subrole": "AXTabButton", "title": "beta", "value": 0,
+         "identifier": "TabBarTab?isNarrow=false&isExpanded=false&tabCount=&isPinned=false&isCluster=false&clusterID=&isActive=false"},
+        {"role": "AXRadioButton", "subrole": "AXTabButton", "title": "gamma", "value": 1,
+         "identifier": "TabBarTab?isNarrow=false&isExpanded=false&tabCount=&isPinned=false&isCluster=false&clusterID=&isActive=true"},
+        {"role": "AXRadioButton", "subrole": "AXTabButton", "title": "delta", "value": 0,
+         "identifier": "TabBarTab?isNarrow=false&isExpanded=false&tabCount=&isPinned=false&isCluster=false&clusterID=&isActive=false"}]},
+      {"role": "AXButton", "subrole": "AXCloseButton"}]
+  },
+  "one_tab": {
+    "role": "AXWindow", "title": "Haejo Upload Fixture",
+    "identifier": "SafariWindow?IsSecure=false&UUID=00000000-0000-0000-0000-000000000001",
+    "children": [
+      {"role": "AXSplitGroup", "children": [
+        {"role": "AXTabGroup", "children": [
+          {"role": "AXGroup", "identifier": "BrowserView?IsPageLoaded=true&WebViewProcessID=46370", "children": [
+            {"role": "AXWebArea", "description": "Haejo Upload Fixture"}]}]},
+        {"role": "AXButton", "identifier": "NewTabButton"}]},
+      {"role": "AXButton", "subrole": "AXCloseButton"}]
+  },
+  "listing": {
+    "type": "windows", "target": "com.apple.Safari", "pid": 94947, "process_start": 1794468678.854327,
+    "screen": {"display_asleep": false, "on_console": true, "locked": false},
+    "windows": [
+      {"window_id": 38404, "title": "Haejo Upload Fixture", "url": "http://127.0.0.1:8835/", "on_screen": true,
+       "tabs": [{"index": 0, "title": "Haejo Upload Fixture", "selected": true, "url": "http://127.0.0.1:8835/"}]},
+      {"window_id": 38333, "title": "Haejo matrix basic manual", "url": "http://127.0.0.1:8811/p/basic", "on_screen": true,
+       "tabs": [{"index": 0, "title": "Haejo Upload Fixture", "selected": false},
+                {"index": 1, "title": "Haejo matrix basic manual", "selected": true, "url": "http://127.0.0.1:8811/p/basic"}]},
+      {"window_id": 38325, "title": "Tabfix alpha", "url": "http://127.0.0.1:8821/alpha.html", "on_screen": true,
+       "tabs": [{"index": 0, "title": "Tabfix alpha", "selected": true, "url": "http://127.0.0.1:8821/alpha.html"},
+                {"index": 1, "title": "beta", "selected": false},
+                {"index": 2, "title": "Tabfix gamma", "selected": false},
+                {"index": 3, "title": "delta", "selected": false}]}
+    ],
+    "unlisted": [{"window_id": 37675, "reason": "not_on_active_space"}]
+  }
+}
