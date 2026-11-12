@@ -135,7 +135,9 @@ class SetupWindowLifecycleTests(unittest.TestCase):
             .write(to: directory.appendingPathComponent("lifecycle-check.json"))
 '''
         # Keep this regression independent of the person's current windows.
-        source = source.replace('if connection == .current { workspace().presentCurrent() }', 'if connection == .current { testOpenCount += 1 }')
+        source = source.replace('if connection == .current && state.granted(.control) && !window.isVisible { workspace().presentCurrent() }',
+                                'if connection == .current && state.granted(.control) && !window.isVisible { testOpenCount += 1 }')
+        assert 'workspace().presentCurrent()' not in source.split('@objc func reopen()')[1].split('@objc func showSetup()')[0]
         source = source.replace('if connection == .current { showAccessLogs() }', 'if connection == .current { testOpenCount += 1 }')
         instrumented = source.replace('        window.makeKeyAndOrderFront(nil)', '        testOpenCount += 1')
         instrumented = instrumented.replace('        NSApp.activate(ignoringOtherApps: true)', '        // Activation disabled in offscreen fixture.')

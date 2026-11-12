@@ -1122,7 +1122,9 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
     }
     @objc func reopen() {
-        if connection == .current { workspace().presentCurrent() }
+        // While setup is on screen or app control is still off, the Dock brings
+        // setup back; the workspace would hide it behind "권한 설정 필요".
+        if connection == .current && state.granted(.control) && !window.isVisible { workspace().presentCurrent() }
         else { showSetup() }
     }
     @objc func showSetup() {
