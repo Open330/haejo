@@ -53,6 +53,24 @@ press was answered without effect and that pointer events are the next route.
 An L3 reply carries `foreground_taken`, `front_restored` and `previous_front`;
 say in the result that Safari was in front for that step.
 
+4. **Attach files:** `haejo attach <name> /absolute/file [/absolute/file ...]`
+   registers the files the person named and pins their size and SHA-256. On
+   the page, one step puts them into the file control (the `Button` that reads
+   "no file selected", or the page's own "Attach" button):
+   `{"action":"attach_files","selector":{"role":"Button","desc":"<label>"},"params":{"scope":"<name>"},"postcondition":{<the page naming the file>}}`.
+   This is the route for sites the person is signed in to. The page's own text
+   is the result to check (the control's title becomes the file name, several
+   files read "2 files"); the `HAEJO_ATTACH` line reports the `route`:
+   `ax_brief_front` selects through accessibility and has Safari in front for
+   under a second with no keys; `go_to_folder_front` adds two real keys for a
+   folder the open panel does not list (a hidden path). Either way the app the
+   person was using is back in front when the step returns — say so in the
+   result when `took_front` is true. Files in one step share one folder; keep
+   them in an ordinary folder such as Documents or Downloads, where the first
+   route applies. `attachment_changed` means the bytes differ from the
+   registration: register again. The page's Send button is its own step
+   ([run](run.md) carries the person's approval for it).
+
 `--front` shows Safari to a person who asked to see the page. The page opens in
 Safari's main window; when another task shares the browser, `--window "<part of
 the intended window's title>"` brings that window forward first

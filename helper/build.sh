@@ -20,7 +20,7 @@ cp FrontmostProcess.swift "$STAGE/FrontmostProcess.swift"
 cp SavePanelObservation.swift "$STAGE/SavePanelObservation.swift"
 cp WindowDispatch.swift "$STAGE/WindowDispatch.swift"
 
-SWIFT_ARGS=(-O -target "$HAEJO_SWIFT_TARGET" -sdk "$SDK" "$STAGE/main.swift" "$STAGE/PeerAuth.swift" "$STAGE/WindowInput.swift" "$STAGE/FrontmostProcess.swift" "$STAGE/SavePanelObservation.swift" "$STAGE/WindowDispatch.swift" "$STAGE/PointerHover.swift" "../SigningPolicy.swift" "../RuntimeStatus.swift" "../HelperModeProtocol.swift" "HelperModes.swift" "ParallelWindows.swift" "WebInput.swift" "TabFrontPointer.swift" "ApprovalClassifier.swift" "NativeApproval.swift" "NativeApprovalClient.swift" "NativeCommit.swift" -o "$STAGE/haejo-helper")
+SWIFT_ARGS=(-O -target "$HAEJO_SWIFT_TARGET" -sdk "$SDK" "$STAGE/main.swift" "$STAGE/PeerAuth.swift" "$STAGE/WindowInput.swift" "$STAGE/FrontmostProcess.swift" "$STAGE/SavePanelObservation.swift" "$STAGE/WindowDispatch.swift" "$STAGE/PointerHover.swift" "../SigningPolicy.swift" "../RuntimeStatus.swift" "../HelperModeProtocol.swift" "HelperModes.swift" "ParallelWindows.swift" "WebInput.swift" "TabFrontPointer.swift" "ApprovalClassifier.swift" "NativeApproval.swift" "NativeApprovalClient.swift" "NativeCommit.swift" "OpenPanelUpload.swift" -o "$STAGE/haejo-helper")
 case "${HAEJO_ENABLE_EXPERIMENTAL_FOREGROUND:-0}" in
   0) ;;
   1)

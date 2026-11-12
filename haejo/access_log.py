@@ -31,7 +31,7 @@ _METHODS = frozenset(('credential_input','credential_submit','observe', 'act', '
 _ACTIONS = frozenset(('click', 'click_point', 'double_click', 'drag', 'vroid_drag', 'vroid_focus',
                      'window_input', 'prepare_window', 'set_value', 'type_text', 'scroll',
                      'secondary_action', 'menu', 'open_folder', 'reopen_window', 'close_menu', 'status_item',
-                     'read', 'press_key', 'select_option', 'open_select', 'select_custom_option', 'upload'))
+                     'read', 'press_key', 'select_option', 'open_select', 'select_custom_option', 'upload', 'attach_files'))
 MAX_FILE = 1024 * 1024
 # Measured as disk usage (allocated blocks), not content bytes.
 MAX_TOTAL = 100 * 1024 * 1024

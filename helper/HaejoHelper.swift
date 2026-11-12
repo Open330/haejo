@@ -4485,6 +4485,14 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
         return ["type": "acted", "action": name, "obs_id": obsID, "menus_closed": openMenus.count - remaining,
                 "menus_open": remaining,
                 "note": remaining == 0 ? "menus closed" : "not verified — a menu is still open"]
+    case "choose_files":
+        // Registered files into a page's file control, through the open panel
+        // it shows (OpenPanelUpload.swift).
+        guard Set(action.keys) == Set(["name", "element_index", "files"]), let el = element() else {
+            return ["type": "error", "error": "action_failed", "effect": "not_started",
+                    "detail": "choose_files takes an observed file control and its registered files"]
+        }
+        return chooseFiles(obsID: obsID, control: el, pid: p, rawFiles: action["files"])
     case "open_folder":
         // Finder's Go to Folder sheet cannot be confirmed from the background,
         // and Go > Go to Folder… brings Finder forward (measured 2026-10-08).
@@ -6359,6 +6367,8 @@ let helperCapabilities: [String] = [
     "action.menu", "action.scroll", "action.secondary_action",
     // Finder only: show an existing folder without activating Finder.
     "action.open_folder",
+    // Registered files into a page's file control through its open panel.
+    "action.choose_files",
     // menu may carry focused_document: pressed only when the focused and
     // main windows show exactly that file.
     "action.menu.focused_document", "action.menu.document_token_save", "action.menu.prepared_text",

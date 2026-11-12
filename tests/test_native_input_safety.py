@@ -91,6 +91,20 @@ class InputRoutingSourceTests(unittest.TestCase):
                 for banned in ('CGEventPost(', 'CGDisplayMoveCursorToPoint(', 'keyboardEvent', 'MouseDragged',
                                'scrollWheel', 'postToPid', 'NSWorkspace.shared.open('):
                     self.assertNotIn(banned, code, f'{banned} in tab front pointer')
+            if path.name == 'OpenPanelUpload.swift':
+                # The other global route: real keys for an open panel's Go to
+                # Folder sheet, which has no accessibility control and ignores
+                # keys posted to the process (measured 2026-11-12). One key
+                # function (down and up), called for Command-Shift-G, Return
+                # and Escape, each after a check that the target app is in
+                # front; no pointer, no text, no posting to a process.
+                self.assertEqual(2, code.count('.post(tap:'))
+                self.assertEqual(2, code.count('CGEvent(keyboardEventSource:'))
+                self.assertEqual(['36', '5', '53'], sorted(re.findall(r'openPanelRealKey\((\d+),', code)))
+                for banned in ('CGEventPost(', 'CGWarpMouseCursorPosition(', 'CGDisplayMoveCursorToPoint(',
+                               'mouseType', 'MouseDown', 'MouseUp', 'scrollWheel', 'keyboardSetUnicodeString',
+                               'postToPid', 'NSApplication.shared.activate(', 'NSWorkspace.shared.open('):
+                    self.assertNotIn(banned, code, f'{banned} in the open panel route')
                 continue
             for banned in ('CGEventPost(', 'CGWarpMouseCursorPosition(',
                            'CGDisplayMoveCursorToPoint(', '.post(tap:',

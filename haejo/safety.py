@@ -113,6 +113,10 @@ def classify(action: dict, target_line: str = "", *, into_sensitive_field=False,
     name = action.get("name", "")
     if name == 'upload':
         return 'confirm', 'host-registered file disclosure'
+    if name == 'attach_files':
+        # Files the person registered by name, put into the page's form like
+        # text into a field; sending them is the page's own later control.
+        return 'none', 'registered files into a page form'
     if name in ('select_option', 'select_custom_option') and isinstance(action.get('option_label'), str):
         # Selecting an option can invoke a command. Keep the parent control's
         # signal as well: a harmless-looking option cannot lower its risk.
@@ -320,6 +324,8 @@ def effects_of(action: dict, target_line: str = "", *, target: str = "") -> tupl
     name = action.get("name", "")
     if name == "upload":
         return {"transmit"}, "host-registered file disclosure"
+    if name == "attach_files":
+        return {"write_ephemeral"}, "registered files into a page form"
     if name in ('select_option', 'select_custom_option') and isinstance(action.get('option_label'), str):
         without_label = {k: v for k, v in action.items() if k != 'option_label'}
         parent, parent_reason = effects_of(without_label, target_line, target=target)

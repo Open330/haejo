@@ -31,6 +31,9 @@ ACTION_PARAMS = {
     "select_custom_option": frozenset({"option_label", "value"}),
     # Host-registered immutable browser payload, never a model-supplied path.
     "upload": frozenset({"scope", "attachment_digest"}),
+    # A page's file control in the person's browser (signed helper): the name
+    # of a `haejo attach` registration, optionally with the digest it printed.
+    "attach_files": frozenset({"scope", "attachment_digest"}),
     "press_key": frozenset({"key"}), "menu": frozenset({"path", "focused_document", "text"}),
     "drag": frozenset({"from", "to", "duration", "via"}),
     "resize_window": frozenset({"width", "height"}),

@@ -2647,6 +2647,14 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
                 res.record(status='error', step=i, error='upload_contract_required',
                            effect='not_started')
                 return res
+        if step.action == 'attach_files':
+            from .page_attach import params_valid
+            if ('action.choose_files' not in getattr(driver, 'capabilities', ())
+                    or not params_valid(step.params) or step.selector is None):
+                res.record(status='error', step=i, error='attach_contract_required', effect='not_started',
+                           detail='attach_files runs through the signed helper (--helper) with a selector '
+                                  'for the file control and params.scope from `haejo attach`')
+                return res
         if step.action == "prepare_window":
             if ("action.prepare_window" not in getattr(driver,"capabilities",())
                     or step.selector is None or step.postcondition is None
@@ -3243,6 +3251,13 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
                 return response
             event["state"] = ("unknown" if response.get("type") != "acted" or response.get("unverified")
                               else "confirmed" if effects == {"read"} else "dispatched")
+            if step.action == 'attach_files' and response.get('type') == 'acted':
+                # How the open panel was driven, and what it cost the person's
+                # screen: reported with the step, whatever the postcondition says.
+                from .page_attach import route_report
+                event['attach'] = route_report(response)
+                if narrate:
+                    narrate('files attached — ' + json.dumps(event['attach'], ensure_ascii=False, separators=(',', ':')))
             # The target was observed in front shortly after this step (seen
             # with Finder's Go > Go to Folder…, 2026-10-08). An observation,
             # not a proven cause — and its absence proves nothing either.

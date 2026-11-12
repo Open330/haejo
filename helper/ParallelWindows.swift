@@ -52,7 +52,7 @@ func windowScopeActionProblem(_ msg:[String:Any], _ scope:ParallelWindowScope) -
     guard msg["credential_origin"] == nil, msg["sensitive_input_authorized"] == nil, msg["save_panel_token"] == nil,
           let action=msg["action"] as? [String:Any],
           let name=action["name"] as? String,
-          ["read","click","set_value","type_text","select_option","scroll"].contains(name), action["point"] == nil,
+          ["read","click","set_value","type_text","select_option","scroll","choose_files"].contains(name), action["point"] == nil,
           let raw=action["element_index"] as? NSNumber,
           CFGetTypeID(raw) != CFBooleanGetTypeID(), raw.doubleValue==Double(raw.intValue),
           latestObsID==msg["obs_id"] as? String, latestTargetPID==scope.pid,
@@ -80,10 +80,10 @@ func windowScopeActionProblem(_ msg:[String:Any], _ scope:ParallelWindowScope) -
     if name=="select_option" {
         return web && role=="AXPopUpButton" ? nil : "window_scope_requires_app"
     }
-    if name=="click" {
-        if action["route"] != nil { return web ? nil : "window_scope_requires_app" }
+    if name=="click" || name=="choose_files" {
+        if name=="click" && action["route"] != nil { return web ? nil : "window_scope_requires_app" }
         // A page's <select> reaches the click case, which names select_option.
-        if web && role=="AXPopUpButton" { return nil }
+        if name=="click" && web && role=="AXPopUpButton" { return nil }
         if ["AXPopUpButton","AXMenuItem","AXMenu","AXMenuButton"].contains(role) || (role=="AXComboBox" && !web) {
             return "window_scope_requires_app"
         }
