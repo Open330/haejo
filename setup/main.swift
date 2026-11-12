@@ -699,7 +699,7 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         scopeInfo.isHidden = !(custom && (connection == .missing || connection == .other))
         connectButton.isHidden = connection == .current && !installing
         statusMenuTitle?.title = "Haejo 설정 · " + badge.stringValue
-        statusItem?.button?.toolTip = "Haejo 설정 · " + badge.stringValue
+        statusItem?.button?.toolTip = "Haejo · " + badge.stringValue
         updateRuntimeMenu()
         activityCenter?.updateStatus(badge.stringValue)
         if let notice { status.stringValue = notice }
@@ -1028,7 +1028,7 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         let template = Bundle.main.url(forResource: "haejo-menu-template", withExtension: "svg")
         item.button?.image = template.flatMap { NSImage(contentsOf: $0) }
-            ?? NSImage(systemSymbolName: "slider.horizontal.3", accessibilityDescription: "Haejo 설정")
+            ?? NSImage(systemSymbolName: "sun.horizon", accessibilityDescription: "Haejo")
         item.button?.image?.size = NSSize(width: 18, height: 18)
         item.button?.image?.isTemplate = true
         item.button?.setAccessibilityLabel("Haejo 설정")
@@ -1075,7 +1075,7 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         runtimeMenuTitle?.title = title
         runtimeStop?.isEnabled = runs.contains { !$0.stopped }
         runtimeStop?.title = runs.count > 1 ? "모든 작업 중단" : "현재 작업 중단"
-        statusItem?.button?.toolTip = runs.isEmpty ? "Haejo 설정 · " + badge.stringValue : title + " · Esc로 중단"
+        statusItem?.button?.toolTip = runs.isEmpty ? "Haejo · " + badge.stringValue : title + " · Esc로 중단"
         updateRuntimeRunItems()
     }
     /// Per-run rows under the global stop: app, helper-accepted window ID and
