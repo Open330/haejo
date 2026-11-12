@@ -6,6 +6,10 @@ it did not expect (a declared surprise, re-aimed once). Both measured live on
 and 14 → ×2 = 28 with one model call each, and a promoted cube recipe re-aimed
 Calculator's `Clear` to `All Clear` and answered 12³ = 1,728.
 """
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 import json
 import unittest
 from dataclasses import replace

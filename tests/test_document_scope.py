@@ -1,6 +1,10 @@
 """An exact document by its file: observe --document prints only that window,
 and a selector's ancestor may name the path (2026-10-10: an agent could not
 tell which TextEdit window held the evaluator's file)."""
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 import io
 import unicodedata
 import unittest

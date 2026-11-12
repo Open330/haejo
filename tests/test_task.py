@@ -1,4 +1,8 @@
 """Goal-scoped task grouping: lifecycle, binding, fail-closed admission."""
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 import io
 import json
 import os

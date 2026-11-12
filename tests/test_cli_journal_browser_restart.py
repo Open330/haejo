@@ -3,6 +3,10 @@
 The CLI's driver factory is explicitly injected with its optional BrowserDriver;
 this does not establish a native helper or a production web CLI backend.
 """
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 import json
 import os
 import signal

@@ -1,4 +1,8 @@
 """Public CLI upload boundary against an owned browser and independent inbox."""
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 import base64
 import contextlib
 import copy

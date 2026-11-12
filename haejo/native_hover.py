@@ -65,7 +65,7 @@ def _copy_capture(capture, output):
 
 
 def _main(argv, driver):
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(prog='haejo hover', description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('target', help='application bundle ID')
     parser.add_argument('--helper', action='store_true', required=True)
     parser.add_argument('--window', help='exact observed window title; required when multiple windows exist')

@@ -1,4 +1,8 @@
 """CLI journal flags reach actual replay and survive nested IR dispatch."""
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 import contextlib
 import io
 from pathlib import Path

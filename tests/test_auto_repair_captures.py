@@ -1,4 +1,8 @@
 """Exercise private capture continuation through real replay with an offline app."""
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 import contextlib
 from copy import deepcopy
 import io

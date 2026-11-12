@@ -1,4 +1,8 @@
 """Offline consent-form fixture: existing approval, exclusions and bound scope."""
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 from dataclasses import replace
 import hashlib
 import json

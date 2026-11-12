@@ -1,4 +1,8 @@
 """A disconnected reader must not erase a commit or dispatch it again."""
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 import unittest
 import contextlib
 import io

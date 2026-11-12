@@ -30,7 +30,7 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
   <key>CFBundlePackageType</key>     <string>APPL</string>
   <key>CFBundleShortVersionString</key> <string>1.0.0</string>
   <key>CFBundleVersion</key>         <string>1</string>
-  <key>LSMinimumSystemVersion</key>  <string>13.0</string>
+  <key>LSMinimumSystemVersion</key>  <string>@HAEJO_MACOS_TARGET@</string>
   <!-- Background only: the helper never shows in the Dock or takes focus. -->
   <key>LSUIElement</key>             <true/>
   <key>NSAccessibilityUsageDescription</key>
@@ -38,6 +38,7 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 </dict>
 </plist>
 PLIST
+/usr/bin/sed -i '' "s/@HAEJO_MACOS_TARGET@/$HAEJO_MACOS_TARGET/" "$APP/Contents/Info.plist"
 
 cp haejo-helper "$APP/Contents/MacOS/HaejoHelper"
 

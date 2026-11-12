@@ -1,4 +1,8 @@
 """CLI diagnostic recording is bounded and never a completion oracle."""
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 import json
 from pathlib import Path
 import subprocess

@@ -4,6 +4,10 @@ Measured live (2026-09-23): "계산기에서 25의 제곱근 구해줘" walked b
 promoted with `-p 25=n`, replayed with n=49 and no model call, showed 7. Each
 test below is one thing that broke on that path before it worked.
 """
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 import json
 import unittest
 from contextlib import redirect_stdout

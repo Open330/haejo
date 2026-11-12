@@ -1,4 +1,8 @@
 """A locked screen is named as such, and idle locks can be prevented on request."""
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 import json
 import tempfile
 import unittest

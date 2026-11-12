@@ -1,4 +1,8 @@
 """Regressions found in accumulated june-mba usage (2026-10-19..11-06)."""
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 import json
 from pathlib import Path
 import tempfile

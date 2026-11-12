@@ -1,4 +1,8 @@
 """Opt-in menu approval on the CLI side, against a stand-in menu app socket."""
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 import io
 import json
 import os

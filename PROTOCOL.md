@@ -530,9 +530,6 @@ AX 액션(`AXPress`·`AXValue`)은 요소를 직접 지정하고, CGEvent 호출
   웹 폼 결정론 재생 PASS. codex 가이드 반영: native AX / browser AX / DOM /
   Playwright locator는 **별도 ID 공간** — 별도 obs_id/인덱스, Flow는 backend 간
   비이식. web 값 검증은 whole-tree `contains`(값이 input 노드 하위에 안 들어감).
-- **음성 인터페이스**(`haejo/voice.py`) — macOS `say` TTS + 플러그형 STT(기본
-  타이핑 폴백). 확인 게이트를 음성 네/아니요로 해결(모호하면 안전 거부), 스텝
-  내레이션을 음성 출력. 레이턴시는 "위험 한 줄 + 짧은 예/아니요"로 최소화.
 - **모델 기반 authoring**(`haejo/authoring.py`) — 미지의 인텐트를 만나면 대상 앱을
   관찰하고 `muxa ask`(provider-agnostic)로 인텐트+AX트리→Flow를 생성, 셀렉터가
   트리에서 유일 해석되는지 검증 후 저장. **유일한 토큰 소비 경로**, 이후 재생은

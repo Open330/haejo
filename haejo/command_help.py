@@ -160,13 +160,45 @@ def session_guide(target, *, reusable=False, document=None, save=False, steps=Fa
         + "Inspect uncertain outcomes before retrying. Send one minified JSON line plus newline on this session."
     )
 
+# These parse their own arguments and print their own help.
+_OWN_HELP = frozenset(("task", "auth", "web-upload", "flows", "capture", "drag", "hover",
+                       "resize", "vroid-drag", "vroid-focus"))
+
+
+def _listed_usage(command):
+    """The command's lines from the top-level usage, continuation lines included."""
+    from . import cli
+    found, taking = [], False
+    for line in (cli.__doc__ or "").splitlines():
+        if line.startswith("  haejo "):
+            taking = line.split()[1] == command
+        elif not line.startswith("   "):
+            taking = False
+        if taking:
+            found.append(line.strip() if line.startswith("  haejo ") else line[2:])
+    return "usage: " + "\n".join(found) if found else None
+
+
 def command_help(command, args):
+    """Help text when the arguments ask for help; None runs the command.
+
+    Asking for help never starts the command: `--help` anywhere, or `-h` first,
+    prints usage even next to other arguments.
+    """
+    if command in _OWN_HELP:
+        return None
     allowed = {"--help", "-h", "help", "--helper"}
     if command in ("run", "session"):
         allowed.add("--example")
-    if (not any(arg in ("--help", "-h", "help") for arg in args)
-            or any(arg not in allowed for arg in args)):
+    only_help = (any(arg in ("--help", "-h", "help") for arg in args)
+                 and all(arg in allowed for arg in args))
+    if not only_help and "--help" not in args and args[:1] != ["-h"]:
         return None
+    text = _specific_help(command, args)
+    return text if text is not None else _listed_usage(command)
+
+
+def _specific_help(command, args):
     if command == "show":
         return (
             'usage: haejo show <name | flow.json> [--compact]\n'
@@ -185,7 +217,8 @@ def command_help(command, args):
     if command == "observe":
         return (
             "usage: haejo observe <bundle-id> --helper [--json] "
-            "[--all-windows | --document /absolute/path]\n"
+            "[--all-windows | --document /absolute/path] [--reveal TEXT] "
+            "[--until TEXT | --until-text TEXT | --until-gone TEXT] [--timeout SECONDS]\n"
             "Example: haejo observe com.apple.calculator --helper\n"
             "Read current accessibility selectors. --json includes capabilities.\n"
             "Use --document to pin a TextEdit document; session reuses the connection."

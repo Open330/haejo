@@ -1,4 +1,8 @@
 """Inline lifecycle removes bookkeeping calls without changing UI outcomes."""
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 import json,unittest
 from unittest.mock import patch
 from haejo import cli,task as tasks

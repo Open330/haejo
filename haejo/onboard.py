@@ -12,8 +12,8 @@ import os
 import subprocess
 from dataclasses import dataclass
 
-from ApplicationServices import AXIsProcessTrusted, AXIsProcessTrustedWithOptions
-import Quartz
+# The PyObjC bridge costs ~0.3 s to load; it is imported where a check runs, so
+# `haejo do --helper` does not pay for a check the helper answers.
 
 
 @dataclass
@@ -28,12 +28,14 @@ class Check:
 def _screen_recording_ok() -> bool:
     # CGPreflightScreenCaptureAccess reports without prompting.
     try:
+        import Quartz
         return bool(Quartz.CGPreflightScreenCaptureAccess())
     except Exception:
         return False
 
 
 def check_all() -> list[Check]:
+    from ApplicationServices import AXIsProcessTrusted
     ax = AXIsProcessTrusted()
     sr = _screen_recording_ok()
     return [
@@ -71,6 +73,7 @@ def _screen_recording_for(c: "Check", helper: dict) -> "Check":
 
 def request_accessibility(prompt: bool = True) -> bool:
     """Trigger the system's own Accessibility prompt (one-time)."""
+    from ApplicationServices import AXIsProcessTrustedWithOptions
     opts = {"AXTrustedCheckOptionPrompt": True} if prompt else {}
     return bool(AXIsProcessTrustedWithOptions(opts))
 

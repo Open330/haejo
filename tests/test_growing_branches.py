@@ -6,6 +6,10 @@ odd branch. With 8, the unseen even case was walked from the decision on
 (16) and kept; then 10 → 20... 12 → 24 and 9 → 10 replayed with the decision
 as the only model call.
 """
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 import json
 import unittest
 from unittest.mock import patch

@@ -9,7 +9,7 @@ TARGET = 'net.pixiv.vroid.macosx'
 
 
 def main(argv, driver):
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(prog='haejo vroid-focus', description=__doc__)
     parser.add_argument('--helper', action='store_true', required=True)
     parser.add_argument('--yes', action='store_true', required=True)
     parser.add_argument('--title', required=True)

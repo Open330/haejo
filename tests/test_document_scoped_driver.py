@@ -1,4 +1,8 @@
 """Replay cannot widen a pinned document on polling, failure or a stale token."""
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 import unittest
 from unittest.mock import Mock, patch
 from haejo.document_scope import DocumentScopedDriver, DocumentScopeUnavailable

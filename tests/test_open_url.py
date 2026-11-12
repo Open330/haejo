@@ -1,4 +1,8 @@
 """Opening a web page on request: one LaunchServices hand-off, confirmed by the page."""
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 import json
 import unittest
 from unittest import mock

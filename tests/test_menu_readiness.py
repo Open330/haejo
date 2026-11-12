@@ -1,4 +1,8 @@
 """Read-only menu settling must never admit late readiness or retry input."""
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 import contextlib
 import io
 import json

@@ -23,6 +23,30 @@ ROOT = Path(__file__).resolve().parent.parent
 MAGICS = {bytes.fromhex(x) for x in ('feedface','cefaedfe','feedfacf','cffaedfe','cafebabe','bebafeca')}
 
 
+
+def deployment_target():
+    """The macOS floor shared with helper/build.sh and launcher/build.sh."""
+    match = re.search(r'^HAEJO_MACOS_TARGET=(\d+\.\d+)$', (ROOT/'signing.sh').read_text(), re.M)
+    if not match:
+        raise RuntimeError('signing.sh does not state HAEJO_MACOS_TARGET')
+    return match.group(1)
+
+
+def swift_target():
+    return f'{platform.machine()}-apple-macos{deployment_target()}'
+
+
+def require_deployment_target(paths, run=subprocess.run):
+    """Every Swift binary Haejo compiles starts on the stated macOS floor."""
+    expected = deployment_target()
+    for path in paths:
+        listing = run(['vtool', '-show-build', str(path)], check=True, capture_output=True, text=True).stdout
+        found = re.findall(r'^\s*minos (\S+)$', listing, re.M)
+        if not found or any(value != expected for value in found):
+            raise RuntimeError(f'{Path(path).name} targets macOS {found or "unknown"}, not {expected}')
+    return expected
+
+
 def ignored(directory, names):
     return [n for n in names if n == '__pycache__' or n.endswith(('.pyc','.pyo','.pth'))
             or n.startswith('__editable__') or n == 'direct_url.json']
@@ -67,7 +91,7 @@ def compile_setup(executable, folder):
     for name in ('main.swift', 'PermissionState.swift', 'ActivityCenter.swift', 'ApprovalCenter.swift'):
         shutil.copy2(ROOT/'setup'/name, sources/name)
     shutil.copy2(ROOT/'RuntimeStatus.swift', sources/'RuntimeStatus.swift')
-    run(['swiftc', '-file-prefix-map', str(ROOT)+'=/haejo-source',
+    run(['swiftc', '-target', swift_target(), '-file-prefix-map', str(ROOT)+'=/haejo-source',
          'main.swift', 'PermissionState.swift', 'ActivityCenter.swift', 'ApprovalCenter.swift', 'RuntimeStatus.swift', '-o', str(executable)], cwd=sources)
 
 
@@ -237,7 +261,7 @@ def build(output, identity):
         launcher=runtime/'launcher/haejo'
         launcher_source=Path(folder)/'launcher-source';launcher_source.mkdir()
         shutil.copy2(ROOT/'launcher/haejo.swift',launcher_source/'main.swift')
-        run(['swiftc','-O','-file-prefix-map',str(ROOT)+'=/haejo-source',str(launcher_source/'main.swift'),str(ROOT/'SigningPolicy.swift'),str(ROOT/'HelperModeProtocol.swift'),str(ROOT/'RuntimeStatus.swift'),str(ROOT/'launcher/HelperModeClient.swift'),'-o',str(launcher)])
+        run(['swiftc','-O','-target',swift_target(),'-file-prefix-map',str(ROOT)+'=/haejo-source',str(launcher_source/'main.swift'),str(ROOT/'SigningPolicy.swift'),str(ROOT/'HelperModeProtocol.swift'),str(ROOT/'RuntimeStatus.swift'),str(ROOT/'launcher/HelperModeClient.swift'),'-o',str(launcher)])
         sign(launcher,identity,'ai.callabo.haejo',requirement('ai.callabo.haejo'))
         run(['codesign','--verify','-R='+requirement('ai.callabo.haejo'),str(launcher)])
         native=list(native_files(runtime/'.venv'))
@@ -277,7 +301,7 @@ def build(output, identity):
             'CFBundleExecutable':'HaejoSetup','CFBundleIdentifier':'ai.callabo.haejo.setup.standalone.preview',
             'CFBundlePackageType':'APPL','CFBundleShortVersionString':'1.0.0','CFBundleVersion':'1',
             'LSUIElement':True,
-            'LSMinimumSystemVersion':platform.mac_ver()[0]}))
+            'LSMinimumSystemVersion':deployment_target()}))
         (resources/'runtime.json').write_text(json.dumps({'bundledRoot':'runtime'}))
         owner_requirement=requirement('ai.callabo.haejo.setup.standalone.preview')
         sign(executable,identity,'ai.callabo.haejo.setup.standalone.preview',owner_requirement)

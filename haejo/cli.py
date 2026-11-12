@@ -1,9 +1,18 @@
 """Haejo — reusable computer use.
 
 Usage:
-  haejo task start "<goal>"   # FIRST: one task per user goal -> HAEJO_TASK <id>
-      (then run every haejo command for that goal as HAEJO_TASK=<id> haejo …
-       or with --task <id>; haejo task status|list|end <id> --result done|failed|abandoned)
+  haejo observe <bundle-id> --helper [--json]   # read an app's current selectors
+      (--until-text TEXT | --until-gone TEXT [--timeout SECONDS] waits inside one command)
+  haejo session <bundle-id> --helper --guide --steps   # observe, then run one Flow on the same connection
+  haejo batch <flow.json | name> --helper   # one Flow, one {"params":{...}} line per item
+  haejo windows <bundle-id> --helper   # list an app's windows
+  haejo menu-state <bundle-id> <Menu> <Item> [<Submenu item> ...] [--helper] [--wait-enabled SECONDS]
+  haejo hover <bundle-id> --helper --to X Y [--window TITLE] [--capture new.png]
+  haejo resize <bundle-id> --helper --width W --height H [--window TITLE]
+      (one task per user goal: first UI command --task new --goal "<goal>", later ones
+       --task <id>, --finish-task on the last; haejo task status|list|note <id>)
+  haejo <command> --help  # usage for one command; asking for help never runs it
+  haejo --version         # which release this is
   haejo auth --help       # vault-backed delegated filling and login
   haejo doctor            # check/guide permissions
   haejo apps              # list running apps (GUI session check)
@@ -19,6 +28,8 @@ Usage:
   haejo document-attachments <canonical path> --helper
       (read live attachment positions/references; does not verify payload bytes)
   haejo list              # list saved flows (+ where the IR lives)
+  haejo flows [show|set|rename|rm <name>] [--json]   # manage saved flows
+  haejo repair <flow.json> --packet <packet.json> --selector JSON --out <new.json> [--remaining]
   haejo show <name> [--compact]  # inspect Flow JSON; compact omits parser defaults
   haejo compile "<intent>"        # STAGE 1: intent -> Flow IR (uses a model)
       (--verify runs the result once and lets the model fix what failed)
@@ -29,14 +40,14 @@ Usage:
       (--strict turns off reading the request itself: only phrasings the
        patterns already know, and an honest "I did not understand" otherwise)
   haejo do "<intent>" --trace run.json   # …and record a reproducible trace
-  haejo run <flow.json> --journal-dir /absolute/private/run-directory
-      (do/run/replay: reserve input before dispatch; reuse this directory on
-       restart to refuse duplicate input. This does not automatically resume.)
+  haejo run <flow.json> [--helper] [-p key=value] [--yes] [--timings]   # execute a Flow IR file directly (no intent step)
+      (--journal-dir /absolute/private/run-directory — do/run/replay: reserve input
+       before dispatch; reuse this directory on restart to refuse duplicate input.
+       This does not automatically resume.)
   haejo web-upload /absolute/private/config.json --scope name --check
       (register immutable browser files; omit --check to review/approve and
        verify independent receiving evidence; supports --journal-dir and --report)
   haejo parameterize <flow> -p 12=a -p 34=b --digits   # concrete IR -> template
-  haejo run <flow.json>   # execute a Flow IR file directly (no intent step)
   haejo parallel <manifest.json> --helper [--json]  # 1..4 checked AX window jobs, isolated signed sessions
       (--helper routes through the signed Swift helper that holds the permissions)
       (signed macOS tasks use the existing Haejo menu; configure the task banner in app Settings)
@@ -692,8 +703,32 @@ def _run_flow(flow, argv, walked: bool = False, *, _driver=None, _confirm=None, 
     return 0 if result.ok else 1
 
 
+def version_text(start=None):
+    """Which Haejo this is: the installed app's release, or the checkout's package version."""
+    import plistlib
+    from pathlib import Path
+    for folder in Path(start or __file__).resolve().parents:
+        if folder.name == 'Contents' and folder.parent.suffix == '.app':
+            try:
+                info = plistlib.loads((folder/'Info.plist').read_bytes())
+            except (OSError, ValueError):
+                continue
+            tag = info.get('HaejoReleaseTag')
+            if isinstance(tag, str) and tag:
+                commit = info.get('HaejoSourceCommit')
+                return f'haejo {tag.removeprefix("v")}' + (f' ({commit[:7]})' if isinstance(commit, str) and commit else '')
+    try:
+        from importlib.metadata import version
+        return f'haejo {version("haejo-runtime")} (source checkout)'
+    except Exception:
+        return 'haejo (source checkout)'
+
+
 def _main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
+    if argv and argv[0] in ("--version", "-V", "version"):
+        print(version_text())
+        return 0
     if not argv or argv[0] in ("--help", "-h", "help"):
         print(__doc__)
         return 0

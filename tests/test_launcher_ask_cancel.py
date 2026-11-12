@@ -5,6 +5,10 @@ and frame I/O source, runs the real haejo.ask_provider wrapper in an isolated
 interpreter, and an owned fake provider CLI with a delayed-write descendant.
 No model, network, helper, signed app or native GUI is involved.
 """
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 import json
 import os
 from pathlib import Path

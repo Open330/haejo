@@ -1,4 +1,8 @@
 """Real dialogs must survive capture-badge filtering and CLI presentation."""
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 import pathlib
 import shutil
 import subprocess

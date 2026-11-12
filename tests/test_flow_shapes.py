@@ -1,4 +1,8 @@
 """Malformed recipes fail at loading, before any app input is attempted."""
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 import copy
 import io
 import json

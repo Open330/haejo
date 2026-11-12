@@ -264,6 +264,16 @@ def require_timestamps(paths,run=subprocess.run):
     return len(paths)
 
 
+def require_minimum_macos(app):
+    """Haejo's own binaries and both bundles name the one stated macOS floor."""
+    helper=app/'Contents/Resources/runtime/helper/Haejo Helper.app'
+    target=preview.require_deployment_target([app/'Contents/MacOS/HaejoSetup',app/'Contents/Resources/runtime/launcher/haejo',helper/'Contents/MacOS/HaejoHelper'])
+    for plist in (app/'Contents/Info.plist',helper/'Contents/Info.plist'):
+        if plistlib.loads(plist.read_bytes()).get('LSMinimumSystemVersion')!=target:
+            raise RuntimeError('bundle minimum macOS differs from the compiled target')
+    return target
+
+
 def build(output,identity,tag,*,baseline=None,initial_distribution=False,removal_allowlist=None):
     version,preview_number=release_version(tag)
     before=committed_sources()
@@ -325,10 +335,11 @@ def build(output,identity,tag,*,baseline=None,initial_distribution=False,removal
             raise RuntimeError('packaged Python source differs')
     all_native=list(preview.native_files(output))
     require_timestamps(all_native)
+    macos_target=require_minimum_macos(output)
     scanned=preview.require_private_paths_absent(output,(Path.home(),ROOT))
     return {**report,'version':tag,'source_commit':before['workspace_commit'],
             'source_digest':before['digest'],'all_inputs_match_commit':True,
-            'signed_with_timestamp':True,'native_runtime_files_timestamped':len(native),
+            'signed_with_timestamp':True,'minimum_macos':macos_target,'native_runtime_files_timestamped':len(native),
             'all_packaged_macho_timestamped':True,'packaged_macho_count':len(all_native),
             'private_paths_absent':True,'scanned_files':scanned,
             'all_extras_verified':True,'distribution_inventory':inventory,

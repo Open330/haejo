@@ -1,4 +1,8 @@
 """Commands release sleep assertions and failed helper launches own no pipes."""
+try:
+    from tests import _isolation  # noqa: F401
+except ImportError:  # discovered with tests/ as the top level
+    import _isolation  # noqa: F401
 from pathlib import Path
 import json
 import os

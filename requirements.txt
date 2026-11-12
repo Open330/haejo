@@ -1,9 +1,0 @@
-# macOS accessibility backend (L1 native driver)
-pyobjc-framework-ApplicationServices>=10.0
-pyobjc-framework-Quartz>=10.0
-pyobjc-framework-Cocoa>=10.0
-
-# Optional headless web backend only (haejo/browser.py). NOT needed for computer
-# use of the real browser, which the AX driver handles as just another app.
-# Install if you want it, then: python -m playwright install chromium
-# playwright>=1.40
