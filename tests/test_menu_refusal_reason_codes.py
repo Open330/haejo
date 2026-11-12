@@ -42,6 +42,11 @@ class MenuRefusalReasonTests(unittest.TestCase):
         self.assertIn('"AXWindows"', rule)
         self.assertIn('== "AXWindow"', rule)  # Finder's desktop is listed but is no window
         self.assertIn('?? false', rule)
+        # Finder is told the exact step; Haejo never picks a folder to open itself.
+        refusal = case[case.index('let noWindow ='):case.index('if let record { out["temporary_preparation"] = record }')]
+        self.assertIn('target == "com.apple.finder"', refusal)
+        self.assertIn('\\"action\\":\\"open_folder\\"', refusal)
+        self.assertNotIn('NSWorkspace', refusal)
         self.assertIn('"target_was_front": wasFront', disabled)
         press = refusals['menu_press_failed']
         self.assertIn('"effect": axActionFailureEffect(menuError)', press)

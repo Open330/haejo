@@ -4154,7 +4154,10 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
                     "needs_foreground": !wasFront && !noWindow, "target_was_front": wasFront,
                     "target_has_no_window": noWindow,
                     "detail": "메뉴 '\(walked.joined(separator: " > "))' 가 비활성 상태입니다"
-                              + (noWindow ? " (이 앱에 열린 창이 없습니다. 창을 뒤에서 연 뒤 다시 관찰하세요)"
+                              + (noWindow && target == "com.apple.finder"
+                                 // Which folder the command acts in is the task's choice, never Haejo's.
+                                 ? " (Finder 창이 없습니다. 명령을 실행할 폴더를 flow 단계 {\"action\":\"open_folder\",\"params\":{\"path\":\"/abs/path\"}} 로 먼저 연 뒤 다시 보내세요)"
+                                 : noWindow ? " (이 앱에 열린 창이 없습니다. 창을 뒤에서 연 뒤 다시 관찰하세요)"
                                  : wasFront ? "" : " (이 앱이 앞에 있지 않아 그렇게 보일 수 있습니다)")]
                 if let record { out["temporary_preparation"] = record }
                 return out
