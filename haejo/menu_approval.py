@@ -199,6 +199,10 @@ def plan(flow, agent, window_id=None, approval_id=None):
         return approvals, [], outcome('unavailable', hint='Haejo 앱을 열어 두면 메뉴에서 승인할 수 있습니다')
     status = reply.get('status')
     ident = reply.get('approval_id') or approval_id
+    if status == 'native':
+        # Enforced in the helper: each risky input is decided there, on what
+        # it reads, with one card. Nothing to ask before the run.
+        return approvals, [], None
     if status == 'pending':
         return approvals, [], outcome('pending', approval_id=ident, resume=f'--approval {ident}')
     if status != 'allowed' or not isinstance(ident, str):
@@ -265,6 +269,9 @@ class RuntimeConfirm:
             self.last_outcome = 'approval_unavailable'
             return False
         if reply.get('status') == 'allowed':
+            return True
+        if reply.get('status') == 'native' and item is not None:
+            # The helper decides this input when it is entered.
             return True
         self.last_outcome = 'approval_' + str(reply.get('status') or 'denied')
         return False

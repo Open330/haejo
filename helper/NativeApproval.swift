@@ -6,9 +6,9 @@
 // what the helper reads from the element that will receive the input, never
 // Python's safety declaration or its *_authorized flags.
 //
-// Enforcement is off until the menu app reports a verified enforcing state
-// (`enforcing`, wired with the state store). While off, `gate` returns nil
-// before reading anything, so behaviour is exactly as before.
+// Enforcement follows the Keychain anchor the menu app writes when the
+// person turns "메뉴에서 승인" on (`NativeApprovalAnchor`). While off, `gate`
+// returns nil before reading anything, so behaviour is exactly as before.
 
 import Foundation
 import ApplicationServices
@@ -30,7 +30,7 @@ enum NativeDecision: Equatable {
 }
 
 enum NativeApproval {
-    /// Set by the state store once it has a verified "enforcing" record.
+    /// Wired to `NativeApprovalAnchor.enforcing` (Keychain, read by the helper).
     nonisolated(unsafe) static var enforcing: () -> Bool = { false }
     /// Asks the menu app (authenticated channel) for this input; blocking.
     nonisolated(unsafe) static var decide: (_ input: ObservedInput, _ cls: ApprovalClass, _ pid: pid_t, _ commit: CommitView) -> NativeDecision = { _, _, _, _ in .unavailable }

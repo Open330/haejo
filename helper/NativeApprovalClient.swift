@@ -112,3 +112,56 @@ enum NativeApprovalClient {
         return try? JSONSerialization.jsonObject(with: Data(line)) as? [String: Any]
     }
 }
+
+/// Whether menu approval is enforced, read by the helper itself from the
+/// Keychain anchor the menu app writes (never from a file Python could
+/// edit). No item → never enabled. An item whose data this helper cannot
+/// read (overwritten by another process, keychain locked) → enforced.
+enum NativeApprovalAnchor {
+    nonisolated(unsafe) static var cached: (at: Double, value: Bool)?
+
+    static func enforcing() -> Bool {
+        let now = ProcessInfo.processInfo.systemUptime
+        if let cached, now - cached.at < 1 { return cached.value }
+        let value = decide(read())
+        cached = (now, value)
+        return value
+    }
+
+    enum Read: Equatable { case missing, unreadable, value(Data) }
+
+    static func decide(_ read: Read) -> Bool {
+        switch read {
+        case .missing: return false
+        case .unreadable: return true
+        case .value(let data):
+            guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return true }
+            return object["enforcing"] as? Bool ?? true
+        }
+    }
+
+    static func query(data: Bool) -> OSStatus {
+        var out: CFTypeRef?
+        var q: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
+                                kSecAttrService as String: "ai.callabo.haejo.native-approval",
+                                kSecAttrAccount as String: "anchor", kSecMatchLimit as String: kSecMatchLimitOne,
+                                kSecUseAuthenticationUI as String: kSecUseAuthenticationUIFail]
+        q[data ? kSecReturnData as String : kSecReturnAttributes as String] = true
+        let status = SecItemCopyMatching(q as CFDictionary, &out)
+        if data, status == errSecSuccess, let d = out as? Data { lastData = d }
+        return status
+    }
+    nonisolated(unsafe) static var lastData = Data()
+
+    /// Missing even when the keychain is locked reads as missing (measured);
+    /// attributes stay readable when the data is not, so an item that exists
+    /// is never mistaken for "never enabled".
+    static func read() -> Read {
+        let noKeychain: Set<OSStatus> = [errSecItemNotFound, errSecNoSuchKeychain, errSecNoDefaultKeychain]
+        let status = query(data: true)
+        if status == errSecSuccess { return .value(lastData) }
+        if noKeychain.contains(status) { return .missing }
+        let present = query(data: false)
+        return noKeychain.contains(present) ? .missing : .unreadable
+    }
+}

@@ -69,6 +69,8 @@ class FakeMenu:
                 return {'ok': False, 'reason': 'consumed'}
             self.consumed.add(key); return {'ok': True}
         if op == 'runtime':
+            if self.decision == 'native':
+                return {'status': 'native' if m.get('item') else 'timeout'}
             return {'status': 'allowed' if self.decision == 'allowed' else 'denied'}
         return {'ok': True}
 
@@ -119,6 +121,25 @@ class MenuApprovalTests(unittest.TestCase):
         self.assertEqual((1, ['transmit'], 'slack:#team', 'message'),
                          (item['step'], item['effects'], item['destination'], item['object_type']))
         self.assertTrue(item['payload_digest'])
+
+    def test_native_enforcement_runs_without_a_plan_card_or_claim(self):
+        # The helper decides each risky input itself; nothing is asked or claimed before the run.
+        fake = self.menu('native')
+        f = flow()
+        approvals, blocked, outcome = menu_approval.plan(f, Agent(driver=None))
+        self.assertEqual(([], None), (blocked, outcome))
+        self.assertEqual(['plan'], [c['op'] for c in fake.calls])
+        self.assertNotIsInstance(approvals[1], menu_approval.MenuApprovalToken)
+        ok, _ = approvals[1].authorizes(f.steps[1].binding, f.steps[1].safety)
+        self.assertTrue(ok)
+
+    def test_native_enforcement_leaves_step_values_to_the_helper(self):
+        self.menu('native')
+        f = flow()
+        confirm = menu_approval.RuntimeConfirm('com.tinyspeck.slackmacgap', wait=1)
+        self.assertTrue(confirm.request(f.steps[1], '메시지를 전송합니다', 1))
+        self.assertFalse(confirm('질문만 있는 확인'))
+        self.assertEqual('approval_timeout', confirm.last_outcome)
 
     def test_allowed_plan_claims_one_run_and_spends_each_step_once(self):
         fake = self.menu('allowed')
