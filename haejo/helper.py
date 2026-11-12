@@ -652,6 +652,15 @@ class HelperDriver:
         self._window_scope = (target,window_id)
         return {'type':'window_scope','window_id':window_id}
 
+    def select_tab(self, target, index, title=None, route=None):
+        """Show one tab of the pinned browser window; the reply names the route."""
+        if getattr(self,'_window_scope',None) is None or type(index) is not int or index < 0:
+            return {'type':'error','error':'invalid_tab_select','effect':'not_started'}
+        tab = {'index':index}
+        if title is not None: tab['title'] = title
+        if route is not None: tab['route'] = route
+        return self._send({'type':'tab_select','target':target,'tab':tab})
+
     def identity(self, target: str) -> str:
         return target
 
@@ -759,6 +768,15 @@ class HelperDriver:
 
     def act(self, obs_id, target, action, expect=None, risk_class="none",
             intent_text="", approved=False, *, save_panel_token=None, submit_authorized=False, credential_origin=None, sensitive_input=False):
+        if action.get('name') == 'attach_files':
+            # The step names a registration; the helper is given the pinned
+            # paths and digests, and hashes the bytes again before choosing.
+            if 'action.choose_files' not in getattr(self, 'capabilities', ()):
+                return {'type': 'error', 'error': 'attach_unavailable', 'effect': 'not_started'}
+            from .page_attach import helper_action
+            action, problem = helper_action(action)
+            if problem is not None:
+                return problem
         if action.get('name') == 'resize_window' and 'action.resize_window' not in getattr(self,'capabilities',()):
             return {'type':'error','error':'resize_unavailable','effect':'not_started'}
         if 'input_method' in action:
@@ -780,6 +798,12 @@ class HelperDriver:
                     or risk_class!='preapproved' or approved is not True
                     or 'action.credential_input' not in getattr(self,'capabilities',())):
                 return {'type':'error','error':'credential_scope_unavailable','effect':'not_started'}
+        if 'route' in action:
+            if (action.get('name') != 'click' or action['route'] != 'pointer'
+                    or type(action.get('element_index')) is not int or 'point' in action
+                    or save_panel_token is not None
+                    or 'click.route_pointer' not in getattr(self, 'capabilities', ())):
+                return {'type':'error','error':'invalid_click_route','effect':'not_started'}
         if action.get('name') == 'open_select':
             from .protocol import native_opening_parameters_problem
             problem = native_opening_parameters_problem(action)
@@ -1282,7 +1306,7 @@ class HelperDriver:
 # The L2 surface is transport-independent: observe/act/wait_until only need a
 # `_send`, so the inherited-socket driver borrows the spawn driver's
 # implementations rather than keeping a second copy in step with the first.
-for _name in ("document_mode", "release_targets", "foreground_begin", "foreground_end", "windows", "scope_window", "identity", "list_targets", "observe", "_settled", "act", "credential_input", "credential_submit", "probe",
+for _name in ("document_mode", "release_targets", "foreground_begin", "foreground_end", "windows", "scope_window", "select_tab", "identity", "list_targets", "observe", "_settled", "act", "credential_input", "credential_submit", "probe",
               "selection", "menu_state", "menu_items", "document_text", "document_window_status", "document_rtf_export", "document_attachment_metadata", "save_panel", "capture",
               "wait_until"):
     impl = getattr(HelperDriver, _name)

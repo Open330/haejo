@@ -299,6 +299,7 @@ Check `haejo --help` for your checkout. Use the signed launcher for native work 
 - [model deadlines](docs/model-deadlines.md)
 - [native visual](docs/native-visual.md)
 - [native window input](docs/native-window-input.md)
+- [Safari capability matrix: which route delivers each web action](docs/safari-capability-matrix.md)
 - [Haejo automatic repair — scope and limits](docs/haejo-auto-repair-2026-10-14.md)
 - [Haejo complex scenario validation](docs/haejo-complex-scenarios-2026-10-14.md)
 - [Haejo and Sky matched comparison](docs/haejo-matched-comparison-2026-10-14.md)

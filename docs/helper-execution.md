@@ -119,6 +119,33 @@ the file instead of running it app-wide. `run`, `replay`, `do` and `batch`
 resolve it at start (a session keeps the window it pinned when it started),
 and `batch` opens one connection per job so each job finds that job's window.
 
+A browser window's row also carries `tabs`, in tab-bar order: `index`,
+`title`, `selected`, `pinned` when set, and `url` on the tab that is showing.
+Measured on Safari 27.2: the tab bar is a group identified `TabBar?…` whose
+`AXRadioButton`/`AXTabButton` children carry `AXTitle`, `AXValue` 1 when
+selected, `TabBarTab?…isPinned=…&isActive=…` and `AXPress`; a background tab
+has no web area and no address in accessibility, and a tab opened in the
+background kept a title made from its address after its page loaded, so the
+showing tab is listed with the window's page title. A window with one tab
+shows no tab bar and lists that page as its one tab.
+
+`--window-match tab=<text>` (Flow `"window": {"tab": ...}`) names a tab by
+part of its title, or of the address for the showing tab, case-insensitively;
+`url`/`title` narrow the window and `newest` takes the highest window ID and
+its showing or last matching tab. The window is pinned, then the helper's
+`tab_select` selects the tab and replies with the page the window shows; the
+command prints `HAEJO_TAB_SELECTED {window_id,index,title,url,route}` (stderr
+for `observe`/`run`, the session transcript for `session`). Routes, tried in
+order and each confirmed by the tab reporting selected: `ax_press` (AXPress on
+the tab button), `window_pointer` (one click addressed to the window and
+posted to the process; needs the tab clear of the browser's other windows),
+`front_pointer` (the browser is activated, the real pointer clicks the tab,
+the pointer returns and the previous front app is reactivated; the reply has
+`front_taken`/`front_restored`). `route=<name>` in the selector uses one
+route. Earlier routes that did not select are listed under `attempts`.
+`tab_select_failed` carries `attempts`; `tab_select_unverified` means the tab
+was selected and shows a page the text does not name.
+
 The `windows` reply also cross-checks the window server (ids and on-screen
 flags only, no titles or screen recording): each row has `on_screen`; windows
 the server has but accessibility omits are under `unlisted` with

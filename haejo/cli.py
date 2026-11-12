@@ -5,7 +5,7 @@ Usage:
       (--until-text TEXT | --until-gone TEXT [--timeout SECONDS] waits inside one command)
   haejo session <bundle-id> --helper --guide --steps   # observe, then run one Flow on the same connection
   haejo batch <flow.json | name> --helper   # one Flow, one {"params":{...}} line per item
-  haejo windows <bundle-id> --helper   # list an app's windows
+  haejo windows <bundle-id> --helper   # list an app's windows (and a browser's tabs)
   haejo menu-state <bundle-id> <Menu> <Item> [<Submenu item> ...] [--helper] [--wait-enabled SECONDS]
   haejo hover <bundle-id> --helper --to X Y [--window TITLE] [--capture new.png]
   haejo resize <bundle-id> --helper --width W --height H [--window TITLE]
@@ -20,7 +20,9 @@ Usage:
   haejo uninstall [--remove-data] [--yes]  # remove links and app (data kept unless asked) to the Trash
   haejo launch <bundle-id> [--helper]  # explicitly start an installed app in background
   haejo activate <bundle-id> [--window TEXT] [--helper]  # on a person's request: bring the app (and that window) forward
-  haejo open-url <URL> [--browser <bundle-id>] [--window <title part>] [--helper]  # open a web page as a link click does
+  haejo open-url <URL> [--browser <bundle-id>] [--front] [--window <title part>] [--helper]  # open a web page behind the app in use (--front shows it)
+  haejo page status | allow | text <URL> | value <URL> --selector CSS | fill <URL> --selector CSS --value TEXT | eval <URL> --js EXPR
+      (Safari page scripts, when Safari allows them: read any tab, read values, fill with input/change events)
   haejo keep-awake [--minutes N] | --stop  # opt-in: no idle display/system sleep during long remote work (no screen-saver or policy lock guarantee)
   haejo capture <bundle-id> --helper --output window.png [--window TITLE]
   haejo drag <bundle-id> --helper --from X Y --to X Y [--window TITLE]
@@ -44,6 +46,9 @@ Usage:
       (--journal-dir /absolute/private/run-directory — do/run/replay: reserve input
        before dispatch; reuse this directory on restart to refuse duplicate input.
        This does not automatically resume.)
+  haejo attach <name> /absolute/file [...] | --list | --forget <name>
+      (register files for a page's file control in Safari, pinned by SHA-256; a Flow
+       step {"action":"attach_files","params":{"scope":"<name>"}} attaches them)
   haejo web-upload /absolute/private/config.json --scope name --check
       (register immutable browser files; omit --check to review/approve and
        verify independent receiving evidence; supports --journal-dir and --report)
@@ -534,6 +539,9 @@ def _run_flow(flow, argv, walked: bool = False, *, _driver=None, _confirm=None, 
     from .window_scope import pin_for_flow
     problem=pin_for_flow(driver,flow,patient=patient)
     if problem is not None:print(json.dumps(problem,ensure_ascii=False));return 1
+    from .window_scope import tab_note
+    note=tab_note(driver)
+    if note:print(note,file=sys.stderr)
     timed_driver = None
     if document is not None:
         from .document_scope import DocumentScopedDriver, DocumentScopeUnavailable
@@ -653,6 +661,22 @@ def _run_flow(flow, argv, walked: bool = False, *, _driver=None, _confirm=None, 
         diagnostic = preparation_diagnostic(candidate)
         if diagnostic is not None:
             print(MARKER + json.dumps(diagnostic, ensure_ascii=True, separators=(',', ':')))
+    # Which means delivered each input, when the driver named one: a route
+    # past plain accessibility, or a click re-sent as pointer events.
+    for entry in result.log:
+        if not isinstance(entry, dict):
+            continue
+        if entry.get('status') == 'route_fallback':
+            print('HAEJO_ROUTE ' + json.dumps({k: entry.get(k) for k in ('step', 'action', 'status', 'from', 'to', 'route_level', 'dispatched')},
+                                              ensure_ascii=True, separators=(',', ':')))
+        route = entry.get('route')
+        if isinstance(route, dict) and route.get('input_route') != 'ax_action':
+            print('HAEJO_ROUTE ' + json.dumps({'step': entry.get('step'), 'action': entry.get('action'), **route},
+                                              ensure_ascii=True, separators=(',', ':')))
+    for event in getattr(result, 'events', ()):
+        # Which way each attach_files step drove the open panel.
+        if isinstance(event, dict) and isinstance(event.get('attach'), dict):
+            print('HAEJO_ATTACH ' + json.dumps(event['attach'], ensure_ascii=False, separators=(',', ':')))
     if not result.ok:
         from .access_log import record_failure
         last = result.log[-1] if result.log else {}
@@ -917,9 +941,18 @@ def _dispatch_command(cmd, rest):
             return 1
         return 0
 
+    if cmd == 'page':
+        if sys.platform != 'darwin':
+            print('page is macOS-only; see docs/windows.md')
+            return 2
+        from .safari_js import main as page_main
+        return page_main(rest)
+
     if cmd == 'open-url':
-        # Only on a person's request: the browser comes to the front.
-        args = [value for value in rest if value != '--helper']
+        # Behind what the person is using; --front (or --window, which picks a
+        # window by bringing it forward) shows the browser.
+        args = [value for value in rest if value not in ('--helper', '--front')]
+        front = '--front' in rest
         browser = None
         if '--browser' in args:
             at = args.index('--browser')
@@ -933,10 +966,11 @@ def _dispatch_command(cmd, rest):
             at = args.index('--window')
             window = args[at + 1] if at + 1 < len(args) else None
             args = args[:at] + args[at + 2:]
-        if len(args) != 1 or rest.count('--helper') > 1 or ('--browser' in rest and browser is None) \
+        if len(args) != 1 or rest.count('--helper') > 1 or rest.count('--front') > 1 or ('--browser' in rest and browser is None) \
                 or ('--window' in rest and (window is None or '--helper' not in rest)):
-            print('usage: open-url <http(s) URL> [--browser <bundle-id>] [--window <part of its title>] [--helper]'
-                  '  (--helper confirms the page loaded; --window needs --helper)')
+            print('usage: open-url <http(s) URL> [--browser <bundle-id>] [--front] [--window <part of its title>] [--helper]'
+                  '  (opens behind the app in use; --front shows the browser; --helper confirms the page loaded;'
+                  ' --window needs --helper and brings that window forward)')
             return 2
         from .open_url import open_url, DEFAULT_BROWSER
         driver = None
@@ -959,7 +993,7 @@ def _dispatch_command(cmd, rest):
                           'effect': 'not_started', 'window': window,
                           **({'windows': shown['windows']} if 'windows' in shown else {})}
         if result is None:
-            result = open_url(args[0], browser=browser or DEFAULT_BROWSER, driver=driver)
+            result = open_url(args[0], browser=browser or DEFAULT_BROWSER, driver=driver, front=front or window is not None)
         from .access_log import current
         if current.get() is not None:
             current.get().task_result({k: v for k, v in result.items() if k != 'url'})
@@ -1043,6 +1077,10 @@ def _dispatch_command(cmd, rest):
         from .flow_session import run_session
         return run_session(rest, make_driver=_make_driver, run_flow=_run_flow,
                            stdin=sys.stdin, emit=lambda text: print(text, flush=True))
+
+    if cmd == 'attach':
+        from .page_attach import main as attach_main
+        return attach_main(rest)
 
     if cmd == 'web':
         from .web_runtime import main as web_main
@@ -1218,6 +1256,9 @@ def _dispatch_command(cmd, rest):
         if window_id is not None:
             problem=bind_window(driver,targets[0],window_id)
             if problem is not None:print(json.dumps(problem));return 1
+            from .window_scope import tab_note
+            note=tab_note(driver)
+            if note:print(note,file=sys.stderr)
         if until is not None:
             import time as _time
             started = _time.monotonic()

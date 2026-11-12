@@ -138,7 +138,7 @@ class WindowIndexMeansOneThing(unittest.TestCase):
 
 class TheLauncherLetsExactlyOneAddressThrough(unittest.TestCase):
     def test_click_takes_an_index_or_a_point(self):
-        self.assertIn('"click":            (["name"], ["element_index", "point", "window_index"])',
+        self.assertIn('"click":            (["name"], ["element_index", "point", "window_index", "route"])',
                       LAUNCHER)
 
     def test_both_at_once_is_refused(self):

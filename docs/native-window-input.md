@@ -22,6 +22,13 @@ AXPress가 없는 행·버튼(`click.window_bound_element`)과 `double_click`(AX
 없을 때)은 그 요소의 중심을 대상 앱 AX hit test로 다시 확인한 뒤 해당 PID·창에만
 mouse 이벤트를 보낸다. 전역 포인터는 이동하지 않으며 save panel 토큰이 붙은 클릭은
 거절한다. 실측 범위는 아래 signed_element_click 항목을 참고한다.
+웹 페이지 안의 요소(`WebArea` 아래)는 경로가 다르다. Safari 27.2 실측(2026-11-12)에서
+창에 보낸 mouse 이벤트는 Safari가 뒤에 있을 때 페이지에 도달하지 않았고, 키 이벤트는
+그 창이 Safari의 main 창일 때 도달했다. 그래서 페이지 요소의 `click`은 AXPress를 쓰고,
+`params.route: "pointer"`(`click.route_pointer`)일 때만 Safari를 잠시 앞으로 가져와 같은
+창 이벤트를 보낸 뒤 이전 앱을 다시 앞으로 돌려놓는다(`foreground_element_click`,
+`route_level: L3`, `front_restored`). 전역 포인터는 움직이지 않는다. 동작별 경로와 실측
+내용은 [Safari capability matrix](safari-capability-matrix.md)에 있다.
 `click`의 `point`는 선택한 창의 좌상단 기준 좌표다. 대상 앱의 AX hit test에서
 요소를 찾고 그 요소의 PID와 창 소유 관계를 확인한 뒤 AXPress를 사용한다.
 다른 전경 앱의 요소가 나오도록 system-wide hit test를 쓰지 않는다. 여러 창이면

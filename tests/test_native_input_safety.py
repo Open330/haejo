@@ -78,6 +78,35 @@ class InputRoutingSourceTests(unittest.TestCase):
                                'postToPid'):
                     self.assertNotIn(banned, code, f'{banned} in hover')
                 continue
+            if path.name == 'TabFrontPointer.swift':
+                # The last route for selecting a browser tab: one click of the
+                # real pointer (down, up), the cursor put back once, the
+                # browser activated once and the previous front app returned.
+                self.assertEqual(1, code.count('CGWarpMouseCursorPosition('))
+                self.assertEqual(2, code.count('.post(tap:'))
+                self.assertEqual(['mouseType:.leftMouseDown', 'mouseType:.leftMouseUp'],
+                                 re.findall(r'mouseType:\.\w+', code))
+                self.assertEqual(1, code.count('.activate('))
+                self.assertEqual(1, code.count('returnScreen(to:previous)'))
+                for banned in ('CGEventPost(', 'CGDisplayMoveCursorToPoint(', 'keyboardEvent', 'MouseDragged',
+                               'scrollWheel', 'postToPid', 'NSWorkspace.shared.open('):
+                    self.assertNotIn(banned, code, f'{banned} in tab front pointer')
+                continue
+            if path.name == 'OpenPanelUpload.swift':
+                # The other global route: real keys for an open panel's Go to
+                # Folder sheet, which has no accessibility control and ignores
+                # keys posted to the process (measured 2026-11-12). One key
+                # function (down and up), called for Command-Shift-G, Return
+                # and Escape, each after a check that the target app is in
+                # front; no pointer, no text, no posting to a process.
+                self.assertEqual(2, code.count('.post(tap:'))
+                self.assertEqual(2, code.count('CGEvent(keyboardEventSource:'))
+                self.assertEqual(['36', '5', '53'], sorted(re.findall(r'openPanelRealKey\((\d+),', code)))
+                for banned in ('CGEventPost(', 'CGWarpMouseCursorPosition(', 'CGDisplayMoveCursorToPoint(',
+                               'mouseType', 'MouseDown', 'MouseUp', 'scrollWheel', 'keyboardSetUnicodeString',
+                               'postToPid', 'NSApplication.shared.activate(', 'NSWorkspace.shared.open('):
+                    self.assertNotIn(banned, code, f'{banned} in the open panel route')
+                continue
             for banned in ('CGEventPost(', 'CGWarpMouseCursorPosition(',
                            'CGDisplayMoveCursorToPoint(', '.post(tap:',
                            'NSApplication.shared.activate('):

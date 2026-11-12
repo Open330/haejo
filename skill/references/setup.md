@@ -42,16 +42,22 @@ the entry point; `uv run haejo` and `.venv/bin/haejo` lack the signed helper.
 scenario rather than adding `--helper` to evaluator arguments. Static flow
 commands such as `list`, `show`, `parameterize` and `promote` need no native flag.
 
-For an explicitly authorized upload in a fresh headless browser, use
-`haejo web-upload /absolute/private/config.json --scope name --check` to validate
-the host registration without browser/network/input. Read the
+To put files into a page in the person's own Safari — the route for sites they
+are signed in to — register them with `haejo attach <name> /absolute/file` and
+use an `attach_files` step on the page's file control ([Safari](safari.md)).
+It works through the signed helper and needs nothing installed.
+
+`haejo web-upload` is for a public form whose receiving side has an independent
+endpoint to check: it runs in a fresh headless browser, apart from the person's
+browser and profile, and needs no `--helper`. Validate the host registration with
+`haejo web-upload /absolute/private/config.json --scope name --check` (no
+browser, network or input), and read the
 [configuration and independent inbox contract](../docs/api.md#cli-browser-upload-registration)
 before execution. Omit `--check` to review/approve; noninteractive execution needs
-`--yes`. This route needs the web runtime (`haejo web install` downloads Playwright
-and Chromium once; `haejo web status` shows what is there) and a trusted independent
-receiving endpoint; it does not reuse the user's native browser/profile or need
-`--helper`. Keep the original `--journal-dir` on interruption, and check an unverified
-upload at the receiving endpoint before any resend.
+`--yes`. It uses the web runtime (`haejo web install` downloads Playwright and
+Chromium once; `haejo web status` shows what is there). Keep the original
+`--journal-dir` on interruption, and check an unverified upload at the receiving
+endpoint before any resend.
 
 Driving apps needs the permissions granted to Haejo's signed helper. If
 `haejo apps --helper` reports an error or no apps, run `haejo doctor --check` and

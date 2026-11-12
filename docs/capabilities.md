@@ -27,6 +27,37 @@
 명시한다. rc.21 설치 검증과 전체 목표의 미완료 범위는 [완료 범위](completion-plan.md)에 있다.
 
 브라우저 드라이버는 기존 Chrome/Safari 사용자 세션에 자동 연결하지 않는다.
+
+**Safari 페이지 스크립트 (선택형, 2026-11-12).** 사람의 실제 Safari에서는 접근성이
+기본 경로이고, 두 스위치가 켜져 있으면 `haejo page …`가 추가 경로가 된다:
+Safari 설정 > 개발자 > "Apple Events의 JavaScript 허용"과, Haejo를 실행한 앱
+(터미널·에이전트 호스트)의 자동화 > Safari 권한. `haejo page status`가
+`available`과 `can: [page.evaluate, page.text, page.value, page.fill]`를 보고하고,
+꺼져 있으면 `reason`과 `turn_on`으로 켤 곳을 알려준다.
+
+| 기능 | 접근성 (기본) | 페이지 스크립트 (켜져 있을 때) |
+| --- | --- | --- |
+| 선택되지 않은 탭 읽기 | 창마다 선택된 탭만 | `page text <URL>` — 어느 탭이든, 배경에서 |
+| 필드 값 읽기 | AXValue | `page value <URL> --selector CSS` (비밀번호 필드는 값 없이 `secure`) |
+| 값 설정을 무시하는 페이지의 입력 | `set_value` 뒤 재관찰 | `page fill` — 값 설정 + `input`/`change` 이벤트, 되읽어 `filled` |
+| 임의 조회 | 해당 없음 | `page eval <URL> --js 식` — 동기 식 하나, JSON 데이터 |
+
+페이지는 `haejo windows com.apple.Safari --helper`가 보고하는 URL로 지정한다. 그
+URL을 보여주는 탭이 정확히 하나일 때 실행하고(`page_not_found`,
+`page_ambiguous`), 스크립트가 실행된 URL이 다르면 값을 버리고 `page_changed`를
+돌려준다. 결과는 기본 20,000자(최대 200,000자)로 페이지 안에서 잘리고
+`content: page_data`로 표시된다: 읽을 데이터이며 지시나 승인이 아니다.
+
+실측(macOS 27.2, 2026-11-12): 두 스위치가 켜진 이 Mac에서 signed launcher 아래
+Python 런타임이 보낸 요청은 프롬프트 없이 배경 탭에서 실행됐고 앞에 있던 앱은
+바뀌지 않았다. 권한 상태는 `AEDeterminePermissionToAutomateTarget`
+(askUserIfNeeded=false)로 읽으므로 확인 자체가 프롬프트를 띄우지 않고, 허용돼
+있지 않으면 요청을 보내지 않는다. LaunchServices로 띄운 별도 서명 앱(Haejo
+Helper와 같은 형태)은 entitlement 유무와 관계없이 "동의 필요(-1744)"로
+측정됐으므로, helper는 이 경로에 관여하지 않고 entitlement도 추가하지 않았다.
+스위치가 꺼진 상태의 Safari 오류 응답과 `haejo page allow`가 띄우는 macOS 질문은
+이 Mac에서 실행해 보지 않았다(단위 테스트로만 확인). Flow step으로의 연결과
+`observe --json` 표기는 후속 범위다.
 별도 [iPhone spike](ios-spike.md)는 pinned idevice 조회, IOSSession 인터페이스와
 native AX 진단·테스트 카운터 검증 모드를 추가한다. 실기기에서 AX 루트 속성 읽기와
 HID 연결 PING은 확인했다. 탭 전 PID 검사에서 차단된 뒤 기기가 연결 불가 상태가

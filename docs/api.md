@@ -510,7 +510,8 @@ Use `adapter.parameters(scope_name)` as a step's params. It returns only
 filename, MIME, size and byte hash. A Flow `upload` step needs that adapter
 capability, an opener selector, exactly `transmit` effects and a ContextBinding
 with operation='upload' and params_digest=pin_params(params). Native backends
-and an unwrapped BrowserDriver refuse this contract before observation/input.
+and an unwrapped BrowserDriver refuse this contract before observation/input
+(the person's own Safari takes files through `attach_files`, described below).
 Files and callbacks are never serialized into recipes. A recipe still needs
 its matching host registrations after restart; registration is not durable
 resume authority.
@@ -540,6 +541,68 @@ this check. The Darwin64 RUSAGE_INFO_V2 layout was checked against the installed
 SDK and live host. Unsupported platforms, failed/exit reads and invalid samples
 raise ProcessCpuError; they are not zero usage. This is whole local-process CPU,
 not remote model cost or atomic liveness.
+
+### Files into a page in the person's Safari
+
+`haejo attach <name> /absolute/file [...]` registers one to sixteen files of one
+folder under a name and pins each file's size and SHA-256 in
+`attachments.json` (mode 0600) in the Haejo data folder; `--list` shows the
+registrations as names, sizes and digests, `--forget <name>` removes one. A Flow
+step names the registration, never a path:
+
+```json
+{"action":"attach_files","selector":{"role":"Button","desc":"Single file"},
+ "params":{"scope":"cv"},
+ "postcondition":{"field":{"role":"Button","title":"cv.pdf"},"attribute":"Title","equals":"cv.pdf"}}
+```
+
+`params.attachment_digest` (printed by `haejo attach`) may be added to bind a
+saved Flow to those exact bytes. The step runs through the signed helper
+(capability `action.choose_files`); without it the Flow stops with
+`attach_contract_required` before any input. At dispatch the files are hashed
+again in Python and once more in the helper just before it chooses; bytes that
+differ from the registration return `attachment_changed`/`not_started`, and
+`attachment_not_registered` names the command that registers. The step is a
+form edit (`write_ephemeral`), like text into a field: sending is the page's
+own later control and keeps its own contract.
+
+The helper presses the file control, which shows the app's open panel as a
+sheet, finds each registered file in the panel by the file URL its entry
+carries, selects it, presses the panel's choose button and closes the panel on
+every other path. The reply, the step's event (`attach`) and a
+`HAEJO_ATTACH {...}` line from `run`/`session` carry `route`, `took_front`,
+`front_seconds`, `front_restored`, `real_keys`, `control_label`,
+`control_names_files` and the `steps` taken (a navigation that gave up names
+why: `folder_not_listed`, `file_not_listed`, `folder_did_not_open`). The Flow's postcondition on the page is what decides
+success; a styled button over a hidden input keeps its label, so the page's
+own text is the evidence there.
+
+Measured on Safari 27.2, macOS 27.2 (2026-11-12), owned local fixture. L1 is
+accessibility with Safari in the background, L2 window-bound events posted to
+the Safari or panel-service process in the background, L3 Safari in front:
+
+| Step | L1 | L2 | L3 |
+|---|---|---|---|
+| Open the panel (`AXPress` on the file input, or on a styled button over a hidden input) | works | not needed | not needed |
+| Cancel the panel | works (`AXPress`) | not needed | not needed |
+| Move to a folder the panel lists (column entries carry `AXURL`; set `AXSelectedChildren`, or a sidebar row) | works | not needed | not needed |
+| Open Go to Folder | no control for it | Command-Shift-G or `/` posted to either process opens nothing | real Command-Shift-G opens `GoToWindow`; a key in the first 0.25 s after activation is dropped |
+| Enter the path | — | — | `AXValue` of `PathTextField`, then a real Return |
+| Select the file(s) | selection reads back, panel does not accept it | pointer events posted to either process select nothing | the same accessibility selection is accepted about 0.6 s after Safari comes forward |
+| Choose (Upload button) | stays disabled, `AXPress` does nothing | — | enabled; `AXPress` works, also after the previous app is back in front |
+
+Routes, in the order tried: `ax_background` (everything in L1; kept for a panel
+that accepts the selection without coming forward — not seen on this Safari),
+`ax_brief_front` (L1 for everything, Safari in front about 0.6 s for the panel
+to accept, no keys or pointer), `go_to_folder_front` (two real keys with Safari in
+front about 2 s, for a folder the panel does not list). The previous front app
+is restored in each. A folder inside one with tens of thousands of entries
+(the per-user temporary folder: 43,062) keeps Go to Folder loading for
+minutes; that returns `go_to_folder_unconfirmed` with the panel closed. Views
+other than column view and browsers other than Safari are not measured.
+`HAEJO_RUN_NATIVE_ATTACH_TESTS=1 python -m unittest tests.test_page_attach_native`
+attaches four owned files through three controls and compares the SHA-256 the
+fixture server received.
 
 ### CLI browser upload registration
 
@@ -1068,3 +1131,32 @@ from `check_defaults`, and it does not create a Save/dispatch receipt. Omitting
 Normal parameter binding, sensitive-value handling and runtime verification apply.
 Saved templates serialize the expanded Flow, not the shorthand or a native token.
 The session performs no extra read, write or model call to expand the input.
+
+### Input routes in web pages (signed macOS helper)
+
+A helper that announces `web.input_routes` names the means it used in every
+reply that dispatched input: `input_route` and `route_level` (`L1`
+accessibility, `L2` events addressed to the window with the app behind, `L3`
+the app in front for that input and the previous app in front again
+afterwards). `haejo.input_route.route_of(reply)` turns a reply into the record
+replay stores on the step's event and `ok` log entry (`route`), and the CLI
+prints as `HAEJO_ROUTE {…}`.
+
+Inside a `WebArea` the helper chooses per control: `set_value` focuses a text
+control, writes and reads back (`ax_value_focused`), then types
+(`window_keys`, `foreground_keys`) when the value was not kept; `type_text`
+sends key events; `select_option` (and `set_value` on a `<select>`) chooses
+from the control's own pop-up menu (`web_popup_menu`); `set_value` on a date
+field takes `YYYY-MM-DD` (`web_date_picker`). An L3 reply adds
+`foreground_taken`, `front_restored`, `previous_front` and `pointer_moved`;
+`front_restored: false` comes with `activated_target: true`.
+
+With `click.route_pointer`, `click` accepts `params: {"route": "pointer"}`: the
+click is sent as pointer events at the element's centre (page content: with the
+browser in front, `foreground_element_click`; elsewhere the window-bound
+element click). Replay sends that route once by itself when a plain page
+`click` was answered, its `postcondition` did not show, the step has no
+binding and its effects are within `read`/`write_ephemeral`; the log then
+holds a `route_fallback` entry with `from`, `to`, `route_level` and
+`dispatched`. The measured routes are in
+[the Safari capability matrix](safari-capability-matrix.md).

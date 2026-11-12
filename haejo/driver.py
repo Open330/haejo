@@ -316,6 +316,18 @@ def _attr(el, name):
     return value if err == 0 else None
 
 
+def _in_web_area(el, limit=80):
+    """True for an element of a web page (an AXWebArea above it)."""
+    node = el
+    for _ in range(limit):
+        if node is None:
+            return False
+        if _attr(node, "AXRole") == "AXWebArea":
+            return True
+        node = _attr(node, "AXParent")
+    return False
+
+
 _LABEL_ATTRS = ("AXTitle", "AXDescription", "AXValue", "AXHelp",
                 "AXIdentifier", "AXPlaceholderValue", "AXSubrole")
 
@@ -3039,6 +3051,10 @@ class Driver:
         identity = _attr(el, "AXIdentifier")
         if role not in self.SELECTABLE_ROLES:
             raise NotStarted(f"선택지를 가진 컨트롤이 아닙니다: {role}")
+        if role == "AXPopUpButton" and _in_web_area(el):
+            # AXShowMenu on a page's <select> is the browser's context menu;
+            # the signed helper chooses from the real pop-up (WebInput.swift).
+            raise NotStarted("웹 페이지의 <select>는 서명된 도우미가 고릅니다 — --helper 로 실행하세요")
         if _attr(el, "AXEnabled") is False:
             raise NotStarted("이 컨트롤은 지금 쓸 수 없습니다")
         busy = self._menu_slot_busy()

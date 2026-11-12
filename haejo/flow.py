@@ -27,6 +27,7 @@ from . import safety
 from .contract import (SafetyContract, ContextBinding, policy,
                        validate, describe, ApprovalToken, issue_approval)
 from .protocol import Driver, ACTION_PARAMS, REVEAL_CAPABILITY
+from .input_route import POINTER_ROUTE_CAPABILITY, pointer_fallback_applies, route_of
 
 # Steps the engine runs itself, with nothing sent to the app. Kept apart from
 # ACTION_PARAMS, which is what a driver may be asked to do.
@@ -1083,7 +1084,7 @@ class Flow:
             problem = selector_problem(d['window'])
             if problem:
                 raise FlowFieldError('Flow.' + problem if problem.startswith('window.') else 'Flow.window: ' + problem,
-                                     'window', 'Example: "window": {"url": "player.example.com"} or {"title": "Player", "newest": true}.')
+                                     'window', 'Example: "window": {"url": "player.example.com"}, {"title": "Player", "newest": true} or {"tab": "Inbox"}.')
         if d.get('literal_params') and schema < 4:
             raise ValueError('literal data requires Flow schema 4')
         for name,value in d.get('literal_params',{}).items():
@@ -2610,6 +2611,12 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
                 or set(step.params) - ACTION_PARAMS.get(step.action, frozenset()):
             res.record(status="error", step=i, error="invalid_action")
             return res
+        if 'route' in step.params and (
+                step.params['route'] != 'pointer' or step.selector is None
+                or POINTER_ROUTE_CAPABILITY not in getattr(driver, 'capabilities', ())):
+            res.record(status='error', step=i, error='invalid_action', effect='not_started',
+                       detail='click route must be "pointer" on a selected element, with a helper that supports it')
+            return res
         if 'input_method' in step.params and (
                 step.action!='set_value' or step.params['input_method']!='paste'
                 or 'action.credential_paste' not in getattr(driver,'capabilities',())):
@@ -2639,6 +2646,14 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
                     or step.unverified_ok):
                 res.record(status='error', step=i, error='upload_contract_required',
                            effect='not_started')
+                return res
+        if step.action == 'attach_files':
+            from .page_attach import params_valid
+            if ('action.choose_files' not in getattr(driver, 'capabilities', ())
+                    or not params_valid(step.params) or step.selector is None):
+                res.record(status='error', step=i, error='attach_contract_required', effect='not_started',
+                           detail='attach_files runs through the signed helper (--helper) with a selector '
+                                  'for the file control and params.scope from `haejo attach`')
                 return res
         if step.action == "prepare_window":
             if ("action.prepare_window" not in getattr(driver,"capabilities",())
@@ -3031,6 +3046,9 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
                 into_sensitive_field=step.into_sensitive_field)
             risk = safety.merge(step.risk_class, detected)
 
+        # The route the driver reported for this step's input (input_route.py).
+        step_route = [None]
+
         def dispatch(current, payload):
             if current.get("type") != "observation":
                 return {"type": "error", "error": "observation_required", "effect": "not_started"}
@@ -3233,6 +3251,13 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
                 return response
             event["state"] = ("unknown" if response.get("type") != "acted" or response.get("unverified")
                               else "confirmed" if effects == {"read"} else "dispatched")
+            if step.action == 'attach_files' and response.get('type') == 'acted':
+                # How the open panel was driven, and what it cost the person's
+                # screen: reported with the step, whatever the postcondition says.
+                from .page_attach import route_report
+                event['attach'] = route_report(response)
+                if narrate:
+                    narrate('files attached — ' + json.dumps(event['attach'], ensure_ascii=False, separators=(',', ':')))
             # The target was observed in front shortly after this step (seen
             # with Finder's Go > Go to Folder…, 2026-10-08). An observation,
             # not a proven cause — and its absence proves nothing either.
@@ -3240,6 +3265,10 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
                 event["activated_target"] = True
                 if narrate:
                     narrate("⚠ 이 단계 실행 후 대상 앱이 맨 앞에 있는 것이 관찰되었습니다 — 이후 입력은 보내지 않습니다")
+            reported_route = route_of(response)
+            if reported_route is not None:
+                event["route"] = reported_route
+                step_route[0] = reported_route
             res.events.append(event)
             preparation_observation = (
                 step.action == "prepare_window" and response.get("type") == "acted"
@@ -3438,6 +3467,38 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
                     res.log[-1]["target_terminated"] = True
                     res.log[-1]["effect"] = "acted"
                 return res
+            if (obs["type"] != "observation" and not seen_in_front()
+                    and pointer_fallback_applies(step, action, r, acted_on_tree,
+                                                 getattr(driver, "capabilities", ()))):
+                # The press was answered and the result never showed. On a page
+                # that is what a control listening for pointer events does, so
+                # the same click goes once more as pointer events — visibly:
+                # the log names both routes (docs/safari-capability-matrix.md).
+                fresh = _replay_observation(driver.observe, flow.target, "tree_full")
+                if fresh.get("type") == "observation" and post.check(fresh["tree"]):
+                    obs = fresh
+                elif fresh.get("type") == "observation":
+                    try:
+                        again = dict(action, route="pointer")
+                        again["element_index"], _ = step.selector.resolve(fresh["tree"])
+                    except LookupError:
+                        again = None
+                    if again is not None:
+                        second = dispatch(fresh, again)
+                        res.record(status="route_fallback", step=i, action=step.action,
+                                   **{"from": "ax_press"}, to=second.get("input_route") or second.get("error"),
+                                   route_level=second.get("route_level"),
+                                   dispatched=second.get("type") == "acted")
+                        if narrate:
+                            narrate("  (누르기에 반응이 없어 포인터 입력으로 한 번 더 보냈습니다: "
+                                    f"{second.get('input_route') or second.get('error')})")
+                        if second.get("type") == "acted":
+                            r = second
+                            obs = _replay_observation(driver.wait_until, flow.target, post.check)
+                            if obs.get("type") == "error":
+                                res.record(status="error", step=i, action=step.action, stage="verify_observe",
+                                           error=obs.get("error", "observation_unavailable"), detail=obs)
+                                return res
             if obs["type"] != "observation":
                 seen = None
                 last = obs.get("last_obs") or {}
@@ -3656,6 +3717,7 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
                    verified=("already_true" if pre_satisfied
                              else step.expect or (post and "postcond")),
                    result=result_value, captured=shown,
+                   **({'route': step_route[0]} if step_route[0] is not None else {}),
                    **({'verification_evidence': 'ax_window_list_empty'}
                       if obs.get('verification_evidence') == 'ax_window_list_empty' else {}))
 

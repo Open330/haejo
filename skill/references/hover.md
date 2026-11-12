@@ -25,6 +25,10 @@ haejo hover com.example.pet --helper --to 120 80 --hold 1 --capture /tmp/during.
 - Judge the effect from `window_frames` or the before/during captures; moving
   the cursor proves nothing by itself.
 
+A web page in Safari reacts to hover only while Safari is in front (measured
+2026-11-12): `haejo activate com.apple.Safari --window "<title part>" --helper`,
+hover, `click` the revealed item, then return to the app that was in front.
+
 If the person moves the mouse during the hover it stops at once with
 `person_moved_pointer` and leaves the cursor where they put it; Esc stops it
 too. `effect: unknown` means the cursor moved before it stopped: look before

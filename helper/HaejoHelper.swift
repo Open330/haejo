@@ -3870,6 +3870,12 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
             return prepareBackgroundWindow(obsID, target, el, p, deadline: deadline,
                                            expectation: expect, elementClicks: 1)
         }
+        // Page content: a <select> is chosen, not pressed, and `route:
+        // "pointer"` asks for pointer events (WebInput.swift).
+        if let routed = webClickRoute(action, el, pid: p, obsID: obsID, target: target, deadline: deadline,
+                                      guarded: savePanelToken != nil, pointerClick: pointerClick) {
+            return routed
+        }
         var advertised: CFArray?
         let listed = AXUIElementCopyActionNames(el, &advertised)
         if listed == .success, let names = advertised as? [String],
@@ -3923,6 +3929,11 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
             return ["type": "error", "error": "action_failed",
                     "effect": axActionFailureEffect(err),
                     "detail": "AXPress failed (\(err.rawValue)); do not retry an uncertain effect"]
+        }
+        if let again = pageDialogPress(el) {
+            return ["type": "acted", "action": name, "obs_id": obsID, "input_route": "ax_press",
+                    "route_level": "L1", "pressed_again": again,
+                    "note": "not verified — observe again"]
         }
     case "resize_window":
         guard Set(action.keys)==Set(["name","element_index","width","height"]),
@@ -3983,6 +3994,8 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
             }
             defer { withExtendedLifetime(popupLease) {} }
 
+            webInputLeaseHeld = true
+            defer { webInputLeaseHeld = false }
             var picked = act(obsID, target, ["name": "select_option", "element_index": index, "option_label": v],
                              expect: expect, clickDeadline: callerDeadline.isFinite ? callerDeadline : nil, coordinateAuthorized: coordinateAuthorized,
                              savePanelToken: savePanelToken, windowInputAuthorized: windowInputAuthorized,
@@ -3990,11 +4003,33 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
             picked["routed_from"] = "set_value"
             return picked
         }
+        if credentialOrigin == nil, !sensitiveInputAuthorized,
+           str(el, kAXRoleAttribute as String) == "AXDateTimeArea", webAreaAncestor(el) != nil {
+            // A page's date field: its segments ignore AXValue; the browser's
+            // date picker takes it (WebInput.swift).
+            return withWebInputLease(deadline: deadline) {
+                webSetDate(el, pid: p, value: v, obsID: obsID, name: name)
+            }
+        }
+        let webText = webTextControl(el)
+        if webText, credentialOrigin == nil, !sensitiveInputAuthorized {
+            // A page's text control takes AXValue only while it holds DOM
+            // focus, and an unfocused write lands in the focused field instead
+            // (WebInput.swift): focus, write, read back, then keys.
+            let budget = ProcessInfo.processInfo.systemUptime + min(30, 5 + 0.05 * Double(v.count))
+            return withWebInputLease(deadline: deadline) {
+                webSetValue(el, pid: p, value: v, obsID: obsID, name: name, deadline: budget)
+            }
+        }
         if credentialOrigin != nil || sensitiveInputAuthorized {
             // WebKit can acknowledge AXValue on an unfocused input without
             // retaining it when the next field gains focus. Focus this exact
-            // AX element first; no keystrokes or clipboard are involved.
-            _ = AXUIElementSetAttributeValue(el,kAXFocusedAttribute as CFString,kCFBooleanTrue)
+            // AX element first; no keystrokes or clipboard are involved. On a
+            // page, AXFocused also brings the browser forward, so the quiet
+            // focus is tried first.
+            if !webText || webFocusBehind(el) == nil {
+                _ = AXUIElementSetAttributeValue(el,kAXFocusedAttribute as CFString,kCFBooleanTrue)
+            }
             guard credentialOrigin == nil || credentialElementAllowed(el,pid:p,origin:credentialOrigin!,write:true) else {
                 return ["type":"error","error":"credential_origin_mismatch","effect":"not_started"]
             }
@@ -4042,6 +4077,18 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
         // Verified 2026-09-20 against a background editable NSTextView: the
         // text arrived with Korean and an emoji intact while the fixture's own
         // key-event counter stayed at 0.
+        if webTextControl(el) {
+            // A page answers the AXSelectedText insert with success and
+            // inserts nothing; typing there is key events to its window.
+            if abortState.isStopped {
+                return ["type": "error", "error": "aborted_by_user", "effect": "not_started"]
+            }
+            let budget = ProcessInfo.processInfo.systemUptime + min(30, 5 + 0.05 * Double(text.count))
+            return withWebInputLease(deadline: deadline) {
+                webTypeText(el, pid: p, text: text, obsID: obsID, name: name, replaceAll: false,
+                            focusRoute: nil, deadline: budget)
+            }
+        }
         var settable = DarwinBoolean(false)
         guard AXUIElementIsAttributeSettable(el, "AXSelectedText" as CFString,
                                              &settable) == .success,
@@ -4438,6 +4485,14 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
         return ["type": "acted", "action": name, "obs_id": obsID, "menus_closed": openMenus.count - remaining,
                 "menus_open": remaining,
                 "note": remaining == 0 ? "menus closed" : "not verified — a menu is still open"]
+    case "choose_files":
+        // Registered files into a page's file control, through the open panel
+        // it shows (OpenPanelUpload.swift).
+        guard Set(action.keys) == Set(["name", "element_index", "files"]), let el = element() else {
+            return ["type": "error", "error": "action_failed", "effect": "not_started",
+                    "detail": "choose_files takes an observed file control and its registered files"]
+        }
+        return chooseFiles(obsID: obsID, control: el, pid: p, rawFiles: action["files"])
     case "open_folder":
         // Finder's Go to Folder sheet cannot be confirmed from the background,
         // and Go > Go to Folder… brings Finder forward (measured 2026-10-08).
@@ -4545,6 +4600,16 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
         if (attr(el, kAXEnabledAttribute as String) as? Bool) == false {
             return ["type": "error", "error": "action_failed",
                     "effect": "not_started", "detail": "이 컨트롤은 지금 쓸 수 없습니다"]
+        }
+        if role == "AXPopUpButton", webAreaAncestor(el) != nil {
+            // A page's <select>: AXShowMenu there is the browser's context
+            // menu, and the real pop-up is not in the element tree
+            // (WebInput.swift).
+            return withWebInputLease(deadline: deadline) {
+                webSelectOption(el, pid: p, want: want, obsID: obsID, name: name) { item in
+                    NativeApproval.gateOption(item, pid: p, openedHere: true, control: el)
+                }
+            }
         }
         if let busy = menuSlotBusy() {
             return ["type": "error", "error": "action_failed",
@@ -6302,10 +6367,15 @@ let helperCapabilities: [String] = [
     "action.menu", "action.scroll", "action.secondary_action",
     // Finder only: show an existing folder without activating Finder.
     "action.open_folder",
+    // Registered files into a page's file control through its open panel.
+    "action.choose_files",
     // menu may carry focused_document: pressed only when the focused and
     // main windows show exactly that file.
     "action.menu.focused_document", "action.menu.document_token_save", "action.menu.prepared_text",
     "action.select_option", "evidence.visual",
+    // Page content (WebInput.swift): replies name `input_route`/`route_level`;
+    // `click` takes `route: "pointer"` for a control that needs pointer events.
+    "web.input_routes", "click.route_pointer",
     // capture accepts the observation's Window element index (element_index).
     "capture.element_index",
     // Native menu items have a title and nothing behind it, so `value` must
@@ -6357,7 +6427,7 @@ let helperCapabilities: [String] = [
     // Reading only, and deliberately NOT document_snapshot: this witnesses what
     // a document contains and where it lives, never its source format or where
     // a save panel would put it.
-    "diagnostic.readiness_read_cost", "diagnostic.readiness_preflight", "observe.window_identity", "session.window_scope", "session.foreground_lease", "session.release_targets", "observe.window_list",
+    "diagnostic.readiness_read_cost", "diagnostic.readiness_preflight", "observe.window_identity", "session.window_scope", "session.foreground_lease", "session.release_targets", "observe.window_list", "observe.window_tabs", "session.tab_select",
     "evidence.document_window_status", "evidence.document_text", "evidence.document_text.path_selector",
     "evidence.document_text.window_selector", "evidence.document_mode", "evidence.save_panel.commit_selector", "observe.document_token", "evidence.save_panel",
     "action.click.save_panel_guard", "evidence.document_rtf_export", "evidence.document_attachment_metadata",
@@ -7723,11 +7793,14 @@ func handle(_ msg: [String: Any]) -> [String: Any] {
     // keyboard routes share one bounded dispatch resource across workers.
     let inputLease = HaejoScopeLease()
     let actionName = (msg["action"] as? [String:Any])?["name"] as? String ?? ""
-    if kind == "act", (msg["sensitive_input_authorized"] != nil || msg["credential_origin"] != nil || !["click","set_value","type_text","read","resize_window"].contains(actionName)),
+    let leasedInput = kind == "act" && (msg["sensitive_input_authorized"] != nil || msg["credential_origin"] != nil || !["click","set_value","type_text","read","resize_window"].contains(actionName))
+    if leasedInput,
        !waitForResource(inputLease,"global-input",deadline:msg["click_deadline_uptime"] as? Double) {
         return abortState.isStopped ? ["type":"error","error":"aborted_by_user","effect":"not_started"] : ["type":"error","error":"input_busy","effect":"not_started","retryable":true]
     }
-    defer { withExtendedLifetime(inputLease) {} }
+    // A web route reached from this act uses the lease taken here.
+    webInputLeaseHeld = leasedInput
+    defer { webInputLeaseHeld = false; withExtendedLifetime(inputLease) {} }
     // After the user stops this run, nothing looks at their screen either.
     // Reading is not a lesser thing than acting here: the stop is about the
     // computer no longer being driven, and an agent that can still watch has
@@ -7748,7 +7821,7 @@ func handle(_ msg: [String: Any]) -> [String: Any] {
     // the outline for reads too is what keeps confidentiality protected, not
     // just integrity. So these refuse when the outline cannot be drawn,
     // exactly as `observe` does.
-    let reaching: Set<String> = ["menu_state", "menu_items", "probe",
+    let reaching: Set<String> = ["menu_state", "menu_items", "probe", "tab_select",
                                  "selection", "document_text", "save_panel", "document_rtf_export", "document_attachment_metadata", "readiness_read_cost", "readiness_preflight"]
     if let kind, reaching.contains(kind) || kind == "capture",
        let target = msg["target"] as? String, let p = pid(forBundle: target) {
@@ -7783,6 +7856,8 @@ func handle(_ msg: [String: Any]) -> [String: Any] {
         return reply
     case "window_list":
         return parallelWindowList(msg["target"] as? String ?? "")
+    case "tab_select":
+        return parallelTabSelect(msg)
     case "list_targets":
         let apps = NSWorkspace.shared.runningApplications
             .filter { $0.activationPolicy == .regular }

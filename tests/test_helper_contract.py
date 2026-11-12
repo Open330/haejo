@@ -995,6 +995,7 @@ SIGNED_HELPER_ONLY = frozenset({
     "action.resize_window",
     "observe.labels_v1", "action.credential_paste",
     "action.approved_credential_input", "observe.window_list", "session.foreground_lease", "session.window_scope", "session.release_targets",
+    "observe.window_tabs", "session.tab_select",
     "action.drag", "drag.window_bound",
     # Capture by the observation's Window element index (Python driver has no capture map).
     "capture.element_index",
@@ -1007,6 +1008,9 @@ SIGNED_HELPER_ONLY = frozenset({
     "press_key.return_in_go_to_folder",
     # Finder folder open through LaunchServices without activation.
     "action.open_folder",
+    # A page's file control through its open panel; the panel's remote view
+    # is reachable with the helper's own permission.
+    "action.choose_files",
     # File > Save bound to one file, checked at the press.
     "action.menu.focused_document",
     "evidence.document_rtf_export",
@@ -1034,6 +1038,8 @@ SIGNED_HELPER_ONLY = frozenset({
     "observe.window_identity",
     # Live app/frame-origin checks on the signed credential transport.
     "action.credential_input",
+    # Page content: replies name the route; click takes route:"pointer".
+    "web.input_routes", "click.route_pointer",
 })
 
 

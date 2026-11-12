@@ -61,7 +61,7 @@ guard FileManager.default.isExecutableFile(atPath: python.path) else {
 // and hand back the text. That is the whole reason the child's PATH is fixed —
 // it holds screen content, which is exactly what must not be able to choose
 // what runs. Asking needs neither the helper channel nor a program name.
-let allowedTypes: Set<String> = ["ask_cancel","release_targets","foreground_begin","foreground_end","window_list","ping", "list_targets", "observe", "act",
+let allowedTypes: Set<String> = ["ask_cancel","release_targets","foreground_begin","foreground_end","window_list","tab_select","ping", "list_targets", "observe", "act",
                                  "probe", "selection", "ask", "document_text", "document_mode", "document_window_status", "document_rtf_export", "document_attachment_metadata", "save_panel", "menu_state",
                                  "menu_items", "capture", "readiness_read_cost", "readiness_preflight"]
 // The largest complete document this channel will carry, in UTF-16 units. The
@@ -94,7 +94,9 @@ let actionSchema: [String: (required: Set<String>, optional: Set<String>)] = [
     // Exactly one of the two, checked below — both would be two answers to one
     // question. `prepare_window` is not in the set on purpose: it takes a
     // WINDOW, and a point inside one resolves to whatever is drawn there.
-    "click":            (["name"], ["element_index", "point", "window_index"]),
+    // `route: "pointer"` asks for real pointer events on an observed element
+    // (a control that opens on pointerdown and answers AXPress with nothing).
+    "click":            (["name"], ["element_index", "point", "window_index", "route"]),
     "click_point":      (["name", "element_index", "point"], []),
     "drag":             (["name", "element_index", "from", "to", "duration"], ["via"]),
     "resize_window":    (["name", "element_index", "width", "height"], []),
@@ -119,6 +121,10 @@ let actionSchema: [String: (required: Set<String>, optional: Set<String>)] = [
     // Finder only (the helper checks): an existing folder's absolute path,
     // opened by LaunchServices without activating Finder — no keys, no sheet.
     "open_folder":      (["name", "path"], []),
+    // Registered files into a page's file control through the open panel it
+    // shows: absolute paths with the SHA-256 pinned at registration, which the
+    // helper checks again before it chooses.
+    "choose_files":     (["name", "element_index", "files"], []),
     "reopen_window":    (["name"], []),
     // The app's own menu bar icon (AXExtrasMenuBar), pressed through AX; the
     // optional title picks one icon when the app shows several.
@@ -180,7 +186,7 @@ let allowedAXActions: Set<String> = ["AXPress", "AXShowMenu", "AXIncrement",
                                      "AXDecrement", "AXConfirm", "AXCancel"]
 let topLevelKeys: Set<String> = ["sensitive_input_authorized", "window_scope_id","credential_origin", "save_panel_token", "window_input_authorized", "coordinate_authorized", "submit_authorized", "click_deadline_uptime", "type", "obs_id", "target", "action", "mode",
                                  "require_window", "window_identity", "reveal", "prompt", "image", "model", "json", "path",
-                                 "expect", "element_index", "provider",
+                                 "expect", "element_index", "provider", "tab",
                                  "document_token", "document_path", "max_utf16_units", "timeout_seconds",
                                  "window_index", "window_element_index", "panel_token", "require_format", "element_indices", "read_strategy", "titlebar_probe", "cancel_id", "continuation", "commit_element_index"]
 
@@ -255,8 +261,19 @@ func vetted(_ msg: [String: Any]) -> String? {
     if type == "window_list", !Set(msg.keys).isSubset(of:["type","target"]) {
         return "invalid window_list fields"
     }
+    // One tab of the pinned browser window: its place in the tab bar, the
+    // title the listing gave it, and optionally one named route.
+    if type == "tab_select" || msg["tab"] != nil {
+        guard type == "tab_select", Set(msg.keys) == Set(["type","target","window_scope_id","tab"]),
+              let tab = msg["tab"] as? [String:Any], Set(tab.keys).isSubset(of:["index","title","route"]),
+              let index = tab["index"] as? NSNumber, CFGetTypeID(index) != CFBooleanGetTypeID(),
+              index.doubleValue == Double(index.intValue), (0..<4096).contains(index.intValue),
+              tab["title"] == nil || (tab["title"] as? String).map({ $0.utf16.count <= 512 }) == true,
+              tab["route"] == nil || ["ax_press","window_pointer","front_pointer"].contains(tab["route"] as? String ?? "")
+        else { return "invalid tab_select fields" }
+    }
     if let raw = msg["window_scope_id"] {
-        guard ["observe","act","probe"].contains(type), let n = raw as? NSNumber,
+        guard ["observe","act","probe","tab_select"].contains(type), let n = raw as? NSNumber,
               CFGetTypeID(n) != CFBooleanGetTypeID(), n.doubleValue.isFinite, n.doubleValue == Double(n.uint32Value),
               n.uint32Value > 0 else { return "invalid window_scope_id" }
     }
@@ -658,6 +675,11 @@ func vetted(_ msg: [String: Any]) -> String? {
         } else if action["point"] != nil || action["window_index"] != nil {
             return "\(name) 은 point 를 받지 않습니다"
         }
+        if name == "click", let route = action["route"] {
+            guard route as? String == "pointer", action["element_index"] != nil, action["point"] == nil else {
+                return "click route 는 element_index 와 함께 \"pointer\" 만 받습니다"
+            }
+        }
         if name == "window_input" {
             guard let index = action["element_index"] as? NSNumber,
                   CFGetTypeID(index) != CFBooleanGetTypeID(),
@@ -751,6 +773,7 @@ func vetted(_ msg: [String: Any]) -> String? {
                     return "window_index 형식 오류"
                 }
             case "input_method": if name != "set_value" || v as? String != "paste" {return "invalid paste input"}
+            case "route": if name != "click" || v as? String != "pointer" { return "route 형식 오류" }
             case "width", "height":
                 guard name == "resize_window",let number=v as? NSNumber,
                       CFGetTypeID(number) != CFBooleanGetTypeID(),number.doubleValue.isFinite,
@@ -770,6 +793,16 @@ func vetted(_ msg: [String: Any]) -> String? {
                       !text.unicodeScalars.contains(where: { $0.properties.generalCategory == .control }) else {
                     return "focused_document 형식 오류"
                 }
+            case "files":
+                guard name == "choose_files", let list = v as? [[String: Any]], (1...16).contains(list.count),
+                      list.allSatisfy({ entry in
+                          guard Set(entry.keys) == Set(["path", "sha256"]),
+                                let path = entry["path"] as? String, path.hasPrefix("/"), path.utf8.count <= 1024,
+                                !path.unicodeScalars.contains(where: { $0.properties.generalCategory == .control }),
+                                let digest = entry["sha256"] as? String, digest.utf8.count == 64,
+                                digest.utf8.allSatisfy({ ($0 >= 48 && $0 <= 57) || ($0 >= 97 && $0 <= 102) }) else { return false }
+                          return true
+                      }) else { return "choose_files files 형식 오류" }
             case "path":
                 if name == "open_folder" {
                     guard let text = v as? String, text.hasPrefix("/"), text.utf8.count <= 1024,
