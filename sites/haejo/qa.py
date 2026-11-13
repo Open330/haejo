@@ -1,32 +1,35 @@
 #!/usr/bin/env python3
-"""Browser checks for the served Haejo page. Playwright is a QA-only dependency."""
+"""Browser checks for the served Haejo pages. Playwright is a QA-only dependency."""
 import argparse
 import json
 from pathlib import Path
 from urllib.parse import urlsplit
 from playwright.sync_api import sync_playwright
 
+DMG = 'https://github.com/Open330/haejo/releases/download/v1.0.1/Haejo-1.0.1-arm64.dmg'
+SECTIONS = ['direct', 'history', 'flow', 'install', 'faq']
+PAGES = {'ko': '', 'en': 'en/', 'ko_bench': 'benchmarks/', 'en_bench': 'en/benchmarks/'}
+WIDTHS = [320, 360, 390, 768, 1024, 1440, 1600]
+
 
 def audit(url, output, axe_source=None, browser_executable=None):
     output.mkdir(parents=True, exist_ok=True)
     output.chmod(0o700)
-    checks = {}
-    errors, requests, accessibility = [], [], {}
-    origin = urlsplit(url)
+    base = url.rstrip('/') + '/'
+    checks, errors, requests, accessibility = {}, [], [], {}
+    origin = urlsplit(base)
+
+    def run_axe(page, name):
+        if axe_source:
+            page.evaluate(axe_source)
+            result = page.evaluate('axe.run()')
+            accessibility[name] = result
+            checks['axe_' + name] = not result['violations']
+
     with sync_playwright() as runtime:
         browser = runtime.chromium.launch(executable_path=browser_executable)
-        context = browser.new_context(viewport={'width': 1440, 'height': 1000})
-        page = context.new_page()
-        page.on('pageerror', lambda error: errors.append(str(error)))
-        page.on('request', lambda request: requests.append(request.url))
-        page.on('console', lambda message: errors.append(message.text)
-                if message.type == 'error' else None)
-        page.add_init_script('''
-          window.__metrics = {lcp:0, cls:0};
-          new PerformanceObserver(list => {for(const e of list.getEntries())
-            window.__metrics.lcp=e.startTime}).observe({type:'largest-contentful-paint',buffered:true});
-          new PerformanceObserver(list => {for(const e of list.getEntries())
-            if(!e.hadRecentInput)window.__metrics.cls+=e.value}).observe({type:'layout-shift',buffered:true});
+        context = browser.new_context(viewport={'width': 1440, 'height': 900})
+        context.add_init_script('''
           Object.defineProperty(navigator,'clipboard',{value:undefined});
           const nativeCopy=document.execCommand.bind(document);
           document.execCommand=(name,...args)=>{
@@ -34,219 +37,159 @@ def audit(url, output, axe_source=None, browser_executable=None):
             return nativeCopy(name,...args);
           };
         ''')
-        response = page.goto(url, wait_until='networkidle')
-        checks['http_200'] = response.status == 200
-        checks['one_h1'] = page.locator('h1').count() == 1
-        checks['product_story_before_case_library'] = page.evaluate("""() => {
-          const ids=[...document.querySelectorAll('main > section')].map(e=>e.id || e.classList[0]);
-          return ids.indexOf('app')<ids.indexOf('how') && ids.indexOf('how')<ids.indexOf('evidence') &&
-            ids.indexOf('evidence')<ids.indexOf('start') && ids.indexOf('start')<ids.indexOf('workflow-library') &&
-            ids.indexOf('workflow-library')<ids.indexOf('use-cases');
-        }""")
-        checks['eleven_recorded_cases'] = page.locator('#use-cases .recorded-case').count() == 11
-        checks['ten_everyday_cases'] = page.locator('.everyday-case').count() == 10
-        checks['eight_real_app_cases'] = page.locator('.everyday-case[data-real="true"]').count() == 8
-        checks['case_screenshots'] = page.locator('.case-source').evaluate_all(
-            '(items)=>items.length===11&&items.every(e=>e.href.endsWith(".png"))')
-        checks['seven_browser_examples'] = page.locator('.everyday-case video[width="1280"]').count() == 7
-        checks['workflow_has_real_video'] = page.locator('#task-carousel video source').count() == 1
+        for name, path in PAGES.items():
+            page = context.new_page()
+            page.on('pageerror', lambda error: errors.append(str(error)))
+            page.on('request', lambda request: requests.append(request.url))
+            page.on('console', lambda message: errors.append(message.text) if message.type == 'error' else None)
+            response = page.goto(base + path, wait_until='networkidle')
+            home = not name.endswith('bench')
+            lang = name[:2]
+            checks[name + '_http_200'] = response.status == 200
+            checks[name + '_lang'] = page.locator('html').get_attribute('lang') == lang
+            checks[name + '_one_h1'] = page.locator('h1').count() == 1
+            checks[name + '_csp'] = "default-src 'none'" in (page.locator('meta[http-equiv="Content-Security-Policy"]').get_attribute('content') or '')
+            checks[name + '_no_inline_handlers_or_styles'] = page.evaluate(
+                '''() => ![...document.querySelectorAll('*')].some(e => e.hasAttribute('style') ||
+                    [...e.attributes].some(a => a.name.startsWith('on'))) && !document.querySelector('style, script:not([src])')''')
+            checks[name + '_hreflang'] = page.locator('link[rel="alternate"]').evaluate_all(
+                '(items)=>["ko","en","x-default"].every(l=>items.some(e=>e.hreflang===l&&e.href.startsWith("https://open330.github.io/haejo/")))')
+            switch = page.request.get(page.locator('.nav-side a[hreflang]').evaluate('(a)=>a.href'))
+            checks[name + '_language_switch'] = switch.status == 200 and ('lang="en"' if lang == 'ko' else 'lang="ko"') in switch.text()
+            checks[name + '_download_is_current_release'] = page.locator('a[href*="/releases/download/"]').evaluate_all(
+                '(items, dmg)=>items.length>=2&&items.every(e=>e.href===dmg)', DMG)
+            checks[name + '_images_loaded_with_alt_and_size'] = page.locator('img').evaluate_all(
+                '''async (items) => { for (const e of items) { e.loading = 'eager'; try { await e.decode(); } catch (x) { return false; } }
+                    return items.every(e => e.naturalWidth > 0 && e.hasAttribute('alt') && e.width && e.height); }''')
+            checks[name + '_anchors_resolve'] = page.evaluate('''() => [...document.querySelectorAll('a[href^="#"]')]
+              .every(a=>!a.hash||document.getElementById(decodeURIComponent(a.hash.slice(1))))''')
+            local = page.locator('a[href]').evaluate_all(
+                '(items)=>[...new Set(items.map(e=>e.href.split("#")[0]).filter(h=>h.startsWith(location.origin)))]')
+            checks[name + '_local_links_resolve'] = all(page.request.get(link).status == 200 for link in local)
+            checks[name + '_external_links_are_isolated'] = page.locator('a[target="_blank"]').evaluate_all(
+                '(items)=>items.every(e=>e.rel.includes("noopener"))')
+            checks[name + '_vector_icons_render'] = page.locator('svg.icon use').evaluate_all(
+                '(items)=>items.every(e=>e.getBBox().width>0&&e.getBBox().height>0)')
+            page.keyboard.press('Tab')
+            checks[name + '_skip_link_first'] = page.locator('.skip').evaluate('(e)=>e===document.activeElement')
+            page.keyboard.press('Enter')
+            checks[name + '_skip_focuses_main'] = page.evaluate('document.activeElement.id==="main"')
+            checks[name + '_focus_ring'] = page.locator('.nav-cta').evaluate(
+                '(e)=>{e.focus();return e.matches(":focus-visible")&&parseFloat(getComputedStyle(e).outlineWidth)>=2}')
 
-        checks['product_icons_loaded'] = page.locator('.agent-icon').evaluate_all(
-            '(items)=>items.length===4&&items.every(e=>e.complete&&e.naturalWidth>0)')
-        checks['no_placeholder_icon_glyphs'] = page.evaluate(
-            r'!/[' + '✳⌘↗↓↳↔∅✓↻■⌁' + r']/.test(document.body.innerText)')
-        checks['vector_icons_render'] = page.locator('svg.ui-icon use').evaluate_all(
-            '(items)=>items.length>20&&items.every(e=>e.getBBox().width>0&&e.getBBox().height>0)')
+            if home:
+                checks[name + '_section_order'] = page.locator('main > section[id]').evaluate_all('(items)=>items.map(e=>e.id)') == SECTIONS
+                checks[name + '_header_links_to_sections'] = page.locator('.nav-links a').evaluate_all('(items)=>items.map(e=>e.hash.slice(1))') == SECTIONS
+                checks[name + '_one_film'] = page.locator('video').evaluate_all(
+                    '(items, lang)=>items.length===1&&items.every(e=>e.controls&&!e.autoplay&&e.preload==="none"&&e.poster.includes("haejo-film."+lang)&&e.getAttribute("aria-label"))', lang)
+                video = page.locator('video')
+                video.evaluate('(e)=>e.load()')
+                page.wait_for_function('()=>document.querySelector("video").readyState>=2')
+                checks[name + '_film_decodes'] = video.evaluate('(e)=>e.duration>30&&e.videoWidth===1920&&!e.error')
+                checks[name + '_no_separate_browser_claim'] = page.evaluate('!/Chromium/i.test(document.body.innerText)')
+                checks[name + '_measured_scope_once'] = page.evaluate('(document.body.innerText.match(/Safari 27\\.2/g)||[]).length===1')
+                checks[name + '_seven_step_flow'] = page.locator('.flow-steps li').count() == 7
+                flow = page.request.get(base + 'assets/expense-entry.flow.json')
+                source = flow.json()
+                checks[name + '_flow_matches_source'] = (flow.status == 200 and source['name'] == 'expense-entry' and len(source['steps']) == 7
+                    and page.locator('.flow-steps code').evaluate_all('(items)=>items.slice(0,6).map(e=>e.textContent.slice(2,-2))') == list(source['params']))
+                checks[name + '_replay_adds_up'] = page.locator('.replay li b').evaluate_all(
+                    '(items)=>Math.abs(items.reduce((s,e)=>s+parseFloat(e.textContent.replace(/[^0-9.]/g,"")),0)-20.7)<0.01&&items.length===6')
+                checks[name + '_three_install_steps'] = page.locator('.steps > li').count() == 3
+                copy = page.locator('[data-copy="first-prompt"]')
+                copy.click()
+                checks[name + '_copy_prompt'] = (page.evaluate('window.__copied') == page.locator('#first-prompt').inner_text().strip()
+                    and page.locator('.clipboard-fallback').count() == 0)
+                first = page.locator('.faq-list details').first
+                first.locator('summary').click()
+                checks[name + '_faq_opens'] = first.get_attribute('open') is not None
+                checks[name + '_faq_links_benchmarks'] = page.locator('.faq-list a[href="benchmarks/"]').count() == 1
+                first.locator('summary').click()
+            else:
+                checks[name + '_three_measurements'] = page.locator('main table').count() == 3
+                checks[name + '_tables_labelled'] = page.locator('table').evaluate_all(
+                    '(items)=>items.every(t=>t.caption&&t.querySelectorAll("th[scope]").length>=4)')
+                summary = page.request.get(base + 'assets/benchmark-summary.json').json()['summary']
+                text = page.locator('main').inner_text()
+                checks[name + '_numbers_match_summary'] = all(f"{summary[arm][key]:,}" in text for arm in ('haejo', 'sky')
+                    for key in ('total_input_tokens', 'new_input_tokens', 'output_tokens'))
+                checks[name + '_names_the_compared_product'] = 'Codex' in text and 'OAI' not in text
+            run_axe(page, name + '_desktop')
 
-        checks['anchors_resolve'] = page.evaluate('''() => [...document.querySelectorAll('a[href^="#"]')]
-          .every(a=>!a.hash||document.getElementById(decodeURIComponent(a.hash.slice(1))))''')
-        initial = page.evaluate('''({vitals:window.__metrics,
-          resources:performance.getEntriesByType('resource').map(r=>({url:r.name,
-          encoded:r.encodedBodySize,decoded:r.decodedBodySize}))})''')
-        page.keyboard.press('Tab')
-        checks['skip_link_first'] = page.locator('.skip').evaluate('(e)=>e===document.activeElement')
-        page.keyboard.press('Enter')
-        checks['skip_focuses_main'] = page.evaluate('document.activeElement.id==="main"')
-        def connected_canvas():
-            page.wait_for_function('() => { const svg=document.querySelector(".flow-edges"); return Math.abs(svg.viewBox.baseVal.width-svg.getBoundingClientRect().width)<1; }')
-            return page.locator('#flow-edge-paths path').evaluate_all("""paths => paths.length===10 && paths.every(p=>{
-                const b=p.getBBox(), v=p.ownerSVGElement.viewBox.baseVal;
-                return p.getTotalLength()>5 && b.x>=0 && b.y>=0 && b.x+b.width<=v.width+1 && b.y+b.height<=v.height+1;
-            })""")
-        checks['connected_flow_canvas'] = connected_canvas()
-        checks['app_image_opens_full_size'] = page.locator('.app-image-link').get_attribute('href') == 'assets/haejo-activity.png'
-        checks['source_backed_seven_step_flow'] = page.locator('[data-flow-node]').count() == 7
-        flow_response = page.request.get(url.rstrip('/')+'/assets/expense-entry.flow.json')
-        flow_source = flow_response.json()
-        checks['downloadable_actual_flow'] = (flow_response.status == 200 and flow_source['name']=='expense-entry'
-            and len(flow_source['steps'])==7 and '{{merchant}}' in flow_source['steps'][-1]['postcondition']['contains'])
-        for case, merchant, amount in [('second','카카오T 택시','12,800'), ('first','스타벅스 역삼점','18,900')]:
-            page.locator('[data-flow-case="'+case+'"]').click()
-            checks['flow_inputs_'+case] = (page.locator('[data-flow-value="merchant"]').inner_text()==merchant
-                and page.locator('[data-flow-value="amount"]').inner_text()==amount)
-        page.locator('#flow-walk').click()
-        page.wait_for_function('() => document.querySelectorAll("[data-flow-node][data-state=done]").length===7')
-        checks['flow_walkthrough_completes'] = ('스타벅스 역삼점' in page.locator('#flow-preview-status').inner_text()
-            and not page.locator('#flow-walk').is_disabled())
-
-
-        checks['four_workflow_choices'] = page.locator('#task-carousel [data-workflow]').count() == 4
-        for task, evidence in [('triage', 'github'), ('expenses', 'finder'),
-                               ('support', 'translate'), ('backoffice', 'form')]:
-            page.locator('[data-workflow="'+task+'"]').click()
-            checks['workflow_'+task] = page.evaluate('''evidence => {
-                const video = document.querySelector('#task-carousel video');
-                const source = document.querySelector('#example-'+evidence+' video source');
-                return video.src === source.src &&
-                    document.querySelector('#carousel-detail').getAttribute('href') === '#example-'+evidence &&
-                    document.querySelector('.scenario-status').textContent.includes('전체 실행 미검증');
-            }''', evidence)
-        page.locator('[data-workflow="triage"]').click()
-
-        for name, status in [('repair', 'CHECKED CONTINUATION'),
-                             ('stop', 'STOPPED · NO RESEND'), ('replay', 'VERIFIED REPLAY')]:
-            tab = page.locator('[data-demo="'+name+'"]')
-            tab.click()
-            checks['demo_'+name] = (page.locator('#demo-status').inner_text() == status
-                                   and tab.get_attribute('aria-selected') == 'true')
-        page.locator('[data-demo="replay"]').focus()
-        for key, name in [('ArrowRight', 'repair'), ('ArrowRight', 'stop'),
-                          ('ArrowRight', 'replay'), ('ArrowLeft', 'stop'),
-                          ('Home', 'replay'), ('End', 'stop')]:
-            page.keyboard.press(key)
-            tab = page.locator('[data-demo="'+name+'"]')
-            checks['keyboard_'+key+'_'+name] = (tab.get_attribute('aria-selected') == 'true'
-                and tab.evaluate('(e)=>e===document.activeElement')
-                and page.locator('#demo-panel').get_attribute('aria-labelledby') == 'demo-tab-'+name)
-        checks['one_tab_stop'] = page.locator('[role="tab"][tabindex="0"]').count() == 1
-        checks['no_autoplay_or_preload'] = page.locator('video').evaluate_all(
-            '(items)=>items.length===13&&items.every(e=>!e.autoplay&&e.preload==="none"&&e.parentElement.querySelector(".video-start"))')
-        page.locator('.fixture-example summary').click()
-        for index in range(page.locator('video').count()):
-            video = page.locator('video').nth(index)
-            video.evaluate('(e)=>e.load()')
-            page.wait_for_function('(i)=>document.querySelectorAll("video")[i].readyState>=2', arg=index)
-            checks['video_decodes_'+str(index)] = video.evaluate('(e)=>e.duration>3&&e.videoWidth>0&&!e.error')
-            video.evaluate('(e)=>e.currentTime=3')
-            page.wait_for_function('(i)=>!document.querySelectorAll("video")[i].seeking', arg=index)
-            checks['video_seeks_'+str(index)] = video.evaluate('(e)=>Math.abs(e.currentTime-3)<0.3')
-            video.evaluate('(e)=>{e.currentTime=0;e.pause();}')
-
-        for kind, expected in [('native',3),('web',5),('test',2),('all',10)]:
-            button = page.locator('[data-example-filter="'+kind+'"]')
+            for width in WIDTHS:
+                page.set_viewport_size({'width': width, 'height': 844})
+                checks[f'{name}_no_overflow_{width}'] = page.evaluate('document.documentElement.scrollWidth<=innerWidth')
+            page.set_viewport_size({'width': 390, 'height': 844})
+            button, nav = page.locator('.menu-button'), page.locator('#nav')
+            checks[name + '_mobile_menu_collapsed'] = button.is_visible() and not nav.is_visible()
+            checks[name + '_mobile_header_fits'] = page.locator('.header').bounding_box()['height'] <= 72
             button.click()
-            checks['gallery_filter_'+kind] = (page.locator('.everyday-case:visible').count()==expected
-                and button.get_attribute('aria-pressed')=='true'
-                and page.locator('#example-count').inner_text().startswith(str(expected)+'개'))
-        page.locator('.everyday-case .video-start').first.click()
-        page.wait_for_function('()=>document.querySelector(".everyday-case video").currentTime>.2')
-        page.locator('[data-example-filter="web"]').click()
-        checks['filter_pauses_hidden_video'] = page.locator('.everyday-case video').first.evaluate('(v)=>v.paused')
-        page.locator('[data-example-filter="all"]').click()
+            checks[name + '_mobile_menu_opens'] = nav.is_visible() and button.get_attribute('aria-expanded') == 'true'
+            run_axe(page, name + '_mobile_menu')
+            page.keyboard.press('Escape')
+            checks[name + '_mobile_menu_escape'] = not nav.is_visible() and button.evaluate('(e)=>e===document.activeElement')
+            checks[name + '_mobile_touch_targets'] = page.locator('button:visible, .button:visible').evaluate_all(
+                '(items)=>items.every(e=>e.getBoundingClientRect().height>=44)')
+            checks[name + '_mobile_body_text_size'] = page.locator('main p:visible').evaluate_all(
+                '(items)=>items.every(e=>e.closest(".scene")||parseFloat(getComputedStyle(e).fontSize)>=13)')
+            page.screenshot(path=str(output / f'{name}-mobile.png'), full_page=True)
+            page.set_viewport_size({'width': 1440, 'height': 900})
+            checks[name + '_desktop_menu_inline'] = nav.is_visible() and not button.is_visible()
+            page.screenshot(path=str(output / f'{name}-desktop.png'), full_page=True)
+            page.emulate_media(reduced_motion='reduce')
+            checks[name + '_reduced_motion'] = page.evaluate(
+                'getComputedStyle(document.documentElement).scrollBehavior==="auto"&&[...document.querySelectorAll("*")].every(e=>["none",""].includes(getComputedStyle(e).animationName))')
+            page.emulate_media(reduced_motion='no-preference')
+            checks[name + '_no_browser_storage'] = page.evaluate('localStorage.length===0&&sessionStorage.length===0&&document.cookie===""')
+            page.close()
 
-        for agent in ['Codex', 'Claude']:
-            page.locator('[data-agent="'+agent+'"]').click()
-            checks['agent_'+agent] = page.locator('#agent-label').inner_text() == agent
-        for key in ['install-command', 'doctor-command', 'agent-prompt', 'demo-command']:
-            button = page.locator('[data-copy="'+key+'"]')
-            button.evaluate('''button => {
-                for (let node = button.parentElement; node; node = node.parentElement)
-                    if (node.tagName === 'DETAILS') node.open = true;
-            }''')
-            button.click()
-            checks['copy_'+key] = (page.evaluate('window.__copied') == page.locator('#'+key).inner_text().strip()
-                and page.locator('.clipboard-fallback').count() == 0
-                and button.evaluate('(e)=>e===document.activeElement'))
-        for failure in ['return false', 'throw new Error("denied")']:
-            page.evaluate('() => { document.execCommand=()=>{'+failure+';}; }')
-            button = page.locator('[data-copy="doctor-command"]')
-            button.click()
-            checks['copy_cleanup_'+failure] = (page.locator('.clipboard-fallback').count() == 0
-                and page.locator('.toast').inner_text().startswith('자동 복사가 불가능')
-                and button.evaluate('(e)=>e===document.activeElement'))
-
-        def run_axe(name):
-            if axe_source:
-                page.evaluate(axe_source)
-                result = page.evaluate('axe.run()')
-                accessibility[name] = result
-                checks['axe_'+name] = not result['violations']
-
-        # The collapsed page and expanded content are separate visible states.
-        run_axe('desktop')
-        page.locator('.methodology summary').click()
-        checks['methodology_opens'] = page.locator('.methodology').get_attribute('open') is not None
-        page.locator('.faq-items summary').first.click()
-        checks['faq_opens'] = page.locator('.faq-items details').first.get_attribute('open') is not None
-        page.locator('details').evaluate_all('(items)=>items.forEach(e=>e.open=true)')
-        run_axe('expanded')
-        for width in [320, 360, 390, 768]:
-            page.set_viewport_size({'width': width, 'height': 844})
-            checks['no_overflow_'+str(width)] = page.evaluate('document.documentElement.scrollWidth<=innerWidth')
-            checks['connected_flow_canvas_'+str(width)] = connected_canvas()
-        page.set_viewport_size({'width': 390, 'height': 844})
-        run_axe('mobile')
-        checks['mobile_touch_targets'] = page.locator('button:visible').evaluate_all(
-            '(items)=>items.every(e=>e.getBoundingClientRect().height>=44)')
-        page.locator('details').evaluate_all('(items)=>items.forEach(e=>e.open=false)')
-        page.locator('[data-demo="replay"]').click()
-        page.wait_for_timeout(2800)
-        page.locator('header').scroll_into_view_if_needed()
-        page.screenshot(path=str(output/'mobile.png'), full_page=True)
-        page.screenshot(path=str(output/'mobile-hero.png'))
-        page.set_viewport_size({'width':1440,'height':1000})
-        page.locator('header').scroll_into_view_if_needed()
-        page.screenshot(path=str(output/'desktop.png'), full_page=True)
-        page.screenshot(path=str(output/'desktop-hero.png'))
-        page.emulate_media(reduced_motion='reduce')
-        checks['reduced_motion'] = page.evaluate('getComputedStyle(document.documentElement).scrollBehavior==="auto"')
-        page.locator('#flow-walk').click()
-        checks['flow_reduced_motion_completes'] = page.locator('[data-flow-node][data-state="done"]').count()==7
-
+        shapes = []
+        for path in (PAGES['ko'], PAGES['en']):
+            page = context.new_page()
+            page.goto(base + path, wait_until='networkidle')
+            shapes.append(page.evaluate('''() => [...document.querySelectorAll('main *:not(h1 small)')].map(e => e.tagName + '.' + e.className).join('|')
+                + [...document.querySelectorAll('img, source')].map(e => (e.getAttribute('src') || e.getAttribute('srcset')).replace(/\\.(ko|en)\\./, '.').replace(/^\\.\\.\\//, '')).join('|')'''))
+            page.close()
+        checks['ko_en_same_structure'] = shapes[0] == shapes[1]
         checks['no_external_requests'] = all(urlsplit(item).netloc == origin.netloc for item in requests)
         checks['no_script_or_console_errors'] = not errors
-        checks['no_browser_storage'] = page.evaluate('localStorage.length===0&&sessionStorage.length===0&&document.cookie===""')
         context.close()
 
-        nojs = browser.new_context(java_script_enabled=False, viewport={'width':390,'height':844})
+        nojs = browser.new_context(java_script_enabled=False, viewport={'width': 390, 'height': 844})
         fallback = nojs.new_page()
-        fallback.goto(url, wait_until='networkidle')
-        checks['nojs_all_ten_cases'] = fallback.locator('.everyday-case:visible').count()==10
-        checks['nojs_flow_visible'] = fallback.locator('[data-flow-node]').count()==7
-        checks['nojs_flow_controls_disabled'] = fallback.locator('#flow-walk').is_disabled()
-
-        checks['nojs_native_video_controls'] = fallback.locator('video').evaluate_all('(items)=>items.length===13&&items.every(e=>e.controls)')
-        checks['nojs_example_complete'] = fallback.locator('#demo-lines').inner_text().endswith('결과 조건 검증 완료')
-        checks['nojs_install_present'] = fallback.locator('#start a[href*="/releases/download/"][href$=".dmg"]').is_visible()
-        checks['nojs_controls_disabled'] = fallback.locator('[data-copy="install-command"]').is_disabled()
-        fallback.locator('.faq-items summary').first.click()
-        checks['nojs_faq_works'] = fallback.locator('.faq-items details').first.get_attribute('open') is not None
-        checks['nojs_no_overflow'] = fallback.locator('html').bounding_box()['width'] <= 390
+        fallback.goto(base, wait_until='networkidle')
+        checks['nojs_navigation_visible'] = fallback.locator('.nav-links a').first.is_visible() and not fallback.locator('.menu-button').is_visible()
+        checks['nojs_download_present'] = fallback.locator(f'#install a[href="{DMG}"]').is_visible()
+        checks['nojs_copy_hidden'] = not fallback.locator('[data-copy]').is_visible()
+        checks['nojs_video_controls'] = fallback.locator('video').evaluate('(e)=>e.controls')
+        fallback.locator('.faq-list summary').first.click()
+        checks['nojs_faq_works'] = fallback.locator('.faq-list details').first.get_attribute('open') is not None
+        checks['nojs_no_overflow'] = fallback.evaluate('document.documentElement.scrollWidth<=innerWidth')
         nojs.close()
         browser.close()
 
-    report = {'url':url,'checks':checks,'errors':errors,'initial_load':initial,
-              'axe_version':next(iter(accessibility.values()))['testEngine']['version'] if accessibility else None,
-              'axe_violations':{name:value['violations'] for name,value in accessibility.items()}}
-    (output/'qa.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
-    print(json.dumps({'passed':sum(checks.values()),'total':len(checks),
-                      'failed':[name for name,value in checks.items() if not value],
-                      'axe_violations':{name:[x['id'] for x in value['violations']]
-                                        for name,value in accessibility.items()},'errors':errors},
-                     ensure_ascii=False,indent=2))
+    report = {'url': url, 'checks': checks, 'errors': errors,
+              'axe_version': next(iter(accessibility.values()))['testEngine']['version'] if accessibility else None,
+              'axe_violations': {name: value['violations'] for name, value in accessibility.items()}}
+    (output / 'qa.json').write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n')
+    print(json.dumps({'passed': sum(checks.values()), 'total': len(checks),
+                      'failed': [name for name, value in checks.items() if not value],
+                      'axe_violations': {name: [x['id'] for x in value['violations']]
+                                         for name, value in accessibility.items() if value['violations']}, 'errors': errors},
+                     ensure_ascii=False, indent=2))
     return all(checks.values())
 
 
 def main():
-    parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--url',default='http://127.0.0.1:8787')
-    parser.add_argument('--output',type=Path,required=True)
-    parser.add_argument('--axe',type=Path,help='Local axe.min.js; omit to skip automated axe checks')
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--url', default='http://127.0.0.1:8787')
+    parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--axe', type=Path, help='Local axe.min.js; omit to skip automated axe checks')
     parser.add_argument('--browser-executable', help='Optional local Chromium executable for QA')
-    args=parser.parse_args()
-    passed=audit(args.url,args.output,args.axe.read_text() if args.axe else None,args.browser_executable)
+    args = parser.parse_args()
+    passed = audit(args.url, args.output, args.axe.read_text() if args.axe else None, args.browser_executable)
     raise SystemExit(0 if passed else 1)
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
     main()

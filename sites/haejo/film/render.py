@@ -26,6 +26,7 @@ def main():
     a = ap.parse_args(); a.out.mkdir(parents=True, exist_ok=True)
     facts = json.loads((a.plates/'facts.json').read_text())
     query = urlencode({'lang': a.lang, 'plates': a.plates.resolve().as_uri(), 'assets': (HERE.parent/'dist/assets').as_uri(),
+                       'demos': (HERE.parents[2]/'docs/assets/demos').as_uri(),
                        'facts': json.dumps(facts), 'url': a.url})
     name = f'haejo-film.{a.lang}'
     with sync_playwright() as p:

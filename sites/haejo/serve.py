@@ -16,7 +16,7 @@ import stat
 from urllib.parse import unquote, urlsplit
 
 DIRECTORY = (Path(__file__).resolve().parent / 'dist').resolve()
-MAX_ASSET_BYTES = 4 * 1024 * 1024
+MAX_ASSET_BYTES = 8 * 1024 * 1024  # the film MP4 is 4.9 MB
 MAX_CACHED_BYTES = 512 * 1024
 CSP = ("default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; "
        "font-src 'self'; media-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'; "

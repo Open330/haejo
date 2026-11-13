@@ -11,9 +11,9 @@ recording source is [record_browser_demos.py](../sites/haejo/record_browser_demo
 | Travel category and book detail | 3 | Exact selected book title, £49.43 and `In stock (15 available)` match the rendered product | Books to Scrape public sandbox; fictional prices, no purchase |
 | Multi-field draft | 5 | Text, textarea, date and select value match; original form URL retained; Submit never clicked | Selenium public test form, no registration submitted |
 
-[Wikipedia video](../sites/haejo/dist/assets/demos/browser-wikipedia.mp4) ·
-[Shopping video](../sites/haejo/dist/assets/demos/browser-shopping.mp4) ·
-[Form video](../sites/haejo/dist/assets/demos/browser-form.mp4).
+[Wikipedia video](assets/demos/browser-wikipedia.mp4) ·
+[Shopping video](assets/demos/browser-shopping.mp4) ·
+[Form video](assets/demos/browser-form.mp4).
 
 The four draft values are synthetic: `Haejo Demo`, a workshop inquiry,
 `10/20/2026`, and option `Two` (value `2`). Password and file fields were untouched.
@@ -51,7 +51,7 @@ python3 sites/haejo/record_browser_demos.py --output /tmp/haejo-browser-recordin
 
 Each scenario stores its Flow, observations, action times, bounds, replay log
 and independently checked result in the private output directory. Only the
-curated [public summary](../sites/haejo/dist/assets/demos/browser-examples.json),
+curated [public summary](assets/demos/browser-examples.json),
 local MP4, captions and final screenshots are published. Full page trees and
 raw browser profiles are not published.
 

@@ -88,7 +88,7 @@ letter-spacing:-.02em;box-shadow:0 14px 30px rgba(232,89,12,.35);transform-origi
 </div>
 <script>
 const Q=new URLSearchParams(location.search);const LANG=Q.get('lang')||'ko';
-const PLATES=Q.get('plates')||'plates';const ASSETS=Q.get('assets')||'../dist/assets';
+const PLATES=Q.get('plates')||'plates';const ASSETS=Q.get('assets')||'../dist/assets';const DEMOS=Q.get('demos')||'../../../docs/assets/demos';
 const FACTS=JSON.parse(Q.get('facts')||'{}');const END_URL=Q.get('url')||'';
 const repRows=FACTS.rows||[2.8,3.0,4.3,3.1,5.4,3.7],repTotal=(FACTS.replay_seconds||22.4).toFixed(1);
 const DEC=[['카카오T 택시','12,800'],['스타벅스 선릉점','22,400'],['오피스디포','45,600'],['코레일 KTX','59,800'],['김밥천국 역삼점','24,000'],['교보문고 강남점','28,000']];
@@ -139,7 +139,7 @@ const show=(list,k)=>list.forEach((im,i)=>im.style.opacity=i===k?1:0);
 const nodes=TEXT.steps.map(([k,n,v],i)=>{const d=document.createElement('div');d.className='node';const row=i<4?0:1,col=i<4?i:i-4;
   d.style.left=(col*440+(row?220:0))+'px';d.style.top=(row*290)+'px';d.innerHTML=`<div class="k">${k}</div><div class="n">${n}</div><div class="v">${v}</div>`;$('nodes').appendChild(d);
   if(col<(row?2:3)){const e=document.createElement('div');e.className='edge';e.style.left=(col*440+(row?220:0)+380)+'px';e.style.top=(row*290+98)+'px';e.style.width='60px';$('nodes').appendChild(e);d.edge=e}return d});
-const webClips=[['native-finder',8],['native-textedit',17],['browser-wikipedia',9]].map(([n,start])=>{const v=document.createElement('video');v.src=`${ASSETS}/demos/${n}.mp4`;v.muted=true;v.preload='auto';$('web').insertBefore(v,$('webtag'));return {v,start}});
+const webClips=[['native-finder',8],['native-textedit',17],['browser-wikipedia',9]].map(([n,start])=>{const v=document.createElement('video');v.src=`${DEMOS}/${n}.mp4`;v.muted=true;v.preload='auto';$('web').insertBefore(v,$('webtag'));return {v,start}});
 $('log-img').src=`${PLATES}/activity.png`;$('logo').src=`${ASSETS}/haejo-wordmark.svg`;
 function seek(v,time){return new Promise(r=>{if(Math.abs(v.currentTime-time)<1/120){r();return}v.addEventListener('seeked',()=>r(),{once:true});v.currentTime=time})}
 window.ready=Promise.all([...[...document.images].map(im=>im.decode().catch(()=>{})),...webClips.map(({v})=>new Promise(r=>{if(v.readyState>=2)r();else v.addEventListener('loadeddata',r,{once:true})}))]);

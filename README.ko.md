@@ -33,20 +33,20 @@
 
 | 앱·사이트 | 맡긴 작업과 확인한 결과 | 실제 영상 |
 | :--- | :--- | :--- |
-| TextEdit | 워크숍 메모 입력 후 별도 저장 검증으로 디스크·문서 내용 일치 확인 | [약 28초](sites/haejo/dist/assets/demos/native-textedit.mp4) |
-| Finder | 파일 종류 정렬 → 이름 오름차순 정렬, 파일 5개 확인 | [약 22초](sites/haejo/dist/assets/demos/native-finder.mp4) |
-| Google 번역 | 영어 합성 예문 입력 → 한국어 출력 별도 확인 | [약 8초](sites/haejo/dist/assets/demos/browser-translate.mp4) |
-| GitHub | 열린 버그만 필터링하고 댓글 많은 순서로 조회 | [약 20초](sites/haejo/dist/assets/demos/browser-github.mp4) |
-| UnitConverters.net | 3.5 m → 11.482939633 ft, 별도 계산식과 대조 | [약 11초](sites/haejo/dist/assets/demos/browser-units.mp4) |
-| Markdown Live Preview | 기존 예제 앞부분을 계획으로 수정, 제목·목록·굵은 글씨 확인 | [약 9초](sites/haejo/dist/assets/demos/browser-markdown.mp4) |
-| Wikipedia | Seoul 검색 후 History 항목 도착 | [약 19초](sites/haejo/dist/assets/demos/browser-wikipedia.mp4) |
-| Mac 계산기 | 같은 Flow에 다른 입력값을 넣어 15·12 확인 | [약 14초](sites/haejo/dist/assets/demos/calculator-guided.mp4) |
+| TextEdit | 워크숍 메모 입력 후 별도 저장 검증으로 디스크·문서 내용 일치 확인 | [약 28초](docs/assets/demos/native-textedit.mp4) |
+| Finder | 파일 종류 정렬 → 이름 오름차순 정렬, 파일 5개 확인 | [약 22초](docs/assets/demos/native-finder.mp4) |
+| Google 번역 | 영어 합성 예문 입력 → 한국어 출력 별도 확인 | [약 8초](docs/assets/demos/browser-translate.mp4) |
+| GitHub | 열린 버그만 필터링하고 댓글 많은 순서로 조회 | [약 20초](docs/assets/demos/browser-github.mp4) |
+| UnitConverters.net | 3.5 m → 11.482939633 ft, 별도 계산식과 대조 | [약 11초](docs/assets/demos/browser-units.mp4) |
+| Markdown Live Preview | 기존 예제 앞부분을 계획으로 수정, 제목·목록·굵은 글씨 확인 | [약 9초](docs/assets/demos/browser-markdown.mp4) |
+| Wikipedia | Seoul 검색 후 History 항목 도착 | [약 19초](docs/assets/demos/browser-wikipedia.mp4) |
+| Mac 계산기 | 같은 Flow에 다른 입력값을 넣어 15·12 확인 | [약 14초](docs/assets/demos/calculator-guided.mp4) |
 
-<a href="sites/haejo/dist/assets/demos/native-textedit.mp4"><img src="sites/haejo/dist/assets/demos/native-textedit-poster.png" alt="실제 TextEdit 문서 입력과 저장 상태 확인" width="48%"></a>
-<a href="sites/haejo/dist/assets/demos/native-finder.mp4"><img src="sites/haejo/dist/assets/demos/native-finder-poster.png" alt="실제 Finder에서 파일 정렬" width="48%"></a>
+<a href="docs/assets/demos/native-textedit.mp4"><img src="docs/assets/demos/native-textedit-poster.png" alt="실제 TextEdit 문서 입력과 저장 상태 확인" width="48%"></a>
+<a href="docs/assets/demos/native-finder.mp4"><img src="docs/assets/demos/native-finder-poster.png" alt="실제 Finder에서 파일 정렬" width="48%"></a>
 
-공개 테스트 환경의 [상품 확인](sites/haejo/dist/assets/demos/browser-shopping.mp4)과
-[폼 작성](sites/haejo/dist/assets/demos/browser-form.mp4)도 제공합니다. 구매·등록은 하지 않았습니다.
+공개 테스트 환경의 [상품 확인](docs/assets/demos/browser-shopping.mp4)과
+[폼 작성](docs/assets/demos/browser-form.mp4)도 제공합니다. 구매·등록은 하지 않았습니다.
 아래 브라우저 사례는 **Python BrowserDriver + Flow가 여는 별도 Chromium**에서 촬영했습니다. 이미 열려 있는 Safari 창은 서명된 helper가 창 URL·제목으로 찾아 직접 조작합니다(영상의 경비 입력).
 
 TextEdit 입력은 저장 증거 부족으로 멈춘 뒤 별도 Save의 저장 상태 검증이 통과했습니다.
@@ -59,18 +59,18 @@ Markdown은 나머지 예제가 남는 부분 수정입니다. 모든 사례가 
 
 ## 반복 재사용을 확인한 자체 테스트 앱
 
-[![Haejo가 자체 macOS 테스트 앱에서 실제로 입력·계산·검토한 결과](sites/haejo/dist/assets/demos/workflow-guided-poster.png)](sites/haejo/dist/assets/demos/workflow-guided.mp4)
+[![Haejo가 자체 macOS 테스트 앱에서 실제로 입력·계산·검토한 결과](docs/assets/demos/workflow-guided-poster.png)](docs/assets/demos/workflow-guided.mp4)
 
 **실제 앱 창 촬영에 조작 위치를 보여주는 안내 포인터를 추가했습니다.** 자체 macOS 테스트 앱에서 같은 11단계 Flow를 한 단계씩
 다른 입력값으로 5회 재생했습니다. 결과 37·46·70·27·48과 작업별 완료 1회를 확인했습니다.
 
-[반복 작업 영상 · 약 21초](sites/haejo/dist/assets/demos/workflow-guided.mp4) ·
-[실제 계산기 영상 · 약 14초](sites/haejo/dist/assets/demos/calculator-guided.mp4) ·
-[계산기 원본 스크린샷](sites/haejo/dist/assets/demos/calculator-result.png) ·
+[반복 작업 영상 · 약 21초](docs/assets/demos/workflow-guided.mp4) ·
+[실제 계산기 영상 · 약 14초](docs/assets/demos/calculator-guided.mp4) ·
+[계산기 원본 스크린샷](docs/assets/demos/calculator-result.png) ·
 [촬영 조건과 한계](docs/haejo-film-2026-11-10.md)
 
 포인터·클릭 효과는 설명용으로 추가했으며 실제 시스템 커서 이동 기록이 아닙니다.
-[반복 작업 원본](sites/haejo/dist/assets/demos/workflow-replay.mp4) · [계산기 원본](sites/haejo/dist/assets/demos/calculator.mp4)도 제공합니다.
+[반복 작업 원본](docs/assets/demos/workflow-replay.mp4) · [계산기 원본](docs/assets/demos/calculator.mp4)도 제공합니다.
 영상은 작성된 Flow의 실행을 보여주며 자연어 작성 과정의 녹화가 아닙니다.
 테스트 앱은 상용 업무 앱이 아닙니다. 정상 재생 중 모델 호출은 없지만 최초 작성 비용은 별도입니다.
 
@@ -82,7 +82,7 @@ Markdown은 나머지 예제가 남는 부분 수정입니다. 모든 사례가 
 확인하지 못한 실행을 골라 단계별로 확인하세요. 로그 폴더를 찾아갈 필요가 없습니다.
 [작업 단위 기록](docs/tasks.md).
 
-![Haejo 실행 기록: 하루 동안의 실제 작업 4개와 11월 법인카드 경비 등록 작업의 요청, 호출 16회, 호출마다의 이유](sites/haejo/dist/assets/haejo-activity.png)
+![Haejo 실행 기록: 예시로 넣은 하루치 작업 5개와 11월 법인카드 경비 등록 작업의 요청, 호출 16회, 호출마다의 이유](sites/haejo/dist/assets/haejo-activity.png)
 
 기록은 이 Mac에 저장됩니다. 설정에서 자동 저장과 보관 기간(7·30·90일)을
 선택할 수 있습니다. 에이전트가 적은 목표와 호출 이유는 남기고, 화면 내용·입력값·
@@ -265,8 +265,8 @@ Flow 템플릿 하나로 여러 행을 처리할 때는 작업마다 매개변�
 
 ## 먼저 흐름을 살펴보세요
 
-[온보딩 랜딩페이지](https://open330.github.io/haejo/)([소스](sites/haejo/README.md))에서 재생·수리·중단 예시와 설치 안내를 제공합니다.
-실제 앱이나 모델을 실행하지 않는 인터랙티브 소개입니다.
+[온보딩 랜딩페이지](https://open330.github.io/haejo/)([소스](sites/haejo/README.md))에서 소개 영상, 백그라운드 웹 작업, 실행 기록, Flow 재사용과 설치 안내를 볼 수 있습니다.
+성능 비교는 [측정 결과 페이지](https://open330.github.io/haejo/benchmarks/)에 있습니다.
 
 ```sh
 python3 sites/haejo/serve.py

@@ -1,56 +1,47 @@
-# Haejo onboarding
+# Haejo 랜딩페이지
 
 ![Haejo 랜딩페이지 미리보기](../../docs/assets/haejo-preview.png)
 
-Claude·Codex가 만든 computer-use Flow를 재사용하는 Haejo의 온보딩 랜딩페이지입니다.
-한국어 제품 설명과 영어 브랜드 문구, 반응형 레이아웃, 실행 예시, 시작 안내를 제공합니다.
+Haejo의 랜딩페이지입니다. 한국어(`/`)와 영어(`/en/`) 홈, 그리고 측정 결과 페이지
+(`/benchmarks/`, `/en/benchmarks/`)로 이루어진 정적 HTML입니다. 2026-11-13에 1.0 기준으로
+전면 개편했습니다.
 
-첫 화면은 핵심 소개와 40초 Haejo 영상을 나란히 배치합니다. 영상은 법인카드 8건을
-데모 경비 시스템에 바로 입력하고, 실행 기록으로 확인하고, 저장한 Flow로 다음 달 6건을
-모델 호출 없이 다시 입력합니다([촬영 기록](../../docs/haejo-film-2026-11-10.md)).
-이어서 같은 순서의 네 가지 요약(그냥 "해줘"·뭘 했는지 보여줘·다음 달에도 "해줘"·수리),
-실행 기록 앱 화면, Flow 재사용 방식, 측정 결과, 설치 안내가 나옵니다. 업무 시나리오와
-전체 실행 사례 갤러리는 시작 안내와 FAQ 아래에 둡니다.
+홈은 다음 순서입니다.
 
-실행 기록 화면은 영상 촬영 날의 실제 작업 4개를 앱의 실행 기록 화면에 불러온
-오프스크린 캡처입니다. 작업마다 요청과 목표, 호출마다 이유·동작·결과·시간을 보여 주며
-내부 추론은 포함하지 않습니다.
-재사용 설명은 영상에서 실제로 쓴 `expense-entry` 7단계 Flow를 연결선·포트가 있는 노드
-캔버스로 시각화합니다. 최초 작성·정상 재생·예외 경로를 구분하고, 좁은 화면에서도 단계와
-연결선을 재배치합니다. 작성·수리 가지는 설명용입니다. 11월·12월 첫 건을 골라 단계별 강조를
-볼 수 있고, 원본 Flow JSON과 영상으로 연결합니다. 이 인터랙션은 설명용이며 Mac 앱이나
-모델을 실행하지 않습니다.
+1. **첫 화면**: "귀찮은 일은 해줘", 한 줄 약속, 다운로드 버튼, Claude·Codex, 40초 영상.
+   영상은 법인카드 8건을 데모 경비 시스템에 입력하고, 실행 기록으로 확인하고, 저장한 Flow로
+   다음 달 6건을 모델 호출 없이 다시 입력합니다([촬영 기록](../../docs/haejo-film-2026-11-10.md)).
+2. **바로 조작**: 웹 작업이 내 Safari에서, 쓰던 앱 뒤에서 진행되는 방식과 조작마다 고르는
+   세 가지 방법, 탭·파일 첨부·페이지 스크립트·Mac 앱. 수치는
+   [Safari 측정표](../../docs/safari-capability-matrix.md)에서 옵니다. 창 그림은 CSS로 그린 설명용 그림입니다.
+3. **기록**: 앱의 실행 기록 화면과 기록에 담기는 것([기록 안내](../../docs/access-logging.md)).
+4. **Flow**: 영상에서 쓴 `expense-entry` 7단계와 12월 6건 재생의 실측 시간(합계 20.7초, 모델 호출 0회).
+5. **설치**: 내려받기, 권한 두 가지, 첫 작업. 첫 설정 창 화면을 함께 보여 줍니다.
+6. **자주 묻는 질문**과 바닥글.
 
-성능 비교는 Haejo와 OAI/Sky의 2026-10-14 독립 새 대화 3쌍을 막대그래프와
-공개 비교표로 표시합니다. 전체 입력·캐시 읽기 제외 입력·출력·평균 시간·성공을
-나란히 제시하며, 원본은 `dist/assets/benchmark-summary.json`과
-[측정 조건 기록](../../docs/haejo-matched-comparison-2026-10-14.md)입니다.
-최초 작성·실행 비교이며 현재 배포 버전 재측정이나 10회 재사용 비교가 아님을 표시합니다.
+성능 비교(2026-10-14 동일 조건 3쌍), 11단계 Flow 재생, Safari 웹 조작 측정은 홈에서 빼
+`benchmarks/` 페이지에 모았고, 측정 조건은 항목마다 한 번씩 적습니다. 원본은
+`dist/assets/benchmark-summary.json`과 [측정 조건 기록](../../docs/haejo-matched-comparison-2026-10-14.md)입니다.
 
-2026-10-20 시각 개편: 브라우저 검사 105/105 통과(영상 13개 요소의 재생·탐색,
-핵심 설명 우선 배치, 화면 폭별 연결선 범위·앱 이미지 확대, Flow 입력 선택·단계 강조·동작 줄이기, 캐러셀, 필터, 복사, 키보드, 모바일, JavaScript 없는 상태 포함). axe-core의
-데스크톱·상세 펼침·모바일 검사에서 위반이 없었습니다. 자동 검사가 수동 접근성
-검토 전체를 대신하지는 않습니다.
+별도 Chromium에서 촬영한 웹 예제와 TextEdit·Finder·계산기·테스트 앱 녹화는 홈에서 내리고
+`docs/assets/demos/`로 옮겼습니다. 저장소 [README](../../README.ko.md)가 계속 연결합니다.
 
-주요 업무 영역은 주간 이슈 점검·월말 증빙 정리·고객 문의 검토·백오피스 반복 입력의
-시나리오 4개를 제시합니다. 입력 자료, 앱 간 단계, 기대 결과와 재사용 조건을 보여줍니다.
-이는 전체 실행이 검증된 템플릿이 아닌 **업무 설계 예시**이며, 관련 녹화가 확인한 일부 조작과
-아직 검증하지 않은 작업을 각 시나리오에 함께 명시합니다. Selenium 폼은 공개 테스트로 표시합니다.
-넓은 화면에서는 12초마다 시나리오와 표지만 순환하며 영상은 직접 재생합니다.
-좁은 화면에서는 직접 선택하도록 자동 넘김을 끕니다. 마우스를 올리면 일시 정지하고,
-키보드 포커스·사례 선택·영상 재생 시 자동 넘김을 멈춥니다. 동작 줄이기 설정에서는 자동 순환하지 않습니다.
-사례 영역에는 실제 앱·웹 8개와 공개 테스트 2개의 영상 및 종류별 필터를 제공합니다.
-자체 앱의 반복 재사용 영상은 별도 접힌 검증 영역에 둡니다.
-모든 영상은 실제 실행에 안내 포인터를 포함하며, 자동 재생 없이 재생할 때 로드합니다.
+## 앱 화면 다시 만들기
 
-브라우저 예제는 Python API가 여는 별도 Chromium 세션에서 촬영했습니다. 영상의 경비 입력은
-이미 열린 Safari 창을 서명된 helper가 직접 조작한 것입니다. 공개 사이트 Wikipedia와 공개 테스트 사이트 Books to Scrape·Selenium을
-구분해 표시하고, Selenium 폼은 제출하지 않습니다.
+실행 기록과 첫 설정 화면은 설치된 앱이 창을 띄우지 않고 그린 것입니다. 기록 화면의 작업은
+`activity_fixture.py`가 만드는 예시 기록이며 개인 기록을 읽지 않습니다.
 
-[브라우저 예제·재현 방법](../../docs/haejo-browser-examples-2026-10-15.md) ·
-[Mac 앱 촬영 조건](../../docs/haejo-recorded-demos-2026-10-15.md)
+```sh
+python3 sites/haejo/activity_fixture.py /tmp/haejo-activity-fixture
+/Applications/Haejo.app/Contents/MacOS/HaejoSetup --activity-snapshot /tmp/haejo-activity-shot \
+  --activity-fixture /tmp/haejo-activity-fixture -AppleLanguages '(ko)' -AppleLocale ko_KR
+/Applications/Haejo.app/Contents/MacOS/HaejoSetup --snapshot /tmp/haejo-setup-shot --standalone --connected \
+  --brand-assets docs/assets -AppleLanguages '(ko)' -AppleLocale ko_KR
+```
 
-[확장한 일상 작업 10개·검증 범위](../../docs/haejo-everyday-examples-2026-10-15.md)
+`app.png`(2120×1400)를 `dist/assets/haejo-activity.png`로, 오른쪽 상세 영역을 잘라
+`haejo-activity-detail.png`(좁은 화면용)로 씁니다. `setup.png`는 위 884px을 `haejo-setup.png`로,
+권한 카드 부분을 `haejo-setup-permissions.png`로 씁니다.
 
 ## 로컬 미리보기
 
@@ -79,21 +70,23 @@ HTML·CSS·JS·SVG·JSON은 gzip을 협상하고, ETag가 같으면 본문 없�
 
 ## 파일
 
-- `dist/index.html`, `dist/en/index.html`: 한국어·영어 콘텐츠·측정 조건·온보딩·FAQ
+- `dist/index.html`, `dist/en/index.html`: 한국어·영어 홈
+- `dist/benchmarks/index.html`, `dist/en/benchmarks/index.html`: 측정 결과
+- `dist/style.css`: 손으로 쓴 스타일시트 하나. 반응형(360–1600px), 키보드 포커스, reduced motion
+- `dist/app.js`: 좁은 화면의 메뉴 접기와 요청 문장 복사. 스크립트 없이도 모든 내용이 보입니다
 - `dist/assets/film/`: 40초 영상(한국어·영어 MP4·WebM·포스터)
-- `film/`: 영상 촬영(`shoot_expense.py`, `shoot_everyday.py`, `shoot_workflow.py`)과 렌더링(`render.py`, `film.html`), 데모 경비 화면
-- `render_native_examples.py`, `record_browser_demos.py`, `record_everyday_browser_demos.py`, `annotate_recordings.py`: 사례 영상 제작
-- `dist/style.css`: 반응형 디자인·키보드 포커스·reduced motion
-- `dist/app.js`: 설명용 실행 예시·에이전트 선택·명령 복사
-- `dist/assets/benchmark-summary.json`: 2026-10-14 동일 조건 비교의 공개 요약
+- `dist/assets/haejo-activity*.png`, `haejo-setup*.png`: 앱 화면
+- `dist/assets/expense-entry.flow.json`, `benchmark-summary.json`: 페이지가 연결하는 원본
 - `dist/assets/`: 외부 폰트 없이 그린 SVG 로고·워드마크·배너·아이콘
+- `film/`: 영상 촬영(`shoot_expense.py`, `shoot_everyday.py`, `shoot_workflow.py`)과 렌더링(`render.py`, `film.html`), 데모 경비 화면
+- `activity_fixture.py`: 실행 기록 화면용 예시 기록
+- `render_native_examples.py`, `record_browser_demos.py`, `record_everyday_browser_demos.py`, `annotate_recordings.py`: `docs/assets/demos/`의 녹화 제작
 - `serve.py`: 정적 파일 전용 LAN 서버
-- `qa.py`: Playwright 기반 키보드·복사·반응형·JavaScript 없는 화면 검사
+- `qa.py`: Playwright 기반 구조·링크·키보드·반응형·JavaScript 없는 화면 검사
 
-실행 예시 버튼은 실제 앱·명령·모델을 호출하지 않습니다.
 폼, 계정, 분석 추적, 서버 API는 없습니다. 폰트·스크립트·이미지는 외부 CDN에 요청하지 않으며 시스템 폰트와 같은 사이트의 파일만 사용합니다.
 방문자의 값을 저장·전송하는 기능은 없습니다. 정적 호스팅 사업자는 별도로 접속 로그를 남길 수 있습니다.
-페이지는 CSP로 외부 연결을 차단하고 외부 링크에 referrer를 보내지 않습니다.
+페이지는 CSP로 외부 연결을 차단하고 외부 링크에 referrer를 보내지 않습니다. 인라인 스크립트·스타일·이벤트 핸들러를 쓰지 않습니다.
 
 ## 정적 호스팅
 
@@ -117,13 +110,16 @@ Playwright는 QA 도구이며 페이지가 내려받는 의존성이 아닙니�
 python3 sites/haejo/qa.py --url http://127.0.0.1:8787 --output /tmp/haejo-page-qa
 ```
 
-이미 준비한 axe-core의 `axe.min.js`가 있으면 `--axe /path/to/axe.min.js`로
-자동 접근성 검사를 추가합니다. 파일을 제공하지 않으면 axe 검사는 생략합니다.
+네 페이지 각각에서 구조와 섹션 순서, 다운로드 주소, hreflang·언어 전환, CSP, 이미지 alt·크기,
+내부 링크, 영상 재생 준비, Flow 단계와 원본 JSON의 일치, 측정 수치와 요약 JSON의 일치,
+320–1600px에서의 가로 넘침, 좁은 화면 메뉴, 키보드 포커스, reduced motion을 확인하고
+한국어·영어 홈의 구조가 같은지 비교합니다. 이미 준비한 axe-core의 `axe.min.js`가 있으면
+`--axe /path/to/axe.min.js`로 자동 접근성 검사를 추가합니다.
+2026-11-13 개편: 179/179 통과, axe-core 4.13.0 위반 없음(데스크톱, 좁은 화면 메뉴 열림).
 검사는 임시 브라우저를 사용하며 개인 브라우저 프로필에 연결하지 않습니다.
-결과 JSON과 화면 캡처를 출력 폴더에 저장합니다. 자동 검사 통과가 모든 접근성
-요구사항의 수동 검토를 대신하지는 않습니다.
+자동 검사 통과가 모든 접근성 요구사항의 수동 검토를 대신하지는 않습니다.
 
-## 포인터 안내 영상 다시 만들기
+## README용 녹화: 포인터 안내 영상 다시 만들기
 
 개발 환경에 `ffmpeg`와 `rsvg-convert`가 있으면 저장소 루트에서 실행합니다.
 페이지 사용자는 이 도구를 설치할 필요가 없습니다.
@@ -132,11 +128,11 @@ python3 sites/haejo/qa.py --url http://127.0.0.1:8787 --output /tmp/haejo-page-q
 python3 sites/haejo/annotate_recordings.py
 ```
 
-`assets/demos/pointer-guide.json`의 대상 위치·동작 순서와 캡처 프레임 변화에
+`docs/assets/demos/pointer-guide.json`의 대상 위치·동작 순서와 캡처 프레임 변화에
 맞춰 안내 표시를 렌더링합니다. 표시 시각은 설명을 위한 재구성이며 실제
 마우스 좌표·정밀한 입력 시각을 측정한 값이 아닙니다. 원본 파일은 유지합니다.
 
-## 브라우저 예제 다시 촬영하기
+## README용 녹화: 브라우저 예제 다시 촬영하기
 
 프로젝트 Python 환경에 Playwright·Chromium과 ffmpeg를 준비한 뒤 실행합니다.
 공개 사이트에 접속하므로 네트워크 연결이 필요합니다. 결과 폴더는 새 경로를 사용합니다.
@@ -148,20 +144,3 @@ python3 sites/haejo/record_browser_demos.py --output /tmp/haejo-new-browser-reco
 `--scenario wikipedia`, `shopping`, `form`으로 한 예제만 선택할 수도 있습니다.
 개인 프로필을 사용하지 않으며, 입력·클릭·선택은 Haejo Flow로 실행합니다.
 촬영을 위한 안내 포인터와 동작 전후 대기 시간이 있으므로 실행 시간 벤치마크로 쓰지 않습니다.
-
-## 사례 선택 근거
-
-2026-10-18 검토: [OpenAI의 실제 사용 분석](https://openai.com/index/how-people-are-using-chatgpt/)은
-실용적인 도움·정보 찾기·글쓰기가 대화의 약 4분의 3을 차지한다고 보고합니다.
-[Anthropic의 사용 분석·설문](https://www.anthropic.com/research/economic-index-june-2026-report)은
-응답자의 절반 이상이 지루한 업무의 자동화를 희망하며, Cowork에서 데이터·스프레드시트
-작업의 자율 실행이 두드러진다고 보고합니다.
-이는 화면 조작 작업의 선호도 순위나 Haejo 사용자의 수요 조사 결과는 아닙니다.
-
-[Microsoft의 업무 실태 조사](https://www.microsoft.com/en-us/worklab/work-trend-index/breaking-down-infinite-workday/)는
-앱 전환·메일·회의·알림이 업무에 겹쳐 들어오는 문제를 다룹니다. 이를 참고해 단순 문서 생성보다
-여러 앱의 정보를 대조하고 반복 입력·검토하는 업무를 먼저 설명하기로 판단했습니다.
-네 업무의 인기 순위를 직접 측정한 결과는 아닙니다. 관련 녹화는 기존 촬영본만 사용합니다.
-추가 촬영 우선 후보는 메일 분류·답장 초안, 스프레드시트 정리·반복 보고서,
-영수증·다운로드 파일 정리, 여러 사이트의 조건 비교입니다.
-이 후보들은 현재 페이지에서 검증 완료한 기능이나 실제 녹화로 소개하지 않습니다.

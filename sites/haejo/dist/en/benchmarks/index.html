@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; media-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'" />
+    <meta name="theme-color" content="#f6f4ed" />
+    <meta name="description" content="Haejo against Codex’s built-in computer use under matched conditions, saved-Flow replay, and what web actions run in the background in Safari, with the conditions of each measurement." />
+    <meta property="og:title" content="Benchmarks — Haejo" />
+    <meta property="og:description" content="Haejo against Codex’s built-in computer use under matched conditions, saved-Flow replay, and what web actions run in the background in Safari, with the conditions of each measurement." />
+    <meta property="og:image" content="https://open330.github.io/haejo/assets/haejo-og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:url" content="https://open330.github.io/haejo/en/benchmarks/" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <title>Benchmarks — Haejo</title>
+    <link rel="canonical" href="https://open330.github.io/haejo/en/benchmarks/" />
+    <link rel="alternate" hreflang="ko" href="https://open330.github.io/haejo/benchmarks/" />
+    <link rel="alternate" hreflang="en" href="https://open330.github.io/haejo/en/benchmarks/" />
+    <link rel="alternate" hreflang="x-default" href="https://open330.github.io/haejo/benchmarks/" />
+    <link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="../../style.css" />
+    <script defer src="../../app.js"></script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="header">
+      <div class="wrap header-row">
+        <a class="brand" href="../" aria-label="Haejo"><img src="../../assets/haejo-wordmark.svg" alt="Haejo" width="100" height="34" /></a>
+        <button class="menu-button" type="button" aria-expanded="false" aria-controls="nav" hidden><span class="bars" aria-hidden="true"></span>Menu</button>
+        <nav class="nav" id="nav" aria-label="Main">
+          <div class="nav-links"><a href="../#direct">Direct control</a><a href="../#history">History</a><a href="../#flow">Flow</a><a href="../#install">Install</a><a href="../#faq">FAQ</a></div>
+          <div class="nav-side">
+            <a class="quiet" href="https://github.com/Open330/haejo" target="_blank" rel="noopener noreferrer">GitHub</a>
+            <a class="quiet" href="../../benchmarks/" hreflang="ko" lang="ko">한국어</a>
+            <a class="nav-cta" href="https://github.com/Open330/haejo/releases/download/v1.0.1/Haejo-1.0.1-arm64.dmg">Download</a>
+          </div>
+        </nav>
+      </div>
+    </header>
+    <main id="main" tabindex="-1">
+      <section class="page-head wrap">
+        <p class="label">Haejo</p>
+        <h1>Benchmarks</h1>
+        <p class="lead">How many tokens and how much time an agent spends on the same job, what replaying a saved Flow costs, and which web actions run in the background in Safari. Each measurement states its conditions once.</p>
+      </section>
+      <section class="block wrap">
+        <h2>53.5% fewer input tokens on the same tasks</h2>
+        <p>Codex’s built-in computer use and Haejo were given the same three tasks, each run once in a fresh conversation. The numbers cover everything from working out the steps to running them and the final reply.</p>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Totals over 3 paired tasks · time is the mean"><table><caption>Totals over 3 paired tasks · time is the mean</caption><thead><tr><th scope="col">Measure</th><th scope="col">Haejo</th><th scope="col">Codex built-in computer use</th></tr></thead><tbody><tr><th scope="row">Tasks completed</th><td class="win-cell">3/3</td><td>3/3</td></tr><tr><th scope="row">Total input tokens</th><td class="win-cell">201,447<span class="delta">53.5% fewer</span></td><td>433,312</td></tr><tr><th scope="row">Input tokens excluding cache reads</th><td class="win-cell">22,119<span class="delta">56.3% fewer</span></td><td>50,592</td></tr><tr><th scope="row">Output tokens</th><td class="win-cell">1,605</td><td>1,604</td></tr><tr><th scope="row">Mean time</th><td class="win-cell">42.10 s<span class="delta">8.8% shorter</span></td><td>46.17 s</td></tr></tbody></table></div>
+        <p class="scope">2026-10-14 · a development build of Haejo · Codex CLI 0.161.0, requested model gpt-6.1-sol, medium reasoning effort · tasks on a macOS test app we built: turn a bonus on, turn it off, and cope with a renamed button. On the bonus-off task Codex’s built-in computer use was faster (37.91 s against 48.55 s). The measurement record calls the other side Sky.</p>
+        <p class="link-row"><a class="text-link" href="https://github.com/Open330/haejo/blob/main/docs/haejo-matched-comparison-2026-10-14.md" target="_blank" rel="noopener noreferrer">Conditions and per-task results (Korean)</a><a class="text-link" href="../../assets/benchmark-summary.json" target="_blank" rel="noopener">Summary JSON</a></p>
+      </section>
+      <section class="block wrap">
+        <h2>Replaying a saved Flow: zero model calls</h2>
+        <p>An 11-step Flow (five inputs, a conditional checkbox, compute, review, completion check) was replayed with different values, and we deliberately changed the screen or made completion impossible to confirm.</p>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="11-step Flow · all 9 scenarios ended as expected"><table><caption>11-step Flow · all 9 scenarios ended as expected</caption><thead><tr><th scope="col">Situation</th><th scope="col">Result</th></tr></thead><tbody><tr><th scope="row">10 replays with different values</th><td>10/10 completed · 0 model calls</td></tr><tr><th scope="row">All normal jobs</th><td>13/13 completed</td></tr><tr><th scope="row">Two buttons changed within one job</th><td>Those steps repaired, job completed · 2 model calls</td></tr><tr><th scope="row">Completion could not be confirmed</th><td>5/5 stopped on the spot · 0 inputs sent again</td></tr></tbody></table></div>
+        <p class="scope">2026-10-14 · a development build of Haejo · a macOS test app we built.</p>
+        <p class="link-row"><a class="text-link" href="https://github.com/Open330/haejo/blob/main/docs/haejo-complex-scenarios-2026-10-14.md" target="_blank" rel="noopener noreferrer">Results by scenario (Korean)</a></p>
+      </section>
+      <section class="block wrap">
+        <h2>20 of 22 Safari page actions run in the background</h2>
+        <p>Actions were sent to a page in the person’s own Safari and judged by the events and values the page actually received. Haejo starts with the quietest route and names the route in the result.</p>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="22 kinds of page action"><table><caption>22 kinds of page action</caption><thead><tr><th scope="col">Route</th><th scope="col">Actions</th><th scope="col">Your screen</th></tr></thead><tbody><tr><th scope="row">Accessibility</th><td>18</td><td>Safari stays behind; pointer and keyboard untouched</td></tr><tr><th scope="row">Keys sent to that window</th><td>2</td><td>Safari stays behind</td></tr><tr><th scope="row">Safari in front, briefly</th><td>2</td><td>In front for that input only, then your app is in front again</td></tr></tbody></table></div>
+        <p class="scope">2026-11-12 · Safari 27.2 · macOS 27.2 · a measurement page we built. Covers links and buttons, text fields, menus, dates, scrolling, new tabs and windows, and iframes. The two that come to the front are a menu that opens on pointer-down and a menu revealed by hover.</p>
+        <p class="link-row"><a class="text-link" href="https://github.com/Open330/haejo/blob/main/docs/safari-capability-matrix.md" target="_blank" rel="noopener noreferrer">The full matrix</a></p>
+      </section>
+      <section class="block wrap end-links">
+        <div class="hero-actions"><a class="button primary" href="https://github.com/Open330/haejo/releases/download/v1.0.1/Haejo-1.0.1-arm64.dmg">Download for Mac</a><a class="button ghost" href="../">Back to Haejo</a></div>
+        <p class="hero-meta">Version 1.0.1 · Apple Silicon · macOS 27 or later · 71.5 MB</p>
+      </section>
+    </main>
+    <footer class="footer">
+      <div class="wrap">
+        <div class="footer-row">
+          <span class="footer-brand"><img src="../../assets/favicon.svg" alt="" width="30" height="30" />Haejo · Ask, and it’s done. Checked, too.</span>
+          <nav aria-label="Footer"><a href="https://github.com/Open330/haejo" target="_blank" rel="noopener noreferrer">GitHub</a><a href="https://github.com/Open330/haejo/releases/tag/v1.0.1" target="_blank" rel="noopener noreferrer">Release notes</a><a href="https://github.com/Open330/haejo/blob/main/README.md" target="_blank" rel="noopener noreferrer">Docs</a><a href="../benchmarks/">Benchmarks</a></nav>
+        </div>
+        <p>Haejo is an open-source project by Open330. Claude and Codex are trademarks of their owners; Haejo is not affiliated with them.</p>
+      </div>
+    </footer>
+  </body>
+</html>

@@ -39,6 +39,10 @@ classified as a persistent write, while the demo only keeps rows in the page.
 | Workflow test app | `film/shoot_workflow.py`: fixture titled "Haejo Workflow Demo"; the 11-step Flow replayed one step at a time for five input sets | 37, 46, 70, 27, 48; one completion per job in the fixture record |
 | Activity screenshot | The film's activity frame (`HaejoSetup --activity-snapshot` over the day's four tasks) | 25 runs in 4 tasks; the expense task's request and 16 calls with reasons |
 
+Since 2026-11-13 the landing shows a different activity screenshot: a composed
+sample day drawn from `sites/haejo/activity_fixture.py`, and these clips live in
+`docs/assets/demos/` (linked from the README, no longer on the landing).
+
 Native clips are built from captures taken after each step (the helper takes
 about 2.3 s per capture), held for their real or fixed intervals. They are
 not continuous screen video. Pointers remain explanatory overlays.
