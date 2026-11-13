@@ -41,7 +41,7 @@ def build(output: Path):
             "CFBundleDisplayName": "Haejo", "CFBundleName": "Haejo",
             "CFBundleIconFile": "haejo-app.icns",
             "CFBundleExecutable": "HaejoSetup", "CFBundleIdentifier": "open330.haejo.app.dev",
-            "CFBundlePackageType": "APPL", "CFBundleShortVersionString": "1.0.0",
+            "CFBundlePackageType": "APPL", "CFBundleShortVersionString": "1.0.1",
             "LSUIElement": True,
         }))
         (contents / "Resources/runtime.json").write_text(json.dumps({"root": str(root)}))
