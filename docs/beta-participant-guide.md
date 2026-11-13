@@ -8,8 +8,8 @@
 ## 시작 전
 
 담당자가 제공한 RC의 태그·DMG SHA256을 확인하고 기록합니다.
-현재 버전은 정식 버전 `v1.0.1`(DMG SHA256 `6ed8b0cdefb42cc9b092ea10c76213f486c3aa030dacabb9a1017419b6b20652`)입니다. 공증·보안 검사와 VM 안 새 macOS 계정의 처음 설치를 확인했고, 회귀 3,790건(제외 47건)에 실패·오류가 없습니다. rc.48보다 앞선 후보에서 올리면 새 식별자(`open330.haejo`) 때문에 앱 조작과 화면 캡처 권한을 다시 허용해야 하고, 웹 작업에는 `haejo web install`이 한 번 필요합니다.
-[1.0.1 검증 결과](https://github.com/Open330/haejo/releases/tag/v1.0.1)의 VALIDATION.json을 확인하세요.
+현재 버전은 정식 버전 `v1.0.2`(DMG SHA256 `949271401c56da658074749c246a1cea25638f1c0b614d4ec64260147c7931e9`)입니다. 공증·보안 검사와 VM 안 새 macOS 계정의 처음 설치를 확인했고, 회귀 3,790건(제외 47건)에 실패·오류가 없습니다. rc.48보다 앞선 후보에서 올리면 새 식별자(`open330.haejo`) 때문에 앱 조작과 화면 캡처 권한을 다시 허용해야 하고, 웹 작업에는 `haejo web install`이 한 번 필요합니다.
+[1.0.2 검증 결과](https://github.com/Open330/haejo/releases/tag/v1.0.2)의 VALIDATION.json을 확인하세요.
 검증 중 앱이 바뀌면 담당자에게 알리고 새 후보로 결과를 구분합니다.
 
 ### 이전 rc.9의 검증 기록
@@ -23,9 +23,9 @@ rc.9는 Finder의 마지막 창을 닫은 뒤 데스크톱 항목이 목록에 �
 rc.8 실제 복귀와 rc.9 복원, 세 Mac의 동일 번들·서명·에이전트 연결·기존 데이터·허용된 권한 보존도 확인했습니다. 전체 회귀 2,977건 실패0·오류0·사유 있는 제외15건이며, 앱·DMG 신규 공증·티켓·Gatekeeper·산출물12개 검사·최종 DMG 보안 점검을 통과했습니다.
 
 독립 성능과 새 에이전트 결과는 별도로 기록합니다. 새 사용자 DMG 설치·권한 변경주기·제한 베타는 이번 자동 시험 범위 밖입니다.
-[rc.9 검증 결과](https://github.com/Open330/haejo/releases/tag/v1.0.1-rc.9)를 확인하고 실패·개입도 함께 기록하세요.
+[rc.9 검증 결과](https://github.com/Open330/haejo/releases/tag/v1.0.2-rc.9)를 확인하고 실패·개입도 함께 기록하세요.
 
-이전 [rc.8 기록](https://github.com/Open330/haejo/releases/tag/v1.0.1-rc.8)의 마지막 Finder 창 닫기 검증 오류는 당시 결과로 보존하며 rc.9의 새 검증과 구분합니다. rc.8 최초 회귀1건 실패·단독27건과 전체 재검 통과, [rc.6 기록](https://github.com/Open330/haejo/releases/tag/v1.0.1-rc.6)의 최초 실기59/60·별도 재검60/60, [rc.5 기록](https://github.com/Open330/haejo/releases/tag/v1.0.1-rc.5)의 초기 실패33.59초·별도 성공 실행4.39초도 당시 사실로 보존합니다.
+이전 [rc.8 기록](https://github.com/Open330/haejo/releases/tag/v1.0.2-rc.8)의 마지막 Finder 창 닫기 검증 오류는 당시 결과로 보존하며 rc.9의 새 검증과 구분합니다. rc.8 최초 회귀1건 실패·단독27건과 전체 재검 통과, [rc.6 기록](https://github.com/Open330/haejo/releases/tag/v1.0.2-rc.6)의 최초 실기59/60·별도 재검60/60, [rc.5 기록](https://github.com/Open330/haejo/releases/tag/v1.0.2-rc.5)의 초기 실패33.59초·별도 성공 실행4.39초도 당시 사실로 보존합니다.
 
 ### 설치 및 환경 기록
 

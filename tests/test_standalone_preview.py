@@ -64,6 +64,13 @@ packages = ["haejo"]
             self.assertEqual('wrapper', (bin_dir/'third-party').read_text())
             self.assertEqual('Name: foreign-pkg\n\nForeign distribution', (foreign/'METADATA').read_text())
 
+    def test_demo_recordings_stay_out_of_the_app(self):
+        names=['demos','haejo-logo.svg','__pycache__']
+        self.assertEqual({'haejo-logo.svg'},set(names)-set(builder.shipped_docs('/repo/docs/assets',names)))
+        self.assertEqual({'demos','haejo-logo.svg'},set(names)-set(builder.shipped_docs('/repo/skill/references',names)))
+        source=(ROOT/'setup/build_standalone_preview.py').read_text()
+        self.assertEqual(2,source.count('ignore=shipped_docs'))
+
     def test_copy_excludes_editable_paths_caches_and_direct_url_metadata(self):
         names=['__editable__.haejo.pth','__editable___finder.py','x.pth','direct_url.json','__pycache__','module.py','license.txt']
         kept=set(names)-set(builder.ignored('/owned',names))

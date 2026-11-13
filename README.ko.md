@@ -171,9 +171,9 @@ Haejo는 실행할 때 대상을 새 관찰에서 찾고 결과 조건을 검사
 
 ## 첫 작업 시작하기
 
-**Haejo 1.0.1**입니다(Apple Silicon · macOS 27.0 이상).
+**Haejo 1.0.2**입니다(Apple Silicon · macOS 27.0 이상).
 
-1. [공증된 DMG 다운로드](https://github.com/Open330/haejo/releases/download/v1.0.1/Haejo-1.0.1-arm64.dmg) ([릴리스 안내와 검증 결과](https://github.com/Open330/haejo/releases/tag/v1.0.1))
+1. [공증된 DMG 다운로드](https://github.com/Open330/haejo/releases/download/v1.0.2/Haejo-1.0.2-arm64.dmg) ([릴리스 안내와 검증 결과](https://github.com/Open330/haejo/releases/tag/v1.0.2))
 2. DMG를 열어 `Haejo.app`을 `Applications`로 끌어다 놓고, `Applications`에서 Haejo를 엽니다.
 3. **1. Mac 권한**에서 **설정 열기**를 눌러 앱 조작을 **Haejo Helper**에 허용합니다(화면 기록은 **Haejo**에, 선택).
 4. 앱을 열면 Claude Code·Codex에 `haejo` 명령과 스킬이 바로 연결됩니다(**2. 에이전트 연결**에서 확인하고, 앱을 옮긴 뒤에는 다시 누르세요).
@@ -183,7 +183,7 @@ Tacto를 쓰던 경우도 같은 방법으로 설치합니다. Tacto 데이터�
 
 Haejo는 Dock 아이콘 없이 메뉴 막대에서 실행됩니다. 창을 닫아도 백그라운드에 남고, 메뉴 막대 아이콘에서 다시 열거나 종료할 수 있습니다.
 
-1.0.1 DMG는 소스 `978ae5c`, Python 3.14 기준입니다. 회귀 테스트 3,790개 실패 없음, Apple 공증·Gatekeeper 통과, VM 안의 새 macOS 27.2 계정에서 처음 설치를 확인했습니다. rc.48보다 앞선 출시 후보에서 올리면 식별자가 `open330.haejo`로 바뀌어 앱 조작과 화면 캡처 권한을 다시 허용해야 합니다. 웹 작업에는 `haejo web install`을 한 번 실행하세요. Windows·Intel Mac 빌드는 제공하지 않습니다.
+1.0.2 DMG는 소스 `858254f`, Python 3.14 기준입니다. 회귀 테스트 3,790개 실패 없음, Apple 공증·Gatekeeper 통과, VM 안의 새 macOS 27.2 계정에서 처음 설치를 확인했습니다. rc.48보다 앞선 출시 후보에서 올리면 식별자가 `open330.haejo`로 바뀌어 앱 조작과 화면 캡처 권한을 다시 허용해야 합니다. 웹 작업에는 `haejo web install`을 한 번 실행하세요. Windows·Intel Mac 빌드는 제공하지 않습니다.
 [출시 검증 현황](docs/release-readiness.md) · [설치 범위와 제한](docs/installation.md)
 
 **소스에서 빌드하려면** [uv](https://docs.astral.sh/uv/)(앱 런타임용 Python 3.14를 직접 설치합니다), Xcode Command Line Tools,
