@@ -276,7 +276,7 @@ python3 sites/haejo/serve.py
 
 <a id="documentation"></a>
 
-macOS 설정의 **빠른 실행(helper 유지)**을 켜면 다음 작업의 시작 시간을 줄일 수 있습니다. 기본은 꺼짐이며 유휴 시간은 1–10분입니다. `HAEJO_HELPER_MODE=warm` / `per_command`가 앱 설정보다 우선합니다. 동시 실행은 최대 10초 대기 후 `helper_busy`로 안내합니다. [동작과 측정 범위](docs/helper-execution.md).
+macOS 설정의 **빠른 실행**을 켜면 다음 작업의 시작 시간을 줄일 수 있습니다. 기본은 꺼짐이며 유휴 시간은 1–10분입니다. `HAEJO_HELPER_MODE=warm` / `per_command`가 앱 설정보다 우선합니다. 동시 실행은 최대 10초 대기 후 `helper_busy`로 안내합니다. [동작과 측정 범위](docs/helper-execution.md).
 
 ## 필요한 문서부터
 

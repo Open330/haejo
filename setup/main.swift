@@ -371,7 +371,7 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
     let message = label("", size: 12, color: mutedText, width: contentWidth - 32)
     let badge = label("확인 중", size: 12, weight: .semibold)
     let badgeIcon = NSImageView()
-    let scopeInfo = label("별도 설치 위치를 사용합니다. 기존 에이전트의 연결 위치와 다를 수 있어요.", size: 11, color: mutedText, width: contentWidth - 32)
+    let scopeInfo = label("환경 변수로 지정한 위치에 연결합니다. 에이전트가 기본으로 찾는 위치와 다를 수 있어요.", size: 11, color: mutedText, width: contentWidth - 32)
     let connectionInfo = label("", size: 12, color: mutedText, width: contentWidth - 32)
     var connection: AgentConnection = .missing
     var installing = false
@@ -562,7 +562,7 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         header.orientation = .horizontal; header.alignment = .centerY
         header.widthAnchor.constraint(equalToConstant: contentWidth).isActive = true
         stack.addArrangedSubview(header)
-        stack.addArrangedSubview(label("에이전트가 여러분 대신 Mac 앱을 사용할 수 있도록.",
+        stack.addArrangedSubview(label("에이전트가 여러분 대신 Mac 앱을 사용합니다.",
                                        size: 14, color: mutedText, width: contentWidth))
         stack.setCustomSpacing(14, after: stack.arrangedSubviews.last!)
         refreshButton = NSButton(title: "상태 새로고침", target: self, action: #selector(refreshAll))

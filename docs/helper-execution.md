@@ -1,7 +1,7 @@
 # Optional fast startup
 
 Haejo normally starts a signed helper for each command. This remains the default.
-On macOS, open **Haejo → Settings → 빠른 실행(helper 유지)** to reuse a helper
+On macOS, open **Haejo → Settings → 빠른 실행** to reuse a helper
 between commands. Choose an idle timeout from **1–10 minutes** (default **2**).
 The helper exits after that much inactivity. Settings apply on the next command;
 a new warm connection refreshes the idle timeout. Turning the option off uses
