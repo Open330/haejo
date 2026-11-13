@@ -135,7 +135,7 @@ For a detailed screen/action trace, explicitly use `--trace` on do/run/replay.
 
 ## Optional helper reuse
 
-Enable “빠른 실행(helper 유지)” in Haejo Settings or use
+Enable “빠른 실행” in Haejo Settings or use
 `HAEJO_HELPER_MODE=warm` when repeated startup is material. Warm mode has up to
 four isolated workers for different apps. A full pool waits up to10s, then returns
 `helper_busy`. Resource conflicts wait inside the helper within existing input

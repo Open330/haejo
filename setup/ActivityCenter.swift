@@ -449,11 +449,12 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
     private let split = NSSplitView()
     private let status = activityLabel("상태 확인 중", 11, secondary:true)
     private let saveStatus = activityLabel("변경 사항은 다음 작업부터 적용됩니다.", 12, secondary:true)
-    private let logToggle = NSButton(checkboxWithTitle:"실행 기록 자동 저장", target:nil, action:nil)
-    private let bannerToggle = NSButton(checkboxWithTitle:"작업 중 배너 표시", target:nil, action:nil)
+    // Switches, not checkboxes: an unchecked box drew as an empty grey square.
+    let logToggle = NSSwitch()
+    let bannerToggle = NSSwitch()
     private let setupStatus = activityLabel("",13,secondary:true)
-    private let warmToggle = NSButton(checkboxWithTitle:"빠른 실행(helper 유지)", target:nil, action:nil)
-    private let approvalToggle = NSButton(checkboxWithTitle:"메뉴에서 승인", target:nil, action:nil)
+    let warmToggle = NSSwitch()
+    let approvalToggle = NSSwitch()
     private let helperIdle = NSPopUpButton(frame:.zero,pullsDown:false)
     private let retention = NSPopUpButton(frame:.zero,pullsDown:false)
     private let historyButton = ActivityNavigationButton()
@@ -560,11 +561,20 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
         split.heightAnchor.constraint(greaterThanOrEqualToConstant:360).isActive = true
         pin(history,into:content)
     }
+    /// A switch with its name beside it; the name is also what VoiceOver reads.
+    private func switchRow(_ control: NSSwitch, _ title: String) -> NSView {
+        control.setAccessibilityLabel(title); control.controlSize = .small
+        let row = NSStackView(views:[control,activityLabel(title,13)])
+        row.orientation = .horizontal; row.alignment = .centerY; row.spacing = 10
+        return row
+    }
     private func settingsCard(_ title: String, _ explanation: String, _ control: NSView) -> NSView {
         let stack = ActivityCard(views:[activityLabel(title,16,.semibold),activityLabel(explanation,12,secondary:true),control]); stack.orientation = .vertical; stack.alignment = .leading; stack.spacing = 12
         stack.edgeInsets = NSEdgeInsets(top:20,left:20,bottom:20,right:20)
         for view in stack.arrangedSubviews where view is NSTextField {
-            view.widthAnchor.constraint(equalTo:stack.widthAnchor,constant:-40).isActive = true
+            // Wrap at a readable measure instead of running the full window width.
+            view.widthAnchor.constraint(lessThanOrEqualTo:stack.widthAnchor,constant:-40).isActive = true
+            let measure = view.widthAnchor.constraint(equalToConstant:640); measure.priority = .defaultHigh; measure.isActive = true
         }
         stack.wantsLayer = true; stack.layer?.cornerRadius = 12
         return stack
@@ -584,10 +594,10 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
         helperIdle.addItems(withTitles:(1...10).map { "\($0)분" })
         helperIdle.target = self; helperIdle.action = #selector(saveSettings)
         helperIdle.setAccessibilityIdentifier("haejo.settings.helper-idle")
-        let warmControls = NSStackView(views:[warmToggle,activityLabel("사용하지 않을 때 종료",12,secondary:true),helperIdle])
+        let warmControls = NSStackView(views:[switchRow(warmToggle,"빠른 실행"),activityLabel("사용하지 않을 때 종료",12,secondary:true),helperIdle])
         warmControls.orientation = .vertical; warmControls.alignment = .leading; warmControls.spacing = 10
         let clearAlways = button("항상 허용 모두 지우기", "xmark.circle", #selector(clearAlwaysApprovals))
-        let approvalControls = NSStackView(views:[approvalToggle,clearAlways])
+        let approvalControls = NSStackView(views:[switchRow(approvalToggle,"메뉴에서 승인"),clearAlways])
         approvalControls.orientation = .vertical; approvalControls.alignment = .leading; approvalControls.spacing = 10
         let remove = button("저장된 기록 모두 삭제…", "trash", #selector(confirmDelete))
         let uninstallButton = button("Haejo 제거…", "xmark.bin", #selector(confirmUninstall))
@@ -595,14 +605,15 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
         let credentials = button("Vault·로그인 위임 관리", "key", #selector(openCredentials))
         let setupButton = button("권한·연결 확인", "arrow.up.forward.app", #selector(openSetup))
         setupButton.setAccessibilityIdentifier("haejo.settings.setup")
+        setupStatus.isHidden = setupStatus.stringValue.isEmpty
         let setupControls = NSStackView(views:[setupStatus,setupButton]); setupControls.orientation = .vertical; setupControls.alignment = .leading; setupControls.spacing = 10
         let cards = [settingsCard("Mac 권한·에이전트", "손쉬운 사용·화면 기록 권한과 Claude Code·Codex 연결 상태를 확인하고 다시 연결합니다.",setupControls),
-                     settingsCard("로그인 위임", "Vault 연결과 앱·사이트별 위임을 관리합니다. 에이전트가 만든 위임 파일을 끌어놓고 허용 수준을 검토하세요.",credentials),
-                     settingsCard("메뉴 승인", "결제·전송·삭제처럼 확인이 필요한 단계를 이 Mac의 Haejo 메뉴 카드로 결정합니다. 기본은 꺼짐입니다. 켜면 명령의 --yes 대신 카드에서 고른 범위(이번만·이 작업 동안·항상)로 진행합니다.",approvalControls),
-                     settingsCard("빠른 실행", "도우미를 잠시 유지해 다음 작업을 더 빠르게 시작합니다. 기본은 꺼짐입니다. 유휴 시간이 지나면 자동 종료하며, 환경변수로 지정한 실행 방식이 우선합니다.",warmControls),
-                     settingsCard("실행 기록", "접근한 앱·동작·결과·시간을 이 Mac에 저장합니다. 화면 내용·입력값·프롬프트는 기록하지 않습니다. 오늘 기록은 실행마다 한 파일, 지난 기록은 하루 한 파일로 합쳐 보관합니다.",logToggle),
+                     settingsCard("로그인 위임", "비밀번호 보관함(Vault) 연결과 앱·사이트별 로그인 위임을 관리합니다. 에이전트가 만든 위임 파일을 끌어다 놓고 허용 범위를 확인하세요.",credentials),
+                     settingsCard("메뉴 승인", "결제·전송·삭제처럼 확인이 필요한 단계를 이 Mac의 Haejo 메뉴 카드로 결정합니다. 기본은 꺼짐입니다. 켜면 카드에서 고른 범위(이번만·이 작업 동안·항상)로 진행합니다.",approvalControls),
+                     settingsCard("빠른 실행", "Haejo Helper를 잠시 켜 두어 다음 작업을 더 빨리 시작합니다. 기본은 꺼짐이며, 아래 시간 동안 쓰지 않으면 스스로 종료합니다.",warmControls),
+                     settingsCard("실행 기록", "접근한 앱·동작·결과·시간을 이 Mac에 저장합니다. 화면 내용·입력값·프롬프트는 기록하지 않습니다. 오늘 기록은 실행마다 한 파일, 지난 기록은 하루 한 파일로 합쳐 보관합니다.",switchRow(logToggle,"실행 기록 자동 저장")),
                      settingsCard("기록 보관 기간", "선택한 기간과 디스크 사용량 100MB 안에서 다음 작업을 시작할 때 오래된 기록부터 정리합니다.",retention),
-                     settingsCard("작업 표시", "끄면 우상단 배너를 숨깁니다. 기존 Haejo 메뉴에서 작업 상태를 확인하거나 중단할 수 있고, Esc로도 중단할 수 있습니다.",bannerToggle),
+                     settingsCard("작업 표시", "끄면 우상단 배너를 숨깁니다. 기존 Haejo 메뉴에서 작업 상태를 확인하거나 중단할 수 있고, Esc로도 중단할 수 있습니다.",switchRow(bannerToggle,"작업 중 배너 표시")),
                      settingsCard("Haejo 제거", "이 설치가 만든 haejo 명령·스킬 연결을 지우고 Haejo.app을 휴지통으로 옮깁니다. 실행 기록과 Flow는 고를 때만 함께 지웁니다.",uninstallButton)]
         settings.addArrangedSubview(activityLabel("설정",24,.semibold))
         for card in cards { settings.addArrangedSubview(card); card.widthAnchor.constraint(equalTo:settings.widthAnchor).isActive = true }
@@ -641,7 +652,7 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
         if timer == nil { timer = Timer.scheduledTimer(withTimeInterval:2,repeats:true) { [weak self] _ in if self?.window?.isVisible == true && self?.window?.isMiniaturized == false && NSApp.isActive && self?.page == .history { self?.refresh() } } }
     }
     func presentCurrent() { if page == .flows { presentFlows() } else { present(settings:isSettings) } }
-    func updateStatus(_ text: String) { status.stringValue = text; setupStatus.stringValue = text }
+    func updateStatus(_ text: String) { status.stringValue = text; setupStatus.stringValue = text; setupStatus.isHidden = text.isEmpty }
     @objc private func openSetup() { onSetup?() }
     @objc func refresh() {
         guard !loading else { return }; loading = true
@@ -666,7 +677,7 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
         let failed = allRecords.filter { $0.failed }.count
         let calls = allRecords.reduce(0) { $0 + $1.records.count }
         let tasks = allRecords.filter { $0.isTask }.count
-        summary.stringValue = "최근 \(calls)개 실행" + (tasks > 0 ? " · 작업 \(tasks)개" : "") + " · 실패 \(failed)개 · \(filtered.count)개 표시" + (currentSettings.loggingEnabled ? "" : " · 새 기록 저장 꺼짐")
+        summary.stringValue = allRecords.isEmpty ? (currentSettings.loggingEnabled ? "" : "새 기록 저장 꺼짐") : "최근 \(calls)개 실행" + (tasks > 0 ? " · 작업 \(tasks)개" : "") + " · 실패 \(failed)개 · \(filtered.count)개 표시" + (currentSettings.loggingEnabled ? "" : " · 새 기록 저장 꺼짐")
         table.reloadData()
         if let id = selected, let i = filtered.firstIndex(where: { $0.key == id }) { table.selectRowIndexes(IndexSet(integer:i),byExtendingSelection:false); showDetail(filtered[i]) }
         else if let first = filtered.first { selected = first.key; table.selectRowIndexes(IndexSet(integer:0),byExtendingSelection:false); showDetail(first) }
