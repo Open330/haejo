@@ -390,7 +390,8 @@ expect eof
         return rows[0] if rows else None
 
     def grant(self, label, which, app_name, drag_icon):
-        # Settings stays in front after a grant; closing it uncovers the setup window.
+        # Start each grant from the setup window alone (Haejo returns in front of
+        # Settings after a grant; an earlier build stayed behind it).
         self.sh('osascript -e \'quit app "System Settings"\'', check=False)
         time.sleep(2)
         heading = r'앱 조작 권한 켜기' if which == 0 else r'화면 캡처.*권한 켜기'
@@ -487,7 +488,7 @@ expect eof
                               'covers': ['write_persistent']}]}}]}
         self.sh(f"mkdir -p ~/first-run && cat > /tmp/first-run.json <<'EOF'\n{json.dumps(flow)}\nEOF")
         self.sh('open -g ~/first-run; sleep 2')
-        # Quit & Reopen restarts Haejo; wait until it reports ready again.
+        # Quit & Reopen restarts Haejo (macOS, or Haejo's own relauncher); wait until it reports ready again.
         for _ in range(20):
             if '준비 끝' in self.sh('~/.local/bin/haejo doctor 2>&1', check=False).stdout:
                 break

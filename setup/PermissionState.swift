@@ -228,6 +228,61 @@ struct PermissionWatch {
     }
 }
 
+/// What a launch puts on screen. A background launch stays in the menu bar;
+/// a launch that resumes permission setup returns to the setup window.
+enum LaunchSurface { case none, setup, workspace }
+
+func launchSurface(background: Bool, resuming: Bool, connected: Bool) -> LaunchSurface {
+    if background { return .none }
+    return connected && !resuming ? .workspace : .setup
+}
+
+/// Brings setup back after macOS quits Haejo for a Screen Recording change
+/// ("Quit & Reopen"). While the person is switching screen capture on, a
+/// marker file holds this process's ID and one small shell waits for the
+/// process to end; it then opens the app again through LaunchServices, and
+/// the new launch shows setup. Quitting from Haejo's own menu, closing setup
+/// or the end of the wait removes the marker, and the shell ends with it.
+struct SetupResume {
+    let marker: URL
+    /// A marker older than this is left over from an earlier session.
+    static let life: TimeInterval = 300
+    /// $1 process ID, $2 marker, $3 app, $4 opener. Opening an app that macOS
+    /// already reopened only asks the running one to show itself.
+    static let relauncher = """
+    ( trap '' HUP
+      while kill -0 "$1" 2>/dev/null; do [ -f "$2" ] || exit 0; sleep 0.5; done
+      sleep 1
+      [ "$(cat "$2" 2>/dev/null)" = "$1" ] || exit 0
+      exec "$4" "$3" ) >/dev/null 2>&1 &
+    """
+    var owner: String? { try? String(contentsOf: marker, encoding: .utf8) }
+
+    /// True when a relauncher was started; an armed process keeps its one.
+    @discardableResult
+    func arm(pid: Int32, app: URL, opener: String = "/usr/bin/open") -> Bool {
+        if owner == String(pid) { return false }
+        try? FileManager.default.createDirectory(at: marker.deletingLastPathComponent(), withIntermediateDirectories: true)
+        guard (try? Data(String(pid).utf8).write(to: marker, options: .atomic)) != nil else { return false }
+        let shell = Process(); shell.executableURL = URL(fileURLWithPath: "/bin/sh")
+        shell.arguments = ["-c", Self.relauncher, "haejo-resume", String(pid), marker.path, app.path, opener]
+        shell.standardInput = FileHandle.nullDevice
+        shell.standardOutput = FileHandle.nullDevice; shell.standardError = FileHandle.nullDevice
+        guard (try? shell.run()) != nil else { disarm(pid: pid); return false }
+        return true
+    }
+    func disarm(pid: Int32) {
+        if owner == String(pid) { try? FileManager.default.removeItem(at: marker) }
+    }
+    /// A new launch takes over a recent marker left by the process macOS quit.
+    func consume(pid: Int32, now: Date = Date()) -> Bool {
+        guard let owner, owner != String(pid) else { return false }
+        let written = (try? marker.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+        try? FileManager.default.removeItem(at: marker)
+        return written.map { now.timeIntervalSince($0) < Self.life && now >= $0.addingTimeInterval(-5) } ?? false
+    }
+}
+
 /// Where the helper panel goes next to System Settings (Cocoa coordinates).
 /// Beside it on the right if it fits, else on the left, else inside its
 /// bottom-right corner — always fully on the screen that holds it.

@@ -344,10 +344,6 @@ final class AccessoryPanel: NSPanel {
         fitContent()
         state.textColor = mutedText
     }
-    func granted() {
-        state.stringValue = "켜졌어요. 이 창은 곧 닫힙니다."
-        state.textColor = .systemGreen
-    }
 }
 
 final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
@@ -429,6 +425,11 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var settingsWindowSeen = false
     // Set when the person drags the guide; it then stays where they put it.
     var guideMovedByPerson = false
+    var resume = SetupResume(marker: FileManager.default.homeDirectoryForCurrentUser
+        .appendingPathComponent("Library/Application Support/Haejo/resume-setup"))
+    var resumeDisarmID: UUID?
+    var connectionSection: NSView?
+    var firstRunSection: NSView?
     let settingsWaitHint = "시스템 설정 창을 찾지 못했어요. Dock에서 시스템 설정을 열어 주세요."
     var checkInFlight = false
     var pollTimer: Timer?
@@ -490,9 +491,14 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         window.center()
         // Background launches keep the settings surface out of the user's way.
         // The menu bar remains available; a normal open or menu click shows it.
-        if !CommandLine.arguments.contains("--background") {
-            if connection == .current { showAccessLogs() }
-            else { showSetup() }
+        let background = CommandLine.arguments.contains("--background")
+        // macOS quit Haejo for the screen capture switch: continue that setup.
+        let resuming = !background && resume.consume(pid: getpid())
+        if resuming { watch = PermissionWatch(permission: .screen, started: Date()); startWatchTimer() }
+        switch launchSurface(background: background, resuming: resuming, connected: connection == .current) {
+        case .workspace: showAccessLogs()
+        case .setup: showSetup()
+        case .none: break
         }
         // Reading the helper's receipt requests nothing and changes nothing;
         // it is what lets every row start out true. Permission requests still
@@ -597,6 +603,7 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         connection.widthAnchor.constraint(equalToConstant: contentWidth).isActive = true
         stack.addArrangedSubview(connection)
         stack.setCustomSpacing(12, after: connection)
+        connectionSection = connection
         exampleButton = NSButton(title: "첫 요청 복사", target: self, action: #selector(copyFirstRequest))
         exampleButton.bezelStyle = .rounded
         exampleButton.setAccessibilityIdentifier("haejo.copy-first-request")
@@ -619,6 +626,7 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         firstRun.widthAnchor.constraint(equalToConstant: contentWidth).isActive = true
         stack.addArrangedSubview(example)
         stack.addArrangedSubview(firstRun)
+        firstRunSection = firstRun
         let logs = NSButton(title: "실행 기록 보기", target: self, action: #selector(showAccessLogs))
         logs.bezelStyle = .rounded
         logs.setAccessibilityIdentifier("haejo.access-logs")
@@ -827,10 +835,16 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         panel.show(for: permission, app: appFor(permission))
         permissionGuideID = UUID()
         watch = PermissionWatch(permission: permission, started: Date())
+        // macOS may quit the app whose screen capture switch changes.
+        if permission == .screen { resumeDisarmID = nil; resume.arm(pid: getpid(), app: setupApp) }
         render()
         placeTimer?.invalidate()
         // Configure offscreen, then show only after the Settings main window exists.
         placeTimer = Timer.scheduledTimer(withTimeInterval: 0.15, repeats: true) { [weak self] _ in self?.placeAccessory() }
+        startWatchTimer()
+    }
+
+    func startWatchTimer() {
         watchTimer?.invalidate()
         watchTimer = Timer.scheduledTimer(withTimeInterval: PermissionWatch.interval, repeats: true) { [weak self] _ in
             guard let self, let watch = self.watch else { return }
@@ -898,21 +912,34 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     func endWatch(granted: Bool) {
-        watchTimer?.invalidate(); watchTimer = nil
-        let finished = watch; watch = nil
-        if granted, finished != nil, let guideID = permissionGuideID {
-            panel.granted()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) { [weak self] in
-                guard let self, self.permissionGuideID == guideID else { return }
-                self.dismissPermissionGuide()
-            }
-        } else {
-            dismissPermissionGuide()
+        let finished = watch
+        dismissPermissionGuide()
+        if !granted {
+            resume.disarm(pid: getpid())
             if let finished {
                 notice = "\(finished.permission.title) 권한 확인 시간이 지났어요. ‘설정 열기’를 눌러 다시 진행하세요."
             }
         }
         render()
+        guard granted, finished != nil else { return }
+        // "Quit & Reopen" can still follow a screen capture grant for a while.
+        let disarmID = UUID(); resumeDisarmID = disarmID
+        DispatchQueue.main.asyncAfter(deadline: .now() + 60) { [weak self] in
+            guard let self, self.resumeDisarmID == disarmID else { return }
+            self.resume.disarm(pid: getpid())
+        }
+        returnToSetup()
+    }
+
+    /// The person pressed ‘설정 열기’ here and is waiting for the switch to
+    /// register, so the grant brings setup back in front of System Settings,
+    /// at the step that comes next. Only a finished watch calls this.
+    func returnToSetup() {
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        guard state.ready, let next = connection == .current ? firstRunSection : connectionSection else { return }
+        next.scrollToVisible(next.bounds)
+        scrollView.reflectScrolledClipView(scrollView.contentView)
     }
 
     // MARK: reading the helper's receipt
@@ -1019,7 +1046,7 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         appMenu.addItem(.separator())
         let preferences = appMenu.addItem(withTitle: "설정…", action: #selector(showPreferences), keyEquivalent: ",")
         preferences.target = self
-        appMenu.addItem(withTitle: "Haejo 종료", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appMenu.addItem(withTitle: "Haejo 종료", action: #selector(quit), keyEquivalent: "q").target = self
         let windowItem = NSMenuItem(); main.addItem(windowItem)
         let windowMenu = NSMenu(title: "윈도우"); windowItem.submenu = windowMenu
         let close = windowMenu.addItem(withTitle: "창 닫기", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
@@ -1051,7 +1078,7 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let menuPreferences = menu.addItem(withTitle: "설정…", action: #selector(showPreferences), keyEquivalent: "")
         menuPreferences.target = self
         menu.addItem(.separator())
-        menu.addItem(withTitle: "Haejo 종료", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
+        menu.addItem(withTitle: "Haejo 종료", action: #selector(quit), keyEquivalent: "").target = self
         item.menu = menu; statusItem = item
         runtimeObserver = DistributedNotificationCenter.default().addObserver(
             forName:HaejoRuntimeStatus.status,object:nil,queue:.main) { [weak self] note in
@@ -1121,7 +1148,13 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 object:nil,userInfo:["id":id],deliverImmediately:true)
         }
     }
+    /// Quitting from Haejo's own menu stays quit.
+    @objc func quit() {
+        resume.disarm(pid: getpid())
+        NSApp.terminate(nil)
+    }
     @objc func reopen() {
+        if resume.consume(pid: getpid()) { showSetup(); return }
         // While setup is on screen or app control is still off, the Dock brings
         // setup back; the workspace would hide it behind "권한 설정 필요".
         if connection == .current && state.granted(.control) && !window.isVisible { workspace().presentCurrent() }
@@ -1148,7 +1181,7 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 process.arguments = ["uninstall", "--yes"] + (removeData ? ["--remove-data"] : [])
                 process.standardOutput = FileHandle.nullDevice; process.standardError = FileHandle.nullDevice
                 try? process.run(); process.waitUntilExit()
-                DispatchQueue.main.async { NSApp.terminate(nil) }
+                DispatchQueue.main.async { self?.quit() }
             }
         }
         center.updateStatus(badge.stringValue)
@@ -1167,6 +1200,7 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         guard let closing = notification.object as? NSWindow,
               closing === window || closing === panel else { return }
         dismissPermissionGuide()
+        resume.disarm(pid: getpid())
         render()
     }
 
@@ -1204,6 +1238,7 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
             setupApp = URL(fileURLWithPath: CommandLine.arguments[i + 1])
         }
         root = URL(fileURLWithPath: "/nonexistent")
+        resume = SetupResume(marker: directory.appendingPathComponent("resume-setup"))
         if let i = CommandLine.arguments.firstIndex(of: "--brand-assets"), i + 1 < CommandLine.arguments.count {
             snapshotAssets = URL(fileURLWithPath: CommandLine.arguments[i + 1])
         }

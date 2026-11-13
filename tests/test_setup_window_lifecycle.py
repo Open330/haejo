@@ -101,17 +101,90 @@ class SetupWindowLifecycleTests(unittest.TestCase):
         window.performClose(nil)
         assert(permissionGuideID == nil && watchTimer == nil && placeTimer == nil)
         assert(!applicationShouldTerminateAfterLastWindowClosed(NSApp))
-        // Two successful guides can overlap their delayed close callbacks.
-        // The first callback must not dismiss the newer completion banner.
-        armGuide(); endWatch(granted: true)
-        RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.8))
-        armGuide(); endWatch(granted: true)
-        let newerGuide = permissionGuideID
-        RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.8))
-        assert(newerGuide != nil && permissionGuideID == newerGuide)
-        assert(placeTimer?.isValid == true)
-        RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.8))
-        assert(permissionGuideID == nil && placeTimer == nil)
+        // A grant the watch sees closes the guide at once and brings setup
+        // back in front of System Settings, once per grant.
+        func guideClosed() -> Bool {
+            permissionGuideID == nil && watch == nil && watchTimer == nil && placeTimer == nil && !panel.isVisible
+        }
+        armGuide(); state.accessibility = true
+        var returns = testReturns
+        endWatch(granted: true)
+        assert(guideClosed() && testReturns == returns + 1, "Grant did not return to setup")
+        // The same through a receipt read from the helper.
+        let receiptFolder = directory.appendingPathComponent("receipt")
+        let receipt = Data(#"{"accessibility_trusted":true,"screen_capture_preflight":false,"bundle_id":"open330.haejo.helper","pid":1}"#.utf8)
+        armGuide(); state = SetupState(); reportDirectory = receiptFolder; returns = testReturns
+        finishCheck(receipt, receiptFolder)
+        assert(known && state.accessibility && guideClosed() && testReturns == returns + 1)
+        // No watch (a background launch, a refresh, a closed setup window):
+        // the same receipt changes the rows and leaves focus where it is.
+        reportDirectory = receiptFolder; finishCheck(receipt, receiptFolder)
+        endWatch(granted: true)
+        assert(testReturns == returns + 1, "A grant without a watch took focus")
+        // (The window closed above; deliver its close notification directly.)
+        func closeSetup() { windowWillClose(Notification(name: NSWindow.willCloseNotification, object: window)) }
+        armGuide(); closeSetup()
+        reportDirectory = receiptFolder; finishCheck(receipt, receiptFolder)
+        assert(testReturns == returns + 1, "A grant after closing setup took focus")
+        // A wait that runs out stays where the person is.
+        armGuide(); state = SetupState(); endWatch(granted: false)
+        assert(guideClosed() && notice != nil && testReturns == returns + 1)
+        assert(launchSurface(background: true, resuming: false, connected: false) == .none)
+        assert(launchSurface(background: true, resuming: true, connected: true) == .none)
+        assert(launchSurface(background: false, resuming: false, connected: true) == .workspace)
+        assert(launchSurface(background: false, resuming: true, connected: true) == .setup)
+        assert(launchSurface(background: false, resuming: false, connected: false) == .setup)
+        // macOS quits the app for a screen capture change. A stand-in process
+        // and opener run the real relauncher; nothing opens on this Mac.
+        let opened = directory.appendingPathComponent("opened.log")
+        let opener = directory.appendingPathComponent("opener.sh")
+        try! Data("#!/bin/sh\necho \"$1\" >> '\(opened.path)'\n".utf8).write(to: opener)
+        try! FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: opener.path)
+        func standIn() -> Process {
+            let process = Process(); process.executableURL = URL(fileURLWithPath: "/bin/sleep")
+            process.arguments = ["120"]; try! process.run(); return process
+        }
+        func end(_ process: Process) { process.terminate(); process.waitUntilExit() }
+        func opens() -> [String] { ((try? String(contentsOf: opened, encoding: .utf8)) ?? "").split(separator: "\n").map(String.init) }
+        func settle(_ seconds: TimeInterval) { RunLoop.current.run(until: Date(timeIntervalSinceNow: seconds)) }
+        var running = standIn()
+        assert(resume.arm(pid: running.processIdentifier, app: setupApp, opener: opener.path))
+        assert(!resume.arm(pid: running.processIdentifier, app: setupApp, opener: opener.path), "Armed twice")
+        settle(2)
+        assert(opens().isEmpty, "Reopened an app that was still running")
+        end(running); settle(3.5)
+        assert(opens() == [setupApp.path], "Quit by macOS was not reopened exactly once: \(opens())")
+        // The new launch takes the marker over and shows setup, once.
+        assert(resume.consume(pid: getpid()) && !resume.consume(pid: getpid()))
+        // macOS reopened Haejo itself before the relauncher looked.
+        running = standIn()
+        assert(resume.arm(pid: running.processIdentifier, app: setupApp, opener: opener.path))
+        end(running)
+        assert(resume.consume(pid: getpid()))
+        settle(3)
+        assert(opens().count == 1, "Reopened beside the launch macOS made")
+        // Quit from Haejo's menu, a closed setup window and a wait that ran
+        // out all stay quit; a Dock reopen leaves this process's marker alone.
+        assert(resume.arm(pid: getpid(), app: setupApp, opener: opener.path))
+        reopen()
+        assert(resume.owner == String(getpid()))
+        quit()
+        assert(testQuits == 1 && resume.owner == nil)
+        assert(resume.arm(pid: getpid(), app: setupApp, opener: opener.path))
+        armGuide(); closeSetup()
+        assert(resume.owner == nil)
+        assert(resume.arm(pid: getpid(), app: setupApp, opener: opener.path))
+        armGuide(); endWatch(granted: false)
+        assert(resume.owner == nil)
+        running = standIn()
+        assert(resume.arm(pid: running.processIdentifier, app: setupApp, opener: opener.path))
+        resume.disarm(pid: running.processIdentifier)
+        end(running); settle(3)
+        assert(opens().count == 1, "Reopened after the person quit")
+        // A marker left by an earlier session starts nothing.
+        try! Data("1".utf8).write(to: resume.marker)
+        assert(!resume.consume(pid: getpid(), now: Date(timeIntervalSinceNow: SetupResume.life + 1)))
+        assert(resume.owner == nil)
         helper = savedHelper
         known = true; state.accessibility = true; state.screen = true
         notice = nil; checkInFlight = false; permissionDetails = false
@@ -131,7 +204,7 @@ class SetupWindowLifecycleTests(unittest.TestCase):
         runtimeRuns[runID] = (run,Date(timeIntervalSinceNow:-5)); updateRuntimeMenu()
         assert(runtimeRuns.isEmpty && !runtimeStop!.isEnabled)
         assert(runtimeMenuTitle!.title == "진행 중인 작업 없음")
-        try! Data("{\"stable_refresh\":true,\"dismissed_stays_closed\":true,\"reopen_count\":20,\"non_key_panel\":true,\"authentication_priority\":true}\n".utf8)
+        try! Data("{\"stable_refresh\":true,\"dismissed_stays_closed\":true,\"reopen_count\":20,\"non_key_panel\":true,\"authentication_priority\":true,\"grant_returns_to_setup\":true,\"reopened_once\":true,\"person_quit_stays_quit\":true,\"background_keeps_focus\":true}\n".utf8)
             .write(to: directory.appendingPathComponent("lifecycle-check.json"))
 '''
         # Keep this regression independent of the person's current windows.
@@ -144,7 +217,15 @@ class SetupWindowLifecycleTests(unittest.TestCase):
         instrumented = instrumented.replace('NSWorkspace.shared.frontmostApplication?.bundleIdentifier == "com.apple.systempreferences"', 'testSettingsFrontmost')
         instrumented = instrumented.replace('guard let settings = settingsWindowFrame() else {', 'guard let settings = testSettingsWindowFrame() else {')
         instrumented = instrumented.replace('if !panel.isVisible { panel.orderFrontRegardless() }', 'if !panel.isVisible { testPanelOrders += 1 }')
-        instrumented = instrumented.replace('final class Setup:', 'var testOpenCount = 0\nvar testSettingsFrontmost = false\nvar testSettingsReads = 0\nvar testPanelOrders = 0\nfunc testSettingsWindowFrame() -> CGRect? { testSettingsReads += 1; return CGRect(x: 20, y: 20, width: 700, height: 700) }\nfinal class Setup:')
+        for call in ('window.makeKeyAndOrderFront(nil)', 'NSApp.activate(ignoringOtherApps: true)'):
+            self.assertIn(call, source.split('func returnToSetup() {')[1].split('\n    }')[0])
+        instrumented = instrumented.replace('func returnToSetup() {', 'func returnToSetup() { testReturns += 1')
+        quitting = '        resume.disarm(pid: getpid())\n        NSApp.terminate(nil)'
+        self.assertEqual(1, source.count(quitting))
+        instrumented = instrumented.replace(quitting, '        resume.disarm(pid: getpid())\n        testQuits += 1')
+        for title in ('appMenu.addItem(withTitle: "Haejo 종료", action: #selector(quit)', 'menu.addItem(withTitle: "Haejo 종료", action: #selector(quit)'):
+            self.assertEqual(1, source.count(title))
+        instrumented = instrumented.replace('final class Setup:', 'var testReturns = 0\nvar testQuits = 0\nvar testOpenCount = 0\nvar testSettingsFrontmost = false\nvar testSettingsReads = 0\nvar testPanelOrders = 0\nfunc testSettingsWindowFrame() -> CGRect? { testSettingsReads += 1; return CGRect(x: 20, y: 20, width: 700, height: 700) }\nfinal class Setup:')
         instrumented = instrumented.replace(anchor, fixture+'\n'+anchor)
         with tempfile.TemporaryDirectory(prefix='haejo-window-lifecycle-') as folder:
             folder = Path(folder)
@@ -158,8 +239,10 @@ class SetupWindowLifecycleTests(unittest.TestCase):
             output = folder/'snapshot'
             run = subprocess.run([str(binary), '--snapshot', str(output), '--standalone', '--granted',
                                   'control,screen', '--connected', '--brand-assets', str(ROOT/'docs/assets')],
-                                 capture_output=True, text=True, timeout=45)
+                                 capture_output=True, text=True, timeout=90)
             self.assertEqual(0, run.returncode, run.stderr)
             self.assertEqual({'stable_refresh': True, 'dismissed_stays_closed': True, 'reopen_count': 20,
-                              'non_key_panel': True, 'authentication_priority': True},
+                              'non_key_panel': True, 'authentication_priority': True,
+                              'grant_returns_to_setup': True, 'reopened_once': True,
+                              'person_quit_stays_quit': True, 'background_keeps_focus': True},
                              json.loads((output/'lifecycle-check.json').read_text()))
