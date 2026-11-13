@@ -698,7 +698,7 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let custom = ["HAEJO_BIN_DIR", "CLAUDE_CONFIG_DIR", "CODEX_HOME"].contains { !(scope[$0] ?? "").isEmpty }
         scopeInfo.isHidden = !(custom && (connection == .missing || connection == .other))
         connectButton.isHidden = connection == .current && !installing
-        statusMenuTitle?.title = "Haejo 설정 · " + badge.stringValue
+        statusMenuTitle?.title = "Haejo · " + badge.stringValue
         statusItem?.button?.toolTip = "Haejo · " + badge.stringValue
         updateRuntimeMenu()
         activityCenter?.updateStatus(badge.stringValue)
@@ -1031,7 +1031,7 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
             ?? NSImage(systemSymbolName: "sun.horizon", accessibilityDescription: "Haejo")
         item.button?.image?.size = NSSize(width: 18, height: 18)
         item.button?.image?.isTemplate = true
-        item.button?.setAccessibilityLabel("Haejo 설정")
+        item.button?.setAccessibilityLabel("Haejo")
         let menu = NSMenu()
         menu.autoenablesItems = false
         statusMenuTitle = menu.addItem(withTitle: "Haejo 설정 · " + badge.stringValue, action: nil, keyEquivalent: "")
