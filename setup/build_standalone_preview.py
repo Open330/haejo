@@ -24,6 +24,18 @@ MAGICS = {bytes.fromhex(x) for x in ('feedface','cefaedfe','feedfacf','cffaedfe'
 
 
 
+def shipped_docs(directory, names):
+    """Docs the app carries: everything but the demo recordings.
+
+    The recordings under docs/assets/demos are for the README; copied into the
+    app (twice, through skill/docs) they added 14 MB to the 1.0.2 download.
+    """
+    skipped = ignored(directory, names)
+    if Path(directory).name == 'assets' and Path(directory).parent.name == 'docs':
+        skipped += [name for name in names if name == 'demos']
+    return skipped
+
+
 def deployment_target():
     """The macOS floor shared with helper/build.sh and launcher/build.sh."""
     match = re.search(r'^HAEJO_MACOS_TARGET=(\d+\.\d+)$', (ROOT/'signing.sh').read_text(), re.M)
@@ -248,8 +260,8 @@ def build(output, identity):
              '-p','haejo-runtime',str(runtime/'.venv')])
         report['precompiled_python_files']=sum(1 for _ in (runtime/'.venv').rglob('*.pyc'))
         # Only shipped skill/docs; never copy mutable local flows or reviews.
-        shutil.copytree(ROOT/'skill',runtime/'skill',symlinks=False,ignore=ignored)
-        shutil.copytree(ROOT/'docs',runtime/'docs',symlinks=False,ignore=ignored)
+        shutil.copytree(ROOT/'skill',runtime/'skill',symlinks=False,ignore=shipped_docs)
+        shutil.copytree(ROOT/'docs',runtime/'docs',symlinks=False,ignore=shipped_docs)
         (runtime/'helper').mkdir()
         shutil.copytree(ROOT/'helper/Haejo Helper.app',runtime/'helper/Haejo Helper.app',symlinks=True)
         run(['codesign','--verify','--deep','--strict','-R='+requirement('open330.haejo.helper'),str(runtime/'helper/Haejo Helper.app')])

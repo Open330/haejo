@@ -1,6 +1,6 @@
 # 설치 범위와 실행 경로
 
-현재 공개 배포본은 [v1.0.1](https://github.com/Open330/haejo/releases/tag/v1.0.1)
+현재 공개 배포본은 [v1.0.2](https://github.com/Open330/haejo/releases/tag/v1.0.2)
 정식 버전입니다(macOS 27.0 이상, Apple Silicon). 지원 범위와 통과 조건, DMG 검사
 방법은 [출시 기준](release-readiness.md)에 정리합니다.
 
@@ -11,7 +11,7 @@ Python wheel은 Haejo의 Python 코어를 배포합니다. macOS 앱 조작에 �
 
 | 설치 방식 | 사용할 수 있는 범위 | 별도로 필요한 것 |
 | --- | --- | --- |
-| macOS 공증 DMG (1.0.1) | Haejo.app의 설치·권한 안내와 번들 런타임 | Apple Silicon Mac, macOS 27.0 이상, macOS 권한 허용 |
+| macOS 공증 DMG (1.0.2) | Haejo.app의 설치·권한 안내와 번들 런타임 | Apple Silicon Mac, macOS 27.0 이상, macOS 권한 허용 |
 | Python wheel | flow IR, 계약·결과 검증, 후보 paging, 모델 adapter, trace 등 Python 코어 | Python 3.11 이상 (앱 런타임은 3.14) |
 | wheel + `web` extra | Playwright 기반 별도 Chromium 페이지의 BrowserDriver | Playwright가 설치하는 Chromium과 운영체제 실행 의존성 |
 | macOS source checkout | 서명된 런처를 통한 macOS 접근성 조작 | Xcode Command Line Tools, Apple 발급 코드 서명 인증서, 손쉬운 사용 권한 |
@@ -57,7 +57,7 @@ wheel에는 기본 flow recipe 파일이 포함되지 않습니다. 명시적으
 팀·프로그램 식별자를 비교합니다. 다른 팀·서명 없는 프로그램·ad-hoc 서명은 거부합니다.
 `HAEJO_TEAM_ID` 같은 실행 환경변수로 이 검사를 바꿀 수 없습니다.
 일반 사용에는 소스 빌드가 아니라 공증 DMG를 씁니다. Apple Silicon용 DMG는 Developer ID
-서명·Apple 공증·Gatekeeper 검사를 통과했으며, [v1.0.1 릴리스](https://github.com/Open330/haejo/releases/tag/v1.0.1)에서
+서명·Apple 공증·Gatekeeper 검사를 통과했으며, [v1.0.2 릴리스](https://github.com/Open330/haejo/releases/tag/v1.0.2)에서
 누구나 받을 수 있습니다. DMG를 열어 `Haejo.app`을 `Applications`로 끌어다 놓고, 앱을 열어
 권한·에이전트 연결·첫 작업 안내를 따릅니다. 사용자 자신의 개발용 인증서는 필요하지 않습니다.
 rc.47까지는 macOS 27.0.1 Apple Silicon Mac 세 대에서 설치·권한·연결·업데이트를 확인했고, rc.48과 1.0.0은 VM 안의
@@ -332,7 +332,7 @@ leaves out the base Python's `pip` and pyobjc-core's `PyObjCTest`
 ```sh
 uv sync --frozen --extra native-visual --extra web-bridge --no-dev
 python setup/build_distribution.py --output /private/tmp/Haejo.app \
-  --identity 'DEVELOPER_ID_IDENTITY' --tag v1.0.1 \
+  --identity 'DEVELOPER_ID_IDENTITY' --tag v1.0.2 \
   --report /private/tmp/haejo-build-report.json
 ```
 
