@@ -187,7 +187,7 @@ def run(name, output, assets, *, definition=None, verify=None, approve=False, in
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output',type=Path,required=True)
-    parser.add_argument('--assets',type=Path,default=Path(__file__).parent/'dist/assets/demos')
+    parser.add_argument('--assets',type=Path,default=Path(__file__).resolve().parents[2]/'docs/assets/demos')
     parser.add_argument('--scenario',choices=['wikipedia','shopping','form'])
     args=parser.parse_args();args.output.mkdir(parents=True,mode=0o700,exist_ok=True);args.assets.mkdir(parents=True,exist_ok=True)
     reports=[]

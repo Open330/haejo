@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; media-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'" />
+    <meta name="theme-color" content="#f6f4ed" />
+    <meta name="description" content="Haejo와 Codex 내장 computer use의 같은 조건 비교, 저장한 Flow 재생, Safari 웹 조작 측정 결과와 조건." />
+    <meta property="og:title" content="측정 결과 — Haejo" />
+    <meta property="og:description" content="Haejo와 Codex 내장 computer use의 같은 조건 비교, 저장한 Flow 재생, Safari 웹 조작 측정 결과와 조건." />
+    <meta property="og:image" content="https://open330.github.io/haejo/assets/haejo-og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:url" content="https://open330.github.io/haejo/benchmarks/" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <title>측정 결과 — Haejo</title>
+    <link rel="canonical" href="https://open330.github.io/haejo/benchmarks/" />
+    <link rel="alternate" hreflang="ko" href="https://open330.github.io/haejo/benchmarks/" />
+    <link rel="alternate" hreflang="en" href="https://open330.github.io/haejo/en/benchmarks/" />
+    <link rel="alternate" hreflang="x-default" href="https://open330.github.io/haejo/benchmarks/" />
+    <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="../style.css" />
+    <script defer src="../app.js"></script>
+  </head>
+  <body>
+    <a class="skip" href="#main">본문으로 건너뛰기</a>
+    <header class="header">
+      <div class="wrap header-row">
+        <a class="brand" href="../" aria-label="Haejo"><img src="../assets/haejo-wordmark.svg" alt="Haejo" width="100" height="34" /></a>
+        <button class="menu-button" type="button" aria-expanded="false" aria-controls="nav" hidden><span class="bars" aria-hidden="true"></span>메뉴</button>
+        <nav class="nav" id="nav" aria-label="주요 메뉴">
+          <div class="nav-links"><a href="../#direct">바로 조작</a><a href="../#history">기록</a><a href="../#flow">Flow</a><a href="../#install">설치</a><a href="../#faq">질문</a></div>
+          <div class="nav-side">
+            <a class="quiet" href="https://github.com/Open330/haejo" target="_blank" rel="noopener noreferrer">GitHub</a>
+            <a class="quiet" href="../en/benchmarks/" hreflang="en" lang="en">English</a>
+            <a class="nav-cta" href="https://github.com/Open330/haejo/releases/download/v1.0.1/Haejo-1.0.1-arm64.dmg">다운로드</a>
+          </div>
+        </nav>
+      </div>
+    </header>
+    <main id="main" tabindex="-1">
+      <section class="page-head wrap">
+        <p class="label">Haejo</p>
+        <h1>측정 결과</h1>
+        <p class="lead">같은 일을 맡겼을 때 에이전트가 쓰는 토큰과 시간, 저장한 Flow를 재생한 결과, Safari에서 뒤에서 되는 웹 조작의 범위입니다. 측정 조건은 항목마다 한 번씩 적었습니다.</p>
+      </section>
+      <section class="block wrap">
+        <h2>같은 작업에서 입력 토큰 53.5% 감소</h2>
+        <p>Codex에 내장된 computer use와 Haejo에 같은 작업 세 가지를 맡기고, 작업마다 새 대화에서 한 번씩 실행했습니다. 처음 방법을 찾는 과정부터 실행, 최종 응답까지 포함한 값입니다.</p>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="작업 3쌍 합계 · 시간은 평균"><table><caption>작업 3쌍 합계 · 시간은 평균</caption><thead><tr><th scope="col">항목</th><th scope="col">Haejo</th><th scope="col">Codex 내장 computer use</th></tr></thead><tbody><tr><th scope="row">성공한 작업</th><td class="win-cell">3/3</td><td>3/3</td></tr><tr><th scope="row">전체 입력 토큰</th><td class="win-cell">201,447<span class="delta">53.5% 적음</span></td><td>433,312</td></tr><tr><th scope="row">캐시 읽기를 뺀 입력 토큰</th><td class="win-cell">22,119<span class="delta">56.3% 적음</span></td><td>50,592</td></tr><tr><th scope="row">출력 토큰</th><td class="win-cell">1,605</td><td>1,604</td></tr><tr><th scope="row">평균 시간</th><td class="win-cell">42.10초<span class="delta">8.8% 짧음</span></td><td>46.17초</td></tr></tbody></table></div>
+        <p class="scope">2026-10-14 · Haejo 개발 버전 · Codex CLI 0.161.0, 요청 모델 gpt-6.1-sol, 추론 강도 medium · 직접 만든 macOS 테스트 앱에서 보너스 켜기, 보너스 끄기, 버튼 이름 변경 작업. 세 작업 중 보너스 끄기는 Codex 내장 computer use가 더 빨랐습니다(37.91초 대 48.55초). 측정 기록에서는 비교 대상을 Sky라고 부릅니다.</p>
+        <p class="link-row"><a class="text-link" href="https://github.com/Open330/haejo/blob/main/docs/haejo-matched-comparison-2026-10-14.md" target="_blank" rel="noopener noreferrer">측정 조건과 작업별 결과</a><a class="text-link" href="../assets/benchmark-summary.json" target="_blank" rel="noopener">요약 JSON</a></p>
+      </section>
+      <section class="block wrap">
+        <h2>저장한 Flow 재생은 모델 호출 0회</h2>
+        <p>입력 5개, 조건부 체크박스, 계산, 검토, 완료 확인까지 11단계인 Flow를 서로 다른 값으로 재생하고, 화면이 바뀌거나 완료를 확인할 수 없는 상황을 일부러 만들었습니다.</p>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="11단계 Flow · 시나리오 9개 모두 기대한 결과"><table><caption>11단계 Flow · 시나리오 9개 모두 기대한 결과</caption><thead><tr><th scope="col">상황</th><th scope="col">결과</th></tr></thead><tbody><tr><th scope="row">서로 다른 값으로 10회 재생</th><td>10/10 완료 · 모델 호출 0회</td></tr><tr><th scope="row">정상 작업 전체</th><td>13/13 완료</td></tr><tr><th scope="row">한 작업에서 버튼 2개가 바뀜</th><td>해당 단계만 수리하고 완료 · 모델 호출 2회</td></tr><tr><th scope="row">완료를 확인할 수 없는 상황</th><td>5/5 그 자리에서 멈춤 · 같은 입력 재전송 0회</td></tr></tbody></table></div>
+        <p class="scope">2026-10-14 · Haejo 개발 버전 · 직접 만든 macOS 테스트 앱.</p>
+        <p class="link-row"><a class="text-link" href="https://github.com/Open330/haejo/blob/main/docs/haejo-complex-scenarios-2026-10-14.md" target="_blank" rel="noopener noreferrer">시나리오별 결과</a></p>
+      </section>
+      <section class="block wrap">
+        <h2>Safari 웹 조작 22종 중 20종이 뒤에서</h2>
+        <p>내 Safari의 페이지에 조작을 보내고, 페이지가 실제로 받은 이벤트와 값으로 판정했습니다. Haejo는 가장 조용한 방법부터 쓰고, 결과에 쓴 방법을 적습니다.</p>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="웹 조작 22종"><table><caption>웹 조작 22종</caption><thead><tr><th scope="col">방법</th><th scope="col">조작 수</th><th scope="col">내 화면</th></tr></thead><tbody><tr><th scope="row">접근성으로</th><td>18</td><td>Safari는 뒤에. 마우스와 키보드는 그대로</td></tr><tr><th scope="row">그 창으로 키 전송</th><td>2</td><td>Safari는 뒤에</td></tr><tr><th scope="row">Safari를 잠깐 앞으로</th><td>2</td><td>입력하는 동안만 앞에, 끝나면 쓰던 앱이 다시 앞으로</td></tr></tbody></table></div>
+        <p class="scope">2026-11-12 · Safari 27.2 · macOS 27.2 · 직접 만든 측정 페이지. 링크와 버튼, 입력란, 선택 메뉴, 날짜, 스크롤, 새 탭과 창, iframe을 포함합니다. 앞으로 나오는 2종은 포인터를 눌러야 열리는 메뉴와 마우스를 올려야 나오는 메뉴입니다.</p>
+        <p class="link-row"><a class="text-link" href="https://github.com/Open330/haejo/blob/main/docs/safari-capability-matrix.md" target="_blank" rel="noopener noreferrer">조작별 측정표</a></p>
+      </section>
+      <section class="block wrap end-links">
+        <div class="hero-actions"><a class="button primary" href="https://github.com/Open330/haejo/releases/download/v1.0.1/Haejo-1.0.1-arm64.dmg">Mac용 다운로드</a><a class="button ghost" href="../">Haejo 홈으로</a></div>
+        <p class="hero-meta">버전 1.0.1 · Apple Silicon · macOS 27 이상 · 71.5MB</p>
+      </section>
+    </main>
+    <footer class="footer">
+      <div class="wrap">
+        <div class="footer-row">
+          <span class="footer-brand"><img src="../assets/favicon.svg" alt="" width="30" height="30" />Haejo · 말하면 해 줍니다. 확인까지.</span>
+          <nav aria-label="Footer"><a href="https://github.com/Open330/haejo" target="_blank" rel="noopener noreferrer">GitHub</a><a href="https://github.com/Open330/haejo/releases/tag/v1.0.1" target="_blank" rel="noopener noreferrer">릴리스 노트</a><a href="https://github.com/Open330/haejo/blob/main/README.ko.md" target="_blank" rel="noopener noreferrer">문서</a><a href="../benchmarks/">측정 결과</a></nav>
+        </div>
+        <p>Haejo는 Open330의 오픈 소스 프로젝트입니다. Claude와 Codex는 각 소유자의 상표이며, Haejo는 이들과 제휴 관계가 아닙니다.</p>
+      </div>
+    </footer>
+  </body>
+</html>

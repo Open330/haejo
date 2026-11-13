@@ -53,7 +53,7 @@ def verifier(name):
  return verify
 
 def main():
- p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);p.add_argument('--assets',type=Path,default=Path(__file__).parent/'dist/assets/demos');p.add_argument('--scenario',choices=['translate','github','units','markdown']);a=p.parse_args();a.output.mkdir(parents=True,mode=0o700,exist_ok=True);a.assets.mkdir(exist_ok=True,parents=True)
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);p.add_argument('--assets',type=Path,default=Path(__file__).resolve().parents[2]/'docs/assets/demos');p.add_argument('--scenario',choices=['translate','github','units','markdown']);a=p.parse_args();a.output.mkdir(parents=True,mode=0o700,exist_ok=True);a.assets.mkdir(exist_ok=True,parents=True)
  reports=[]
  for name in [a.scenario] if a.scenario else ['translate','github','units','markdown']:
   url,steps=definition(name)

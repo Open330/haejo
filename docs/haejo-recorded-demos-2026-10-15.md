@@ -14,12 +14,12 @@ is visible in the original captures.
 
 | Clip | What ran | Result |
 |---|---|---|
-| [Apple Calculator](../sites/haejo/dist/assets/demos/calculator.mp4) | A saved six-step flow; input button parameters changed for the second calculation | 7 + 8 = 15; 3 + 9 = 12 |
-| [Native workflow](../sites/haejo/dist/assets/demos/workflow-replay.mp4) | The same saved 11-step flow replayed with five input sets | 37, 46, 70, 27, 48 (2026-11-10 re-shoot); all five finished with one completion each |
+| [Apple Calculator](assets/demos/calculator.mp4) | A saved six-step flow; input button parameters changed for the second calculation | 7 + 8 = 15; 3 + 9 = 12 |
+| [Native workflow](assets/demos/workflow-replay.mp4) | The same saved 11-step flow replayed with five input sets | 37, 46, 70, 27, 48 (2026-11-10 re-shoot); all five finished with one completion each |
 
 Original screenshots:
-[Calculator](../sites/haejo/dist/assets/demos/calculator-result.png) ·
-[Native workflow](../sites/haejo/dist/assets/demos/workflow-result.png).
+[Calculator](assets/demos/calculator-result.png) ·
+[Native workflow](assets/demos/workflow-result.png).
 
 The workflow app is an owned AppKit test fixture, **not a commercial business
 application**. Its source derives from `NativeComplexBenchmark.swift`; its
@@ -55,7 +55,7 @@ These recordings establish the shown runs, not general compatibility, token
 savings or performance superiority. The small capture rate may omit transient
 visual states even though action outcomes are independently checked.
 
-See [machine-readable conditions and results](../sites/haejo/dist/assets/demos/recording-summary.json)
+See [machine-readable conditions and results](assets/demos/recording-summary.json)
 for per-job values, durations, edit intervals and video SHA-256 hashes.
 
 ## Pointer-guided editions
@@ -74,7 +74,7 @@ precise dispatch timestamps. No additional UI execution is claimed.
 Original recordings and screenshots remain unchanged and have separate links.
 Playback duration and original app pixels are preserved beneath the overlays.
 The overlay source is [annotate_recordings.py](../sites/haejo/annotate_recordings.py)
-and its target/time schedule is [pointer-guide.json](../sites/haejo/dist/assets/demos/pointer-guide.json).
+and its target/time schedule is [pointer-guide.json](assets/demos/pointer-guide.json).
 Only development-time `ffmpeg` and `rsvg-convert` are needed to regenerate them;
 the shipped players add no JavaScript or external dependency.
 
@@ -82,7 +82,7 @@ the shipped players add no JavaScript or external dependency.
 ## Source-backed Flow walkthrough (2026-10-20)
 
 The landing page visualizes the six steps in the recorded
-[calculator-reusable Flow](../sites/haejo/dist/assets/calculator-reusable.flow.json).
+[calculator-reusable Flow](assets/demos/calculator-reusable.flow.json).
 The published JSON preserves the recording's original Flow structure and default
 parameters. The two selectable input sets are the recorded 7+8=15 and 3+9=12.
 Authoring and step highlighting are explanatory; the page does not operate Mac

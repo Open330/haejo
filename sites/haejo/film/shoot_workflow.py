@@ -17,7 +17,7 @@ sys.path.insert(0, str(ROOT))
 from examples.benchmark_complex_scenarios import recipe, job, params  # noqa: E402
 
 HAEJO = Path('/Applications/Haejo.app/Contents/Resources/runtime/launcher/haejo')
-ASSETS = HERE.parent/'dist/assets/demos'
+ASSETS = HERE.parents[2]/'docs/assets/demos'
 STEP_HOLD, JOB_HOLD, END_HOLD = .25, .9, 2.0
 
 

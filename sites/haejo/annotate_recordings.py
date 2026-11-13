@@ -2,7 +2,7 @@
 """Bake explanatory pointer overlays into existing recordings; keep sources intact.
 
 Development-only dependencies: ffmpeg and rsvg-convert. No live UI control.
-Annotation coordinates/timings are in assets/demos/pointer-guide.json.
+Annotation coordinates/timings are in docs/assets/demos/pointer-guide.json.
 """
 import argparse
 import html
@@ -60,7 +60,7 @@ def render_svg(svg, output):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--assets', type=Path, default=Path(__file__).parent/'dist/assets/demos')
+    parser.add_argument('--assets', type=Path, default=Path(__file__).resolve().parents[2]/'docs/assets/demos')
     args = parser.parse_args()
     spec = json.loads((args.assets/'pointer-guide.json').read_text())
     for name, row in spec['scenarios'].items():

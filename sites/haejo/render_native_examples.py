@@ -12,7 +12,7 @@ from annotate_recordings import render_svg,svg_frame
 def call(*args):subprocess.run(['ffmpeg','-hide_banner','-loglevel','error','-y',*map(str,args)],check=True)
 def digest(p):return hashlib.sha256(p.read_bytes()).hexdigest()
 def main():
- p=argparse.ArgumentParser(description=__doc__);p.add_argument('--recordings',type=Path,required=True);p.add_argument('--assets',type=Path,default=Path(__file__).parent/'dist/assets/demos');a=p.parse_args();a.assets.mkdir(parents=True,exist_ok=True);summary=[]
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('--recordings',type=Path,required=True);p.add_argument('--assets',type=Path,default=Path(__file__).resolve().parents[2]/'docs/assets/demos');a=p.parse_args();a.assets.mkdir(parents=True,exist_ok=True);summary=[]
  for name in ['textedit','finder']:
   candidates=sorted(p for p in a.recordings.glob(name+'-*') if (p/'report.json').exists());source=candidates[-1];report=json.loads((source/'report.json').read_text());frames=report['frames'];start=frames[0]['at'];duration=round(report['seconds']-start+2,3)
   is_finder=name=='finder';width,height=(1520,806) if is_finder else (1312,844)

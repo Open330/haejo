@@ -79,4 +79,4 @@ possible sensitive information.
 
 Private test logs are retained under the local review directory
 `haejo-peer-review-20261016`; they are not linked as public downloads. Published
-media and summaries remain available from the [landing assets](../sites/haejo/dist/assets/demos/).
+media and summaries remain available from the [landing assets](assets/demos/).

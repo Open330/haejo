@@ -52,7 +52,7 @@ source-site security policy is disabled. It is reinstalled after client-side
 page rerenders. Deliberate pauses improve legibility. No model calls occur
 inside authored replay; host validation and initial authoring costs are separate.
 
-[Browser conditions, results and hashes](../sites/haejo/dist/assets/demos/browser-examples.json)
+[Browser conditions, results and hashes](assets/demos/browser-examples.json)
 contain seven scenarios. Full accessibility trees, browser profiles, telemetry
 logs and private local paths are not published.
 
@@ -86,7 +86,7 @@ The [renderer](../sites/haejo/render_native_examples.py) adds explanatory pointe
 marks; these are not measured mouse coordinates. Unannotated movies and final
 screenshots are also linked from each case.
 
-[Native conditions, results and hashes](../sites/haejo/dist/assets/demos/native-everyday-examples.json).
+[Native conditions, results and hashes](assets/demos/native-everyday-examples.json).
 
 ## Cases excluded or narrowed after verification
 
