@@ -28,7 +28,7 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
   <key>CFBundleIdentifier</key>      <string>open330.haejo.helper</string>
   <key>CFBundleExecutable</key>      <string>HaejoHelper</string>
   <key>CFBundlePackageType</key>     <string>APPL</string>
-  <key>CFBundleShortVersionString</key> <string>1.0.0</string>
+  <key>CFBundleShortVersionString</key> <string>1.0.1</string>
   <key>CFBundleVersion</key>         <string>1</string>
   <key>LSMinimumSystemVersion</key>  <string>@HAEJO_MACOS_TARGET@</string>
   <!-- Background only: the helper never shows in the Dock or takes focus. -->

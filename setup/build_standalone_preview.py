@@ -299,7 +299,7 @@ def build(output, identity):
             'CFBundleDisplayName':'Haejo','CFBundleName':'Haejo',
             'CFBundleIconFile':'haejo-app.icns',
             'CFBundleExecutable':'HaejoSetup','CFBundleIdentifier':'open330.haejo.app',
-            'CFBundlePackageType':'APPL','CFBundleShortVersionString':'1.0.0','CFBundleVersion':'1',
+            'CFBundlePackageType':'APPL','CFBundleShortVersionString':'1.0.1','CFBundleVersion':'1',
             'LSUIElement':True,
             'LSMinimumSystemVersion':deployment_target()}))
         (resources/'runtime.json').write_text(json.dumps({'bundledRoot':'runtime'}))

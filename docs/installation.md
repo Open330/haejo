@@ -24,14 +24,14 @@ Python wheel은 Haejo의 Python 코어를 배포합니다. macOS 앱 조작에 �
 ```sh
 uv build --wheel
 python3 -m venv /tmp/haejo-client
-/tmp/haejo-client/bin/python -m pip install ./dist/haejo_runtime-1.0.0-py3-none-any.whl
+/tmp/haejo-client/bin/python -m pip install ./dist/haejo_runtime-1.0.1-py3-none-any.whl
 /tmp/haejo-client/bin/haejo --help
 ```
 
 브라우저가 필요한 환경에서는 같은 wheel에 `web` extra를 설치합니다.
 
 ```sh
-/tmp/haejo-client/bin/python -m pip install './dist/haejo_runtime-1.0.0-py3-none-any.whl[web]'
+/tmp/haejo-client/bin/python -m pip install './dist/haejo_runtime-1.0.1-py3-none-any.whl[web]'
 /tmp/haejo-client/bin/python -m playwright install chromium
 ```
 
