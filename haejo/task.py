@@ -1,8 +1,11 @@
 """Goal-scoped tasks: group every Haejo invocation made for one user goal.
 
 A task is file-backed metadata, not a daemon, lease or authorization. It
-never holds the helper, KeepAwake or a foreground scope between invocations;
-each bound invocation still acquires and releases those itself. Records are
+never holds the helper or KeepAwake between invocations; each bound invocation
+still acquires and releases those itself. What an open task keeps between its
+invocations is a short claim on the apps it works in and on the screen front
+it took (docs/parallel-execution.md); the helper reads `state` in task.json to
+know the task is still open, so ending the task frees them at once. Records are
 content-free (command, target bundle IDs, closed result codes, timing, and
 the names of the flows an invocation ran), except the caller-supplied goal
 sentence, which stays in the owner-only task.json.
@@ -290,6 +293,14 @@ def end(task_id, result, *, root=None, completion_scope=None, summary=None):
     return meta
 
 
+def _release_claims(task_id, root=None):
+    """An ended task holds nothing: its claims on apps are void once task.json
+    says closed, and the helper gives back the screen front it took."""
+    if root is None or Path(root) == tasks_root():
+        from .helper import release_task_claims
+        release_task_claims(task_id)
+
+
 def _alive(pid):
     if type(pid) is not int or pid <= 0:
         return False
@@ -477,6 +488,7 @@ class Binding:
         try:
             meta = end(self.task_id, 'done' if done else 'failed', root=self.directory.parent,
                        completion_scope=scope)
+            _release_claims(self.task_id, self.directory.parent)
             stream = sys.stderr if self.json_output else sys.stdout
             print('HAEJO_TASK_FINISHED ' + json.dumps({'id':self.task_id,'result':meta['result'],
                   'completion_scope':scope},separators=(',',':')), file=stream)
@@ -792,6 +804,7 @@ def main(args, *, root=None):
                 print(USAGE); return 2
             result = rest[i + 1]
             meta = end(_resolve_id(rest[:i] + rest[i + 2:]), result, root=root, summary=summary)
+            _release_claims(meta['id'], root)
             report = status(meta['id'], root=root)
             if as_json:
                 print(json.dumps({'type': 'task', 'task_id': meta['id'], 'state': 'closed', 'result': result,

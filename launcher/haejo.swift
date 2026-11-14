@@ -61,7 +61,7 @@ guard FileManager.default.isExecutableFile(atPath: python.path) else {
 // and hand back the text. That is the whole reason the child's PATH is fixed —
 // it holds screen content, which is exactly what must not be able to choose
 // what runs. Asking needs neither the helper channel nor a program name.
-let allowedTypes: Set<String> = ["ask_cancel","release_targets","foreground_begin","foreground_end","window_list","tab_select","ping", "list_targets", "observe", "act",
+let allowedTypes: Set<String> = ["ask_cancel","release_targets","task_release","foreground_begin","foreground_end","window_list","tab_select","ping", "list_targets", "observe", "act",
                                  "probe", "selection", "ask", "document_text", "document_mode", "document_window_status", "document_rtf_export", "document_attachment_metadata", "save_panel", "menu_state",
                                  "menu_items", "capture", "readiness_read_cost", "readiness_preflight"]
 // The largest complete document this channel will carry, in UTF-16 units. The
@@ -239,9 +239,21 @@ let knownProviders: Set<String> = ["auto", "claude", "codex", "opencode", "gemin
     return id.unicodeScalars.allSatisfy { ("a"..."z").contains($0) || ("0"..."9").contains($0) || $0 == "-" }
 }
 
-func vetted(_ msg: [String: Any]) -> String? {
-    guard let type = msg["type"] as? String else { return "type 없음" }
+func vetted(_ request: [String: Any]) -> String? {
+    guard let type = request["type"] as? String else { return "type 없음" }
     guard allowedTypes.contains(type) else { return "허용되지 않은 type: \(type)" }
+    // Task identity: IDs that haejo/task.py validated, on a request that names
+    // a target (or ends the task's claims). The per-type field checks below
+    // look at the request without them.
+    var msg = request
+    let task = msg.removeValue(forKey: "task_id"), invocation = msg.removeValue(forKey: "invocation_id")
+    if task != nil || invocation != nil || type == "task_release" {
+        guard (task as? String)?.range(of: "^t-[0-9a-f]{24}$", options: .regularExpression) != nil,
+              type == "task_release" ? invocation == nil && msg.count == 1 : msg["target"] is String,
+              invocation == nil || (invocation as? String)?.range(of: "^[0-9a-f]{32}$", options: .regularExpression) != nil
+        else { return "invalid task identity" }
+        if type == "task_release" { return nil }
+    }
     for key in msg.keys where !topLevelKeys.contains(key) {
         return "허용되지 않은 최상위 필드: \(key)"
     }
@@ -1531,6 +1543,12 @@ relayQueue.async {
         }
         if msg["type"] as? String == "ask" {
             relayAsk(msg, timeout: modelTimeout(msg["timeout_seconds"])!, fromChild: &fromChild)
+            continue
+        }
+        if msg["type"] as? String == "task_release",
+           HaejoScopeLease.note(HaejoScopeLease.frontScope)?["task"] as? String != msg["task_id"] as? String {
+            // This task holds no front to give back: no helper is started for it.
+            writeJSONLine(relayEnd, ["type": "task_released", "front_returned": false])
             continue
         }
         if helperGone {

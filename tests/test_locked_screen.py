@@ -85,6 +85,20 @@ class KeepAwakeTests(unittest.TestCase):
             self.assertFalse(stop()['stopped'])
             self.assertIn('screen-saver', first['note'])
 
+    def test_a_shorter_request_leaves_a_longer_holder_in_place(self):
+        with tempfile.TemporaryDirectory() as folder:
+            session, live, killed, started, start, stop = self.harness(folder)
+            long = start(120)
+            short = start(5, now=60)                            # another agent, a minute later
+            self.assertEqual((long['until'], True, long['pid']), (short['until'], short['kept'], short['pid']))
+            self.assertEqual((1, []), (len(started), killed))
+            longer = start(180, now=60)                         # a longer one still replaces it
+            self.assertEqual((60 + 180*60, [1000]), (longer['until'], killed))
+            self.assertNotIn('kept', longer)
+            live.pop(1001)                                      # the holder is gone: a short request starts anew
+            self.assertEqual(300 + 120, start(5, now=120)['until'])
+            self.assertEqual(3, len(started))
+
     def test_a_recycled_pid_or_an_expired_record_is_never_signalled(self):
         with tempfile.TemporaryDirectory() as folder:
             session, live, killed, started, start, stop = self.harness(folder)

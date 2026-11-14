@@ -1,0 +1,90 @@
+import Foundation
+import Darwin
+
+// Task claims: what an open task keeps between its commands — the apps it
+// works in (the note of each exclusive lease, HelperModeProtocol.swift) and
+// the screen front it took. docs/parallel-execution.md, "Task claims".
+
+/// A busy refusal that names who has `scope` and when to come back: the live
+/// holder process, and the task whose claim on it is still running.
+func busyRefusal(_ code:String,_ scope:String,task:String?=ParallelWindowState.shared.requestTask) -> [String:Any] {
+    var refusal=parallelRefusal(code)
+    refusal["retry_after_ms"]=1000
+    guard let holder=HaejoScopeLease.holder(scope) else { return refusal }
+    refusal.merge(holder) { current,_ in current }
+    if let owner=holder["holder_task"] as? String,let left=holder["claim_expires_in"] as? Int,task != nil,owner != task {
+        refusal["retry_after_ms"]=left*1000
+        refusal["detail"]="task \(owner) is working here; its claim lasts \(left) s more unless that task calls again, and ends at once when it finishes. Retry after retry_after_ms, or work in another app or window meanwhile"
+    } else {
+        // The lock itself is held: a claim is what keeps another task out.
+        refusal["holder_task"]=nil;refusal["claim_expires_in"]=nil
+        if code=="target_busy" {
+            refusal["detail"]="another Haejo client holds this app; finish or end that command (an idle session holds it only until its flow arrives)"
+        }
+    }
+    return refusal
+}
+/// A task's hold on the screen front. Taken, with the input lease already
+/// held, wherever a task brings an app forward; its note keeps the app that
+/// was in front before, which the end of the task gives back.
+final class FrontClaim {
+    private let lease=HaejoScopeLease()
+    private var previous:pid_t=0
+    /// nil while another open task's claim on the front is live. A nil
+    /// `deadline` asks once; otherwise this waits as any resource does.
+    init?(task:String,deadline:Double?,cancelled:()->Bool={ abortState.isStopped }) {
+        lease.task=task;lease.acting=true
+        guard deadline==nil ? lease.take(HaejoScopeLease.frontScope) : waitForResource(lease,HaejoScopeLease.frontScope,deadline:deadline,cancelled:cancelled)
+        else { return nil }
+        let front=nativeFrontmostProcessPID() ?? 0
+        previous=front
+        // The app in front is one a task raised and nothing gave back since:
+        // the app before it is still the one to return to.
+        if front>0,let old=lease.prior(HaejoScopeLease.frontScope),old["raised"] as? Int==Int(front),
+           let before=old["previous_front"] as? Int,before>0,before != Int(front),
+           old["task"] as? String==task
+            || (old["claim_until"] as? Int ?? 0)>Int(Date().timeIntervalSince1970)-HaejoScopeLease.claimSeconds {
+            previous=pid_t(before)
+        }
+        note(raised:nil)
+    }
+    private func note(raised:pid_t?) {
+        var extra:[String:Any]=[:]
+        if previous>0,let start=nativeProcessStartIdentity(previous) {
+            extra["previous_front"]=Int(previous);extra["previous_start"]=start
+            if let raised { extra["raised"]=Int(raised) }
+        }
+        lease.annotate(HaejoScopeLease.frontScope,extra)
+    }
+    /// The app this task left in front. Nothing is kept for giving back when
+    /// that is the app that already was in front, or another app is.
+    func raised(bundle:String) { raised(pid(forBundle:bundle)) }
+    func raised(_ pid:pid_t?) {
+        guard let pid,pid != previous,nativeFrontmostProcessPID()==pid else { previous=0;note(raised:nil);return }
+        note(raised:pid)
+    }
+}
+/// A task ended. The app that was in front before the task raised one comes
+/// back, when the raised app is still in front: a person who has moved to
+/// another app since keeps the screen as it is.
+func releaseTaskFront(_ task:String) -> [String:Any] {
+    let reply:[String:Any]=["type":"task_released","front_returned":false]
+    guard !HaejoScopeLease.taskOpen(task),!abortState.isStopped,
+          HaejoScopeLease.note(HaejoScopeLease.frontScope)?["task"] as? String==task else { return reply }
+    let input=HaejoScopeLease(),lease=HaejoScopeLease()
+    guard waitForResource(input,"global-input",deadline:ProcessInfo.processInfo.systemUptime+2),lease.take(HaejoScopeLease.frontScope),
+          let note=lease.prior(HaejoScopeLease.frontScope),note["task"] as? String==task,
+          let raised=note["raised"] as? Int,let previous=note["previous_front"] as? Int,raised>0,previous>0,
+          let start=note["previous_start"] as? Double,nativeProcessStartIdentity(pid_t(previous))==start,
+          nativeFrontmostProcessPID()==pid_t(raised) else { return reply }
+    defer { withExtendedLifetime(input) {} }
+    return reply.merging(["front_returned":returnScreen(to:pid_t(previous))]) { _,new in new }
+}
+/// Requests that change their target; everything else reads.
+func actingRequest(_ msg:[String:Any]) -> Bool {
+    switch msg["type"] as? String {
+    case "foreground_begin","tab_select": return true
+    case "act": return (msg["action"] as? [String:Any])?["name"] as? String != "read"
+    default: return false
+    }
+}

@@ -122,6 +122,64 @@ fixture, stopping only its two owned runs, and cancelling a blocked child before
 its window is released. This scope does not establish
 arbitrary-app compatibility or a throughput/token benchmark.
 
+## Task claims
+
+Several agents can drive one Mac at once. Each binds its commands to its own
+[task](tasks.md), and the helper keeps what a task is working on with that task
+between its commands. A command without a task behaves as it did before claims
+existed: it sets no claim and passes every claim.
+
+- **Identity.** A task-bound command names its validated task ID (and its
+  invocation ID) on every helper request that carries a target. The launcher
+  checks both formats; the helper advertises `session.task_claims`.
+- **Claim.** The lease note of an app, a window or the screen front already
+  says which process holds it. For a task it also carries `task` and
+  `claim_until` (now + 90 s). The claim outlives the command and its helper, and
+  every later call the same task makes on that scope renews it. The owner is
+  the task: a second command, session or `parallel` child of the same task
+  passes and renews.
+- **Who waits.** A request that acts (`act` other than a `read` action,
+  `foreground_begin`, `tab_select`) for a *different, still-open* task treats a
+  live claim as busy and stays in the helper's existing wait (up to 10 s inside
+  the request's deadline). Reads — `observe`, `capture`, `windows`, document and
+  menu readings — pass and leave the claim as it is. With no claim in the way a
+  request takes the lock at once, exactly as before; the added cost is one
+  read of a note of at most 256 bytes.
+- **When a claim ends.** At once when its task ends (`--finish-task`,
+  `haejo task end`), and 90 s after the task's last call otherwise. The helper
+  learns that a task is open from the task store itself: `state` in
+  `Tasks/<task-id>/task.json`. A task that ended, or one the store does not
+  have, holds nothing. A holder that exited or crashed keeps its claim until
+  those 90 s pass, as long as its task is still open, so the same agent's next
+  command finds the app as it left it.
+- **Front token.** Taking the screen front — `activate`, `open-url --front`,
+  presenting a launched app, and a paste that has to bring its field's app
+  forward — claims the scope `front` for the task, after the input lease. The
+  note stores `previous_front`, the app that was in front before, and `raised`,
+  the app the task left in front. Another task's request for the front waits
+  for the claim to end, and gives the input lease back between tries so the
+  owning task keeps working. The owner's calls on the app it raised renew the
+  claim.
+- **Give-back.** When the task ends, the helper returns `previous_front` to the
+  front if `raised` is still the frontmost app; a person who has moved to
+  another app since keeps the screen as it is. When a claim ends with its app
+  still in front and another task takes the front next, that task inherits
+  `previous_front`, so the app the person had is the one that comes back at the
+  end. The helper checks the process start time kept with `previous_front`, so
+  a reused pid is left alone.
+- **Busy reply.** `target_busy` and `input_busy` carry `retry_after_ms`. When
+  another task's claim is what stands in the way they also carry `holder_task`
+  and `claim_expires_in` (seconds), `retry_after_ms` is the remaining claim
+  time, and the CLI adds a `hint` sentence with the wait. When a live command
+  holds the lock, the reply names `holder_pid`, `holder_process` and
+  `held_seconds` as before, with `retry_after_ms: 1000`.
+
+Lock files and notes live in the per-user lease directory shared by every
+build; an earlier release ignores claims and writes notes without them.
+Coverage: `tests/test_task_claims.py` (two processes on the real lease code,
+the front token with a simulated front app) and
+`tests/test_parallel_coordination.py`.
+
 ## Tasks
 
 A `parallel` run bound to a [task](tasks.md) (`--task` or `HAEJO_TASK`) passes

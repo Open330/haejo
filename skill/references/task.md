@@ -49,8 +49,14 @@ Manual controls remain available for inspection or interrupted work:
   `document-attachments`, `run`, `replay`, `do`, `web-upload`, `auth`).
 - `--task <id>` takes precedence over `HAEJO_TASK`. Recipe commands (`list`,
   `show`, `compile`, …) need no task.
-- Each call still opens and releases its own helper connection, approval and
-  keep-awake; the task carries grouping only.
+- Each call still opens and releases its own helper connection and approval.
+  Between calls the task keeps the apps it works in, and the screen front it
+  took, for 90 seconds after its last call; another task's actions on them wait
+  (`target_busy`/`input_busy` with `holder_task` and `retry_after_ms`, see
+  [recovery](recovery.md)). Ending the task frees them at once and returns the
+  app that was in front before.
+- `keep-awake` keeps the longest request: a shorter one from another agent
+  leaves a longer one running (`kept: true`).
 - Each call lists the flows it ran as `flow=<name>[source]`; source is
   `builtin`, `library` (`haejo flows`), `file` (`haejo run <file>`) or `inline`
   (compiled, learned or walked in that call). `file`/`inline` flows show

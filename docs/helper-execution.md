@@ -32,6 +32,8 @@ This first version deliberately serializes different windows in the same app:
 app-wide menus and AX focus are shared. A disconnected or crashed helper releases
 its OS-backed locks. Multi-app sessions acquire additional apps without waiting;
 a conflict returns before observation/input, preventing lock-order deadlocks.
+Between the commands of one [task](tasks.md) the app stays claimed for that
+task for 90 s ([task claims](parallel-execution.md#task-claims)).
 
 Pointer fallback and pointer/menu/key actions take a separate short-lived
 cross-process input lease. Contention returns `input_busy` before dispatch; AX

@@ -12,8 +12,11 @@ it with a declared result. Agent usage: [skill reference](../skill/references/ta
   per bound invocation, plus one `invocation_flow` record per flow it ran). Directories are 0700, files 0600, owner-checked and
   never followed through symlinks. Task IDs are `t-` + 24 hex digits and are
   validated before any path is built.
-- No daemon, lease or authorization. Helper connections, approvals, foreground
-  scope and KeepAwake remain per invocation; an open task holds nothing.
+- No daemon or authorization. Helper connections, approvals and KeepAwake
+  remain per invocation. Between its invocations an open task keeps a 90-second
+  claim on the apps it works in and on the screen front it took, written in
+  the helper's lease notes ([task claims](parallel-execution.md#task-claims));
+  the helper reads `state` in `task.json` to know the task is still open.
 - Binding: `--task <id>` (wins) or `HAEJO_TASK`. Resolved in `cli.main` before
   the access receipt, driver, helper or KeepAwake. An invalid, unknown or ended
   task exits 2 with `effect: not_started` and no screen access. `haejo task …`
@@ -71,7 +74,10 @@ it with a declared result. Agent usage: [skill reference](../skill/references/ta
   counted as `damaged_records`.
 - `task end --result done|failed|abandoned` is caller-declared, not a
   verification. It closes admission; invocations already admitted finish and
-  record their end. Tasks do not expire automatically.
+  record their end. Tasks do not expire automatically. Ending a task (here or
+  with `--finish-task`) frees its claims at once and, through the launcher's
+  helper channel, returns the app that was in front before the task raised one
+  when the raised app is still in front.
 
 ## Not in v1
 
