@@ -13,7 +13,7 @@ Background operation avoids routine global cursor/focus contention, but does
 not make shared app focus or menus independent. The helper has four
 isolated warm workers. Different apps can run concurrently.
 A connection owns each app it observes until disconnect (`target_busy` for a
-competitor). Pointer/menu/key dispatch also uses a cross-process input lease
+competitor), and a task keeps that app for 90 s after its last call. Pointer/menu/key dispatch also uses a cross-process input lease
 (`input_busy` before dispatch). Keep sessions bounded and close them promptly.
 Concurrent windows of the same app are not yet supported.
 
