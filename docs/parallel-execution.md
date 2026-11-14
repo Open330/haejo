@@ -106,8 +106,9 @@ helper acquisition; default 60 seconds. Timed-out workers and Ctrl-C terminate t
 groups so they cannot dispatch delayed input.
 Workers use warm helper mode and a fresh configuration; coordinator `HAEJO_*`
 environment overrides (including helper wait/idle limits) are not forwarded.
-Each worker waits in line for its window for the batch timeout, up to 120 s
-(`HAEJO_LEASE_WAIT_SECONDS`, see "Waiting in line").
+Each worker waits in line for its window until 10 s before the batch timeout,
+up to 120 s (`HAEJO_LEASE_WAIT_SECONDS`, see "Waiting in line"); with a timeout
+of 20 s or less it keeps the default 10 s.
 The menu's all-run stop also notifies the coordinator, which cancels its workers
 still waiting for a helper slot or window lease. An individual run stop remains
 specific to that helper. The final report includes a `cancelled` batch flag;
@@ -225,7 +226,8 @@ waits for it and then answers `target_busy` or `input_busy`.
   `session.lease_wait`; the launcher checks the range), and each such request
   then waits that long instead. An agent that would rather queue than spend a
   model turn on a retry sets it for its task's commands. `haejo parallel` sets
-  it for its workers to the batch `--timeout`, up to 120. A pointer or key
+  it for its workers to the batch `--timeout` less 10 s, up to 120, so a worker
+  that stayed in line the whole time still answers busy with nothing started. A pointer or key
   request still ends at its own input deadline when that comes first.
 - **Order.** The first request to find a scope busy writes a waiter ticket into
   the scope's queue file, next to its lock file. On every 20 ms poll a waiter

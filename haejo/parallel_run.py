@@ -349,9 +349,11 @@ def run_parallel_jobs(manifest, *, timeout=60, on_event=None, workers=None, wind
             command = [str(launcher), 'session', job.target, '--helper', '--window-id', str(job.window_id),
                        '--receipt', str(receipt)]
             env = worker_env()
-            # A worker stays in line for its window as long as the batch
-            # gives it, instead of answering busy after the default 10 s.
-            env['HAEJO_LEASE_WAIT_SECONDS'] = str(min(timeout, 120))
+            # A worker stays in line for its window for most of the time the
+            # batch gives it, and still answers busy (nothing started) 10 s
+            # before the coordinator's timeout would end it mid-wait.
+            if timeout - 10 > 10:
+                env['HAEJO_LEASE_WAIT_SECONDS'] = str(min(timeout - 10, 120))
             process = None
             try:
                 with lock:

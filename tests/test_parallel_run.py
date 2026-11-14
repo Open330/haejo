@@ -224,7 +224,7 @@ flow=json.loads(sys.stdin.readline())
 path=sys.argv[sys.argv.index('--receipt')+1]
 assert 'HAEJO_HELPER_FD' not in os.environ
 assert os.environ['HAEJO_HELPER_MODE']=='warm'
-assert os.environ['HAEJO_LEASE_WAIT_SECONDS']=='60'
+assert os.environ['HAEJO_LEASE_WAIT_SECONDS']=='50'
 with open(path,'w') as f:json.dump({'schema':1,'ok':True,'effect':'observed','error':None,'coordination_elapsed_ms':12,'helper_pid':os.getpid()},f)
 ''')
             def launch(command,**kwargs):
@@ -285,6 +285,13 @@ with open(path,'w') as f:json.dump({'schema':1,'ok':True,'effect':'observed','er
         self.assertEqual(['11','12','13'],sessions)
         self.assertEqual([11,12,13],[job['window_id'] for job in result['jobs']])
         self.assertEqual({11,12,13},{event['window_id'] for event in events if event['state']=='queued'})
+
+    def test_workers_wait_in_line_until_ten_seconds_before_their_timeout(self):
+        process=Mock(pid=987654,stdin=Mock(),returncode=0);process.poll.return_value=0
+        for timeout,wait in ((60,'50'),(600,'120'),(21,'11'),(20,None),(1,None)):
+            with self.subTest(timeout=timeout),patch('haejo.parallel_run.sys.platform','darwin'),patch('haejo.parallel_run.subprocess.Popen',return_value=process) as start:
+                run_parallel_jobs(manifest(1),timeout=timeout)
+                self.assertEqual(wait,start.call_args.kwargs['env'].get('HAEJO_LEASE_WAIT_SECONDS'))
 
     def test_more_jobs_than_workers_queue_and_all_run(self):
         commands=[];running={'now':0,'most':0};events=[]
