@@ -37,17 +37,6 @@ final class ParallelWindowState: @unchecked Sendable {
 func parallelRefusal(_ code: String) -> [String:Any] {
     ["type":"error","error":code,"effect":"not_started","retryable":code.hasSuffix("busy")]
 }
-func waitForResource(_ lease: HaejoScopeLease, _ scope: String, shared: Bool = false,
-                     deadline: Double? = nil, cancelled: () -> Bool = { abortState.isStopped }) -> Bool {
-    if scope=="global-input", ParallelWindowState.shared.foregroundOwned { return true }
-    let until = min(deadline ?? .infinity,ParallelWindowState.shared.requestDeadline ?? .infinity,ProcessInfo.processInfo.systemUptime+10)
-    while true {
-        if cancelled() { return false }
-        if lease.take(scope,shared:shared) { return true }
-        if ProcessInfo.processInfo.systemUptime >= until { return false }
-        usleep(20_000)
-    }
-}
 func windowScopePointerRefusal() -> [String:Any]? {
     ParallelWindowState.shared.current == nil ? nil : parallelRefusal("window_scope_requires_ax")
 }
@@ -138,6 +127,8 @@ final class ParallelSession {
         var msg=request
         let task=(msg.removeValue(forKey:"task_id") as? String).flatMap { HaejoScopeLease.isTask($0) ? $0 : nil }
         msg.removeValue(forKey:"invocation_id")
+        // How long this request may stay in line for its app, window and input.
+        let leaseWait=leaseWaitSeconds(msg.removeValue(forKey:"lease_wait_seconds"))
         if msg["type"] as? String=="task_release" {
             guard let task,Set(msg.keys)==Set(["type"]) else { return parallelRefusal("invalid_task_release") }
             return releaseTaskFront(task)
@@ -168,7 +159,7 @@ final class ParallelSession {
         if msg["type"] as? String=="window_list" { return handle(msg) }
         guard let target=msg["target"] as? String else { return handle(msg) }
         let began=ProcessInfo.processInfo.systemUptime
-        let deadline=min(msg["click_deadline_uptime"] as? Double ?? .infinity,began+10)
+        let deadline=min(msg["click_deadline_uptime"] as? Double ?? .infinity,began+leaseWait)
         ParallelWindowState.shared.requestDeadline=deadline
         defer { ParallelWindowState.shared.requestDeadline=nil }
         if targets.holderPID == 0 {
@@ -187,9 +178,14 @@ final class ParallelSession {
         // A closed client is not a person pressing stop (2026-11-05: four
         // "aborted_by_user" with nobody touching anything).
         func stopCode() -> String { abortState.isStopped ? "aborted_by_user" : "client_disconnected" }
-        func busy(_ scope: String) -> [String:Any] { busyRefusal("target_busy",scope) }
         if scope != nil && msg["window_scope_id"] == nil { return parallelRefusal("window_scope_changed") }
         let appShared=msg["window_scope_id"] != nil
+        // Taking the whole app: another task's claim on one of its windows
+        // stands as a claim on the app (WindowClaims).
+        targets.partClaim=appShared ? nil : { WindowClaims.foreign(bundle:target,task:task)?.claim }
+        func busy(_ scope: String) -> [String:Any] {
+            busyRefusal("target_busy",(appShared ? nil : WindowClaims.foreign(bundle:target,task:task)?.scope) ?? scope)
+        }
         if !waitForResource(targets,"app-id:"+target.lowercased(),shared:appShared,
                             deadline:deadline,cancelled:cancelled) {
             return cancelled() ? parallelRefusal(stopCode()) : busy("app-id:"+target.lowercased())
@@ -208,7 +204,7 @@ final class ParallelSession {
             } else {
                 guard ["observe","tab_select"].contains(msg["type"] as? String ?? "") else { return parallelRefusal("window_scope_requires_observation") }
             }
-            let windowScope="window:\(pid):\(start):\(id)"
+            let windowScope=WindowClaims.scope(pid,start,id)
             guard waitForResource(targets,"app:\(pid)",shared:true,deadline:deadline,cancelled:cancelled),
                   waitForResource(targets,windowScope,deadline:deadline,cancelled:cancelled)
             else {
@@ -226,6 +222,7 @@ final class ParallelSession {
             if let previous=scope,!CFEqual(previous.window,matches[0]) { return parallelRefusal("window_scope_changed") }
             let fixed=scope ?? ParallelWindowScope(pid:pid,id:id,start:start,window:matches[0])
             scope=fixed;ParallelWindowState.shared.current=fixed
+            if let task { WindowClaims.list(pid,start,id,task:task) }
             if let problem=windowScopeActionProblem(msg,fixed) { return parallelRefusal(problem) }
         } else {
             guard scope==nil else { return parallelRefusal("window_scope_changed") }
@@ -269,6 +266,8 @@ func parallelWindowList(_ target:String) -> [String:Any] {
         var row:[String:Any]=["window_id":Int(id),"title":String((str(window,kAXTitleAttribute as String) ?? "").prefix(200))]
         if let url=windowPageURL(window) { row["url"]=url }
         if let onScreen=server[id] { row["on_screen"]=onScreen }
+        // The open task working in this window, so a planner picks another one.
+        if let claim=HaejoScopeLease.liveClaim(HaejoScopeLease.note(WindowClaims.scope(pid,start,id))) { row["claimed_by"]=claim.task }
         let tabs=browserTabRows(window,url:row["url"] as? String,title:row["title"] as? String ?? "")
         if !tabs.isEmpty { row["tabs"]=tabs }
         return row

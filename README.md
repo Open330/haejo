@@ -82,8 +82,8 @@ delegation to fill fields or complete login from macOS Keychain or an already
 authenticated Bitwarden Vault. Values go directly to the signed helper;
 the agent receives only the result. Includes in-app Vault management, reusable Flow authentication, declared multi-screen login and optional account checks. [Credential setup and delegation levels](skill/references/credentials.md).
 
-`haejo parallel jobs.json --helper --json` runs one to four checked window jobs at
-once, each with its own signed session and a content-free result receipt; the
+`haejo parallel jobs.json --helper --json` runs one to sixteen checked window jobs, up
+to four at once, each with its own signed session and a content-free result receipt; the
 Haejo menu shows each live run with its own stop control. `haejo windows
 <bundle-id> --helper` lists window IDs for work in different windows of the same
 app. [Parallel execution](docs/parallel-execution.md) · [Helper execution](docs/helper-execution.md).

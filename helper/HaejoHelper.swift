@@ -6434,7 +6434,7 @@ let helperCapabilities: [String] = [
     // Reading only, and deliberately NOT document_snapshot: this witnesses what
     // a document contains and where it lives, never its source format or where
     // a save panel would put it.
-    "diagnostic.readiness_read_cost", "diagnostic.readiness_preflight", "observe.window_identity", "session.window_scope", "session.foreground_lease", "session.release_targets", "session.task_claims", "observe.window_list", "observe.window_tabs", "session.tab_select",
+    "diagnostic.readiness_read_cost", "diagnostic.readiness_preflight", "observe.window_identity", "session.window_scope", "session.foreground_lease", "session.release_targets", "session.task_claims", "session.lease_wait", "observe.window_list", "observe.window_tabs", "session.tab_select",
     "evidence.document_window_status", "evidence.document_text", "evidence.document_text.path_selector",
     "evidence.document_text.window_selector", "evidence.document_mode", "evidence.save_panel.commit_selector", "observe.document_token", "evidence.save_panel",
     "action.click.save_panel_guard", "evidence.document_rtf_export", "evidence.document_attachment_metadata",

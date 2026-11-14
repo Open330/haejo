@@ -119,6 +119,22 @@ class ParallelCoordination(unittest.TestCase):
         finally:task.current.reset(token)
         self.assertEqual([{'type':'observe','target':'app'}],received)
 
+    def test_lease_wait_rides_on_target_requests_when_set(self):
+        from unittest import mock
+        ok={'type':'observation','tree':''}
+        for raw,sent in (('60',60),('1',1),('120',120),('0',None),('121',None),('6.5',None),('-3',None),('',None)):
+            with self.subTest(raw=raw),mock.patch.dict('os.environ',{'HAEJO_LEASE_WAIT_SECONDS':raw}):
+                driver,received=self.channel({'session.lease_wait'},[ok]*2)
+                driver._send({'type':'observe','target':'app'})
+                driver._send({'type':'release_targets'})
+                extra={} if sent is None else {'lease_wait_seconds':sent}
+                self.assertEqual([{'type':'observe','target':'app',**extra},{'type':'release_targets'}],received)
+        with mock.patch.dict('os.environ',{'HAEJO_LEASE_WAIT_SECONDS':'60'}):
+            # A helper that has no such field gets the request as before.
+            driver,received=self.channel({'session.task_claims'},[ok])
+            driver._send({'type':'observe','target':'app'})
+            self.assertEqual([{'type':'observe','target':'app'}],received)
+
     def test_busy_reply_says_which_task_and_how_long(self):
         busy={'type':'error','error':'target_busy','effect':'not_started','retryable':True,
               'holder_task':'t-'+'a'*24,'claim_expires_in':42,'retry_after_ms':42000}

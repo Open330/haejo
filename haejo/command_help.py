@@ -225,9 +225,10 @@ def _specific_help(command, args):
         )
     if command == 'parallel':
         return (
-            'usage: haejo parallel <manifest.json> --helper [--timeout 1..600] [--json]\n'
+            'usage: haejo parallel <manifest.json> --helper [--timeout 1..600] [--workers 1..4] [--json]\n'
             'Manifest: {"schema":1,"jobs":[{"id":"job-1","window_id":123,"flow":{...}}]}.\n'
-            'Use 1..4 distinct live windows from haejo windows APP --helper. Each job has its own signed session.\n'
+            'Use 1..16 jobs on distinct live windows from haejo windows APP --helper; a job without window_id\n'
+            'gets a free open window of its app. Up to --workers jobs (default 4) run at once, each in its own signed session.\n'
             'Only reversible read/click/set_value/type_text steps with structured postconditions; no model calls.\n'
             'Same-window jobs are refused before dispatch. Unknown effects are never automatically replayed.'
         )

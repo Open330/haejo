@@ -15,7 +15,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
 
-from haejo.parallel_run import parse_jobs, run_parallel_jobs, SessionReceipt, BatchControl
+from haejo.parallel_run import parse_jobs, plan_windows, run_parallel_jobs, ParallelRefused, SessionReceipt, BatchControl
 from haejo.flow_session import run_session
 
 
@@ -40,13 +40,13 @@ class ValidationTests(unittest.TestCase):
         self.assertIn('bound',parse_jobs(source)[0].flow_json)
 
     def test_invalid_batch_is_rejected_before_any_process_starts(self):
-        cases=[manifest(0),manifest(5),{'schema':True,'jobs':manifest()['jobs']}]
+        cases=[manifest(0),manifest(17),{'schema':True,'jobs':manifest()['jobs']}]
         for window in (0,-1,True,1.5,2**32):
             m=manifest();m['jobs'][0]['window_id']=window;cases.append(m)
         for field in ('id','window_id'):
             m=manifest();m['jobs'][1][field]=m['jobs'][0][field];cases.append(m)
         m=manifest();m['jobs'][1]['window_id']=100;m['jobs'][1]['flow']['target']='OPEN330.HAEJO.FIXTURE';cases.append(m)
-        m=manifest();del m['jobs'][1]['window_id'];cases.append(m)
+        m=manifest();m['jobs'][1]['window_id']=None;cases.append(m)
         for m in cases:
             with self.subTest(m=m),patch('haejo.parallel_run.subprocess.Popen') as launch:
                 with self.assertRaises(ValueError):run_parallel_jobs(m)
@@ -138,6 +138,63 @@ class BatchControlTests(unittest.TestCase):
             self.assertTrue(control.stopped)
 
 
+def unplaced(count=3,target='open330.haejo.fixture'):
+    m=manifest(count)
+    for job in m['jobs']:
+        del job['window_id'];job['flow']['target']=target
+    return m
+
+
+class WindowPlanningTests(unittest.TestCase):
+    def listing(self,rows,asked=None):
+        def windows(target):
+            if asked is not None:asked.append(target)
+            return {'type':'windows','target':target,'windows':rows}
+        return windows
+
+    def test_jobs_without_a_window_get_distinct_free_windows_in_listing_order(self):
+        m=unplaced(4);m['jobs'][1]['window_id']=30                     # one job names its window itself
+        rows=[{'window_id':10,'on_screen':False},{'window_id':20,'claimed_by':'t-'+'a'*24},{'window_id':30},
+              {'window_id':40,'claimed_by':'t-'+'b'*24},{'window_id':50,'on_screen':True},{'window_id':50},
+              {'window_id':0},{'window_id':True},{'window_id':'60'},'row',{'window_id':70}]
+        asked=[]
+        jobs=plan_windows(parse_jobs(m),self.listing(rows,asked),task='t-'+'b'*24)
+        # Its own task's window, then the others on screen, and the off-screen one last.
+        self.assertEqual([40,30,50,70],[job.window_id for job in jobs])
+        self.assertEqual(['open330.haejo.fixture'],asked)              # one listing per app
+        self.assertEqual([50,30,70,10],[job.window_id for job in plan_windows(parse_jobs(m),self.listing(rows))])
+        self.assertEqual(parse_jobs(manifest()),plan_windows(parse_jobs(manifest()),None))   # nothing to plan
+
+    def test_each_app_is_listed_once_and_planned_on_its_own(self):
+        m=unplaced(4)
+        for job in m['jobs'][2:]:job['flow']['target']='open330.haejo.other'
+        asked=[]
+        def windows(target):
+            asked.append(target)
+            return {'type':'windows','windows':[{'window_id':1},{'window_id':2}]}
+        self.assertEqual([1,2,1,2],[job.window_id for job in plan_windows(parse_jobs(m),windows)])
+        self.assertEqual(['open330.haejo.fixture','open330.haejo.other'],asked)
+
+    def test_too_few_windows_or_no_listing_refuses_the_batch_before_any_worker(self):
+        fake_launcher(self)
+        cases=[(self.listing([{'window_id':1},{'window_id':2}]),'parallel_no_free_window'),
+               (self.listing([{'window_id':1},{'window_id':2},{'window_id':3,'claimed_by':'t-'+'a'*24}]),'parallel_no_free_window'),
+               (lambda target:{'type':'error','error':'target_not_found'},'parallel_window_list_unavailable'),
+               (lambda target:None,'parallel_window_list_unavailable'),
+               (lambda target:{'type':'windows','windows':'none'},'parallel_window_list_unavailable')]
+        for windows,code in cases:
+            with self.subTest(code=code),patch('haejo.parallel_run.sys.platform','darwin'),patch('haejo.parallel_run.subprocess.Popen') as launch:
+                with self.assertRaises(ParallelRefused) as refused:run_parallel_jobs(unplaced(3),windows=windows)
+                self.assertEqual(code,str(refused.exception));launch.assert_not_called()
+
+    def test_worker_count_is_checked_before_any_process_starts(self):
+        fake_launcher(self)
+        for workers in (0,5,True,'2',1.0):
+            with self.subTest(workers=workers),patch('haejo.parallel_run.sys.platform','darwin'),patch('haejo.parallel_run.subprocess.Popen') as launch:
+                with self.assertRaises(ParallelRefused) as refused:run_parallel_jobs(manifest(),workers=workers)
+                self.assertEqual('parallel_workers_requires_1_to_4',str(refused.exception));launch.assert_not_called()
+
+
 def fake_launcher(case):
     """CI has no signed launcher; the coordinator only needs an executable path."""
     directory=tempfile.TemporaryDirectory();case.addCleanup(directory.cleanup)
@@ -167,6 +224,7 @@ flow=json.loads(sys.stdin.readline())
 path=sys.argv[sys.argv.index('--receipt')+1]
 assert 'HAEJO_HELPER_FD' not in os.environ
 assert os.environ['HAEJO_HELPER_MODE']=='warm'
+assert os.environ['HAEJO_LEASE_WAIT_SECONDS']=='50'
 with open(path,'w') as f:json.dump({'schema':1,'ok':True,'effect':'observed','error':None,'coordination_elapsed_ms':12,'helper_pid':os.getpid()},f)
 ''')
             def launch(command,**kwargs):
@@ -184,6 +242,70 @@ with open(path,'w') as f:json.dump({'schema':1,'ok':True,'effect':'observed','er
         self.assertNotIn('private-',json.dumps(result));self.assertNotIn('private-',json.dumps(events))
         self.assertEqual(['job-0','job-1'],[job['id'] for job in result['jobs']])
         self.assertEqual(2,sum(event['state']=='verified' for event in events))
+
+    WORKER='''import json,sys,os,time
+assert 'HAEJO_HELPER_FD' not in os.environ and os.environ['HAEJO_HELPER_MODE']=='warm'
+if sys.argv[1]=='windows':
+    print('HAEJO_TASK {"id":"t-x"}')
+    print(json.dumps({'type':'windows','target':sys.argv[2],'windows':[{'window_id':n,'on_screen':True} for n in (11,12,13,14,15,16)]}))
+    raise SystemExit(0)
+json.loads(sys.stdin.readline());time.sleep(0.15)
+path=sys.argv[sys.argv.index('--receipt')+1]
+with open(path,'w') as f:json.dump({'schema':1,'ok':True,'effect':'observed','error':None,'coordination_elapsed_ms':0,'helper_pid':os.getpid()},f)
+'''
+
+    def launched(self,directory,commands,running=None):
+        real_popen=subprocess.Popen
+        script=Path(directory)/'worker.py';script.write_text(self.WORKER)
+        lock=threading.Lock()
+        def launch(command,**kwargs):
+            commands.append(command)
+            process=real_popen([os.sys.executable,str(script),*command[1:]],**kwargs)
+            if running is not None and command[1]=='session':
+                communicate=process.communicate
+                def counted(*args,**kw):
+                    with lock:
+                        running['now']+=1;running['most']=max(running['most'],running['now'])
+                    try:return communicate(*args,**kw)
+                    finally:
+                        with lock:running['now']-=1
+                process.communicate=counted
+            return process
+        return patch('haejo.parallel_run.subprocess.Popen',side_effect=launch)
+
+    def test_a_job_without_a_window_runs_in_the_window_the_planner_gave_it(self):
+        commands=[];events=[]
+        m=unplaced(3);m['jobs'][1]['window_id']=12
+        with tempfile.TemporaryDirectory() as directory:
+            with self.launched(directory,commands),patch.dict(os.environ,{'HAEJO_HELPER_FD':'999'}),patch('haejo.parallel_run.sys.platform','darwin'):
+                result=run_parallel_jobs(m,on_event=events.append)
+        self.assertTrue(result['ok'],result)
+        self.assertEqual(['windows','open330.haejo.fixture','--helper'],commands[0][1:])     # asked once, first
+        sessions=sorted(command[command.index('--window-id')+1] for command in commands[1:])
+        self.assertEqual(['11','12','13'],sessions)
+        self.assertEqual([11,12,13],[job['window_id'] for job in result['jobs']])
+        self.assertEqual({11,12,13},{event['window_id'] for event in events if event['state']=='queued'})
+
+    def test_workers_wait_in_line_until_ten_seconds_before_their_timeout(self):
+        process=Mock(pid=987654,stdin=Mock(),returncode=0);process.poll.return_value=0
+        for timeout,wait in ((60,'50'),(600,'120'),(21,'11'),(20,None),(1,None)):
+            with self.subTest(timeout=timeout),patch('haejo.parallel_run.sys.platform','darwin'),patch('haejo.parallel_run.subprocess.Popen',return_value=process) as start:
+                run_parallel_jobs(manifest(1),timeout=timeout)
+                self.assertEqual(wait,start.call_args.kwargs['env'].get('HAEJO_LEASE_WAIT_SECONDS'))
+
+    def test_more_jobs_than_workers_queue_and_all_run(self):
+        commands=[];running={'now':0,'most':0};events=[]
+        with tempfile.TemporaryDirectory() as directory:
+            with self.launched(directory,commands,running),patch('haejo.parallel_run.sys.platform','darwin'):
+                result=run_parallel_jobs(unplaced(6),workers=2,on_event=events.append)
+        self.assertTrue(result['ok'],result);self.assertEqual(2,running['most'])
+        self.assertEqual([11,12,13,14,15,16],[job['window_id'] for job in result['jobs']])
+        self.assertEqual(6,sum(event['state']=='verified' for event in events))
+        with tempfile.TemporaryDirectory() as directory:               # by default: as many as there are jobs, up to four
+            running={'now':0,'most':0}
+            with self.launched(directory,[],running),patch('haejo.parallel_run.sys.platform','darwin'):
+                self.assertTrue(run_parallel_jobs(unplaced(6))['ok'])
+        self.assertEqual(4,running['most'])
 
     def test_timeout_kills_group_and_is_not_retried(self):
         process=Mock(pid=987654,stdin=Mock());process.poll.return_value=None
@@ -252,6 +374,10 @@ with open(path,'w') as f:json.dump({'schema':1,'ok':True,'effect':'observed','er
             path=Path(directory)/'invalid.json';path.write_text('{')
             self.assertEqual(2,main(['parallel',str(path),'--helper']))
             start.assert_not_called()
+            for flags in (['--workers','two'],['--workers'],['--workers','2','--workers','3'],['--workers','9']):
+                path.write_text(json.dumps(manifest()))
+                self.assertEqual(2,main(['parallel',str(path),'--helper',*flags]))
+                start.assert_not_called()
 
 
 class ParallelTaskPropagationTests(unittest.TestCase):

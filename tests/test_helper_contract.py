@@ -994,7 +994,7 @@ WIRE_ONLY = frozenset({
 SIGNED_HELPER_ONLY = frozenset({
     "action.resize_window",
     "observe.labels_v1", "action.credential_paste",
-    "action.approved_credential_input", "observe.window_list", "session.foreground_lease", "session.window_scope", "session.release_targets", "session.task_claims",
+    "action.approved_credential_input", "observe.window_list", "session.foreground_lease", "session.window_scope", "session.release_targets", "session.task_claims", "session.lease_wait",
     "observe.window_tabs", "session.tab_select",
     "action.drag", "drag.window_bound",
     # Capture by the observation's Window element index (Python driver has no capture map).

@@ -122,6 +122,16 @@ final class HaejoScopeLease {
     var task: String?
     /// The current request changes its target (an action, taking the front).
     var acting = false
+    /// Claims other tasks hold on parts of a scope this lease takes whole
+    /// (windows of an app, TaskClaims.swift). A live one counts as a claim on
+    /// the scope itself: an acting request waits, and a read passes without
+    /// leaving this task's claim on the whole.
+    var partClaim: (() -> (task: String, left: Int)?)?
+    /// Another task's live claim that covers `scope`, given the scope's note.
+    private func foreignClaim(_ note: [String:Any]?) -> (task: String, left: Int)? {
+        if let claim = HaejoScopeLease.liveClaim(note), claim.task != task { return claim }
+        return task == nil ? nil : partClaim?()
+    }
     static func isTask(_ value: String) -> Bool {
         value.range(of: "^t-[0-9a-f]{24}$", options: .regularExpression) != nil
     }
@@ -142,7 +152,7 @@ final class HaejoScopeLease {
         guard left > 0, left <= claimSeconds, taskOpen(task) else { return nil }
         return (task, left)
     }
-    private static func path(_ scope: String) -> String? {
+    fileprivate static func path(_ scope: String) -> String? {
         let namespace = HaejoMode.workerKey("tacto-resource-leases-v1", slot:0)
         guard let directory = HaejoMode.directory(namespace) else { return nil }
         let key = SHA256.hash(data:Data(scope.utf8)).map { String(format:"%02x",$0) }.joined()
@@ -166,13 +176,13 @@ final class HaejoScopeLease {
     /// Admit the current request on a lock this lease has, and keep the note:
     /// its own claim renewed, or another task's claim carried over untouched.
     private func settle(_ held: Held, fresh: Bool) -> Bool {
-        let foreign = HaejoScopeLease.liveClaim(held.prior).flatMap { $0.task == task ? nil : $0 }
+        let foreign = foreignClaim(held.prior)
         if foreign != nil, acting, task != nil { return false }
         guard !held.shared, fresh || (task != nil && foreign == nil) else { return true }
         var note: [String:Any] = ["pid": Int(holderPID > 0 ? holderPID : getpid()),
                                   "helper_pid": Int(getpid()), "since": held.since]
-        if foreign != nil, let prior = held.prior {
-            for key in ["task","claim_until","previous_front","previous_start","raised"] { note[key] = prior[key] }
+        if foreign != nil {
+            for key in ["task","claim_until","previous_front","previous_start","raised"] { note[key] = held.prior?[key] }
         } else if let task {
             note.merge(held.extra) { current, _ in current }
             note["task"] = task
@@ -205,6 +215,33 @@ final class HaejoScopeLease {
         guard settle(held, fresh: true) else { _ = flock(fd,LOCK_UN); close(fd); return false }
         descriptors[scope] = held; return true
     }
+    /// Take `scope`, waiting in turn until `until` (system uptime). A scope
+    /// nobody waits for is taken at once: the only cost is one `stat`. Once a
+    /// take fails this request gets a waiter ticket, and the oldest live
+    /// waiter is the one that tries next (HaejoWaitQueue).
+    func wait(_ scope: String, shared: Bool = false, until: Double, cancelled: () -> Bool) -> Bool {
+        if cancelled() { return false }
+        if descriptors[scope] != nil || !HaejoWaitQueue.waiting(scope) {
+            if take(scope, shared: shared) { return true }
+            if ProcessInfo.processInfo.systemUptime >= until { return false }
+        }
+        let ticket = HaejoWaitQueue.Ticket(scope, shared: shared)
+        defer { ticket.leave() }
+        while true {
+            if cancelled() { return false }
+            // Another task's claim that this request cannot pass: its ticket
+            // says so, and requests the claim lets through go past it.
+            let claim = acting && task != nil ? foreignClaim(HaejoScopeLease.note(scope))?.task : nil
+            if ticket.turn(task: task, acting: acting, claim: claim), take(scope, shared: shared) { return true }
+            if ProcessInfo.processInfo.systemUptime >= until { return false }
+            usleep(20_000)
+        }
+    }
+    /// Give `scope` back before this lease ends.
+    func release(_ scope: String) {
+        guard let held = descriptors.removeValue(forKey: scope) else { return }
+        _ = flock(held.fd,LOCK_UN); close(held.fd)
+    }
     /// The note `scope` carried when this lease took it.
     func prior(_ scope: String) -> [String:Any]? { descriptors[scope]?.prior }
     /// Extra numbers kept in this task's claim on `scope` (the front token).
@@ -225,6 +262,24 @@ final class HaejoScopeLease {
         guard var note = read(fd), note["task"] as? String == task, matches(note) else { return }
         note["claim_until"] = Int(Date().timeIntervalSince1970) + claimSeconds
         write(fd, note)
+    }
+    /// Rewrite the note of a scope that is locked only for the moment of the
+    /// edit (an index, not a resource). False when it could not be done now.
+    @discardableResult
+    static func edit(_ scope: String, _ change: ([String:Any]) -> [String:Any]?) -> Bool {
+        guard let file = path(scope) else { return false }
+        let fd = open(file,O_CREAT|O_RDWR|O_NOFOLLOW|O_CLOEXEC,0o600)
+        guard fd >= 0 else { return false }
+        defer { close(fd) }
+        var info = stat()
+        guard fstat(fd,&info) == 0, info.st_uid == getuid(),
+              info.st_mode & S_IFMT == S_IFREG, info.st_mode & 0o777 == 0o600 else { return false }
+        var locked = false
+        for _ in 0..<25 { if flock(fd,LOCK_EX|LOCK_NB) == 0 { locked = true; break }; usleep(200) }
+        guard locked else { return false }
+        defer { _ = flock(fd,LOCK_UN) }
+        if let note = change(read(fd) ?? [:]) { write(fd, note) }
+        return true
     }
     static func note(_ scope: String) -> [String:Any]? {
         guard let file = path(scope),
@@ -253,5 +308,134 @@ final class HaejoScopeLease {
     }
     deinit {
         for entry in descriptors.values { _ = flock(entry.fd,LOCK_UN); close(entry.fd) }
+    }
+}
+
+// Waiter tickets: who has been waiting for a scope, oldest first.
+//
+// A request whose first take fails writes a ticket into the scope's queue
+// file (next to its lock file, kept for good like the lock file) and, on every
+// poll, tries the lock only when no older live ticket stands before it. A
+// ticket leaves the file when its request gets the scope, gives up or is
+// cancelled. No process tends the queue: a ticket whose process is gone, or
+// whose `seen` second is older than `staleSeconds`, is dropped by whichever
+// waiter reads the file next, so a crashed or stopped waiter holds nobody up.
+//
+// Who stands before whom:
+// - two shared waiters go together; anything else goes in ticket order, so an
+//   exclusive waiter is not overtaken by later shared ones;
+// - a ticket that waits for another task's claim to end (not for the lock)
+//   stands only before requests that claim can also turn away. A read, a
+//   command without a task and the claim's own task pass it.
+enum HaejoWaitQueue {
+    static let limit = 32
+    /// A ticket not refreshed for this long belongs to a waiter that stopped.
+    nonisolated(unsafe) static var staleSeconds = 3
+    nonisolated(unsafe) private static var counter = 0
+    private struct Entry {
+        var number: Int, pid: Int, id: Int, seen: Int, shared: Bool, claim: String
+        var row: [Any] { [number, pid, id, seen, shared ? 1 : 0, claim] }
+        init?(_ raw: Any) {
+            guard let row = raw as? [Any], row.count == 6, let number = row[0] as? Int, let pid = row[1] as? Int,
+                  let id = row[2] as? Int, let seen = row[3] as? Int, let shared = row[4] as? Int,
+                  let claim = row[5] as? String else { return nil }
+            self.init(number: number, pid: pid, id: id, seen: seen, shared: shared == 1, claim: claim)
+        }
+        init(number: Int, pid: Int, id: Int, seen: Int, shared: Bool, claim: String) {
+            self.number = number; self.pid = pid; self.id = id; self.seen = seen; self.shared = shared; self.claim = claim
+        }
+    }
+    private static func file(_ scope: String) -> String? {
+        HaejoScopeLease.path(scope).map { String($0.dropLast(5)) + ".queue" }
+    }
+    /// Whether any ticket is in the scope's queue: one `stat`, no lock.
+    static func waiting(_ scope: String) -> Bool {
+        var info = stat()
+        guard let file = file(scope), lstat(file, &info) == 0 else { return false }
+        return info.st_size > 0
+    }
+    /// The live tickets of `scope`, oldest first: `[number, pid, shared]`.
+    static func tickets(_ scope: String) -> [[Int]] {
+        var rows: [[Int]] = []
+        _ = edit(scope) { entries in rows = entries.map { [$0.number, $0.pid, $0.shared ? 1 : 0] }; return false }
+        return rows
+    }
+    /// Read the queue under its own short lock, drop tickets of waiters that
+    /// are gone, let `change` edit it, and write it back when anything changed.
+    /// False when the queue cannot be read now; the caller then acts as a
+    /// request without a ticket.
+    private static func edit(_ scope: String, _ change: (inout [Entry]) -> Bool) -> Bool {
+        guard let file = file(scope) else { return false }
+        let fd = open(file, O_CREAT|O_RDWR|O_NOFOLLOW|O_CLOEXEC, 0o600)
+        guard fd >= 0 else { return false }
+        defer { close(fd) }
+        var info = stat()
+        guard fstat(fd, &info) == 0, info.st_uid == getuid(), info.st_mode & S_IFMT == S_IFREG,
+              info.st_mode & 0o777 == 0o600 else { return false }
+        // Held for microseconds by anyone; a holder that stopped is waited out briefly.
+        var locked = false
+        for _ in 0..<25 { if flock(fd, LOCK_EX|LOCK_NB) == 0 { locked = true; break }; usleep(200) }
+        guard locked else { return false }
+        defer { _ = flock(fd, LOCK_UN) }
+        var bytes = [UInt8](repeating: 0, count: 4096)
+        let count = pread(fd, &bytes, bytes.count, 0)
+        let rows = count > 0 ? (try? JSONSerialization.jsonObject(with: Data(bytes[0..<count]))) as? [Any] ?? [] : []
+        let now = Int(Date().timeIntervalSince1970)
+        var entries = rows.compactMap { Entry($0) }.filter {
+            now - $0.seen <= staleSeconds && $0.seen <= now + staleSeconds && (kill(pid_t($0.pid), 0) == 0 || errno == EPERM)
+        }
+        let dropped = entries.count != rows.count
+        guard change(&entries) || dropped else { return true }
+        entries.sort { $0.number < $1.number }
+        guard !entries.isEmpty, let data = try? JSONSerialization.data(withJSONObject: entries.map { $0.row }),
+              data.count <= 4096 else { _ = ftruncate(fd, 0); return true }
+        _ = data.withUnsafeBytes { pwrite(fd, $0.baseAddress, data.count, 0) }
+        _ = ftruncate(fd, off_t(data.count))
+        return true
+    }
+    final class Ticket {
+        private let scope: String, shared: Bool, id: Int
+        private var joined = false
+        init(_ scope: String, shared: Bool) {
+            self.scope = scope; self.shared = shared
+            HaejoWaitQueue.counter += 1; id = HaejoWaitQueue.counter
+        }
+        /// Whether this waiter is the one to try the lock now. `claim` is the
+        /// task whose claim this request is waiting out, if one is.
+        func turn(task: String?, acting: Bool, claim: String?) -> Bool {
+            var mine = true
+            let pid = Int(getpid()), now = Int(Date().timeIntervalSince1970)
+            let read = HaejoWaitQueue.edit(scope) { entries in
+                var changed = false
+                var index = entries.firstIndex { $0.pid == pid && $0.id == self.id }
+                if index == nil {
+                    // A full queue leaves this request polling without a ticket.
+                    guard entries.count < HaejoWaitQueue.limit else { return false }
+                    entries.append(Entry(number: (entries.map { $0.number }.max() ?? 0) + 1, pid: pid, id: self.id,
+                                         seen: now, shared: self.shared, claim: claim ?? ""))
+                    index = entries.count - 1; changed = true; self.joined = true
+                }
+                var own = entries[index!]
+                if own.seen != now || own.claim != claim ?? "" {
+                    own.seen = now; own.claim = claim ?? ""; entries[index!] = own; changed = true
+                }
+                mine = !entries.contains { other in
+                    other.number < own.number && !(self.shared && other.shared)
+                        && (other.claim.isEmpty || (acting && task != nil && task != other.claim))
+                }
+                return changed
+            }
+            return !read || mine
+        }
+        func leave() {
+            guard joined else { return }
+            let pid = Int(getpid())
+            _ = HaejoWaitQueue.edit(scope) { entries in
+                let before = entries.count
+                entries.removeAll { $0.pid == pid && $0.id == self.id }
+                return entries.count != before
+            }
+            joined = false
+        }
     }
 }
