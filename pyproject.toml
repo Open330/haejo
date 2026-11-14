@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "haejo-runtime"
-version = "1.0.2"
+version = "1.0.3"
 description = "Haejo — reusable computer use for Claude, Codex and agent-authored flows"
 license = { text = "MIT" }
 classifiers = [
