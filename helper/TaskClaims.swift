@@ -43,6 +43,48 @@ func busyRefusal(_ code:String,_ scope:String,task:String?=ParallelWindowState.s
     }
     return refusal
 }
+/// Window claims under an app. A window worker holds its app shared, so the
+/// app's own note says nothing about it. Each task-bound window worker lists
+/// its window ID in the note of `window-claims:<pid>:<start>`; the claim itself
+/// stays in the window's note. A request that takes the whole app for another
+/// task looks the listed windows up, and a live claim on any of them counts as
+/// a claim on the app. The list holds 16 window IDs; an ID whose claim has
+/// ended leaves it the next time a worker lists a window.
+enum WindowClaims {
+    static let limit=16
+    static func index(_ pid:pid_t,_ start:Double) -> String { "window-claims:\(pid):\(start)" }
+    static func scope(_ pid:pid_t,_ start:Double,_ id:UInt32) -> String { "window:\(pid):\(start):\(id)" }
+    private static func listed(_ note:[String:Any]?) -> [Int] { note?["windows"] as? [Int] ?? [] }
+    /// `task`'s worker has window `id`: keep it in the app's list. While
+    /// another task's claim on the whole app is live the window stays off the
+    /// list, so that task goes on working; whoever claimed first keeps going.
+    static func list(_ pid:pid_t,_ start:Double,_ id:UInt32,task:String) {
+        let index=index(pid,start)
+        if listed(HaejoScopeLease.note(index)).contains(Int(id)) { return }
+        if let whole=HaejoScopeLease.liveClaim(HaejoScopeLease.note("app:\(pid)")),whole.task != task { return }
+        HaejoScopeLease.edit(index) { note in
+            var windows=listed(note).filter {
+                $0 != Int(id) && HaejoScopeLease.liveClaim(HaejoScopeLease.note(scope(pid,start,UInt32($0)))) != nil
+            }
+            windows.append(Int(id))
+            return ["windows":Array(windows.suffix(limit))]
+        }
+    }
+    /// The window of this app that an open task other than `task` has a live
+    /// claim on, and that claim.
+    static func foreign(_ pid:pid_t,_ start:Double,task:String) -> (scope:String,claim:(task:String,left:Int))? {
+        for id in listed(HaejoScopeLease.note(index(pid,start))) {
+            let window=scope(pid,start,UInt32(id))
+            if let claim=HaejoScopeLease.liveClaim(HaejoScopeLease.note(window)),claim.task != task { return (window,claim) }
+        }
+        return nil
+    }
+    /// For a request that takes the whole app `bundle` for `task`.
+    static func foreign(bundle:String,task:String?) -> (scope:String,claim:(task:String,left:Int))? {
+        guard let task,let pid=pid(forBundle:bundle),let start=nativeProcessStartIdentity(pid) else { return nil }
+        return foreign(pid,start,task:task)
+    }
+}
 /// A task's hold on the screen front. Taken, with the input lease already
 /// held, wherever a task brings an app forward; its note keeps the app that
 /// was in front before, which the end of the task gives back.

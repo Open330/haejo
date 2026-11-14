@@ -178,9 +178,14 @@ final class ParallelSession {
         // A closed client is not a person pressing stop (2026-11-05: four
         // "aborted_by_user" with nobody touching anything).
         func stopCode() -> String { abortState.isStopped ? "aborted_by_user" : "client_disconnected" }
-        func busy(_ scope: String) -> [String:Any] { busyRefusal("target_busy",scope) }
         if scope != nil && msg["window_scope_id"] == nil { return parallelRefusal("window_scope_changed") }
         let appShared=msg["window_scope_id"] != nil
+        // Taking the whole app: another task's claim on one of its windows
+        // stands as a claim on the app (WindowClaims).
+        targets.partClaim=appShared ? nil : { WindowClaims.foreign(bundle:target,task:task)?.claim }
+        func busy(_ scope: String) -> [String:Any] {
+            busyRefusal("target_busy",(appShared ? nil : WindowClaims.foreign(bundle:target,task:task)?.scope) ?? scope)
+        }
         if !waitForResource(targets,"app-id:"+target.lowercased(),shared:appShared,
                             deadline:deadline,cancelled:cancelled) {
             return cancelled() ? parallelRefusal(stopCode()) : busy("app-id:"+target.lowercased())
@@ -199,7 +204,7 @@ final class ParallelSession {
             } else {
                 guard ["observe","tab_select"].contains(msg["type"] as? String ?? "") else { return parallelRefusal("window_scope_requires_observation") }
             }
-            let windowScope="window:\(pid):\(start):\(id)"
+            let windowScope=WindowClaims.scope(pid,start,id)
             guard waitForResource(targets,"app:\(pid)",shared:true,deadline:deadline,cancelled:cancelled),
                   waitForResource(targets,windowScope,deadline:deadline,cancelled:cancelled)
             else {
@@ -217,6 +222,7 @@ final class ParallelSession {
             if let previous=scope,!CFEqual(previous.window,matches[0]) { return parallelRefusal("window_scope_changed") }
             let fixed=scope ?? ParallelWindowScope(pid:pid,id:id,start:start,window:matches[0])
             scope=fixed;ParallelWindowState.shared.current=fixed
+            if let task { WindowClaims.list(pid,start,id,task:task) }
             if let problem=windowScopeActionProblem(msg,fixed) { return parallelRefusal(problem) }
         } else {
             guard scope==nil else { return parallelRefusal("window_scope_changed") }

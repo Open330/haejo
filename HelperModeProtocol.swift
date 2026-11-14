@@ -122,6 +122,16 @@ final class HaejoScopeLease {
     var task: String?
     /// The current request changes its target (an action, taking the front).
     var acting = false
+    /// Claims other tasks hold on parts of a scope this lease takes whole
+    /// (windows of an app, TaskClaims.swift). A live one counts as a claim on
+    /// the scope itself: an acting request waits, and a read passes without
+    /// leaving this task's claim on the whole.
+    var partClaim: (() -> (task: String, left: Int)?)?
+    /// Another task's live claim that covers `scope`, given the scope's note.
+    private func foreignClaim(_ note: [String:Any]?) -> (task: String, left: Int)? {
+        if let claim = HaejoScopeLease.liveClaim(note), claim.task != task { return claim }
+        return task == nil ? nil : partClaim?()
+    }
     static func isTask(_ value: String) -> Bool {
         value.range(of: "^t-[0-9a-f]{24}$", options: .regularExpression) != nil
     }
@@ -166,13 +176,13 @@ final class HaejoScopeLease {
     /// Admit the current request on a lock this lease has, and keep the note:
     /// its own claim renewed, or another task's claim carried over untouched.
     private func settle(_ held: Held, fresh: Bool) -> Bool {
-        let foreign = HaejoScopeLease.liveClaim(held.prior).flatMap { $0.task == task ? nil : $0 }
+        let foreign = foreignClaim(held.prior)
         if foreign != nil, acting, task != nil { return false }
         guard !held.shared, fresh || (task != nil && foreign == nil) else { return true }
         var note: [String:Any] = ["pid": Int(holderPID > 0 ? holderPID : getpid()),
                                   "helper_pid": Int(getpid()), "since": held.since]
-        if foreign != nil, let prior = held.prior {
-            for key in ["task","claim_until","previous_front","previous_start","raised"] { note[key] = prior[key] }
+        if foreign != nil {
+            for key in ["task","claim_until","previous_front","previous_start","raised"] { note[key] = held.prior?[key] }
         } else if let task {
             note.merge(held.extra) { current, _ in current }
             note["task"] = task
@@ -221,8 +231,7 @@ final class HaejoScopeLease {
             if cancelled() { return false }
             // Another task's claim that this request cannot pass: its ticket
             // says so, and requests the claim lets through go past it.
-            let claim = task != nil && acting
-                ? HaejoScopeLease.liveClaim(HaejoScopeLease.note(scope)).flatMap { $0.task == task ? nil : $0.task } : nil
+            let claim = acting && task != nil ? foreignClaim(HaejoScopeLease.note(scope))?.task : nil
             if ticket.turn(task: task, acting: acting, claim: claim), take(scope, shared: shared) { return true }
             if ProcessInfo.processInfo.systemUptime >= until { return false }
             usleep(20_000)
@@ -253,6 +262,24 @@ final class HaejoScopeLease {
         guard var note = read(fd), note["task"] as? String == task, matches(note) else { return }
         note["claim_until"] = Int(Date().timeIntervalSince1970) + claimSeconds
         write(fd, note)
+    }
+    /// Rewrite the note of a scope that is locked only for the moment of the
+    /// edit (an index, not a resource). False when it could not be done now.
+    @discardableResult
+    static func edit(_ scope: String, _ change: ([String:Any]) -> [String:Any]?) -> Bool {
+        guard let file = path(scope) else { return false }
+        let fd = open(file,O_CREAT|O_RDWR|O_NOFOLLOW|O_CLOEXEC,0o600)
+        guard fd >= 0 else { return false }
+        defer { close(fd) }
+        var info = stat()
+        guard fstat(fd,&info) == 0, info.st_uid == getuid(),
+              info.st_mode & S_IFMT == S_IFREG, info.st_mode & 0o777 == 0o600 else { return false }
+        var locked = false
+        for _ in 0..<25 { if flock(fd,LOCK_EX|LOCK_NB) == 0 { locked = true; break }; usleep(200) }
+        guard locked else { return false }
+        defer { _ = flock(fd,LOCK_UN) }
+        if let note = change(read(fd) ?? [:]) { write(fd, note) }
+        return true
     }
     static func note(_ scope: String) -> [String:Any]? {
         guard let file = path(scope),

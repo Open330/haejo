@@ -147,6 +147,19 @@ existed: it sets no claim and passes every claim.
   menu readings — pass and leave the claim as it is. With no claim in the way a
   request takes the lock at once, exactly as before; the added cost is one
   read of a note of at most 256 bytes.
+- **Windows under an app.** A window worker holds its app shared, so several
+  tasks can each work in their own window of one app, and the app's note says
+  nothing about them. Each task-bound window worker therefore lists its window
+  ID in the note of `window-claims:<pid>:<process start>` (16 IDs; an ID whose
+  claim has ended leaves the list when the next window is listed), while the
+  claim itself stays in the window's note. A request that takes the whole app
+  (no `--window-id`) for a task looks those windows up: a live claim of another
+  open task on any of them counts as a claim on the app. An action waits in
+  line and is answered `target_busy` naming that task; a read passes and leaves
+  no claim on the app, so the window worker's next command goes through. The
+  first claim wins in both directions: while a task's claim on the whole app is
+  live, another task's window worker can read its window and stays off the
+  list.
 - **When a claim ends.** At once when its task ends (`--finish-task`,
   `haejo task end`), and 90 s after the task's last call otherwise. The helper
   learns that a task is open from the task store itself: `state` in
@@ -212,7 +225,8 @@ Lock files, queue files and notes live in the per-user lease directory shared
 by every build; an earlier release ignores claims, writes notes without them,
 takes no ticket and tries the lock on every poll.
 Coverage: `tests/test_task_claims.py` (two and more processes on the real
-lease code: claims, waiter order, dead and stopped waiters, deadlines; the
+lease code: claims, window claims under an app, waiter order, dead and
+stopped waiters, deadlines; the
 front token with a simulated front app) and
 `tests/test_parallel_coordination.py`.
 

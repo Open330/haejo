@@ -79,6 +79,36 @@ if mode == "take" || mode == "hold" {
     show(["caller": waited(0.3, request: nil), "request": waited(nil, request: 0.4),
           "earlier": waited(2, request: 0.2), "past": waited(-1, request: nil),
           "seconds": raws.map { leaseWaitSeconds($0) }, "tickets": HaejoWaitQueue.tickets(scope)])
+} else if mode == "window" || mode == "app" {
+    // window <pid> <task|-> <act|read> <window id>: a window worker's request, as ParallelSession.respond makes it.
+    // app <pid> <task|-> <act|read> [then-act]: a request for the whole app.
+    let pid = pid_t(scope)!, start = 1.5
+    starts[pid] = start
+    if let ttl = ProcessInfo.processInfo.environment["CLAIM_SECONDS"] { HaejoScopeLease.claimSeconds = Int(ttl)! }
+    let lease = HaejoScopeLease()
+    lease.task = task(args[3]); lease.acting = args[4] == "act"
+    var report: [String:Any] = [:]
+    if mode == "window" {
+        let id = UInt32(args[5])!
+        let ok = lease.take("app:\(pid)", shared: true) && lease.take(WindowClaims.scope(pid, start, id))
+        if ok, let task = lease.task { WindowClaims.list(pid, start, id, task: task) }
+        report["ok"] = ok
+    } else {
+        lease.partClaim = { WindowClaims.foreign(bundle: scope, task: lease.task)?.claim }
+        report["ok"] = lease.take("app:\(pid)")
+        if args.count > 5 {
+            lease.acting = true
+            report["then_act"] = lease.take("app:\(pid)")
+            let worker = HaejoScopeLease()                       // the lock went back: a window worker gets in
+            report["worker_after"] = worker.take("app:\(pid)", shared: true)
+        }
+        report["busy"] = busyRefusal("target_busy", WindowClaims.foreign(bundle: scope, task: lease.task)?.scope ?? "app:\(pid)",
+                                     task: lease.task)
+    }
+    report["app_task"] = HaejoScopeLease.note("app:\(pid)")?["task"] ?? NSNull()
+    report["listed"] = HaejoScopeLease.note(WindowClaims.index(pid, start))?["windows"] ?? []
+    show(report)
+    withExtendedLifetime(lease) {}
 } else if mode == "read-then-act" {
     // One connection reads under another task's claim, then acts.
     let lease = HaejoScopeLease()
@@ -203,9 +233,10 @@ class TaskClaimTests(unittest.TestCase):
         self.a = task.start('claim test a', root=self.tasks)['id']
         self.b = task.start('claim test b', root=self.tasks)['id']
 
-    def run_harness(self, *args):
+    def run_harness(self, *args, environ=None):
         done = subprocess.run([str(self.binary), *map(str, args)], capture_output=True, text=True, timeout=30,
-                              env={'CFFIXED_USER_HOME': str(self.home), 'PATH': '/usr/bin:/bin'})
+                              env={'CFFIXED_USER_HOME': str(self.home), 'PATH': '/usr/bin:/bin',
+                                   **{key: str(value) for key, value in (environ or {}).items()}})
         self.assertEqual(0, done.returncode, done.stderr)
         return json.loads(done.stdout.splitlines()[0])
 
@@ -429,6 +460,82 @@ class TaskClaimTests(unittest.TestCase):
         self.assertGreaterEqual(self.got(third)['at_ms'], left)
         third.wait(timeout=10)
         self.assertEqual(c, self.take(c, 'read')['note']['task'])
+
+    # ---- window claims under an app
+
+    def window(self, app, task, window, kind='act', ttl=None):
+        return self.run_harness('window', app, task or '-', kind, window, environ={} if ttl is None else {'CLAIM_SECONDS': ttl})
+
+    def whole(self, app, task, kind='act', *extra, ttl=None):
+        return self.run_harness('app', app, task or '-', kind, *extra, environ={} if ttl is None else {'CLAIM_SECONDS': ttl})
+
+    def app(self):
+        return 1_000_000 + uuid.uuid4().int % 1_000_000_000      # a process ID no test shares
+
+    def test_a_window_claim_of_another_task_makes_the_whole_app_busy(self):
+        app = self.app()
+        worker = self.window(app, self.a, 7)
+        self.assertEqual((True, [7], None), (worker['ok'], worker['listed'], worker['app_task']))
+        refused = self.whole(app, self.b)                        # A's worker is between its commands
+        self.assertFalse(refused['ok'])
+        busy = refused['busy']
+        self.assertEqual(('target_busy', self.a), (busy['error'], busy['holder_task']))
+        self.assertEqual(busy['claim_expires_in'] * 1000, busy['retry_after_ms'])
+        self.assertIsNone(refused['app_task'])                   # and B left no claim on the app
+        self.assertTrue(self.window(app, self.a, 7)['ok'])       # so A's worker goes on
+        self.assertTrue(self.whole(app, self.a)['ok'])           # the same task takes the whole app
+        self.assertFalse(self.window(app, self.b, 8)['ok'])      # which is then A's, as before
+
+    def test_reads_and_untasked_commands_pass_window_claims_and_leave_no_app_claim(self):
+        app = self.app()
+        self.window(app, self.a, 7)
+        for task, kind in ((self.b, 'read'), (None, 'act'), (None, 'read')):
+            with self.subTest(task=task, kind=kind):
+                passed = self.whole(app, task, kind)
+                self.assertTrue(passed['ok'])
+                self.assertIsNone(passed['app_task'])
+        self.assertTrue(self.window(app, self.a, 7)['ok'])
+        report = self.whole(app, self.b, 'read', 'then-act')     # one connection reads, then acts
+        self.assertEqual((True, False, True), (report['ok'], report['then_act'], report['worker_after']))
+        self.assertEqual(self.a, report['busy']['holder_task'])
+
+    def test_window_workers_of_different_tasks_share_one_app(self):
+        app = self.app()
+        self.assertTrue(self.window(app, self.a, 7)['ok'])
+        other = self.window(app, self.b, 8)
+        self.assertEqual((True, [7, 8], None), (other['ok'], other['listed'], other['app_task']))
+        self.assertFalse(self.window(app, self.b, 7)['ok'])      # A's window stays A's
+        self.assertTrue(self.window(app, self.b, 7, 'read')['ok'])
+        self.assertFalse(self.whole(app, self.a)['ok'])          # each keeps the other off the whole app
+        self.assertFalse(self.whole(app, self.b)['ok'])
+
+    def test_window_claims_end_with_their_task_or_their_ttl(self):
+        app = self.app()
+        self.window(app, self.a, 7)
+        self.assertFalse(self.whole(app, self.b)['ok'])
+        self.task.end(self.a, 'done', root=self.tasks)
+        taken = self.whole(app, self.b)
+        self.assertEqual((True, self.b), (taken['ok'], taken['app_task']))
+        app, c = self.app(), self.task.start('claim test c', root=self.tasks)['id']
+        self.window(app, c, 7, ttl=2)
+        self.assertFalse(self.whole(app, self.b, ttl=2)['ok'])
+        time.sleep(2.2)
+        self.assertTrue(self.whole(app, self.b, ttl=2)['ok'])
+
+    def test_a_task_that_has_the_whole_app_is_not_held_up_by_a_later_window_read(self):
+        app = self.app()
+        self.assertTrue(self.whole(app, self.a)['ok'])
+        reader = self.window(app, self.b, 7, 'read')             # passes, and stays off the list
+        self.assertEqual((True, []), (reader['ok'], reader['listed']))
+        self.assertTrue(self.whole(app, self.a)['ok'])
+
+    def test_the_window_list_keeps_live_claims_up_to_its_limit(self):
+        app = self.app()
+        for window in range(1, 4):
+            self.window(app, self.a, window)
+        self.task.end(self.a, 'done', root=self.tasks)           # those three claims are over
+        listed = [self.window(app, self.b, window)['listed'] for window in range(10, 28)][-1]
+        self.assertEqual(list(range(12, 28)), listed)            # 16 windows, the newest ones
 
     def test_acting_requests(self):
         self.assertEqual([True, False, True, True, False, False, False, False],
