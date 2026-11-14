@@ -1025,7 +1025,7 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
                     self.message.stringValue = "Claude Code·Codex에 연결했어요. 권한을 켜면 바로 작업할 수 있어요."
                 } else {
                     self.message.stringValue = ok && self.connection == .current
-                        ? "연결했어요. Claude Code나 Codex에서 새 대화를 열고 ‘Haejo로 작업해 줘’라고 요청하세요."
+                        ? "연결했어요. Claude Code나 Codex에서 새 대화를 열고 맡길 일을 말한 뒤 ‘해줘’라고 요청하세요."
                         : "연결을 끝내지 못했어요. 기존 설치 경로나 파일 충돌을 확인해주세요."
                 }
                 self.render()

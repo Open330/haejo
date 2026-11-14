@@ -37,7 +37,7 @@ def link_places(home: Path) -> list[Path]:
         if os.environ.get(key):
             folders.append(Path(os.environ[key])/'skills')
     folders.extend((home/'Library/Application Support/asx/profiles').glob('*/skills'))
-    places += [f/'haejo' for f in folders]
+    places += [f/name for f in folders for name in ('haejo', '해줘')]
     seen, out = set(), []
     for p in places:
         if str(p) not in seen:

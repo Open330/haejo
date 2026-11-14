@@ -105,6 +105,10 @@ func agentConnectionLinks(root: URL, home: URL, environment: [String: String]) -
     links += Set(folders.map { $0.resolvingSymlinksInPath().path }).sorted().map {
         (URL(fileURLWithPath: $0, isDirectory: true).appendingPathComponent("haejo"), root.appendingPathComponent("skill"))
     }
+    // The same skill under its Korean name (`/해줘`).
+    links += Set(folders.map { $0.resolvingSymlinksInPath().path }).sorted().map {
+        (URL(fileURLWithPath: $0, isDirectory: true).appendingPathComponent("해줘"), root.appendingPathComponent("skill/ko"))
+    }
     return links
 }
 
@@ -123,6 +127,9 @@ func agentConnectionReport(root: URL, home: URL, environment: [String: String]) 
         if destination == nil && !fm.fileExists(atPath: link.path) { report.append((link, .missing)); continue }
         let resolved = link.resolvingSymlinksInPath()
         if destination != nil && fm.fileExists(atPath: resolved.path) && resolved.path == expected.resolvingSymlinksInPath().path { report.append((link, .current)); continue }
+        // A 해줘 folder that is not this installation's is someone else's skill, or the
+        // alias of the installation the haejo link already reports.
+        if expected.lastPathComponent == "ko" { continue }
         var previous = resolved
         if expected.lastPathComponent == "haejo" {
             guard let destination else { report.append((link, .conflict)); continue }

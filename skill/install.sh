@@ -63,6 +63,13 @@ ours() {   # is this path an owned Haejo skill we may replace?
   [ "$(readlink "$1" 2>/dev/null)" = "$skill" ] && return 0
   [ -f "$1/SKILL.md" ] && grep -Eq '^name: haejo$' "$1/SKILL.md"
 }
+alias_name='해줘'
+our_alias() {   # a 해줘 link left by a Haejo installation (this one or an earlier one)
+  local old
+  old=$(readlink "$1" 2>/dev/null) || return 1
+  case "$old" in */skill/ko) ;; *) return 1 ;; esac
+  [ ! -e "$old" ] || grep -Eq '^name: haejo$' "${old%/ko}/SKILL.md" 2>/dev/null
+}
 our_command_link() {
   record_authorizes "$1" command && return 0
   local old old_repo
@@ -180,6 +187,11 @@ for parent in "${dirs[@]}"; do
     if [ "$(readlink "$dest" 2>/dev/null)" = "$skill" ]; then say "ok: $dest"
     elif [ -e "$dest" ] || [ -L "$dest" ]; then say "stale copy or conflicting link: $dest"; status=1
     else say "missing: $dest"; status=1; fi
+    alias_dest="$parent/$alias_name"
+    if [ "$(readlink "$alias_dest" 2>/dev/null)" = "$skill/ko" ]; then say "ok: $alias_dest"
+    elif our_alias "$alias_dest"; then say "stale link: $alias_dest"; status=1
+    elif [ -e "$alias_dest" ] || [ -L "$alias_dest" ]; then say "kept: $alias_dest (not the Haejo skill)"
+    else say "missing: $alias_dest"; status=1; fi
     continue
   fi
   if { [ -e "$dest" ] || [ -L "$dest" ]; } && ! ours "$dest"; then
@@ -202,6 +214,19 @@ for parent in "${dirs[@]}"; do
     ln -s "$skill" "$dest"
   fi
   say "linked: $dest"
+
+  # The same skill under its Korean name, so `/해줘` reaches it. A folder of
+  # that name that is someone else's stays theirs.
+  alias_dest="$parent/$alias_name"
+  if [ "$(readlink "$alias_dest" 2>/dev/null)" = "$skill/ko" ]; then
+    say "ok: $alias_dest"
+  elif [ ! -e "$alias_dest" ] && [ ! -L "$alias_dest" ]; then
+    ln -s "$skill/ko" "$alias_dest"; say "linked: $alias_dest"
+  elif our_alias "$alias_dest"; then
+    ln -sfn "$skill/ko" "$alias_dest"; say "linked: $alias_dest"
+  else
+    say "kept: $alias_dest (not the Haejo skill)"
+  fi
 
 done
 if [ "$status" = 0 ] && [ "$check" = 0 ] && [ -n "$record" ]; then

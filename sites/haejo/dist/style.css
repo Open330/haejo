@@ -973,6 +973,13 @@ h2 {
   font-size: 15.5px;
   color: var(--ink);
 }
+/* The request ends in the word itself; the quotes are drawn, so copying gives plain text. */
+.haejo-word {
+  color: var(--sun-text);
+  font-weight: 700;
+}
+.haejo-word::before { content: "\201C"; }
+.haejo-word::after { content: "\201D"; }
 .copy {
   flex: none;
   min-height: 44px;

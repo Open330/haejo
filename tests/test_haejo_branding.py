@@ -14,7 +14,9 @@ class HaejoBrandingTests(unittest.TestCase):
         self.assertEqual(str(self.entry), os.readlink(self.bin/'haejo'))
         for agent in ('.codex', '.claude'):
             parent = self.home/agent/'skills'
-            self.assertEqual(['haejo'], sorted(p.name for p in parent.iterdir()))
+            # One skill under its two names: haejo, and 해줘 linking to its alias folder.
+            self.assertEqual(['haejo', '해줘'], sorted(p.name for p in parent.iterdir()))
+            self.assertTrue(os.readlink(parent/'해줘').endswith('/skill/ko'))
         self.assertEqual(0, self.run_script('--check').returncode)
 
     def test_foreign_command_prevents_skill_mutations(self):

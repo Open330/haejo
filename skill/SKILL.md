@@ -1,6 +1,6 @@
 ---
 name: haejo
-description: Automate macOS/web tasks (Windows experimental) with reusable Haejo flows; author once, replay without model calls.
+description: Do Mac app and web GUI chores for the person (Windows experimental) — a request like “…해줘” (“do it for me”) or “do this in <app>” — with reusable Haejo flows; author once, replay without model calls.
 ---
 
 # Haejo
