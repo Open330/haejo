@@ -80,12 +80,33 @@ def audit(url, output, axe_source=None, browser_executable=None):
             if home:
                 checks[name + '_section_order'] = page.locator('main > section[id]').evaluate_all('(items)=>items.map(e=>e.id)') == SECTIONS
                 checks[name + '_header_links_to_sections'] = page.locator('.nav-links a').evaluate_all('(items)=>items.map(e=>e.hash.slice(1))') == SECTIONS
-                checks[name + '_one_film'] = page.locator('video').evaluate_all(
+                checks[name + '_one_film'] = page.locator('.film video').evaluate_all(
                     '(items, lang)=>items.length===1&&items.every(e=>e.controls&&!e.autoplay&&e.preload==="none"&&e.poster.includes("haejo-film."+lang)&&e.getAttribute("aria-label"))', lang)
-                video = page.locator('video')
+                video = page.locator('.film video')
                 video.evaluate('(e)=>e.load()')
-                page.wait_for_function('()=>document.querySelector("video").readyState>=2')
+                page.wait_for_function('()=>document.querySelector(".film video").readyState>=2')
                 checks[name + '_film_decodes'] = video.evaluate('(e)=>e.duration>30&&e.videoWidth===1920&&!e.error')
+                clip = page.locator('#direct .scene video')
+                checks[name + '_direct_clip_markup'] = clip.evaluate_all(
+                    '(items)=>items.length===1&&items.every(e=>e.autoplay&&e.muted&&e.loop&&e.playsInline&&!e.controls&&e.preload==="metadata"&&e.poster.includes("haejo-direct.poster")&&e.width===1000&&e.height===1010&&e.getAttribute("aria-label"))')
+                page.wait_for_function('()=>document.querySelector("#direct .scene video").readyState>=2')
+                checks[name + '_direct_clip_decodes'] = clip.evaluate('(e)=>e.duration>=8&&e.duration<=15&&e.videoWidth===1000&&e.videoHeight===1010&&!e.error')
+                checks[name + '_direct_clip_fills_scene'] = page.evaluate('''() => { const v = document.querySelector('#direct .scene video').getBoundingClientRect(),
+                    s = document.querySelector('#direct .scene').getBoundingClientRect(); return Math.abs(v.width - s.width) < 3 && Math.abs(v.width / v.height - 1000 / 1010) < 0.01; }''')
+                toggle = page.locator('#direct .scene-toggle')
+                toggle.scroll_into_view_if_needed()  # a muted clip starts once it is on screen
+                label = '''(want) => { const v = document.querySelector('#direct .scene video'), b = document.querySelector('#direct .scene-toggle');
+                    return v.paused === want && b.textContent === (want ? b.dataset.play : b.dataset.pause); }'''
+                try:
+                    page.wait_for_function(label, arg=False)
+                    toggle.click()
+                    page.wait_for_function(label, arg=True)
+                    toggle.click()
+                    page.wait_for_function(label, arg=False)
+                    checks[name + '_direct_clip_pauses'] = True
+                except Exception:
+                    checks[name + '_direct_clip_pauses'] = False
+                checks[name + '_direct_caption_names_sources'] = all(word in page.locator('#direct figcaption').inner_text() for word in ('Safari', 'TextEdit'))
                 checks[name + '_no_separate_browser_claim'] = page.evaluate('!/Chromium/i.test(document.body.innerText)')
                 checks[name + '_measured_scope_once'] = page.evaluate('(document.body.innerText.match(/Safari 27\\.2/g)||[]).length===1')
                 checks[name + '_seven_step_flow'] = page.locator('.flow-steps li').count() == 7
@@ -139,6 +160,12 @@ def audit(url, output, axe_source=None, browser_executable=None):
             page.emulate_media(reduced_motion='reduce')
             checks[name + '_reduced_motion'] = page.evaluate(
                 'getComputedStyle(document.documentElement).scrollBehavior==="auto"&&[...document.querySelectorAll("*")].every(e=>["none",""].includes(getComputedStyle(e).animationName))')
+            if home:
+                still = context.new_page()
+                still.emulate_media(reduced_motion='reduce')
+                still.goto(base + path, wait_until='networkidle')
+                checks[name + '_reduced_motion_clip_still'] = still.locator('#direct .scene video').evaluate('(e)=>e.paused&&!e.autoplay&&e.currentTime===0')
+                still.close()
             page.emulate_media(reduced_motion='no-preference')
             checks[name + '_no_browser_storage'] = page.evaluate('localStorage.length===0&&sessionStorage.length===0&&document.cookie===""')
             page.close()
@@ -161,7 +188,7 @@ def audit(url, output, axe_source=None, browser_executable=None):
         checks['nojs_navigation_visible'] = fallback.locator('.nav-links a').first.is_visible() and not fallback.locator('.menu-button').is_visible()
         checks['nojs_download_present'] = fallback.locator(f'#install a[href="{DMG}"]').is_visible()
         checks['nojs_copy_hidden'] = not fallback.locator('[data-copy]').is_visible()
-        checks['nojs_video_controls'] = fallback.locator('video').evaluate('(e)=>e.controls')
+        checks['nojs_video_controls'] = fallback.locator('.film video').evaluate('(e)=>e.controls')
         fallback.locator('.faq-list summary').first.click()
         checks['nojs_faq_works'] = fallback.locator('.faq-list details').first.get_attribute('open') is not None
         checks['nojs_no_overflow'] = fallback.evaluate('document.documentElement.scrollWidth<=innerWidth')

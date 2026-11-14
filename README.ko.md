@@ -317,6 +317,7 @@ macOS 설정의 **빠른 실행**을 켜면 다음 작업의 시작 시간을 �
 <summary><strong>문서 찾아보기</strong></summary>
 
 - [필름과 랜딩 재촬영 (2026-11-10)](docs/haejo-film-2026-11-10.md)
+- [랜딩 바로 조작 클립: 뒤에 있는 Safari 촬영 (2026-11-15)](docs/haejo-direct-clip-2026-11-15.md)
 - [작업 단위 기록](docs/tasks.md)
 - [사용자가 이미 승인한 동의로 진행하기](docs/approved-consent.md)
 - [긴 Flow 대기와 마감 일시정지](docs/flow-wait-until.md)

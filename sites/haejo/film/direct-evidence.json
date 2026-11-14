@@ -1,0 +1,141 @@
+{
+ "shot": "2026-11-15",
+ "haejo": "haejo 1.0.3 (a28cf3f)",
+ "macos": "27.2.1",
+ "safari": "27.2",
+ "front_at_start": "other-app-1",
+ "front_at_end": "other-app-1",
+ "front_unchanged": true,
+ "safari_ever_in_front": false,
+ "front_window_source": "TextEdit note written by this script (made-up text), opened with open -g, captured by window",
+ "page": "sites/haejo/film/demo-expense (local demo)",
+ "routes_note": "set_value steps print HAEJO_ROUTE; a click is an accessibility press (AXPress) and prints a route line only when it moves up to another route",
+ "row": {
+  "date": "2026-11-05",
+  "merchant": "교보문고 강남점",
+  "category": "도서인쇄비",
+  "amount": "32000",
+  "project": "P-2608",
+  "memo": "교육 교재 2권"
+ },
+ "steps": [
+  {
+   "step": "open",
+   "action": "open-url",
+   "front_before": "other-app-1",
+   "front_after": "other-app-1",
+   "front_unchanged": true,
+   "safari_in_front": false,
+   "exit": 0,
+   "routes": [],
+   "capture_front": "other-app-1"
+  },
+  {
+   "step": "date",
+   "action": "set_value",
+   "front_before": "other-app-1",
+   "front_after": "other-app-1",
+   "front_unchanged": true,
+   "safari_in_front": false,
+   "exit": 0,
+   "routes": [
+    {
+     "input_route": "ax_value_focused",
+     "route_level": "L1"
+    }
+   ],
+   "capture_front": "other-app-1"
+  },
+  {
+   "step": "merchant",
+   "action": "set_value",
+   "front_before": "other-app-1",
+   "front_after": "other-app-1",
+   "front_unchanged": true,
+   "safari_in_front": false,
+   "exit": 0,
+   "routes": [
+    {
+     "input_route": "ax_value_focused",
+     "route_level": "L1"
+    }
+   ],
+   "capture_front": "other-app-1"
+  },
+  {
+   "step": "category",
+   "action": "click",
+   "front_before": "other-app-1",
+   "front_after": "other-app-1",
+   "front_unchanged": true,
+   "safari_in_front": false,
+   "exit": 0,
+   "routes": [],
+   "capture_front": "other-app-1"
+  },
+  {
+   "step": "amount",
+   "action": "set_value",
+   "front_before": "other-app-1",
+   "front_after": "other-app-1",
+   "front_unchanged": true,
+   "safari_in_front": false,
+   "exit": 0,
+   "routes": [
+    {
+     "input_route": "ax_value_focused",
+     "route_level": "L1"
+    }
+   ],
+   "capture_front": "other-app-1"
+  },
+  {
+   "step": "project",
+   "action": "set_value",
+   "front_before": "other-app-1",
+   "front_after": "other-app-1",
+   "front_unchanged": true,
+   "safari_in_front": false,
+   "exit": 0,
+   "routes": [
+    {
+     "input_route": "ax_value_focused",
+     "route_level": "L1"
+    }
+   ],
+   "capture_front": "other-app-1"
+  },
+  {
+   "step": "memo",
+   "action": "set_value",
+   "front_before": "other-app-1",
+   "front_after": "other-app-1",
+   "front_unchanged": true,
+   "safari_in_front": false,
+   "exit": 0,
+   "routes": [
+    {
+     "input_route": "ax_value_focused",
+     "route_level": "L1"
+    }
+   ],
+   "capture_front": "other-app-1"
+  },
+  {
+   "step": "register",
+   "action": "click",
+   "front_before": "other-app-1",
+   "front_after": "other-app-1",
+   "front_unchanged": true,
+   "safari_in_front": false,
+   "exit": 0,
+   "routes": [],
+   "capture_front": "other-app-1"
+  }
+ ],
+ "closed": {
+  "safari_tab": true,
+  "textedit_note": true,
+  "textedit_quit": true
+ }
+}
