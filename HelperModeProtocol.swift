@@ -182,7 +182,15 @@ final class HaejoScopeLease {
         return true
     }
     func take(_ scope: String, shared: Bool = false) -> Bool {
-        if let held = descriptors[scope] { return (!held.shared || shared) && settle(held, fresh: false) }
+        if let held = descriptors[scope] {
+            guard !held.shared || shared else { return false }
+            if settle(held, fresh: false) { return true }
+            // This connection got the lock for a read; another task's claim is
+            // still live, so the lock goes back and that task's next command
+            // gets it while this request waits its turn.
+            _ = flock(held.fd,LOCK_UN); close(held.fd); descriptors[scope] = nil
+            return false
+        }
         guard let file = HaejoScopeLease.path(scope) else { return false }
         let fd = open(file,O_CREAT|O_RDWR|O_NOFOLLOW|O_CLOEXEC,0o600)
         guard fd >= 0 else { return false }

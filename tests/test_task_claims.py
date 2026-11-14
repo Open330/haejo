@@ -63,8 +63,13 @@ if mode == "take" || mode == "hold" {
     let read = lease.take(scope)
     lease.acting = true
     let act = lease.take(scope)
+    // The refused action gave the lock back: the claim's own task gets in.
+    let owner = HaejoScopeLease()
+    owner.task = task(args[4]); owner.acting = true
+    let owned = owner.take(scope)
+    withExtendedLifetime(owner) {}
     lease.task = nil
-    show(["read": read, "act": act, "untasked_act": lease.take(scope)])
+    show(["read": read, "act": act, "owner_act": owned, "untasked_act": lease.take(scope)])
 } else if mode == "acting" {
     show([["type":"act","action":["name":"click"]], ["type":"act","action":["name":"read"]],
           ["type":"foreground_begin"], ["type":"tab_select"], ["type":"observe"], ["type":"capture"],
@@ -249,8 +254,8 @@ class TaskClaimTests(unittest.TestCase):
 
     def test_one_connection_reads_under_a_claim_and_its_action_waits(self):
         self.take(self.a)
-        self.assertEqual({'read': True, 'act': False, 'untasked_act': True},
-                         self.run_harness('read-then-act', self.scope, self.b))
+        self.assertEqual({'read': True, 'act': False, 'owner_act': True, 'untasked_act': False},
+                         self.run_harness('read-then-act', self.scope, self.b, self.a))
         self.assertEqual(self.a, self.take(self.b, 'read')['note']['task'])
 
     def test_a_live_holder_is_busy_for_every_request_as_before(self):
