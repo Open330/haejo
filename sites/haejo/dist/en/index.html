@@ -76,19 +76,19 @@
               <ol class="routes"><li><span class="n" aria-hidden="true">1</span><strong>Accessibility, in the background</strong><p>Links, buttons, text fields, menus and date pickers. Your pointer and keyboard stay yours.</p></li><li><span class="n" aria-hidden="true">2</span><strong>Keys sent to that window</strong><p>For fields that only react to key presses. Safari stays behind.</p></li><li><span class="n" aria-hidden="true">3</span><strong>Safari in front, briefly</strong><p>For a menu that opens on pointer-down or on hover. Then the app you were using is in front again.</p></li></ol>
               <p class="scope">Every result names the route it took. Measured on Safari 27.2 across 22 kinds of page action; 20 finish in the background. <a class="text-link" href="https://github.com/Open330/haejo/blob/main/docs/safari-capability-matrix.md" target="_blank" rel="noopener noreferrer">See the matrix</a></p>
             </div>
-            <div class="scene" role="img" aria-label="Illustration: your report stays in the front window while, in the Safari window behind it, Haejo fills in the fields of an expense form.">
-              <div class="scene-bar"><span class="scene-chip"><img src="../assets/haejo-logo.svg" alt="" width="20" height="20" />Working in Safari · 3 of 8</span></div>
-              <span class="win-tag back">Typing in the background</span>
-              <div class="win win-back">
-                <div class="win-bar"><i></i><i></i><i></i><span class="url">Company expenses</span></div>
-                <div class="body"><h3>Card expense entry</h3><div class="field"><span>Date</span><b>2026-11-05</b></div><div class="field"><span>Merchant</span><b>Kyobo Book Gangnam</b></div><div class="field now"><span>Amount</span><b>32,000</b></div><div class="field"><span>Project</span><b>&nbsp;</b></div></div>
+            <figure class="scene-figure">
+              <div class="scene">
+                <video autoplay muted loop playsinline preload="metadata" poster="../assets/direct/haejo-direct.poster.jpg" width="1000" height="1010" aria-label="Clip: your report stays in the front window while, in the Safari window behind it, Haejo fills in the fields of an expense form one by one.">
+                  <source src="../assets/direct/haejo-direct.webm" type="video/webm" />
+                  <source src="../assets/direct/haejo-direct.mp4" type="video/mp4" />
+                </video>
+                <div class="scene-bar"><span class="scene-chip"><img src="../assets/haejo-logo.svg" alt="" width="20" height="20" />Working in Safari</span></div>
+                <span class="win-tag back">Typing in the background</span>
+                <span class="win-tag front">Your window</span>
+                <button class="scene-toggle" type="button" data-pause="Pause" data-play="Play" hidden>Pause</button>
               </div>
-              <span class="win-tag front">Your window</span>
-              <div class="win win-front">
-                <div class="win-bar"><i></i><i></i><i></i><span>Q3 report.pages</span></div>
-                <div class="body"><h3>Q3 results summary</h3><p>With onboarding finished for the new accounts, revenue</p><div class="bars-text"><i></i><i></i><i></i></div></div>
-              </div>
-            </div>
+              <figcaption class="scope">10 seconds. The Safari window is real captures, one after each input, taken while another app was in front; the expense system is a demo page made for the shoot. The report in front is a capture of a TextEdit note written for the shoot. The arrangement of the two windows and the labels are composed. The demo page and the note are in Korean.</figcaption>
+            </figure>
           </div>
           <ul class="abilities"><li><h3>Tabs</h3><p>Picks an open tab by its title and works in that page.</p></li><li><h3>File attachments</h3><p>Puts the files you name into the page’s file control and checks the name the page shows. Safari is in front for under a second while the file is picked.</p></li><li><h3>Page scripts <small>optional</small></h3><p>Allow it in Safari’s Developer settings and Haejo also reads and fills tabs that are not showing.</p></li><li><h3>Mac apps</h3><p>TextEdit, Finder, Calculator: apps you work through menus and buttons are handled the same way.</p></li></ul>
         </div>

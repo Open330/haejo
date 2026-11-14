@@ -122,7 +122,7 @@ Native execution uses the existing Haejo menu bar icon for task status and **현
 
 The same 11-step Flow ran five times, one step at a time, with different inputs in our own macOS test app, producing 37, 46, 70, 27, and 48, with one completion per job. Pointers and click effects were added for explanation; they are not recordings of system cursor movement.
 
-[21-second walkthrough](docs/assets/demos/workflow-guided.mp4) · [Unannotated recording](docs/assets/demos/workflow-replay.mp4) · [Capture conditions](docs/haejo-film-2026-11-10.md)
+[21-second walkthrough](docs/assets/demos/workflow-guided.mp4) · [Unannotated recording](docs/assets/demos/workflow-replay.mp4) · [Capture conditions](docs/haejo-film-2026-11-10.md) · [Landing clip in background Safari](docs/haejo-direct-clip-2026-11-15.md)
 
 A separate development test completed ten jobs with zero replay-time model calls. Another repaired two changed buttons in one job using two model calls. These are dedicated test-app results, not a reliability guarantee for every business app. [Complex scenarios](docs/haejo-complex-scenarios-2026-10-14.md) · [TextEdit comparison](docs/benchmark-records.md#정확한-textedit-저장-상태의-실제-비교).
 

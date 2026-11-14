@@ -1,4 +1,4 @@
-// Haejo landing: mobile menu and copy button. The page reads fine without it.
+// Haejo landing: mobile menu, copy button and the clip's pause button. The page reads fine without it.
 (function () {
   'use strict';
   var root = document.documentElement;
@@ -25,6 +25,26 @@
       }
     });
   }
+
+  // The looping clip: a pause button, and a still poster for people who prefer reduced motion.
+  document.querySelectorAll('.scene').forEach(function (scene) {
+    var clip = scene.querySelector('video');
+    var toggle = scene.querySelector('.scene-toggle');
+    if (!clip || !toggle) return;
+    var show = function () { toggle.textContent = clip.paused ? toggle.dataset.play : toggle.dataset.pause; };
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      clip.removeAttribute('autoplay');
+      clip.pause();
+      clip.load();
+    }
+    clip.addEventListener('play', show);
+    clip.addEventListener('pause', show);
+    toggle.hidden = false;
+    show();
+    toggle.addEventListener('click', function () {
+      if (clip.paused) clip.play(); else clip.pause();
+    });
+  });
 
   var fallbackCopy = function (text) {
     var area = document.createElement('textarea');
