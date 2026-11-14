@@ -22,6 +22,12 @@ final class ParallelWindowState: @unchecked Sendable {
         get { lock.lock();defer { lock.unlock() };return ownsForeground }
         set { lock.lock();ownsForeground=newValue;lock.unlock() }
     }
+    private var taskID:String?
+    /// The task of the request being served; nil for a command without one.
+    var requestTask:String? {
+        get { lock.lock();defer { lock.unlock() };return taskID }
+        set { lock.lock();taskID=newValue;lock.unlock() }
+    }
     private var value: ParallelWindowScope?
     var current: ParallelWindowScope? {
         get { lock.lock(); defer { lock.unlock() }; return value }
@@ -106,23 +112,45 @@ final class ParallelSession {
     private var unscoped=false
     private var foreground:HaejoScopeLease?
     private var foregroundTarget:String?
+    private var front:FrontClaim?
     private func beginForeground(_ target:String,deadline:Double?,cancelled:()->Bool) -> [String:Any] {
-        if foreground==nil {
+        while foreground==nil {
             let lease=HaejoScopeLease()
             guard waitForResource(lease,"global-input",deadline:deadline,cancelled:cancelled)
-            else { return parallelRefusal(cancelled() ? (abortState.isStopped ? "aborted_by_user" : "client_disconnected") : "input_busy") }
+            else { return cancelled() ? parallelRefusal(abortState.isStopped ? "aborted_by_user" : "client_disconnected") : busyRefusal("input_busy","global-input") }
+            if let task=targets.task {
+                // The front token. While another task has it, the input lease
+                // goes back between tries so that task can keep working.
+                front=FrontClaim(task:task,deadline:nil)
+                if front==nil {
+                    if cancelled() { return parallelRefusal(abortState.isStopped ? "aborted_by_user" : "client_disconnected") }
+                    if ProcessInfo.processInfo.systemUptime >= (deadline ?? 0) { return busyRefusal("input_busy",HaejoScopeLease.frontScope) }
+                    usleep(20_000);continue
+                }
+            }
             foreground=lease;foregroundTarget=target
             ParallelWindowState.shared.foregroundOwned=true
         }
         return ["type":"foreground_lease","acquired":true]
     }
-    func respond(_ msg:[String:Any],connection:Int32) -> [String:Any] {
+    func respond(_ request:[String:Any],connection:Int32) -> [String:Any] {
+        // Task identity rides on a request; nothing past this point sees it.
+        var msg=request
+        let task=(msg.removeValue(forKey:"task_id") as? String).flatMap { HaejoScopeLease.isTask($0) ? $0 : nil }
+        msg.removeValue(forKey:"invocation_id")
+        if msg["type"] as? String=="task_release" {
+            guard let task,Set(msg.keys)==Set(["type"]) else { return parallelRefusal("invalid_task_release") }
+            return releaseTaskFront(task)
+        }
+        targets.task=task;targets.acting=actingRequest(msg)
+        ParallelWindowState.shared.requestTask=task
+        defer { ParallelWindowState.shared.requestTask=nil }
         if msg["type"] as? String=="release_targets" {
             guard Set(msg.keys)==Set(["type"]) else {return parallelRefusal("invalid_release_targets")}
             // A coordinator may prepare an app, yield it to another connection,
             // then return for a fresh observation without losing document pins.
             targets=HaejoScopeLease()
-            foreground=nil;foregroundTarget=nil;scope=nil;unscoped=false
+            foreground=nil;foregroundTarget=nil;front=nil;scope=nil;unscoped=false
             ParallelWindowState.shared.foregroundOwned=false
             ParallelWindowState.shared.current=nil
             latestObsID="";latestElements=[];latestProcessStart=nil
@@ -133,7 +161,8 @@ final class ParallelSession {
         if msg["type"] as? String=="foreground_end" {
             guard foregroundTarget==msg["target"] as? String else { return parallelRefusal("foreground_scope_changed") }
             ParallelWindowState.shared.foregroundOwned=false
-            foreground=nil;foregroundTarget=nil
+            front?.raised(bundle:foregroundTarget ?? "")
+            foreground=nil;foregroundTarget=nil;front=nil
             return ["type":"foreground_lease","acquired":false]
         }
         if msg["type"] as? String=="window_list" { return handle(msg) }
@@ -158,14 +187,7 @@ final class ParallelSession {
         // A closed client is not a person pressing stop (2026-11-05: four
         // "aborted_by_user" with nobody touching anything).
         func stopCode() -> String { abortState.isStopped ? "aborted_by_user" : "client_disconnected" }
-        func busy(_ scope: String) -> [String:Any] {
-            var refusal = parallelRefusal("target_busy")
-            if let holder = HaejoScopeLease.holder(scope) {
-                refusal.merge(holder) { current, _ in current }
-                refusal["detail"] = "another Haejo client holds this app; finish or end that command (an idle session holds it only until its flow arrives)"
-            }
-            return refusal
-        }
+        func busy(_ scope: String) -> [String:Any] { busyRefusal("target_busy",scope) }
         if scope != nil && msg["window_scope_id"] == nil { return parallelRefusal("window_scope_changed") }
         let appShared=msg["window_scope_id"] != nil
         if !waitForResource(targets,"app-id:"+target.lowercased(),shared:appShared,
@@ -186,9 +208,14 @@ final class ParallelSession {
             } else {
                 guard ["observe","tab_select"].contains(msg["type"] as? String ?? "") else { return parallelRefusal("window_scope_requires_observation") }
             }
+            let windowScope="window:\(pid):\(start):\(id)"
             guard waitForResource(targets,"app:\(pid)",shared:true,deadline:deadline,cancelled:cancelled),
-                  waitForResource(targets,"window:\(pid):\(start):\(id)",deadline:deadline,cancelled:cancelled)
-            else { return cancelled() ? parallelRefusal(stopCode()) : busy("app:\(pid)") }
+                  waitForResource(targets,windowScope,deadline:deadline,cancelled:cancelled)
+            else {
+                if cancelled() { return parallelRefusal(stopCode()) }
+                // Name the task whose claim is on this window, when that is what was in the way.
+                return busy(HaejoScopeLease.holder(windowScope)?["holder_task"] != nil ? windowScope : "app:\(pid)")
+            }
             var listing=WindowListingDiagnostic()
             let matches=realWindows(of:AXUIElementCreateApplication(pid),diagnostic:&listing).filter { nativeWindowID($0)==id }
             guard listing.status=="ok",matches.count==1 else {
@@ -205,6 +232,10 @@ final class ParallelSession {
             guard waitForResource(targets,"app:\(pid)",deadline:deadline,cancelled:cancelled)
             else { return cancelled() ? parallelRefusal(stopCode()) : busy("app:\(pid)") }
             unscoped=true
+        }
+        // Working in the app this task raised keeps its hold on the front.
+        if let task {
+            HaejoScopeLease.renew(HaejoScopeLease.frontScope,task:task) { $0["raised"] as? Int==Int(pid) }
         }
         if msg["type"] as? String=="foreground_begin" {
             return beginForeground(target,deadline:deadline,cancelled:cancelled)

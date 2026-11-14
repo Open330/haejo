@@ -97,19 +97,92 @@ enum HaejoMode {
 
 // Cross-process ownership also covers per-command helpers and different builds.
 // Never unlink lock files: existing waiters must keep the same inode.
+//
+// Task claims (docs/parallel-execution.md): an exclusive hold taken for a task
+// leaves `task` and `claim_until` in the note, so the scope stays with that
+// task between its commands. A request that acts for another open task reads
+// the note after its own flock succeeds and treats a live claim as busy; a
+// read, and every command without a task, passes and leaves the claim as it is.
 final class HaejoScopeLease {
-    private var descriptors: [String:(fd:Int32,shared:Bool)] = [:]
+    /// How long a claim outlives the last call its task made on the scope.
+    nonisolated(unsafe) static var claimSeconds = 90
+    /// The scope of the screen front, claimed where a task brings an app forward.
+    nonisolated(unsafe) static var frontScope = "front"
+    private struct Held {
+        let fd: Int32, shared: Bool, since: Int
+        /// The note as it was when this lease got the lock.
+        let prior: [String:Any]?
+        var extra: [String:Any] = [:]
+    }
+    private var descriptors: [String:Held] = [:]
     /// The client process this lease works for, written next to an exclusive
     /// hold so a refused waiter can say who has the app and for how long.
     var holderPID: Int32 = 0
+    /// The task the current request belongs to; nil for a command without one.
+    var task: String?
+    /// The current request changes its target (an action, taking the front).
+    var acting = false
+    static func isTask(_ value: String) -> Bool {
+        value.range(of: "^t-[0-9a-f]{24}$", options: .regularExpression) != nil
+    }
+    /// Whether a task is still open, asked of the task store `haejo task`
+    /// keeps (docs/tasks.md): `state` in its task.json. An ended, unknown or
+    /// unreadable task holds no claim, so ending a task frees its scopes at once.
+    nonisolated(unsafe) static var taskOpen: (String) -> Bool = { task in
+        let file = NSHomeDirectory()+"/Library/Application Support/Haejo/Tasks/"+task+"/task.json"
+        guard let data = FileManager.default.contents(atPath: file), data.count <= 64 * 1024,
+              let meta = (try? JSONSerialization.jsonObject(with: data)) as? [String:Any] else { return false }
+        return meta["state"] as? String == "open"
+    }
+    /// The claim a note still carries: its task and the seconds left.
+    static func liveClaim(_ note: [String:Any]?) -> (task: String, left: Int)? {
+        guard let task = note?["task"] as? String, isTask(task),
+              let until = note?["claim_until"] as? Int else { return nil }
+        let left = until - Int(Date().timeIntervalSince1970)
+        guard left > 0, left <= claimSeconds, taskOpen(task) else { return nil }
+        return (task, left)
+    }
     private static func path(_ scope: String) -> String? {
         let namespace = HaejoMode.workerKey("tacto-resource-leases-v1", slot:0)
         guard let directory = HaejoMode.directory(namespace) else { return nil }
         let key = SHA256.hash(data:Data(scope.utf8)).map { String(format:"%02x",$0) }.joined()
         return directory+"/"+key+".lock"
     }
+    private static func read(_ fd: Int32) -> [String:Any]? {
+        var bytes = [UInt8](repeating: 0, count: 256)
+        let count = pread(fd, &bytes, bytes.count, 0)
+        guard count > 0, count < 256 else { return nil }
+        return (try? JSONSerialization.jsonObject(with: Data(bytes[0..<count]))) as? [String:Any]
+    }
+    /// Numbers and a task ID only; never a command line or window text. One
+    /// write of a fixed length, so a reader sees the old note or the new one.
+    private static func write(_ fd: Int32, _ note: [String:Any]) {
+        guard var data = try? JSONSerialization.data(withJSONObject: note, options: [.sortedKeys]),
+              data.count < 256 else { return }
+        if data.count < 240 { data.append(Data(repeating: 0x20, count: 240 - data.count)) }
+        _ = data.withUnsafeBytes { pwrite(fd, $0.baseAddress, data.count, 0) }
+        _ = ftruncate(fd, off_t(data.count))
+    }
+    /// Admit the current request on a lock this lease has, and keep the note:
+    /// its own claim renewed, or another task's claim carried over untouched.
+    private func settle(_ held: Held, fresh: Bool) -> Bool {
+        let foreign = HaejoScopeLease.liveClaim(held.prior).flatMap { $0.task == task ? nil : $0 }
+        if foreign != nil, acting, task != nil { return false }
+        guard !held.shared, fresh || (task != nil && foreign == nil) else { return true }
+        var note: [String:Any] = ["pid": Int(holderPID > 0 ? holderPID : getpid()),
+                                  "helper_pid": Int(getpid()), "since": held.since]
+        if foreign != nil, let prior = held.prior {
+            for key in ["task","claim_until","previous_front","previous_start","raised"] { note[key] = prior[key] }
+        } else if let task {
+            note.merge(held.extra) { current, _ in current }
+            note["task"] = task
+            note["claim_until"] = Int(Date().timeIntervalSince1970) + HaejoScopeLease.claimSeconds
+        }
+        HaejoScopeLease.write(held.fd, note)
+        return true
+    }
     func take(_ scope: String, shared: Bool = false) -> Bool {
-        if let held = descriptors[scope] { return !held.shared || shared }
+        if let held = descriptors[scope] { return (!held.shared || shared) && settle(held, fresh: false) }
         guard let file = HaejoScopeLease.path(scope) else { return false }
         let fd = open(file,O_CREAT|O_RDWR|O_NOFOLLOW|O_CLOEXEC,0o600)
         guard fd >= 0 else { return false }
@@ -117,28 +190,58 @@ final class HaejoScopeLease {
         guard fstat(fd,&info) == 0, info.st_uid == getuid(),
               info.st_mode & S_IFMT == S_IFREG, info.st_mode & 0o777 == 0o600,
               flock(fd,(shared ? LOCK_SH : LOCK_EX)|LOCK_NB) == 0 else { close(fd); return false }
-        if !shared {
-            // Numbers only; never a command line or window text.
-            let note = "{\"pid\":\(holderPID > 0 ? holderPID : getpid()),\"helper_pid\":\(getpid()),\"since\":\(Int(Date().timeIntervalSince1970))}"
-            _ = ftruncate(fd, 0)
-            _ = note.withCString { pwrite(fd, $0, strlen($0), 0) }
-        }
-        descriptors[scope] = (fd,shared); return true
+        let held = Held(fd: fd, shared: shared, since: Int(Date().timeIntervalSince1970),
+                        prior: HaejoScopeLease.read(fd))
+        // Another task's claim is live: give the lock back, so that task's
+        // next command gets it, and let the caller's wait loop come round.
+        guard settle(held, fresh: true) else { _ = flock(fd,LOCK_UN); close(fd); return false }
+        descriptors[scope] = held; return true
     }
-    /// Who holds `scope` exclusively, read from its note; nil when unknown.
-    static func holder(_ scope: String) -> [String:Any]? {
+    /// The note `scope` carried when this lease took it.
+    func prior(_ scope: String) -> [String:Any]? { descriptors[scope]?.prior }
+    /// Extra numbers kept in this task's claim on `scope` (the front token).
+    func annotate(_ scope: String, _ extra: [String:Any]) {
+        guard var held = descriptors[scope] else { return }
+        held.extra = extra; descriptors[scope] = held
+        _ = settle(held, fresh: false)
+    }
+    /// Extend `task`'s claim on a scope no connection holds now, when its note
+    /// still names that task and `matches` agrees.
+    static func renew(_ scope: String, task: String, where matches: ([String:Any]) -> Bool) {
+        guard let file = path(scope) else { return }
+        let fd = open(file,O_RDWR|O_NOFOLLOW|O_CLOEXEC)
+        guard fd >= 0 else { return }
+        defer { close(fd) }
+        guard flock(fd,LOCK_EX|LOCK_NB) == 0 else { return }
+        defer { _ = flock(fd,LOCK_UN) }
+        guard var note = read(fd), note["task"] as? String == task, matches(note) else { return }
+        note["claim_until"] = Int(Date().timeIntervalSince1970) + claimSeconds
+        write(fd, note)
+    }
+    static func note(_ scope: String) -> [String:Any]? {
         guard let file = path(scope),
-              let data = FileManager.default.contents(atPath: file), !data.isEmpty, data.count < 256,
-              let note = (try? JSONSerialization.jsonObject(with: data)) as? [String:Any],
-              let pid = note["pid"] as? Int, pid > 0, let since = note["since"] as? Int else { return nil }
-        guard kill(pid_t(pid), 0) == 0 || errno == EPERM else { return nil }
-        var info: [String:Any] = ["holder_pid": pid,
-                                  "held_seconds": max(0, Int(Date().timeIntervalSince1970) - since)]
-        var name = [CChar](repeating: 0, count: 256)
-        if proc_name(pid_t(pid), &name, UInt32(name.count)) > 0 {
-            info["holder_process"] = String(cString: name)
+              let data = FileManager.default.contents(atPath: file), !data.isEmpty, data.count < 256 else { return nil }
+        return (try? JSONSerialization.jsonObject(with: data)) as? [String:Any]
+    }
+    /// Who holds `scope`: the live process named in its note, and the task
+    /// whose claim on it is still running; nil when neither is known.
+    static func holder(_ scope: String) -> [String:Any]? {
+        guard let note = note(scope) else { return nil }
+        var info: [String:Any] = [:]
+        if let pid = note["pid"] as? Int, pid > 0, let since = note["since"] as? Int,
+           kill(pid_t(pid), 0) == 0 || errno == EPERM {
+            info["holder_pid"] = pid
+            info["held_seconds"] = max(0, Int(Date().timeIntervalSince1970) - since)
+            var name = [CChar](repeating: 0, count: 256)
+            if proc_name(pid_t(pid), &name, UInt32(name.count)) > 0 {
+                info["holder_process"] = String(cString: name)
+            }
         }
-        return info
+        if let claim = liveClaim(note) {
+            info["holder_task"] = claim.task
+            info["claim_expires_in"] = claim.left
+        }
+        return info.isEmpty ? nil : info
     }
     deinit {
         for entry in descriptors.values { _ = flock(entry.fd,LOCK_UN); close(entry.fd) }

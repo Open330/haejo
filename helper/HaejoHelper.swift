@@ -3411,8 +3411,15 @@ func pasteCredential(_ element:AXUIElement,pid:pid_t,value:String,origin:String?
     guard let saved=unicodeInput ? [] : clipboardSnapshot(pasteboard.pasteboardItems ?? []) else {return refuse("clipboard_snapshot_unavailable")}
     guard pasteboard.changeCount==beforeCount else {return refuse("clipboard_changed")}
     if !isFrontmost(pid:pid) {
+        // A task that brings the field's app forward takes the front token.
+        var front:FrontClaim?
+        if let task=ParallelWindowState.shared.requestTask,!ParallelWindowState.shared.foregroundOwned {
+            front=FrontClaim(task:task,deadline:deadline)
+            guard front != nil else {return abortState.isStopped ? refuse("aborted_by_user") : busyRefusal("input_busy",HaejoScopeLease.frontScope)}
+        }
         NSRunningApplication(processIdentifier:pid)?.activate(options:[])
         for _ in 0..<25 {if isFrontmost(pid:pid) {break};Thread.sleep(forTimeInterval:0.02)}
+        front?.raised(pid)
     }
     guard isFrontmost(pid:pid),!abortState.isStopped else {return refuse("paste_target_unavailable")}
     _=AXUIElementSetAttributeValue(element,kAXFocusedAttribute as CFString,kCFBooleanTrue)
@@ -6427,7 +6434,7 @@ let helperCapabilities: [String] = [
     // Reading only, and deliberately NOT document_snapshot: this witnesses what
     // a document contains and where it lives, never its source format or where
     // a save panel would put it.
-    "diagnostic.readiness_read_cost", "diagnostic.readiness_preflight", "observe.window_identity", "session.window_scope", "session.foreground_lease", "session.release_targets", "observe.window_list", "observe.window_tabs", "session.tab_select",
+    "diagnostic.readiness_read_cost", "diagnostic.readiness_preflight", "observe.window_identity", "session.window_scope", "session.foreground_lease", "session.release_targets", "session.task_claims", "observe.window_list", "observe.window_tabs", "session.tab_select",
     "evidence.document_window_status", "evidence.document_text", "evidence.document_text.path_selector",
     "evidence.document_text.window_selector", "evidence.document_mode", "evidence.save_panel.commit_selector", "observe.document_token", "evidence.save_panel",
     "action.click.save_panel_guard", "evidence.document_rtf_export", "evidence.document_attachment_metadata",
@@ -7796,7 +7803,7 @@ func handle(_ msg: [String: Any]) -> [String: Any] {
     let leasedInput = kind == "act" && (msg["sensitive_input_authorized"] != nil || msg["credential_origin"] != nil || !["click","set_value","type_text","read","resize_window"].contains(actionName))
     if leasedInput,
        !waitForResource(inputLease,"global-input",deadline:msg["click_deadline_uptime"] as? Double) {
-        return abortState.isStopped ? ["type":"error","error":"aborted_by_user","effect":"not_started"] : ["type":"error","error":"input_busy","effect":"not_started","retryable":true]
+        return abortState.isStopped ? ["type":"error","error":"aborted_by_user","effect":"not_started"] : busyRefusal("input_busy","global-input")
     }
     // A web route reached from this act uses the lease taken here.
     webInputLeaseHeld = leasedInput
