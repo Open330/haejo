@@ -210,7 +210,9 @@ def keep_awake_for(minutes, *, state_dir=None, run=subprocess.Popen, now=None, i
     to sleep between an agent's commands can lock the screen, and only the
     person can unlock. `caffeinate -di -t` ends by itself. It does not defeat
     a manual lock, a security policy, a closed lid, or a screen-saver lock.
-    One holder at a time: a new request replaces the one this command started.
+    One holder at a time: a new request replaces the one this command started,
+    unless that one already lasts longer — then it stays, so one agent's short
+    request leaves another's long one in place.
     """
     import json, os as _os, time
     if type(minutes) is not int or not 1 <= minutes <= KEEP_AWAKE_MAX_MINUTES:
@@ -219,6 +221,11 @@ def keep_awake_for(minutes, *, state_dir=None, run=subprocess.Popen, now=None, i
     state = _state_dir(state_dir)
     record = state/'keep-awake.json'
     with _KeepAwakeLock(state):
+        kept = _longer_holder(record, (now or time.time)() + minutes*60, identify)
+        if kept is not None:
+            return {'type': 'keep_awake', 'pid': kept['pid'], 'minutes': minutes, 'until': kept['until'], 'kept': True,
+                    'note': 'a longer keep-awake is already running and stays; '
+                            'idle display/system sleep only; a manual, policy or screen-saver lock still applies'}
         if _stop_locked(state, kill=kill, now=now, identify=identify).get('unverified'):
             # A previous holder may still run and could not be checked: do not
             # add a second one nobody would know to stop.
@@ -243,6 +250,19 @@ def keep_awake_for(minutes, *, state_dir=None, run=subprocess.Popen, now=None, i
             raise
     return {'type': 'keep_awake', 'pid': proc.pid, 'minutes': minutes, 'until': until,
             'note': 'idle display/system sleep only; a manual, policy or screen-saver lock still applies'}
+
+
+def _longer_holder(record, until, identify):
+    """The recorded holder, when that exact process still runs past `until`."""
+    import json
+    try:
+        entry = json.loads(record.read_text(encoding='utf-8'))
+        if (type(entry['until']) in (int, float) and entry['until'] >= until
+                and identify(entry['pid']) == (entry['started'], entry['command'])):
+            return entry
+    except (OSError, ValueError, KeyError, TypeError):
+        pass
+    return None
 
 
 def stop_keep_awake(*, state_dir=None, kill=None, now=None, identify=None):
