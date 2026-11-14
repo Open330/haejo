@@ -6,7 +6,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 from playwright.sync_api import sync_playwright
 
-DMG = 'https://github.com/Open330/haejo/releases/download/v1.0.2/Haejo-1.0.2-arm64.dmg'
+DMG = 'https://github.com/Open330/haejo/releases/download/v1.0.3/Haejo-1.0.3-arm64.dmg'
 SECTIONS = ['direct', 'history', 'flow', 'install', 'faq']
 PAGES = {'ko': '', 'en': 'en/', 'ko_bench': 'benchmarks/', 'en_bench': 'en/benchmarks/'}
 WIDTHS = [320, 360, 390, 768, 1024, 1440, 1600]
