@@ -146,6 +146,57 @@ def _explain_not_found(target: str) -> dict:
     return {}
 
 
+TASK_CLAIMS = 'session.task_claims'
+
+
+def _task_identity(driver, msg):
+    """Name the bound task on a request for a target, so the helper keeps the
+    target with that task between its commands (docs/parallel-execution.md)."""
+    if not msg.get('target') or TASK_CLAIMS not in getattr(driver, 'capabilities', ()):
+        return msg
+    from .task import current
+    binding = current.get()
+    if binding is None:
+        return msg
+    return dict(msg, task_id=binding.task_id, invocation_id=binding.invocation)
+
+
+def _busy_hint(reply):
+    """Say in words how long a busy target stays with another task."""
+    if (isinstance(reply, dict) and reply.get('type') == 'error' and 'hint' not in reply
+            and str(reply.get('error', '')).endswith('_busy')
+            and isinstance(reply.get('holder_task'), str) and type(reply.get('retry_after_ms')) is int):
+        seconds = max(1, -(-reply['retry_after_ms'] // 1000))
+        reply['hint'] = (f"다른 작업({reply['holder_task']})이 이 대상을 쓰고 있습니다 — 약 {seconds}초 뒤 다시 시도하세요. "
+                         "그 작업이 끝나면 바로 풀리고, 그동안 다른 앱이나 창의 일을 먼저 할 수 있습니다.")
+    return reply
+
+
+def release_task_claims(task_id):
+    """A task ended: ask the helper to put back the app that was in front
+    before the task raised one. The launcher answers by itself when the task
+    holds no front, so no helper starts for it. Best effort; None when no
+    channel is available."""
+    try:
+        shared = InheritedHelperDriver._shared
+        if shared is not None and getattr(shared, '_ready', False):
+            if getattr(shared, '_poisoned', False) or TASK_CLAIMS not in shared.capabilities:
+                return None
+            return shared._send({'type': 'task_release', 'task_id': task_id})
+        fd = _environment_value('HELPER_FD')
+        if fd is None or shared is not None:
+            return None
+        import socket as _s
+        with _s.socket(fileno=os.dup(int(fd))) as channel:
+            channel.settimeout(5)
+            channel.sendall((json.dumps({'type': 'task_release', 'task_id': task_id}) + '\n').encode())
+            with channel.makefile('r', encoding='utf-8', newline='\n') as stream:
+                reply = json.loads(stream.readline() or 'null')
+        return reply if isinstance(reply, dict) else None
+    except Exception:
+        return None
+
+
 class HelperUnavailable(RuntimeError):
     pass
 
@@ -485,6 +536,7 @@ class InheritedHelperDriver:
             msg = dict(msg, window_scope_id=scope[1])
         if getattr(self, "_poisoned", False):
             raise HelperUnavailable("권한 채널이 영구적으로 종료되었습니다")
+        msg = _task_identity(self, msg)
         # A caller's serialization error happens before sending anything and
         # does not desynchronize the stream. Once IO starts, a lost or malformed
         # reply leaves the effect unknown; a queued reply must never answer the
@@ -502,7 +554,7 @@ class InheritedHelperDriver:
             if (not isinstance(response, dict) or not isinstance(response.get('type'), str)
                     or not response['type']):
                 raise HelperUnavailable("권한 채널 응답 형식이 잘못되었습니다")
-            return response
+            return _busy_hint(response)
         except BaseException as exc:
             self._poisoned = True
             try:
@@ -611,12 +663,13 @@ class HelperDriver:
             if msg['target'] != scope[0]:
                 return {'type':'error','error':'window_scope_changed','effect':'not_started'}
             msg = dict(msg, window_scope_id=scope[1])
+        msg = _task_identity(self, msg)
         self._proc.stdin.write(json.dumps(msg, ensure_ascii=False) + "\n")
         self._proc.stdin.flush()
         line = self._proc.stdout.readline()
         if not line:
             raise HelperUnavailable("도우미 프로세스가 종료되었습니다")
-        return json.loads(line)
+        return _busy_hint(json.loads(line))
 
     # ---------------------------------------------------------- L2 surface
 
