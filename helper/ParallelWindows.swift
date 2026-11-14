@@ -37,17 +37,6 @@ final class ParallelWindowState: @unchecked Sendable {
 func parallelRefusal(_ code: String) -> [String:Any] {
     ["type":"error","error":code,"effect":"not_started","retryable":code.hasSuffix("busy")]
 }
-func waitForResource(_ lease: HaejoScopeLease, _ scope: String, shared: Bool = false,
-                     deadline: Double? = nil, cancelled: () -> Bool = { abortState.isStopped }) -> Bool {
-    if scope=="global-input", ParallelWindowState.shared.foregroundOwned { return true }
-    let until = min(deadline ?? .infinity,ParallelWindowState.shared.requestDeadline ?? .infinity,ProcessInfo.processInfo.systemUptime+10)
-    while true {
-        if cancelled() { return false }
-        if lease.take(scope,shared:shared) { return true }
-        if ProcessInfo.processInfo.systemUptime >= until { return false }
-        usleep(20_000)
-    }
-}
 func windowScopePointerRefusal() -> [String:Any]? {
     ParallelWindowState.shared.current == nil ? nil : parallelRefusal("window_scope_requires_ax")
 }
@@ -138,6 +127,8 @@ final class ParallelSession {
         var msg=request
         let task=(msg.removeValue(forKey:"task_id") as? String).flatMap { HaejoScopeLease.isTask($0) ? $0 : nil }
         msg.removeValue(forKey:"invocation_id")
+        // How long this request may stay in line for its app, window and input.
+        let leaseWait=leaseWaitSeconds(msg.removeValue(forKey:"lease_wait_seconds"))
         if msg["type"] as? String=="task_release" {
             guard let task,Set(msg.keys)==Set(["type"]) else { return parallelRefusal("invalid_task_release") }
             return releaseTaskFront(task)
@@ -168,7 +159,7 @@ final class ParallelSession {
         if msg["type"] as? String=="window_list" { return handle(msg) }
         guard let target=msg["target"] as? String else { return handle(msg) }
         let began=ProcessInfo.processInfo.systemUptime
-        let deadline=min(msg["click_deadline_uptime"] as? Double ?? .infinity,began+10)
+        let deadline=min(msg["click_deadline_uptime"] as? Double ?? .infinity,began+leaseWait)
         ParallelWindowState.shared.requestDeadline=deadline
         defer { ParallelWindowState.shared.requestDeadline=nil }
         if targets.holderPID == 0 {

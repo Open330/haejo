@@ -167,6 +167,7 @@ flow=json.loads(sys.stdin.readline())
 path=sys.argv[sys.argv.index('--receipt')+1]
 assert 'HAEJO_HELPER_FD' not in os.environ
 assert os.environ['HAEJO_HELPER_MODE']=='warm'
+assert os.environ['HAEJO_LEASE_WAIT_SECONDS']=='60'
 with open(path,'w') as f:json.dump({'schema':1,'ok':True,'effect':'observed','error':None,'coordination_elapsed_ms':12,'helper_pid':os.getpid()},f)
 ''')
             def launch(command,**kwargs):

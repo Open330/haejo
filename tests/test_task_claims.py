@@ -22,18 +22,12 @@ import Darwin
 func parallelRefusal(_ code: String) -> [String:Any] {
     ["type":"error","error":code,"effect":"not_started","retryable":code.hasSuffix("busy")]
 }
-final class ParallelWindowState { static let shared = ParallelWindowState(); var requestTask: String? }
+final class ParallelWindowState {
+    static let shared = ParallelWindowState()
+    var requestTask: String?, requestDeadline: Double?, foregroundOwned = false
+}
 final class AbortStub { var isStopped = false }
 let abortState = AbortStub()
-func waitForResource(_ lease: HaejoScopeLease, _ scope: String, shared: Bool = false,
-                     deadline: Double? = nil, cancelled: () -> Bool = { false }) -> Bool {
-    let until = min(deadline ?? .infinity, ProcessInfo.processInfo.systemUptime + 10)
-    while true {
-        if lease.take(scope, shared: shared) { return true }
-        if ProcessInfo.processInfo.systemUptime >= until { return false }
-        usleep(20_000)
-    }
-}
 nonisolated(unsafe) var frontPID: pid_t = 0
 nonisolated(unsafe) var starts: [pid_t:Double] = [:]
 nonisolated(unsafe) var returned: [pid_t] = []
@@ -56,6 +50,35 @@ if mode == "take" || mode == "hold" {
           "busy": busyRefusal("target_busy", scope, task: lease.task)])
     if mode == "hold" { var byte: UInt8 = 0; _ = read(0, &byte, 1) }
     withExtendedLifetime(lease) {}
+} else if mode == "wait" {
+    // wait <scope> <task|-> <act|read> <shared|exclusive> <seconds> <hold ms, or -1 for until stdin closes> [stale s]
+    if args.count > 8 { HaejoWaitQueue.staleSeconds = Int(args[8])! }
+    let lease = HaejoScopeLease()
+    lease.task = task(args[3]); lease.acting = args[4] == "act"
+    let began = ProcessInfo.processInfo.systemUptime
+    let ok = waitForResource(lease, scope, shared: args[5] == "shared", deadline: began + Double(args[6])!)
+    show(["ok": ok, "elapsed_ms": Int((ProcessInfo.processInfo.systemUptime - began) * 1000),
+          "at_ms": Int(Date().timeIntervalSince1970 * 1000)])
+    if ok, let hold = Int(args[7]) {
+        if hold < 0 { var byte: UInt8 = 0; _ = read(0, &byte, 1) } else { usleep(UInt32(hold) * 1000) }
+        show(["left_ms": Int(Date().timeIntervalSince1970 * 1000)])
+    }
+    withExtendedLifetime(lease) {}
+} else if mode == "tickets" {
+    show(["waiting": HaejoWaitQueue.waiting(scope), "tickets": HaejoWaitQueue.tickets(scope)])
+} else if mode == "deadlines" {
+    // Against a scope another process holds: which deadline ends the wait.
+    func waited(_ deadline: Double?, request: Double?) -> Int {
+        let began = ProcessInfo.processInfo.systemUptime
+        ParallelWindowState.shared.requestDeadline = request.map { began + $0 }
+        precondition(!waitForResource(HaejoScopeLease(), scope, deadline: deadline.map { began + $0 }))
+        ParallelWindowState.shared.requestDeadline = nil
+        return Int((ProcessInfo.processInfo.systemUptime - began) * 1000)
+    }
+    let raws: [Any?] = [nil, 30, 1, 120, 0.5, 121, true, "30", -1, 45.5]
+    show(["caller": waited(0.3, request: nil), "request": waited(nil, request: 0.4),
+          "earlier": waited(2, request: 0.2), "past": waited(-1, request: nil),
+          "seconds": raws.map { leaseWaitSeconds($0) }, "tickets": HaejoWaitQueue.tickets(scope)])
 } else if mode == "read-then-act" {
     // One connection reads under another task's claim, then acts.
     let lease = HaejoScopeLease()
@@ -184,7 +207,7 @@ class TaskClaimTests(unittest.TestCase):
         done = subprocess.run([str(self.binary), *map(str, args)], capture_output=True, text=True, timeout=30,
                               env={'CFFIXED_USER_HOME': str(self.home), 'PATH': '/usr/bin:/bin'})
         self.assertEqual(0, done.returncode, done.stderr)
-        return json.loads(done.stdout)
+        return json.loads(done.stdout.splitlines()[0])
 
     def take(self, task, kind='act', *, shared=False, ttl=90, scope=None):
         return self.run_harness('take', scope or self.scope, task or '-', kind,
@@ -273,6 +296,140 @@ class TaskClaimTests(unittest.TestCase):
         finally:
             holder.kill(); holder.communicate(timeout=10)
 
+    # ---- bounded, fair waiting
+
+    def spawn(self, *args):
+        process = subprocess.Popen([str(self.binary), *map(str, args)], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                   text=True, env={'CFFIXED_USER_HOME': str(self.home), 'PATH': '/usr/bin:/bin'})
+        self.addCleanup(self.reap, process)
+        return process
+
+    @staticmethod
+    def reap(process):
+        if process.poll() is None:
+            process.kill()
+        process.communicate(timeout=10)
+
+    def holder(self, task=None, *, shared=False):
+        process = self.spawn('hold', self.scope, task or '-', 'act', 'shared' if shared else 'exclusive', 90)
+        self.assertTrue(json.loads(process.stdout.readline())['ok'])
+        return process
+
+    def waiter(self, task=None, kind='act', *, shared=False, seconds=20, hold=150, stale=None):
+        """A process in line for the scope, started once the ones before it have their tickets."""
+        expected = len(self.tickets()) + 1
+        process = self.spawn('wait', self.scope, task or '-', kind, 'shared' if shared else 'exclusive', seconds, hold,
+                             *(() if stale is None else (stale,)))
+        deadline = time.monotonic() + 10
+        while len(self.tickets()) < expected:
+            self.assertLess(time.monotonic(), deadline, 'the waiter never took a ticket')
+            time.sleep(0.02)
+        return process
+
+    def tickets(self):
+        return self.run_harness('tickets', self.scope)['tickets']
+
+    @staticmethod
+    def got(process):
+        return json.loads(process.stdout.readline())
+
+    def test_an_uncontended_wait_takes_at_once_and_leaves_no_ticket(self):
+        before = self.run_harness('tickets', self.scope)
+        self.assertEqual({'waiting': False, 'tickets': []}, before)
+        for task, shared in ((None, False), (self.a, False), (self.a, True)):
+            taken = self.run_harness('wait', self.scope, task or '-', 'act', 'shared' if shared else 'exclusive', 5, 0)
+            self.assertTrue(taken['ok'])
+            self.assertLess(taken['elapsed_ms'], 100)
+            self.assertEqual(before, self.run_harness('tickets', self.scope))
+
+    def test_the_wait_ends_at_the_callers_deadline(self):
+        self.holder()
+        report = self.run_harness('deadlines', self.scope)
+        self.assertTrue(300 <= report['caller'] < 900, report)
+        self.assertTrue(400 <= report['request'] < 1000, report)
+        self.assertTrue(200 <= report['earlier'] < 800, report)
+        self.assertLess(report['past'], 200)                      # one try, then busy
+        self.assertEqual([10, 30, 1, 120, 10, 10, 10, 10, 10, 45.5], report['seconds'])
+        self.assertEqual([], report['tickets'])                   # a waiter that gave up left the line
+
+    def test_waiters_get_the_scope_in_the_order_they_came(self):
+        for round in range(3):
+            with self.subTest(round=round):
+                self.scope = 'test:' + uuid.uuid4().hex
+                holder = self.holder()
+                waiters = [self.waiter(hold=120) for _ in range(4)]
+                self.assertEqual([1, 2, 3, 4], [row[0] for row in self.tickets()])
+                self.reap(holder)
+                took = [self.got(process) for process in waiters]
+                left = [self.got(process)['left_ms'] for process in waiters]
+                self.assertTrue(all(row['ok'] for row in took), took)
+                times = [row['at_ms'] for row in took]
+                self.assertEqual(sorted(times), times)
+                for earlier, later in zip(left, times[1:]):       # each got it after the one before left
+                    self.assertLessEqual(earlier, later)
+                for process in waiters:
+                    process.wait(timeout=10)
+                self.assertEqual({'waiting': False, 'tickets': []}, self.run_harness('tickets', self.scope))
+
+    def test_a_dead_waiters_ticket_is_skipped(self):
+        holder = self.holder()
+        first, second = self.waiter(), self.waiter(hold=0)
+        first.kill(); first.wait(timeout=10)                       # its ticket stays in the file
+        began = time.monotonic()
+        self.reap(holder)
+        self.assertTrue(self.got(second)['ok'])
+        self.assertLess(time.monotonic() - began, 1.5)
+
+    def test_a_stopped_waiters_ticket_goes_stale_and_it_rejoins_when_it_runs_again(self):
+        import os, signal
+        holder = self.holder()
+        first, second = self.waiter(hold=0, stale=1), self.waiter(hold=300, stale=1)
+        os.kill(first.pid, signal.SIGSTOP)
+        try:
+            self.reap(holder)
+            self.assertTrue(self.got(second)['ok'])                # after the first ticket's 1 s ran out
+        finally:
+            os.kill(first.pid, signal.SIGCONT)
+        self.assertTrue(self.got(first)['ok'])
+
+    def test_later_shared_waiters_stay_behind_an_exclusive_one(self):
+        reader = self.holder(shared=True)
+        writer = self.waiter(hold=300)                             # exclusive, behind the reader
+        late = self.waiter(shared=True, hold=0)                    # could share with the reader; waits its turn
+        time.sleep(0.3)
+        self.assertEqual(3 - 1, len(self.tickets()))               # both still in line
+        self.reap(reader)
+        wrote = self.got(writer)
+        self.assertTrue(wrote['ok'])
+        self.assertGreaterEqual(self.got(late)['at_ms'], self.got(writer)['left_ms'])
+
+    def test_shared_waiters_go_together(self):
+        holder = self.holder()
+        readers = [self.waiter(shared=True, hold=-1) for _ in range(3)]
+        self.reap(holder)
+        self.assertTrue(all(self.got(reader)['ok'] for reader in readers))   # all three hold it at once
+
+    def test_a_waiter_for_a_claim_stands_only_before_requests_the_claim_turns_away(self):
+        c = self.task.start('claim test c', root=self.tasks)['id']
+        self.assertTrue(self.take(self.a)['ok'])                   # A's claim; its process is gone
+        second = self.waiter(self.b, hold=200)
+        third = self.waiter(c, hold=0)
+        for task, kind in ((None, 'act'), (self.b, 'read'), (self.a, 'act')):
+            with self.subTest(task=task, kind=kind):               # a read, an untasked command and A itself pass
+                passed = self.run_harness('wait', self.scope, task or '-', kind, 'exclusive', 5, 0)
+                self.assertTrue(passed['ok'])
+                self.assertLess(passed['elapsed_ms'], 500)
+        self.assertEqual(2, len(self.tickets()))
+        self.task.end(self.a, 'done', root=self.tasks)             # the claim ends: B, the older waiter, gets it
+        self.assertTrue(self.got(second)['ok'])
+        left = self.got(second)['left_ms']
+        time.sleep(0.3)
+        self.assertEqual(1, len(self.tickets()))                   # C now waits for B's claim
+        self.task.end(self.b, 'done', root=self.tasks)
+        self.assertGreaterEqual(self.got(third)['at_ms'], left)
+        third.wait(timeout=10)
+        self.assertEqual(c, self.take(c, 'read')['note']['task'])
+
     def test_acting_requests(self):
         self.assertEqual([True, False, True, True, False, False, False, False],
                          self.run_harness('acting', self.scope))
@@ -288,7 +445,7 @@ class TaskClaimTests(unittest.TestCase):
 
 @unittest.skipUnless(sys.platform == 'darwin' and shutil.which('swift'), 'macOS Swift required')
 class LauncherTaskIdentityTests(unittest.TestCase):
-    def test_launcher_allows_validated_task_identity_on_target_requests(self):
+    def test_launcher_allows_validated_task_identity_and_lease_wait_on_target_requests(self):
         source = (ROOT/'launcher/haejo.swift').read_text()
         schema = source[source.index('let allowedTypes:'):source.index('// MARK: - Socket plumbing')]
         checks = r'''
@@ -312,6 +469,16 @@ let requests: [[String:Any]] = [
     ["type":"task_release"],
     ["type":"task_release","task_id":task,"target":"com.example.app"],
     ["type":"task_release","task_id":task,"invocation_id":invocation],
+    // lease_wait_seconds: 1...120 on a request that names a target.
+    with(observe, ["lease_wait_seconds":60]),
+    with(observe, ["lease_wait_seconds":1,"task_id":task,"invocation_id":invocation]),
+    with(["type":"foreground_begin","target":"com.example.app"], ["lease_wait_seconds":120]),
+    with(observe, ["lease_wait_seconds":121]),
+    with(observe, ["lease_wait_seconds":0]),
+    with(observe, ["lease_wait_seconds":true]),
+    with(observe, ["lease_wait_seconds":"60"]),
+    ["type":"ping","lease_wait_seconds":60],
+    ["type":"release_targets","lease_wait_seconds":60],
 ]
 print(String(data:try! JSONSerialization.data(withJSONObject:requests.map{vetted($0)==nil}),encoding:.utf8)!)
 '''
@@ -320,7 +487,7 @@ print(String(data:try! JSONSerialization.data(withJSONObject:requests.map{vetted
             path.write_text('import Foundation\nimport CoreFoundation\nfunc modelTimeout(_ raw:Any?)->Double? {1}\n'+schema+checks)
             result = subprocess.run(['swift', str(path)], capture_output=True, text=True, timeout=60)
         self.assertEqual(0, result.returncode, result.stderr)
-        self.assertEqual([True]*7 + [False]*9, json.loads(result.stdout))
+        self.assertEqual([True]*7 + [False]*9 + [True]*3 + [False]*6, json.loads(result.stdout))
 
 
 if __name__ == '__main__':

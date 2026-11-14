@@ -18,7 +18,7 @@ class NamespaceConfigurationTests(unittest.TestCase):
         original = dict(env)
         self.assertEqual('1', value('NO_INDICATOR', environ=env))
         self.assertEqual(original, env)
-        for key in ('AUTHOR_DEBUG', 'EVENT_MARKER', 'HELPER_FD', 'HELPER_TOKEN', 'LAUNCHER', 'NO_INDICATOR'):
+        for key in ('AUTHOR_DEBUG', 'EVENT_MARKER', 'HELPER_FD', 'HELPER_TOKEN', 'LAUNCHER', 'LEASE_WAIT_SECONDS', 'NO_INDICATOR'):
             with self.subTest(key=key):
                 self.assertEqual('4', value(key, environ={'HAEJO_'+key:'4'}))
                 self.assertIsNone(value(key, environ={'OTHER_'+key:'3'}))

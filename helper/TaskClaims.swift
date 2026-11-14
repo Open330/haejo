@@ -5,6 +5,25 @@ import Darwin
 // works in (the note of each exclusive lease, HelperModeProtocol.swift) and
 // the screen front it took. docs/parallel-execution.md, "Task claims".
 
+/// How long a request stays in line for a resource when it names no time itself.
+let defaultLeaseWaitSeconds=10.0
+/// The wait a request asked for (`lease_wait_seconds`, 1...120), or the default.
+func leaseWaitSeconds(_ raw:Any?) -> Double {
+    guard let number=raw as? NSNumber,CFGetTypeID(number) != CFBooleanGetTypeID(),
+          number.doubleValue.isFinite,(1...120).contains(number.doubleValue) else { return defaultLeaseWaitSeconds }
+    return number.doubleValue
+}
+/// Take `scope` for `lease`, in line behind older waiters. The wait ends at
+/// the earlier of the caller's `deadline` and the request's own deadline
+/// (ParallelSession.respond: the request's `lease_wait_seconds`, 10 s unless it
+/// says otherwise, and never past its input deadline); 10 s when neither is set.
+func waitForResource(_ lease: HaejoScopeLease, _ scope: String, shared: Bool = false,
+                     deadline: Double? = nil, cancelled: () -> Bool = { abortState.isStopped }) -> Bool {
+    if scope=="global-input", ParallelWindowState.shared.foregroundOwned { return true }
+    let until=[deadline,ParallelWindowState.shared.requestDeadline].compactMap { $0 }.min()
+        ?? ProcessInfo.processInfo.systemUptime+defaultLeaseWaitSeconds
+    return lease.wait(scope,shared:shared,until:until,cancelled:cancelled)
+}
 /// A busy refusal that names who has `scope` and when to come back: the live
 /// holder process, and the task whose claim on it is still running.
 func busyRefusal(_ code:String,_ scope:String,task:String?=ParallelWindowState.shared.requestTask) -> [String:Any] {

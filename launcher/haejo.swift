@@ -254,6 +254,12 @@ func vetted(_ request: [String: Any]) -> String? {
         else { return "invalid task identity" }
         if type == "task_release" { return nil }
     }
+    // How long the request may stay in line for its app, window and input
+    // (helper/TaskClaims.swift): 1...120 s, on a request that names a target.
+    if let wait = msg.removeValue(forKey: "lease_wait_seconds") {
+        guard msg["target"] is String, let number = wait as? NSNumber, CFGetTypeID(number) != CFBooleanGetTypeID(),
+              number.doubleValue.isFinite, (1...120).contains(number.doubleValue) else { return "invalid lease wait" }
+    }
     for key in msg.keys where !topLevelKeys.contains(key) {
         return "허용되지 않은 최상위 필드: \(key)"
     }
@@ -954,8 +960,10 @@ func writeJSONLine(_ fd: Int32, _ obj: [String: Any]) {
 // HAEJO_TASK/HAEJO_TASK_PARENT carry only a task ID that haejo/task.py validates
 // before any screen access; without them `HAEJO_TASK=<id> haejo …` (the form
 // the skill teaches) silently ran unbound through the signed launcher.
+// HAEJO_LEASE_WAIT_SECONDS is a number haejo/helper.py validates (1...120).
 let allowedEnv = ["HOME", "USER", "LOGNAME", "LANG", "LC_ALL", "LC_CTYPE", "TZ",
-                  "SSL_CERT_FILE", "TERM", "BW_SESSION", "HAEJO_TASK", "HAEJO_TASK_PARENT"]
+                  "SSL_CERT_FILE", "TERM", "BW_SESSION", "HAEJO_TASK", "HAEJO_TASK_PARENT",
+                  "HAEJO_LEASE_WAIT_SECONDS"]
 var env: [String: String] = [:]
 let inherited = ProcessInfo.processInfo.environment
 for key in allowedEnv { if let v = inherited[key] { env[key] = v } }

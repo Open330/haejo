@@ -81,6 +81,8 @@ seconds. Timed-out workers and Ctrl-C terminate their launcher/Python process
 groups so they cannot dispatch delayed input.
 Workers use warm helper mode and a fresh configuration; coordinator `HAEJO_*`
 environment overrides (including helper wait/idle limits) are not forwarded.
+Each worker waits in line for its window for the batch timeout, up to 120 s
+(`HAEJO_LEASE_WAIT_SECONDS`, see "Waiting in line").
 The menu's all-run stop also notifies the coordinator, which cancels its workers
 still waiting for a helper slot or window lease. An individual run stop remains
 specific to that helper. The final report includes a `cancelled` batch flag;
@@ -140,8 +142,8 @@ existed: it sets no claim and passes every claim.
   passes and renews.
 - **Who waits.** A request that acts (`act` other than a `read` action,
   `foreground_begin`, `tab_select`) for a *different, still-open* task treats a
-  live claim as busy and stays in the helper's existing wait (up to 10 s inside
-  the request's deadline). Reads — `observe`, `capture`, `windows`, document and
+  live claim as busy and stays in line for it (see "Waiting in line": 10 s
+  unless the command asks for longer, inside the request's deadline). Reads — `observe`, `capture`, `windows`, document and
   menu readings — pass and leave the claim as it is. With no claim in the way a
   request takes the lock at once, exactly as before; the added cost is one
   read of a note of at most 256 bytes.
@@ -174,10 +176,44 @@ existed: it sets no claim and passes every claim.
   holds the lock, the reply names `holder_pid`, `holder_process` and
   `held_seconds` as before, with `retry_after_ms: 1000`.
 
-Lock files and notes live in the per-user lease directory shared by every
-build; an earlier release ignores claims and writes notes without them.
-Coverage: `tests/test_task_claims.py` (two processes on the real lease code,
-the front token with a simulated front app) and
+### Waiting in line
+
+A request that finds its app, window, the input lease or the screen front busy
+waits for it and then answers `target_busy` or `input_busy`.
+
+- **How long.** 10 s for each request by default. A command started with
+  `HAEJO_LEASE_WAIT_SECONDS=<1..120>` sends that number as `lease_wait_seconds`
+  on every request that names a target (the helper advertises
+  `session.lease_wait`; the launcher checks the range), and each such request
+  then waits that long instead. An agent that would rather queue than spend a
+  model turn on a retry sets it for its task's commands. `haejo parallel` sets
+  it for its workers to the batch `--timeout`, up to 120. A pointer or key
+  request still ends at its own input deadline when that comes first.
+- **Order.** The first request to find a scope busy writes a waiter ticket into
+  the scope's queue file, next to its lock file. On every 20 ms poll a waiter
+  tries the lock only when no older live ticket stands before it, so the scope
+  goes to whoever has waited longest. Shared waiters (window workers on their
+  app) go together; a later shared request stays behind an exclusive waiter, so
+  work that needs the whole app is reached even while window workers keep
+  arriving.
+- **Claims and the line.** A ticket that waits for another task's claim to end
+  stands only before requests that claim also turns away. A read, a command
+  without a task and the claiming task's own next command pass it at once.
+- **A waiter that is gone.** No process tends the queue. A ticket is dropped by
+  the next waiter that reads the file when its process has exited, or when its
+  `seen` second is more than 3 s old (a stopped process); that waiter rejoins
+  at the end of the line if it runs again. A request that gets the scope, gives
+  up at its deadline or is cancelled removes its own ticket. Queue files stay in
+  place like lock files; an empty one means nobody waits.
+- **Cost without contention.** A scope with an empty queue is taken on the first
+  try as before; the check is one `stat` of the queue file.
+
+Lock files, queue files and notes live in the per-user lease directory shared
+by every build; an earlier release ignores claims, writes notes without them,
+takes no ticket and tries the lock on every poll.
+Coverage: `tests/test_task_claims.py` (two and more processes on the real
+lease code: claims, waiter order, dead and stopped waiters, deadlines; the
+front token with a simulated front app) and
 `tests/test_parallel_coordination.py`.
 
 ## Tasks

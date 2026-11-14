@@ -149,10 +149,30 @@ def _explain_not_found(target: str) -> dict:
 TASK_CLAIMS = 'session.task_claims'
 
 
+LEASE_WAIT = 'session.lease_wait'
+
+
+def lease_wait_seconds(environ=None):
+    """How long each request stays in line for a busy app, window or input
+    before it answers `*_busy`: HAEJO_LEASE_WAIT_SECONDS, whole seconds 1..120.
+    None (the helper's own 10 s) when unset or outside that range."""
+    raw = _environment_value('LEASE_WAIT_SECONDS', environ=environ)
+    if not isinstance(raw, str) or not raw.isascii() or not raw.isdigit() or not 1 <= int(raw) <= 120:
+        return None
+    return int(raw)
+
+
 def _task_identity(driver, msg):
     """Name the bound task on a request for a target, so the helper keeps the
-    target with that task between its commands (docs/parallel-execution.md)."""
-    if not msg.get('target') or TASK_CLAIMS not in getattr(driver, 'capabilities', ()):
+    target with that task between its commands, and the time the request may
+    wait in line when one is set (docs/parallel-execution.md)."""
+    if not msg.get('target'):
+        return msg
+    capabilities = getattr(driver, 'capabilities', ())
+    wait = lease_wait_seconds() if LEASE_WAIT in capabilities else None
+    if wait is not None:
+        msg = dict(msg, lease_wait_seconds=wait)
+    if TASK_CLAIMS not in capabilities:
         return msg
     from .task import current
     binding = current.get()

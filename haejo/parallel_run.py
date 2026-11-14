@@ -275,6 +275,9 @@ def run_parallel_jobs(manifest, *, timeout=60, on_event=None):
             env = {k:v for k,v in os.environ.items() if not k.startswith('HAEJO_')}
             env.update(task_env)
             env['HAEJO_HELPER_MODE'] = 'warm'
+            # A worker stays in line for its window as long as the batch
+            # gives it, instead of answering busy after the default 10 s.
+            env['HAEJO_LEASE_WAIT_SECONDS'] = str(min(timeout, 120))
             process = None
             try:
                 with lock:
