@@ -55,7 +55,7 @@ Usage:
   haejo web status | install [--playwright X.Y.Z] | remove   # Playwright and Chromium for web-upload,
       (downloaded on request into the Haejo data folder; not part of Haejo.app)
   haejo parameterize <flow> -p 12=a -p 34=b --digits   # concrete IR -> template
-  haejo parallel <manifest.json> --helper [--json]  # 1..4 checked AX window jobs, isolated signed sessions
+  haejo parallel <manifest.json> --helper [--workers 1..4] [--json]  # 1..16 checked AX window jobs, isolated signed sessions
       (--helper routes through the signed Swift helper that holds the permissions)
       (signed macOS tasks use the existing Haejo menu; configure the task banner in app Settings)
   haejo replay <name>     # replay a saved flow by name

@@ -266,6 +266,8 @@ func parallelWindowList(_ target:String) -> [String:Any] {
         var row:[String:Any]=["window_id":Int(id),"title":String((str(window,kAXTitleAttribute as String) ?? "").prefix(200))]
         if let url=windowPageURL(window) { row["url"]=url }
         if let onScreen=server[id] { row["on_screen"]=onScreen }
+        // The open task working in this window, so a planner picks another one.
+        if let claim=HaejoScopeLease.liveClaim(HaejoScopeLease.note(WindowClaims.scope(pid,start,id))) { row["claimed_by"]=claim.task }
         let tabs=browserTabRows(window,url:row["url"] as? String,title:row["title"] as? String ?? "")
         if !tabs.isEmpty { row["tabs"]=tabs }
         return row

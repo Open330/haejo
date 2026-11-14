@@ -1,7 +1,7 @@
 # Parallel window execution
 
-`haejo parallel` (in the release and the development checkout) runs one to four
-independent macOS window jobs. Each job runs through its own signed launcher and helper
+`haejo parallel` (in the release and the development checkout) runs one to
+sixteen independent macOS window jobs, up to four at a time. Each job runs through its own signed launcher and helper
 connection. It reuses window ownership, fresh AX observations, contract checks,
 and postcondition verification. The coordinator never shares an inherited
 helper descriptor or calls the legacy in-process `Driver`.
@@ -48,7 +48,8 @@ window IDs, and selectors below with freshly observed values:
 ```
 
 Add another job with a distinct `id` and live window scope. Different windows
-of the same app are supported. Each Flow must have 1–100 explicit steps using
+of the same app are supported. A job may leave `window_id` out; see "Window
+planning". Each Flow must have 1–100 explicit steps using
 `read`, `click`, `set_value`, or `type_text`; every step needs a structured
 postcondition and a reversible read/ephemeral-write contract that the existing
 policy allows unattended. Parameter defaults are bound before any job starts.
@@ -58,10 +59,34 @@ An AX click unsupported by the app is refused; it does not fall back to a
 coordinate click. A modal can require app-wide ownership and cause refusal.
 
 The whole batch is validated before workers start. Duplicate `(bundle ID,
-window ID)` pairs and more than four jobs are refused with `effect:not_started`.
+window ID)` pairs and more than 16 jobs are refused with `effect:not_started`.
 The helper independently validates process/window identity and owns contention
 with other commands. A lost window is refused instead of widening the scope.
 This is a fixed-size batch, without a background task queue or automatic resend.
+
+### Window planning and worker count
+
+A job without `window_id` gets a window of its own. Before any worker starts,
+the coordinator asks for the app's windows once per app (`haejo windows`,
+through a signed launcher process of its own) and gives each such job the
+first listed window that no job of the batch has and that no other open task
+is working in. The listing marks a window an open task has a live claim on
+with `claimed_by`; windows on screen come first. The job's events and result
+carry the window it got. When an app has fewer free windows than jobs the
+batch is refused with `parallel_no_free_window` (`effect:not_started`): open
+another window or document in that app and run the manifest again. A listing
+that fails is `parallel_window_list_unavailable`. The planner works with the
+windows that are open; it opens none itself.
+
+Each worker takes its window when its session starts. In a task-bound batch
+that is a claim for the batch's task, listed under the app (see "Task
+claims"), so another task's app-wide action waits until the batch is done
+with the app.
+
+`--workers 1..4` sets how many jobs run at once (default: the number of jobs,
+up to four). Each worker uses one of the four warm helpers, which every
+`haejo` command on this Mac shares; a lower number leaves helpers for other
+agents. Jobs past the worker count stay `queued` and start as workers finish.
 
 Without `--json`, the command emits job metadata events (`queued`, `running`,
 `verified`, `failed`, `unknown`) followed by the final report. `running` means
@@ -76,8 +101,8 @@ and `effect:observed`. A missing/invalid receipt, lost connection after dispatch
 partial execution, or timeout leaves the effect unknown. A failure can follow
 successful steps; the coordinator does not roll back or retry. Exit codes are
 0 (all verified), 1 (one or more failed/unknown jobs), and 2 (preflight refusal).
-`--timeout 1..600` bounds each worker, including helper acquisition; default 60
-seconds. Timed-out workers and Ctrl-C terminate their launcher/Python process
+`--timeout 1..600` bounds each worker from the moment it starts, including
+helper acquisition; default 60 seconds. Timed-out workers and Ctrl-C terminate their launcher/Python process
 groups so they cannot dispatch delayed input.
 Workers use warm helper mode and a fresh configuration; coordinator `HAEJO_*`
 environment overrides (including helper wait/idle limits) are not forwarded.
@@ -142,8 +167,8 @@ existed: it sets no claim and passes every claim.
   passes and renews.
 - **Who waits.** A request that acts (`act` other than a `read` action,
   `foreground_begin`, `tab_select`) for a *different, still-open* task treats a
-  live claim as busy and stays in line for it (see "Waiting in line": 10 s
-  unless the command asks for longer, inside the request's deadline). Reads — `observe`, `capture`, `windows`, document and
+  live claim as busy and stays in line for it (see "Waiting in line": 10 s, or
+  the time the command asked for, inside the request's deadline). Reads — `observe`, `capture`, `windows`, document and
   menu readings — pass and leave the claim as it is. With no claim in the way a
   request takes the lock at once, exactly as before; the added cost is one
   read of a note of at most 256 bytes.

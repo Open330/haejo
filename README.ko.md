@@ -94,7 +94,7 @@ Markdown은 나머지 예제가 남는 부분 수정입니다. 모든 사례가 
 앱 설정에서 Vault 연결과 위임 파일의 끌어놓기·검토·저장·취소를 제공합니다. Flow 안의 로그인 단계, 선언한 여러 화면과 선택형 계정 확인도 지원합니다.
 [Vault 연결과 위임 수준](skill/references/credentials.md).
 
-`haejo parallel jobs.json --helper --json`은 확인된 창 작업 1–4개를 동시에 실행합니다.
+`haejo parallel jobs.json --helper --json`은 확인된 창 작업 1–16개를 한 번에 최대 4개씩 실행합니다.
 작업마다 서명된 세션과 내용 없는 결과 영수증이 따로 있고, Haejo 메뉴에서 작업별로
 중지할 수 있습니다. 같은 앱의 다른 창은 `haejo windows <bundle-id> --helper`로 창 ID를
 확인해 따로 다룹니다. 앱 전체 작업은 직렬 처리합니다. [병렬 실행](docs/parallel-execution.md) · [helper 실행](docs/helper-execution.md).

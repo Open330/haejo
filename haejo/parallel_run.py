@@ -1,10 +1,11 @@
 """Bounded window jobs, each on its own signed launcher/helper connection.
 
-Window IDs belong to this invocation, never to a saved Flow. No shared Python
-driver, automatic resend, app-wide fallback, or simulated mouse movement.
+Window IDs belong to this invocation, never to a saved Flow. A job that names
+no window gets one of its app's open windows that no other job has. No shared
+Python driver, automatic resend, app-wide fallback, or simulated mouse movement.
 """
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import json
 import os
 from pathlib import Path
@@ -18,7 +19,9 @@ import time
 
 from .flow import Flow, every_step
 
-MAX_JOBS = 4
+MAX_JOBS = 16
+# One warm helper per worker; the helper pool has four (HaejoMode.workerCount).
+MAX_WORKERS = 4
 MAX_MANIFEST_BYTES = 1024 * 1024
 _ID = re.compile(r'[A-Za-z0-9][A-Za-z0-9_-]{0,39}\Z')
 _TARGET = re.compile(r'[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+\Z')
@@ -85,7 +88,7 @@ class BatchControl:
 class WindowJob:
     id: str
     target: str
-    window_id: int
+    window_id: int | None      # None until plan_windows gives the job a window
     flow_json: str
 
 
@@ -94,14 +97,16 @@ def parse_jobs(manifest):
     if (not isinstance(manifest, dict) or set(manifest) != {'schema', 'jobs'}
             or type(manifest['schema']) is not int or manifest['schema'] != 1
             or not isinstance(manifest['jobs'], list) or not 1 <= len(manifest['jobs']) <= MAX_JOBS):
-        raise ParallelRefused('parallel_requires_schema_1_and_1_to_4_jobs')
+        raise ParallelRefused('parallel_requires_schema_1_and_1_to_16_jobs')
     jobs, ids, scopes = [], set(), set()
     for raw in manifest['jobs']:
-        if (not isinstance(raw, dict) or set(raw) != {'id', 'window_id', 'flow'}
+        if (not isinstance(raw, dict) or set(raw) not in ({'id', 'window_id', 'flow'}, {'id', 'flow'})
                 or not isinstance(raw['id'], str) or not _ID.fullmatch(raw['id'])
-                or raw['id'] in ids or type(raw['window_id']) is not int
-                or not 0 < raw['window_id'] <= 0xffffffff or not isinstance(raw['flow'], dict)):
+                or raw['id'] in ids or not isinstance(raw['flow'], dict)
+                or 'window_id' in raw and (type(raw['window_id']) is not int
+                                           or not 0 < raw['window_id'] <= 0xffffffff)):
             raise ParallelRefused('parallel_invalid_job_or_duplicate_id')
+        window = raw.get('window_id')
         try:
             template = Flow.from_json(json.dumps(raw['flow'], allow_nan=False), strict_checks=True)
             if any(step.for_each is not None for step in every_step(template.steps)):
@@ -111,8 +116,8 @@ def parse_jobs(manifest):
             raise ParallelRefused('parallel_invalid_flow') from None
         if not _TARGET.fullmatch(flow.target) or len(flow.target) > 255:
             raise ParallelRefused('parallel_requires_bundle_id')
-        scope = (flow.target.lower(), raw['window_id'])
-        if scope in scopes:
+        scope = (flow.target.lower(), window)
+        if window is not None and scope in scopes:
             raise ParallelRefused('parallel_duplicate_window')
         steps = every_step(flow.steps)
         if not steps or len(steps) > 100:
@@ -131,9 +136,66 @@ def parse_jobs(manifest):
         snapshot = json.dumps(json.loads(flow.to_json(compact=True)), ensure_ascii=False, separators=(',', ':'))
         if len(snapshot.encode('utf-8')) > MAX_MANIFEST_BYTES:
             raise ParallelRefused('parallel_flow_over_budget')
-        jobs.append(WindowJob(raw['id'], flow.target, raw['window_id'], snapshot))
+        jobs.append(WindowJob(raw['id'], flow.target, window, snapshot))
         ids.add(raw['id']); scopes.add(scope)
     return tuple(jobs)
+
+
+def plan_windows(jobs, listing, *, task=None):
+    """Give each job that names no window a window of its own.
+
+    `listing(target)` is the `haejo windows` reply for that app, asked once per
+    app. A job gets the first listed window that no job of the batch has and
+    that no other task is working in (`claimed_by`), windows on screen first.
+    The batch is refused before any worker starts when an app has fewer free
+    windows than jobs; open another window or document there and run it again.
+    """
+    taken = {(job.target.lower(), job.window_id) for job in jobs if job.window_id is not None}
+    free, planned = {}, []
+    for job in jobs:
+        if job.window_id is not None:
+            planned.append(job); continue
+        key = job.target.lower()
+        if key not in free:
+            reply = listing(job.target)
+            rows = reply.get('windows') if isinstance(reply, dict) and reply.get('type') == 'windows' else None
+            if not isinstance(rows, list):
+                raise ParallelRefused('parallel_window_list_unavailable')
+            rows = [row for row in rows if isinstance(row, dict) and type(row.get('window_id')) is int
+                    and 0 < row['window_id'] <= 0xffffffff and (key, row['window_id']) not in taken
+                    and row.get('claimed_by') in (None, task)]
+            rows.sort(key=lambda row: row.get('on_screen') is False)       # stable: listing order within each
+            free[key] = list(dict.fromkeys(row['window_id'] for row in rows))
+        if not free[key]:
+            raise ParallelRefused('parallel_no_free_window')
+        planned.append(replace(job, window_id=free[key].pop(0)))
+    return tuple(planned)
+
+
+def _launcher_windows(launcher, env):
+    """`haejo windows <app>` through a signed launcher process of its own."""
+    def listing(target):
+        try:
+            process = subprocess.Popen([str(launcher), 'windows', target, '--helper'], stdin=subprocess.DEVNULL,
+                                       stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, env=env,
+                                       start_new_session=True, close_fds=True)
+        except OSError:
+            return None
+        try:
+            output, _ = process.communicate(timeout=20)
+        except subprocess.TimeoutExpired:
+            return None
+        finally:
+            _stop(process)
+        for line in reversed(output.splitlines()[-8:] if isinstance(output, str) else []):
+            try:
+                reply = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(reply, dict):
+                return reply
+        return None
+    return listing
 
 
 class SessionReceipt:
@@ -228,8 +290,10 @@ def signed_launcher():
     return Path(__file__).resolve().parents[1] / 'launcher' / 'haejo'
 
 
-def run_parallel_jobs(manifest, *, timeout=60, on_event=None):
-    """Run at most four checked AX window jobs; return results in input order.
+def run_parallel_jobs(manifest, *, timeout=60, on_event=None, workers=None, windows=None):
+    """Run up to 16 checked AX window jobs, `workers` (1..4) at a time; return
+    results in input order. `windows(target)` replaces the launcher's window
+    listing for jobs that name no window.
 
     The fixed sibling launcher creates a new authenticated channel for each
     process. Never duplicate or pass this process's inherited helper descriptor.
@@ -240,6 +304,10 @@ def run_parallel_jobs(manifest, *, timeout=60, on_event=None):
         raise ParallelRefused('parallel_requires_macos')
     if type(timeout) is not int or not 1 <= timeout <= 600:
         raise ParallelRefused('parallel_timeout_requires_1_to_600_seconds')
+    if workers is None:
+        workers = min(len(jobs), MAX_WORKERS)
+    if type(workers) is not int or not 1 <= workers <= MAX_WORKERS:
+        raise ParallelRefused('parallel_workers_requires_1_to_4')
     launcher = signed_launcher()
     # Read on the caller's thread: pool workers do not inherit ContextVars.
     # Only the parent's already-validated task, never an inherited raw value.
@@ -248,6 +316,14 @@ def run_parallel_jobs(manifest, *, timeout=60, on_event=None):
     task_env = dict(bound.child_env()) if bound is not None else {}
     if not launcher.is_file() or not os.access(launcher, os.X_OK):
         raise ParallelRefused('parallel_signed_launcher_unavailable')
+    def worker_env():
+        env = {k:v for k,v in os.environ.items() if not k.startswith('HAEJO_')}
+        env.update(task_env)
+        env['HAEJO_HELPER_MODE'] = 'warm'
+        return env
+    if any(job.window_id is None for job in jobs):
+        jobs = plan_windows(jobs, windows or _launcher_windows(launcher, worker_env()),
+                            task=bound.task_id if bound is not None else None)
     emit = on_event or (lambda event: None)
     active, lock, cancelled = set(), threading.Lock(), threading.Event()
     def cancel_active():
@@ -272,9 +348,7 @@ def run_parallel_jobs(manifest, *, timeout=60, on_event=None):
             receipt = Path(directory) / 'receipt.json'
             command = [str(launcher), 'session', job.target, '--helper', '--window-id', str(job.window_id),
                        '--receipt', str(receipt)]
-            env = {k:v for k,v in os.environ.items() if not k.startswith('HAEJO_')}
-            env.update(task_env)
-            env['HAEJO_HELPER_MODE'] = 'warm'
+            env = worker_env()
             # A worker stays in line for its window as long as the batch
             # gives it, instead of answering busy after the default 10 s.
             env['HAEJO_LEASE_WAIT_SECONDS'] = str(min(timeout, 120))
@@ -325,7 +399,7 @@ def run_parallel_jobs(manifest, *, timeout=60, on_event=None):
             event(job, 'verified' if result['ok'] else ('unknown' if result['effect']=='unknown' else 'failed'))
             return result
     with BatchControl(targets=(job.target for job in jobs)) as control:
-        pool = ThreadPoolExecutor(max_workers=len(jobs))
+        pool = ThreadPoolExecutor(max_workers=workers)
         try:
             for job in jobs:
                 event(job, 'queued')
@@ -348,15 +422,21 @@ def main(args):
     if sys.platform != 'darwin':
         print('parallel is macOS-only'); return 2
     args = list(args)
-    timeout = 60
-    if '--timeout' in args:
-        i = args.index('--timeout')
-        if args.count('--timeout') != 1 or i+1 >= len(args) or not args[i+1].isascii() or not args[i+1].isdigit():
-            print('parallel_timeout_requires_1_to_600_seconds'); return 2
-        timeout = int(args[i+1]); del args[i:i+2]
+    timeout, workers = 60, None
+    for flag, refusal in (('--timeout', 'parallel_timeout_requires_1_to_600_seconds'),
+                          ('--workers', 'parallel_workers_requires_1_to_4')):
+        if flag in args:
+            i = args.index(flag)
+            if args.count(flag) != 1 or i+1 >= len(args) or not args[i+1].isascii() or not args[i+1].isdigit():
+                print(refusal); return 2
+            if flag == '--timeout':
+                timeout = int(args[i+1])
+            else:
+                workers = int(args[i+1])
+            del args[i:i+2]
     files = [v for v in args if v not in ('--helper','--json')]
     if len(files) != 1 or files[0].startswith('-') or args.count('--helper') != 1 or args.count('--json') > 1:
-        print('usage: haejo parallel <manifest.json> --helper [--timeout 1..600] [--json]'); return 2
+        print('usage: haejo parallel <manifest.json> --helper [--timeout 1..600] [--workers 1..4] [--json]'); return 2
     try:
         with open(files[0], 'rb') as stream:
             data = stream.read(MAX_MANIFEST_BYTES + 1)
@@ -367,7 +447,7 @@ def main(args):
         print(json.dumps({'type':'error','error':'parallel_invalid_manifest','effect':'not_started'})); return 2
     try:
         events = None if '--json' in args else lambda row: print(json.dumps(row), flush=True)
-        result = run_parallel_jobs(manifest, timeout=timeout, on_event=events)
+        result = run_parallel_jobs(manifest, timeout=timeout, on_event=events, workers=workers)
     except ParallelRefused as exc:
         print(json.dumps({'type':'error','error':str(exc),'effect':'not_started'})); return 2
     except (OSError, ValueError, TypeError, RecursionError):
