@@ -119,7 +119,19 @@ uv sync
 uv run haejo observe notepad
 ```
 
+To have `haejo` on PATH in every new terminal, and to update later:
+
+```
+uv tool install --editable .
+git pull
+```
+
+The install is editable, so `git pull` alone brings new code; run
+`uv tool install --editable . --force` again when dependencies change.
+
 `comtypes` is installed only on Windows. `haejo session` and `haejo batch`
 run without `--helper` there and read their input lines through a background
-reader, since `select()` on Windows accepts only sockets. The skill installer is a bash script; on Windows copy `skill/` to the
-agent's skills folder (for Claude Code, `%USERPROFILE%\.claude\skills\haejo`).
+reader, since `select()` on Windows accepts only sockets. The skill installer is a bash script; on Windows link or copy `skill/` to the
+agent's skills folder as `haejo`, and `skill\ko` as `해줘`, the Korean name
+(Claude Code: `%USERPROFILE%\.claude\skills`, Codex: `%USERPROFILE%\.codex\skills`).
+A junction (`New-Item -ItemType Junction`) keeps the skill current with `git pull`.
