@@ -71,7 +71,7 @@ inspection, a separate built-in `textedit_save` replay passed its saved-state
 receipt and exact disk/document comparison. No typing was repeated. The
 result does not attribute the write to a particular Save press or claim the
 original edit flow completed automatically. This distinction is visible in
-the case card, captions and public summary.
+the public summary.
 
 Finder's Kind and Name sort postconditions both passed; its `statusBarText`
 reported five items. Source PNGs include the system's window recording badge.

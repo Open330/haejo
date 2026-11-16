@@ -52,7 +52,7 @@ python3 sites/haejo/record_browser_demos.py --output /tmp/haejo-browser-recordin
 Each scenario stores its Flow, observations, action times, bounds, replay log
 and independently checked result in the private output directory. Only the
 curated [public summary](assets/demos/browser-examples.json),
-local MP4, captions and final screenshots are published. Full page trees and
+local MP4 and final screenshots are published. Full page trees and
 raw browser profiles are not published.
 
 Sources remain owned by their respective publishers:

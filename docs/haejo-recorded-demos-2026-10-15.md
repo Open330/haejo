@@ -37,8 +37,8 @@ ordered operations. All five recorded replays passed those checks.
 - Calculator clip: two operation segments; waiting between jobs is removed.
   The execution segments retain their original speed.
 - Workflow clip: continuous captured sequence, unchanged speed.
-- No audio; local Korean WebVTT captions and native video controls.
-- Videos use `preload="none"`, no autoplay, and no external player or CDN.
+- No audio and no caption files; the README links each MP4 directly, with no
+  external player or CDN.
 - These are executions of authored flows, not recordings of natural-language
   interpretation or autonomous flow authoring. Replay used `--think 0`; the
   flows contain no model decision steps. Authoring token cost was not measured.
