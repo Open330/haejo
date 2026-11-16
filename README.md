@@ -39,6 +39,7 @@ It saves the steps as a reusable **Flow**, so next time it runs with new inputs 
 | Markdown Live Preview | Edit the opening section; check heading, list, and bold text | [9 sec](docs/assets/demos/browser-markdown.mp4) |
 | Wikipedia | Search Seoul and navigate to History | [19 sec](docs/assets/demos/browser-wikipedia.mp4) |
 | Mac Calculator | Replay the same Flow with different inputs; verify 15 and 12 | [14 sec](docs/assets/demos/calculator-guided.mp4) |
+| Two agents | Two tasks take turns on one Calculator: the second is told it is in use and gets through once the first ends | [20 sec](docs/assets/demos/agents-take-turns.mp4) |
 
 <a href="docs/assets/demos/native-textedit.mp4"><img src="docs/assets/demos/native-textedit-poster.png" alt="Actual TextEdit document editing and save verification" width="48%"></a>
 <a href="docs/assets/demos/native-finder.mp4"><img src="docs/assets/demos/native-finder-poster.png" alt="Sorting files in an actual Finder window" width="48%"></a>
@@ -89,7 +90,7 @@ Haejo menu shows each live run with its own stop control. `haejo windows
 app.
 When several agents work on one Mac, each task (`haejo task`) holds the apps and windows it is
 using: another task's actions wait in arrival order, one task at a time uses the front of the
-screen, and the app you were using comes back when the task ends. [Parallel execution](docs/parallel-execution.md) · [Helper execution](docs/helper-execution.md).
+screen, and the app you were using comes back when the task ends ([20-second clip](docs/assets/demos/agents-take-turns.mp4), [capture conditions](docs/haejo-turns-clip-2026-11-16.md)). [Parallel execution](docs/parallel-execution.md) · [Helper execution](docs/helper-execution.md).
 
 <a id="how-it-works"></a>
 

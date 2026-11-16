@@ -152,6 +152,8 @@ arbitrary-app compatibility or a throughput/token benchmark.
 
 ## Task claims
 
+[20-second clip](assets/demos/agents-take-turns.mp4) · [capture conditions](haejo-turns-clip-2026-11-16.md)
+
 Several agents can drive one Mac at once. Each binds its commands to its own
 [task](tasks.md), and the helper keeps what a task is working on with that task
 between its commands. A command without a task behaves as it did before claims

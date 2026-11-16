@@ -1,0 +1,131 @@
+{
+ "shot": "2026-11-16",
+ "haejo": "haejo 1.0.4 (955af0f)",
+ "macos": "27.2.1",
+ "front_at_start": "com.apple.Safari",
+ "front_at_end": "com.apple.Safari",
+ "front_unchanged": true,
+ "calculator_ever_in_front": false,
+ "frames": [
+  {
+   "frame": "start",
+   "task": null,
+   "did": null,
+   "a": "starts: 7 + 8",
+   "b": "starts: 3 × 9",
+   "front": "com.apple.Safari"
+  },
+  {
+   "frame": "a-7",
+   "task": "A",
+   "did": "7",
+   "a": "pressed 7",
+   "b": "starts: 3 × 9",
+   "front": "com.apple.Safari",
+   "exit": 0,
+   "front_before": "com.apple.Safari",
+   "front_after": "com.apple.Safari"
+  },
+  {
+   "frame": "a-plus",
+   "task": "A",
+   "did": "+",
+   "a": "pressed 7 +",
+   "b": "starts: 3 × 9",
+   "front": "com.apple.Safari",
+   "exit": 0,
+   "front_before": "com.apple.Safari",
+   "front_after": "com.apple.Safari"
+  },
+  {
+   "frame": "b-told",
+   "task": "B",
+   "did": "asks for 3",
+   "a": "pressed 7 +",
+   "b": "told: task A is using Calculator",
+   "front": "com.apple.Safari",
+   "exit": 1,
+   "error": "target_busy",
+   "names_task_a": true,
+   "has_hint": true,
+   "seconds": 5.6,
+   "front_before": "com.apple.Safari",
+   "front_after": "com.apple.Safari"
+  },
+  {
+   "frame": "a-8",
+   "task": "A",
+   "did": "8",
+   "a": "pressed 7 + 8",
+   "b": "told: task A is using Calculator",
+   "front": "com.apple.Safari",
+   "exit": 0,
+   "front_before": "com.apple.Safari",
+   "front_after": "com.apple.Safari"
+  },
+  {
+   "frame": "a-equals",
+   "task": "A",
+   "did": "=",
+   "a": "7 + 8 = 15",
+   "b": "told: task A is using Calculator",
+   "front": "com.apple.Safari",
+   "exit": 0,
+   "front_before": "com.apple.Safari",
+   "front_after": "com.apple.Safari"
+  },
+  {
+   "frame": "b-3",
+   "task": "B",
+   "did": "3",
+   "a": "done",
+   "b": "pressed 3",
+   "front": "com.apple.Safari",
+   "exit": 0,
+   "front_before": "com.apple.Safari",
+   "front_after": "com.apple.Safari",
+   "b_seconds_after_a_ended": 0.8
+  },
+  {
+   "frame": "b-times",
+   "task": "B",
+   "did": "×",
+   "a": "done",
+   "b": "pressed 3 ×",
+   "front": "com.apple.Safari",
+   "exit": 0,
+   "front_before": "com.apple.Safari",
+   "front_after": "com.apple.Safari"
+  },
+  {
+   "frame": "b-9",
+   "task": "B",
+   "did": "9",
+   "a": "done",
+   "b": "pressed 3 × 9",
+   "front": "com.apple.Safari",
+   "exit": 0,
+   "front_before": "com.apple.Safari",
+   "front_after": "com.apple.Safari"
+  },
+  {
+   "frame": "b-equals",
+   "task": "B",
+   "did": "=",
+   "a": "done",
+   "b": "3 × 9 = 27",
+   "front": "com.apple.Safari",
+   "exit": 0,
+   "front_before": "com.apple.Safari",
+   "front_after": "com.apple.Safari"
+  },
+  {
+   "frame": "end",
+   "task": null,
+   "did": null,
+   "a": "done",
+   "b": "done",
+   "front": "com.apple.Safari"
+  }
+ ]
+}

@@ -79,7 +79,7 @@ HTML·CSS·JS·SVG·JSON은 gzip을 협상하고, ETag가 같으면 본문 없�
 - `dist/assets/haejo-activity*.png`, `haejo-setup*.png`: 앱 화면
 - `dist/assets/expense-entry.flow.json`, `benchmark-summary.json`: 페이지가 연결하는 원본
 - `dist/assets/`: 외부 폰트 없이 그린 SVG 로고·워드마크·배너·아이콘
-- `film/`: 영상 촬영(`shoot_expense.py`, `shoot_everyday.py`, `shoot_workflow.py`)과 렌더링(`render.py`, `film.html`), 바로 조작 클립(`shoot_direct.py`, `render_direct.py`, `direct-evidence.json`), 데모 경비 화면
+- `film/`: 영상 촬영(`shoot_expense.py`, `shoot_everyday.py`, `shoot_workflow.py`)과 렌더링(`render.py`, `film.html`), 두 작업 차례 클립(`shoot_turns.py`, `render_turns.py`, `turns-evidence.json`), 바로 조작 클립(`shoot_direct.py`, `render_direct.py`, `direct-evidence.json`), 데모 경비 화면
 - `activity_fixture.py`: 실행 기록 화면용 예시 기록
 - `render_native_examples.py`, `record_browser_demos.py`, `record_everyday_browser_demos.py`, `annotate_recordings.py`: `docs/assets/demos/`의 녹화 제작
 - `serve.py`: 정적 파일 전용 LAN 서버

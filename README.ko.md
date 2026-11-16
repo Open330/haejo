@@ -41,6 +41,7 @@
 | Markdown Live Preview | 기존 예제 앞부분을 계획으로 수정, 제목·목록·굵은 글씨 확인 | [약 9초](docs/assets/demos/browser-markdown.mp4) |
 | Wikipedia | Seoul 검색 후 History 항목 도착 | [약 19초](docs/assets/demos/browser-wikipedia.mp4) |
 | Mac 계산기 | 같은 Flow에 다른 입력값을 넣어 15·12 확인 | [약 14초](docs/assets/demos/calculator-guided.mp4) |
+| 에이전트 두 개 | 한 계산기를 두 작업이 차례로 사용: 둘째는 "사용 중" 안내를 받고, 첫 작업이 끝난 뒤 통과 | [약 20초](docs/assets/demos/agents-take-turns.mp4) |
 
 <a href="docs/assets/demos/native-textedit.mp4"><img src="docs/assets/demos/native-textedit-poster.png" alt="실제 TextEdit 문서 입력과 저장 상태 확인" width="48%"></a>
 <a href="docs/assets/demos/native-finder.mp4"><img src="docs/assets/demos/native-finder-poster.png" alt="실제 Finder에서 파일 정렬" width="48%"></a>
@@ -99,7 +100,7 @@ Markdown은 나머지 예제가 남는 부분 수정입니다. 모든 사례가 
 중지할 수 있습니다. 같은 앱의 다른 창은 `haejo windows <bundle-id> --helper`로 창 ID를
 확인해 따로 다룹니다. 앱 전체 작업은 직렬 처리합니다.
 에이전트 여러 개가 한 Mac에서 같이 일할 때는 작업(`haejo task`)마다 쓰는 앱과 창을 맡아 둡니다.
-다른 작업의 조작은 온 순서대로 기다리고, 화면 맨 앞은 한 번에 한 작업만 쓰며, 작업이 끝나면 쓰던 앱이 다시 앞으로 옵니다. [병렬 실행](docs/parallel-execution.md) · [helper 실행](docs/helper-execution.md).
+다른 작업의 조작은 온 순서대로 기다리고, 화면 맨 앞은 한 번에 한 작업만 쓰며, 작업이 끝나면 쓰던 앱이 다시 앞으로 옵니다([20초 영상](docs/assets/demos/agents-take-turns.mp4)). [병렬 실행](docs/parallel-execution.md) · [helper 실행](docs/helper-execution.md).
 
 ## 에이전트에게 앱 조작을 맡기세요
 
@@ -320,6 +321,7 @@ macOS 설정의 **빠른 실행**을 켜면 다음 작업의 시작 시간을 �
 
 - [필름과 랜딩 재촬영 (2026-11-10)](docs/haejo-film-2026-11-10.md)
 - [랜딩 바로 조작 클립: 뒤에 있는 Safari 촬영 (2026-11-15)](docs/haejo-direct-clip-2026-11-15.md)
+- [에이전트 두 개가 차례로 쓰는 클립: 뒤에 있는 계산기 촬영 (2026-11-16)](docs/haejo-turns-clip-2026-11-16.md)
 - [작업 단위 기록](docs/tasks.md)
 - [사용자가 이미 승인한 동의로 진행하기](docs/approved-consent.md)
 - [긴 Flow 대기와 마감 일시정지](docs/flow-wait-until.md)
