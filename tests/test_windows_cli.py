@@ -209,6 +209,21 @@ class WindowsCliTests(unittest.TestCase):
         self.assertEqual([{"parents": True, "exist_ok": True},
                           {"mode": 0o700, "parents": False, "exist_ok": False}], calls)
 
+    def test_no_visible_apps_names_session_0_not_tmux_on_windows(self):
+        """Over SSH `apps` advised tmux and reattach-to-user-namespace on
+        Windows (jiun-home, 2026-11-16)."""
+        import io
+        from contextlib import redirect_stdout
+        class Driver:
+            def list_targets(self):
+                return {"apps": []}
+        out = io.StringIO()
+        with patch.object(cli.sys, "platform", "win32"), \
+             patch.object(cli, "_make_driver", return_value=Driver()), redirect_stdout(out):
+            self.assertEqual(1, cli._dispatch_command("apps", []))
+        self.assertIn("session 0", out.getvalue())
+        self.assertNotIn("reattach", out.getvalue())
+
     def test_a_sentence_no_saved_flow_knows_is_answered_without_macos_frameworks(self):
         """`do` with an unknown sentence died importing AppKit while guessing
         the front app (Windows 11 VM 220, 2026-11-16)."""

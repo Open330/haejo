@@ -1139,8 +1139,13 @@ def _dispatch_command(cmd, rest):
             print(f"{r.get('error')}: {r.get('detail', '')}")
             return 1
         if not r["apps"]:
-            print("화면(GUI) 세션에 연결돼 있지 않습니다 — tmux 밖에서 실행하거나 "
-                  "reattach-to-user-namespace 를 쓰세요.")
+            if sys.platform == "win32":
+                # SSH and services run in session 0, where no app windows exist.
+                print("보이는 앱 창이 없습니다 — SSH나 서비스(session 0)에서는 데스크톱 앱이 보이지 않습니다. "
+                      "로그인한 데스크톱의 터미널에서 실행하세요.")
+            else:
+                print("화면(GUI) 세션에 연결돼 있지 않습니다 — tmux 밖에서 실행하거나 "
+                      "reattach-to-user-namespace 를 쓰세요.")
             return 1
         for a in sorted(r["apps"], key=lambda x: x["displayName"]):
             print(f"  {a['id']:40} {a['displayName']}")
