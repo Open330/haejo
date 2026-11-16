@@ -159,11 +159,11 @@ class WaitReplayTests(unittest.TestCase):
         """The wait slept its poll interval without looking at Esc and ran to
         wait_timeout (Windows 11 VM 220, 2026-11-16)."""
         from haejo import windows_control
-        clock = Clock()
+        clock = sleeps = Clock()
         pressed = []
-        def wait(seconds):
-            clock.sleep(seconds)
-            if len(clock.sleeps) == 2:
+        def wait(seconds, *, sleep, clock):
+            sleep(seconds)
+            if len(sleeps.sleeps) == 2:
                 pressed.append(True)
             return bool(pressed)
         driver = Driver([observation()])

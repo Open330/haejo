@@ -102,7 +102,9 @@ def _user_stop():
     """
     if sys.platform == 'win32':
         from . import windows_control
-        return windows_control.stopped, windows_control.wait
+        # This module's clock, so the wait and its accounting agree.
+        return windows_control.stopped, lambda seconds: windows_control.wait(
+            seconds, sleep=time.sleep, clock=time.monotonic)
     return (lambda: False), time.sleep
 
 
