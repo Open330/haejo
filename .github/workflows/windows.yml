@@ -16,6 +16,8 @@ on:
       - "haejo/command_help.py"
       - "haejo/flow_library.py"
       - "haejo/flow_batch.py"
+      - "haejo/flow_wait.py"
+      - "tests/test_flow_wait.py"
       - "tests/test_windows_*.py"
       - "pyproject.toml"
       - "uv.lock"
@@ -36,7 +38,7 @@ jobs:
       - name: Sync
         run: uv sync --frozen
       - name: Portable unit tests
-        run: uv run python -B -m unittest tests.test_windows_driver tests.test_windows_cli tests.test_windows_session_input
+        run: uv run python -B -m unittest tests.test_windows_driver tests.test_windows_cli tests.test_windows_session_input tests.test_flow_wait
       - name: Real UI Automation against owned app instances
         env:
           HAEJO_WINDOWS_LIVE: "1"
