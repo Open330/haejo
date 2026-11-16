@@ -209,6 +209,24 @@ class WindowsCliTests(unittest.TestCase):
         self.assertEqual([{"parents": True, "exist_ok": True},
                           {"mode": 0o700, "parents": False, "exist_ok": False}], calls)
 
+    def test_a_sentence_no_saved_flow_knows_is_answered_without_macos_frameworks(self):
+        """`do` with an unknown sentence died importing AppKit while guessing
+        the front app (Windows 11 VM 220, 2026-11-16)."""
+        import tempfile
+        from haejo import agent
+        from haejo.store import FlowStore
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        helper = agent.Agent(driver=object(), store=FlowStore(folder.name), general=lambda *a, **k: None)
+        with patch.object(agent.sys, "platform", "win32"), \
+             patch.object(agent.Agent, "read_request", side_effect=AssertionError("asked a model")), \
+             patch.object(agent, "_frontmost", side_effect=AssertionError("looked for AppKit")):
+            turn = helper.handle("계산기로 오늘 날씨 알려줘")
+        self.assertEqual("unknown_task", turn.status)
+        self.assertIn("저장된 flow", turn.say)
+        with patch.object(agent.sys, "platform", "win32"):
+            self.assertEqual("", agent._frontmost())
+
     @unittest.skipUnless(sys.platform == "darwin", "haejo.driver imports macOS frameworks")
     def test_macos_selection_is_unchanged(self):
         with patch.object(cli.sys, "platform", "darwin"), \
