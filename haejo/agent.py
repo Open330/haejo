@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 from dataclasses import dataclass
 from typing import Callable
 
@@ -104,12 +105,19 @@ def _folder(m: re.Match) -> dict:
     return {"folder": _FOLDERS[m.group(1).lower()]}
 
 
+WINDOWS_UNKNOWN_TASK = ("저장된 flow 중에 이 말에 맞는 것이 없어요. Windows에서는 아직 새 작업을 "
+                        "배우지 못해요(모델은 macOS 전용). 저장된 flow의 문장으로 말씀하시거나 "
+                        "haejo replay·run·batch로 실행해 주세요. docs/windows.md 참고.")
+
+
 def _frontmost() -> str:
     """The app the person is looking at.
 
     "대화상자 닫아줘" means the dialog in front of them; naming a fixed app
     would be right only by accident.
     """
+    if sys.platform != "darwin":
+        return ""
     from AppKit import NSWorkspace
     app = NSWorkspace.sharedWorkspace().frontmostApplication()
     return str(app.bundleIdentifier() or app.localizedName()) if app else ""
@@ -751,6 +759,11 @@ class Agent:
         if self._TAKE_IT_BACK.search(intent.strip()):
             return self.take_it_back()
         match = self.resolve(intent)
+        if match is None and sys.platform == "win32" and self.author is None:
+            # Reading the request and working it out on screen both take a
+            # model, which Windows does not have yet; say so instead of
+            # reaching for macOS frameworks (seen on a Windows 11 VM).
+            return Turn("unknown_task", WINDOWS_UNKNOWN_TASK)
         values: dict = {}
         reading: dict = {}
         read_to_find = match is None     # did finding the recipe take a model?
