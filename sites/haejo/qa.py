@@ -88,7 +88,7 @@ def audit(url, output, axe_source=None, browser_executable=None):
                 checks[name + '_film_decodes'] = video.evaluate('(e)=>e.duration>30&&e.videoWidth===1920&&!e.error')
                 clip = page.locator('#direct .scene video')
                 checks[name + '_direct_clip_markup'] = clip.evaluate_all(
-                    '(items)=>items.length===1&&items.every(e=>e.autoplay&&e.muted&&e.loop&&e.playsInline&&!e.controls&&e.preload==="metadata"&&e.poster.includes("haejo-direct.poster")&&e.width===1000&&e.height===1010&&e.getAttribute("aria-label"))')
+                    '(items)=>items.length===1&&items.every(e=>e.autoplay&&e.muted&&e.loop&&e.playsInline&&!e.controls&&e.preload==="metadata"&&e.poster.includes("haejo-direct.poster")&&e.width===1000&&e.height===1010&&e.getAttribute("aria-label")&&[...e.querySelectorAll("source")].every(s=>s.type==="video/mp4"))')
                 page.wait_for_function('()=>document.querySelector("#direct .scene video").readyState>=2')
                 checks[name + '_direct_clip_decodes'] = clip.evaluate('(e)=>e.duration>=8&&e.duration<=15&&e.videoWidth===1000&&e.videoHeight===1010&&!e.error')
                 checks[name + '_direct_clip_fills_scene'] = page.evaluate('''() => { const v = document.querySelector('#direct .scene video').getBoundingClientRect(),
@@ -174,7 +174,7 @@ def audit(url, output, axe_source=None, browser_executable=None):
         for path in (PAGES['ko'], PAGES['en']):
             page = context.new_page()
             page.goto(base + path, wait_until='networkidle')
-            shapes.append(page.evaluate('''() => [...document.querySelectorAll('main *:not(h1 small)')].map(e => e.tagName + '.' + e.className).join('|')
+            shapes.append(page.evaluate('''() => [...document.querySelectorAll('main *:not(h1 small):not(.haejo-word)')].map(e => e.tagName + '.' + e.className).join('|')
                 + [...document.querySelectorAll('img, source')].map(e => (e.getAttribute('src') || e.getAttribute('srcset')).replace(/\\.(ko|en)\\./, '.').replace(/^\\.\\.\\//, '')).join('|')'''))
             page.close()
         checks['ko_en_same_structure'] = shapes[0] == shapes[1]

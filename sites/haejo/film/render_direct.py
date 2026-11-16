@@ -51,7 +51,7 @@ def main():
           '-vf', f'fps={FPS},format=yuv420p', '-t', f'{total:.2f}', '-an']
     name = out/'haejo-direct'
     subprocess.run(ff+['-c:v', 'libx264', '-preset', 'slow', '-crf', '22', '-tune', 'animation', '-movflags', '+faststart', f'{name}.mp4'], check=True)
-    subprocess.run(ff+['-c:v', 'libvpx-vp9', '-crf', '36', '-b:v', '0', '-row-mt', '1', f'{name}.webm'], check=True)
+    # MP4 only: Safari 27.2 stops a looping WebM on its last frame.
     poster = next(out.glob(f'*-{POSTER}.still.png'))
     subprocess.run(['ffmpeg', '-hide_banner', '-loglevel', 'error', '-y', '-i', str(poster), '-q:v', '3', f'{name}.poster.jpg'], check=True)
     for f in [*out.glob('*.still.png'), stage, out/'stills.txt']: f.unlink()

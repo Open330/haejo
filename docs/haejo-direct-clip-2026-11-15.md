@@ -1,8 +1,8 @@
 # Landing "direct control" clip — 2026-11-15
 
 The "바로 조작" section of the landing now shows a 9.6-second looping clip
-(`sites/haejo/dist/assets/direct/haejo-direct.{mp4,webm}` + poster, 1000×1010,
-about 0.15 MB each) in place of the drawn illustration. Shot with the installed
+(`sites/haejo/dist/assets/direct/haejo-direct.mp4` + poster, 1000×1010,
+about 0.14 MB) in place of the drawn illustration. Shot with the installed
 Haejo 1.0.3 on Safari 27.2, macOS 27.2.1.
 
 ## What the clip shows
@@ -73,3 +73,11 @@ cp "$S/direct/evidence.json" sites/haejo/film/direct-evidence.json
 The shoot takes about a minute and a half. `sites/haejo/qa.py` checks the clip's
 markup, that it decodes, its pause button and the still poster under
 `prefers-reduced-motion`.
+
+## 2026-11-16: MP4 only
+
+Checked on the live landing in Safari 27.2 (macOS 27.2.1), in a tab behind
+another app: the clip started by itself once in view, then stayed on its last
+frame (`currentTime` 9.60, `paused` false, `ended` false) and did not loop.
+With the WebM `<source>` removed in the same tab, the MP4 looped. The page now
+lists the MP4 alone; it is the smaller file, and Chromium and Firefox play it.
