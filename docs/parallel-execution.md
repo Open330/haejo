@@ -257,6 +257,18 @@ stopped waiters, deadlines; the
 front token with a simulated front app) and
 `tests/test_parallel_coordination.py`.
 
+Real screen, 2026-11-16 (installed 1.0.4 `955af0f`, macOS 27.2.1, Telegram in
+front, Calculator and Dictionary opened behind it):
+
+- Task A ran `activate com.apple.calculator`; Calculator came to the front.
+- Task B's `activate com.apple.Dictionary` waited 11 s and returned
+  `input_busy` with `holder_task` A, `claim_expires_in: 79` and
+  `retry_after_ms: 79000`; Calculator stayed in front.
+- `task end` for A put Telegram back in front within a second. B's `activate`
+  then passed.
+- With Dictionary in front for B, Finder was brought forward by hand; ending B
+  left Finder in front.
+
 ## Tasks
 
 A `parallel` run bound to a [task](tasks.md) (`--task` or `HAEJO_TASK`) passes

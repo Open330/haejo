@@ -97,7 +97,9 @@ Markdown은 나머지 예제가 남는 부분 수정입니다. 모든 사례가 
 `haejo parallel jobs.json --helper --json`은 확인된 창 작업 1–16개를 한 번에 최대 4개씩 실행합니다.
 작업마다 서명된 세션과 내용 없는 결과 영수증이 따로 있고, Haejo 메뉴에서 작업별로
 중지할 수 있습니다. 같은 앱의 다른 창은 `haejo windows <bundle-id> --helper`로 창 ID를
-확인해 따로 다룹니다. 앱 전체 작업은 직렬 처리합니다. [병렬 실행](docs/parallel-execution.md) · [helper 실행](docs/helper-execution.md).
+확인해 따로 다룹니다. 앱 전체 작업은 직렬 처리합니다.
+에이전트 여러 개가 한 Mac에서 같이 일할 때는 작업(`haejo task`)마다 쓰는 앱과 창을 맡아 둡니다.
+다른 작업의 조작은 온 순서대로 기다리고, 화면 맨 앞은 한 번에 한 작업만 쓰며, 작업이 끝나면 쓰던 앱이 다시 앞으로 옵니다. [병렬 실행](docs/parallel-execution.md) · [helper 실행](docs/helper-execution.md).
 
 ## 에이전트에게 앱 조작을 맡기세요
 

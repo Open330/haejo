@@ -86,7 +86,10 @@ the agent receives only the result. Includes in-app Vault management, reusable F
 to four at once, each with its own signed session and a content-free result receipt; the
 Haejo menu shows each live run with its own stop control. `haejo windows
 <bundle-id> --helper` lists window IDs for work in different windows of the same
-app. [Parallel execution](docs/parallel-execution.md) · [Helper execution](docs/helper-execution.md).
+app.
+When several agents work on one Mac, each task (`haejo task`) holds the apps and windows it is
+using: another task's actions wait in arrival order, one task at a time uses the front of the
+screen, and the app you were using comes back when the task ends. [Parallel execution](docs/parallel-execution.md) · [Helper execution](docs/helper-execution.md).
 
 <a id="how-it-works"></a>
 
