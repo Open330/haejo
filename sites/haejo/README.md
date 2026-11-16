@@ -75,7 +75,7 @@ HTML·CSS·JS·SVG·JSON은 gzip을 협상하고, ETag가 같으면 본문 없�
 - `dist/style.css`: 손으로 쓴 스타일시트 하나. 반응형(360–1600px), 키보드 포커스, reduced motion
 - `dist/app.js`: 좁은 화면의 메뉴 접기, 요청 문장 복사, 클립 일시정지 버튼. 스크립트 없이도 모든 내용이 보입니다
 - `dist/assets/film/`: 40초 영상(한국어·영어 MP4·WebM·포스터)
-- `dist/assets/direct/`: 바로 조작 섹션의 10초 클립(MP4·WebM·포스터). 뒤에 있는 Safari 창을 입력마다 찍은 화면([촬영 기록](../../docs/haejo-direct-clip-2026-11-15.md))
+- `dist/assets/direct/`: 바로 조작 섹션의 10초 클립(MP4·포스터). 뒤에 있는 Safari 창을 입력마다 찍은 화면([촬영 기록](../../docs/haejo-direct-clip-2026-11-15.md))
 - `dist/assets/haejo-activity*.png`, `haejo-setup*.png`: 앱 화면
 - `dist/assets/expense-entry.flow.json`, `benchmark-summary.json`: 페이지가 연결하는 원본
 - `dist/assets/`: 외부 폰트 없이 그린 SVG 로고·워드마크·배너·아이콘
