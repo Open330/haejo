@@ -41,7 +41,9 @@ with an interactive logon instead.
   reports `effect: unknown`, because opening the list was already input.
 - Consent (`confirm`, `preapproved`, `handoff`) is gated exactly as on macOS.
 - **Esc stops a run.** The key is polled (no hook, no permission); after it
-  is pressed nothing more is dispatched and waits end with `aborted_by_user`.
+  is pressed nothing more is dispatched and waits end with `aborted_by_user`,
+  including a flow's `wait_until`, which checks between and during its polls
+  (Windows 11 VM, 2026-11-16: a run waiting 30 s ended 0.06 s after Esc).
   A small "Haejo 조작 중 — Esc로 중지" notice sits at the top right. It is a
   plain non-activating Win32 popup, so it never takes focus, even briefly,
   and it is drawn at the display's own scale;

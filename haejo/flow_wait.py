@@ -93,6 +93,21 @@ def observation_pause_reason(reply):
     return None
 
 
+def _user_stop():
+    """(stopped, sleep) for the person's stop key during a wait.
+
+    On Windows Esc is polled in this process (windows_control), so a long
+    wait must look at it itself; on macOS the stop lives in the helper, whose
+    next observation reports it.
+    """
+    if sys.platform == 'win32':
+        from . import windows_control
+        # This module's clock, so the wait and its accounting agree.
+        return windows_control.stopped, lambda seconds: windows_control.wait(
+            seconds, sleep=time.sleep, clock=time.monotonic)
+    return (lambda: False), time.sleep
+
+
 def run_step(driver, target, step, index, result):
     """Return the matching fresh observation, or record a structured failure.
 
@@ -127,7 +142,12 @@ def run_step(driver, target, step, index, result):
                       pauses=[{'reason': reason, 'seconds': round(seconds, 6)}
                               for reason, seconds in pauses.items()], **fields)
 
+    stopped, pause = _user_stop()
     while True:
+        if stopped():
+            account(time.monotonic(), previous_reason)
+            record(status='error', error='aborted_by_user', detail='사용자가 Esc로 중단했습니다')
+            return None
         reason = platform_pause_reason(target)
         # Time asleep in the host is charged to the availability state last
         # observed, not to an independently expiring wall-clock deadline.
@@ -156,4 +176,4 @@ def run_step(driver, target, step, index, result):
                 return None
         # The connection and window/document scope stay open during replay.
         # Session/batch input idle timers run only at the next stdin read.
-        time.sleep(poll if reason else min(poll, max(0, step.timeout_s - active)))
+        pause(poll if reason else min(poll, max(0, step.timeout_s - active)))

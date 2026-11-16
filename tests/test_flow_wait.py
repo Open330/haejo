@@ -155,6 +155,28 @@ class WaitReplayTests(unittest.TestCase):
                             Flow.from_json(json.dumps(document())))
         self.assertEqual('wait_observation_failed', result.log[-1]['error'])
 
+    def test_windows_esc_ends_a_wait_between_polls(self):
+        """The wait slept its poll interval without looking at Esc and ran to
+        wait_timeout (Windows 11 VM 220, 2026-11-16)."""
+        from haejo import windows_control
+        clock = sleeps = Clock()
+        pressed = []
+        def wait(seconds, *, sleep, clock):
+            sleep(seconds)
+            if len(sleeps.sleeps) == 2:
+                pressed.append(True)
+            return bool(pressed)
+        driver = Driver([observation()])
+        with clocked(clock), patch.object(flow_wait.sys, 'platform', 'win32'), \
+             patch.object(windows_control, 'stopped', lambda: bool(pressed)), \
+             patch.object(windows_control, 'wait', wait):
+            result = replay(driver, Flow.from_json(json.dumps(document(timeout_s=600))))
+        self.assertFalse(result.ok)
+        self.assertEqual(('aborted_by_user', 'none'), (result.log[-1]['error'], result.log[-1]['effect']))
+        self.assertEqual(2, driver.observations)
+        self.assertEqual(20, result.log[-1]['active_seconds'])
+        driver.act.assert_not_called()
+
     def test_backend_lock_pause_excluded_from_deadline(self):
         driver = Driver([observation(), {'type': 'error', 'reason': 'screen_locked', 'error': 'no_window_content'},
                          {'type': 'error', 'lock': {'locked': True}, 'error': 'no_window_content'},
