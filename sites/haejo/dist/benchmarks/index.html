@@ -35,7 +35,7 @@
           <div class="nav-side">
             <a class="quiet" href="https://github.com/Open330/haejo" target="_blank" rel="noopener noreferrer">GitHub</a>
             <a class="quiet" href="../en/benchmarks/" hreflang="en" lang="en">English</a>
-            <a class="nav-cta" href="https://github.com/Open330/haejo/releases/download/v1.0.5/Haejo-1.0.5-arm64.dmg">다운로드</a>
+            <a class="nav-cta" href="https://github.com/Open330/haejo/releases/download/v1.0.6/Haejo-1.0.6-arm64.dmg">다운로드</a>
           </div>
         </nav>
       </div>
@@ -47,11 +47,11 @@
         <p class="lead">같은 일을 맡겼을 때 에이전트가 쓰는 토큰과 시간, 저장한 Flow를 재생한 결과, Safari에서 뒤에서 되는 웹 조작의 범위입니다. 측정 조건은 항목마다 한 번씩 적었습니다.</p>
       </section>
       <section class="block wrap">
-        <h2>같은 작업에서 입력 토큰 27.5% 감소 (Sol 6.2)</h2>
+        <h2>같은 작업에서 입력 토큰 51.1% 감소 (Sol 6.2)</h2>
         <p>Codex에 내장된 computer use와 Haejo에 같은 작업 세 가지를 맡기고, 작업마다 새 대화에서 세 번씩 실행했습니다. 처음 방법을 찾는 과정부터 실행, 최종 응답까지 포함한 값입니다. 최신 모델 Sol 6.2와 이전 모델 Sol 6.1을 같은 날 같은 조건으로 측정했습니다.</p>
-        <div class="table-scroll" tabindex="0" role="region" aria-label="모델별 9쌍 합계 · 시간은 평균"><table><caption>모델별 9쌍 합계 · 시간은 평균</caption><thead><tr><th scope="col">항목</th><th scope="col">Sol 6.2 · Haejo</th><th scope="col">Sol 6.2 · Codex 내장</th><th scope="col">Sol 6.1 · Haejo</th><th scope="col">Sol 6.1 · Codex 내장</th></tr></thead><tbody><tr><th scope="row">성공한 작업</th><td class="win-cell">9/9</td><td>9/9</td><td class="win-cell">9/9</td><td>9/9</td></tr><tr><th scope="row">전체 입력 토큰</th><td class="win-cell">1,089,724<span class="delta">27.5% 적음</span></td><td>1,503,484</td><td class="win-cell">703,945<span class="delta">47.1% 적음</span></td><td>1,329,507</td></tr><tr><th scope="row">캐시 읽기를 뺀 입력 토큰</th><td class="win-cell">121,404<span class="delta">27.5% 적음</span></td><td>167,548</td><td class="win-cell">107,209<span class="delta">39.3% 적음</span></td><td>176,611</td></tr><tr><th scope="row">출력 토큰</th><td>6,455</td><td class="win-cell">5,162</td><td class="win-cell">5,419</td><td>5,994</td></tr><tr><th scope="row">평균 시간</th><td>33.96초</td><td>33.67초</td><td class="win-cell">27.46초<span class="delta">27.4% 짧음</span></td><td>37.81초</td></tr></tbody></table></div>
-        <p class="scope">2026-11-18 · Haejo 1.0.5 · Codex CLI 0.169.0, 요청 모델 gpt-6.2-sol과 gpt-6.1-sol, 추론 강도 medium · 직접 만든 macOS 테스트 앱에서 보너스 켜기, 보너스 끄기, 버튼 이름 변경 작업. Sol 6.2에서는 평균 시간이 거의 같고 출력 토큰은 Haejo가 25% 많았으며, 9쌍 중 2쌍은 Codex 내장 computer use가 더 빨랐습니다. Sol 6.2는 시작 전에 Haejo의 참고 문서를 한 번 더 읽었습니다. 2026-10-14의 첫 측정(개발 버전, 3쌍)에서는 입력 토큰이 53.5% 적었습니다. 측정 기록에서는 비교 대상을 Sky라고 부릅니다.</p>
-        <p class="link-row"><a class="text-link" href="https://github.com/Open330/haejo/blob/main/docs/haejo-matched-comparison-2026-11-18.md" target="_blank" rel="noopener noreferrer">측정 조건과 작업별 결과</a><a class="text-link" href="../assets/benchmark-summary.json" target="_blank" rel="noopener">요약 JSON</a></p>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="모델별 9쌍 합계 · 시간은 평균"><table><caption>모델별 9쌍 합계 · 시간은 평균</caption><thead><tr><th scope="col">항목</th><th scope="col">Sol 6.2 · Haejo</th><th scope="col">Sol 6.2 · Codex 내장</th><th scope="col">Sol 6.1 · Haejo</th><th scope="col">Sol 6.1 · Codex 내장</th></tr></thead><tbody><tr><th scope="row">성공한 작업</th><td class="win-cell">9/9</td><td>9/9</td><td class="win-cell">9/9</td><td>9/9</td></tr><tr><th scope="row">전체 입력 토큰</th><td class="win-cell">756,004<span class="delta">51.1% 적음</span></td><td>1,544,718</td><td class="win-cell">697,755<span class="delta">47.0% 적음</span></td><td>1,315,569</td></tr><tr><th scope="row">캐시 읽기를 뺀 입력 토큰</th><td class="win-cell">80,292<span class="delta">35.7% 적음</span></td><td>124,942</td><td class="win-cell">99,739<span class="delta">31.2% 적음</span></td><td>144,881</td></tr><tr><th scope="row">출력 토큰</th><td>5,698</td><td class="win-cell">5,046</td><td class="win-cell">5,791</td><td>5,850</td></tr><tr><th scope="row">평균 시간</th><td class="win-cell">25.09초<span class="delta">18.6% 짧음</span></td><td>30.81초</td><td class="win-cell">26.10초<span class="delta">24.0% 짧음</span></td><td>34.33초</td></tr></tbody></table></div>
+        <p class="scope">2026-11-19 · Haejo 1.0.6 · Codex CLI 0.169.0, 요청 모델 gpt-6.2-sol과 gpt-6.1-sol, 추론 강도 medium · 직접 만든 macOS 테스트 앱에서 보너스 켜기, 보너스 끄기, 버튼 이름 변경 작업. Sol 6.2에서 출력 토큰은 Haejo가 13% 많았습니다. 하루 전 Haejo 1.0.5로 측정했을 때는 Sol 6.2의 입력 토큰이 27.5% 적었습니다. 1.0.6은 에이전트가 읽는 안내서의 첫 단계에 Flow 예시를 실었고, 그 예시는 측정한 작업과 비슷합니다. 다른 종류의 작업은 측정하지 않았습니다. 2026-10-14의 첫 측정(개발 버전, 3쌍)에서는 입력 토큰이 53.5% 적었습니다. 측정 기록에서는 비교 대상을 Sky라고 부릅니다.</p>
+        <p class="link-row"><a class="text-link" href="https://github.com/Open330/haejo/blob/main/docs/haejo-matched-comparison-2026-11-19.md" target="_blank" rel="noopener noreferrer">측정 조건과 작업별 결과</a><a class="text-link" href="../assets/benchmark-summary.json" target="_blank" rel="noopener">요약 JSON</a></p>
       </section>
       <section class="block wrap">
         <h2>저장한 Flow 재생은 모델 호출 0회</h2>
@@ -68,15 +68,15 @@
         <p class="link-row"><a class="text-link" href="https://github.com/Open330/haejo/blob/main/docs/safari-capability-matrix.md" target="_blank" rel="noopener noreferrer">조작별 측정표</a></p>
       </section>
       <section class="block wrap end-links">
-        <div class="hero-actions"><a class="button primary" href="https://github.com/Open330/haejo/releases/download/v1.0.5/Haejo-1.0.5-arm64.dmg">Mac용 다운로드</a><a class="button ghost" href="../">Haejo 홈으로</a></div>
-        <p class="hero-meta">버전 1.0.5 · Apple Silicon · macOS 27 이상 · 67.7MB</p>
+        <div class="hero-actions"><a class="button primary" href="https://github.com/Open330/haejo/releases/download/v1.0.6/Haejo-1.0.6-arm64.dmg">Mac용 다운로드</a><a class="button ghost" href="../">Haejo 홈으로</a></div>
+        <p class="hero-meta">버전 1.0.6 · Apple Silicon · macOS 27 이상 · 70.2MB</p>
       </section>
     </main>
     <footer class="footer">
       <div class="wrap">
         <div class="footer-row">
           <span class="footer-brand"><img src="../assets/favicon.svg" alt="" width="30" height="30" />Haejo · 말하면 해 줍니다. 확인까지.</span>
-          <nav aria-label="Footer"><a href="https://github.com/Open330/haejo" target="_blank" rel="noopener noreferrer">GitHub</a><a href="https://github.com/Open330/haejo/releases/tag/v1.0.5" target="_blank" rel="noopener noreferrer">릴리스 노트</a><a href="https://github.com/Open330/haejo/blob/main/README.ko.md" target="_blank" rel="noopener noreferrer">문서</a><a href="../benchmarks/">측정 결과</a></nav>
+          <nav aria-label="Footer"><a href="https://github.com/Open330/haejo" target="_blank" rel="noopener noreferrer">GitHub</a><a href="https://github.com/Open330/haejo/releases/tag/v1.0.6" target="_blank" rel="noopener noreferrer">릴리스 노트</a><a href="https://github.com/Open330/haejo/blob/main/README.ko.md" target="_blank" rel="noopener noreferrer">문서</a><a href="../benchmarks/">측정 결과</a></nav>
         </div>
         <p>Haejo는 Open330의 오픈 소스 프로젝트입니다. Claude와 Codex는 각 소유자의 상표이며, Haejo는 이들과 제휴 관계가 아닙니다.</p>
       </div>

@@ -174,9 +174,9 @@ Haejo는 실행할 때 대상을 새 관찰에서 찾고 결과 조건을 검사
 
 ## 첫 작업 시작하기
 
-**Haejo 1.0.5**입니다(Apple Silicon · macOS 27.0 이상).
+**Haejo 1.0.6**입니다(Apple Silicon · macOS 27.0 이상).
 
-1. [공증된 DMG 다운로드](https://github.com/Open330/haejo/releases/download/v1.0.5/Haejo-1.0.5-arm64.dmg) ([릴리스 안내와 검증 결과](https://github.com/Open330/haejo/releases/tag/v1.0.5))
+1. [공증된 DMG 다운로드](https://github.com/Open330/haejo/releases/download/v1.0.6/Haejo-1.0.6-arm64.dmg) ([릴리스 안내와 검증 결과](https://github.com/Open330/haejo/releases/tag/v1.0.6))
 2. DMG를 열어 `Haejo.app`을 `Applications`로 끌어다 놓고, `Applications`에서 Haejo를 엽니다.
 3. **1. Mac 권한**에서 **설정 열기**를 눌러 앱 조작을 **Haejo Helper**에 허용합니다(화면 기록은 **Haejo**에, 선택).
 4. 앱을 열면 Claude Code·Codex에 `haejo` 명령과 스킬이 바로 연결됩니다(**2. 에이전트 연결**에서 확인하고, 앱을 옮긴 뒤에는 다시 누르세요).
@@ -186,7 +186,7 @@ Tacto를 쓰던 경우도 같은 방법으로 설치합니다. Tacto 데이터�
 
 Haejo는 Dock 아이콘 없이 메뉴 막대에서 실행됩니다. 창을 닫아도 백그라운드에 남고, 메뉴 막대 아이콘에서 다시 열거나 종료할 수 있습니다.
 
-1.0.5 DMG는 소스 `5dd3716`, Python 3.14 기준입니다. 회귀 테스트 3,837개 실패 없음, Apple 공증·Gatekeeper 통과, VM 안의 새 macOS 27.2 계정에서 처음 설치를 확인했습니다. rc.48보다 앞선 출시 후보에서 올리면 식별자가 `open330.haejo`로 바뀌어 앱 조작과 화면 캡처 권한을 다시 허용해야 합니다. 웹 작업에는 `haejo web install`을 한 번 실행하세요. Windows·Intel Mac 빌드는 제공하지 않습니다.
+1.0.6 DMG는 소스 `00123d4`, Python 3.14 기준입니다. 회귀 테스트 3,837개 실패 없음, Apple 공증·Gatekeeper 통과, VM 안의 새 macOS 27.2 계정에서 처음 설치를 확인했습니다. rc.48보다 앞선 출시 후보에서 올리면 식별자가 `open330.haejo`로 바뀌어 앱 조작과 화면 캡처 권한을 다시 허용해야 합니다. 웹 작업에는 `haejo web install`을 한 번 실행하세요. Windows·Intel Mac 빌드는 제공하지 않습니다.
 [출시 검증 현황](docs/release-readiness.md) · [설치 범위와 제한](docs/installation.md)
 
 **소스에서 빌드하려면** [uv](https://docs.astral.sh/uv/)(앱 런타임용 Python 3.14를 직접 설치합니다), Xcode Command Line Tools,
@@ -237,17 +237,17 @@ Flow 템플릿 하나로 여러 행을 처리할 때는 작업마다 매개변�
 
 ## 반복 추론을 줄이면 무엇이 달라질까요?
 
-**Haejo 1.0.5와 Codex 내장 computer use(Sky)의 비교에서 전체 입력 토큰이 최신 모델 Sol 6.2에서 27.5%, Sol 6.1에서 47.1% 적었습니다.**
-같은 요청 모델·추론 강도와 테스트 앱의 초기 상태를 맞춘 독립 새 대화를 모델마다 9쌍 실행한 결과입니다(2026-11-18).
+**Haejo 1.0.6과 Codex 내장 computer use(Sky)의 비교에서 전체 입력 토큰이 최신 모델 Sol 6.2에서 51.1%, Sol 6.1에서 47.0% 적었습니다.**
+같은 요청 모델·추론 강도와 테스트 앱의 초기 상태를 맞춘 독립 새 대화를 모델마다 9쌍 실행한 결과입니다(2026-11-19).
 
 | 지표 | Sol 6.2 Haejo | Sol 6.2 Sky | Sol 6.1 Haejo | Sol 6.1 Sky |
 | :--- | ---: | ---: | ---: | ---: |
 | 작업 성공 | 9/9 | 9/9 | 9/9 | 9/9 |
-| 전체 입력 토큰 | **1,089,724** | 1,503,484 | **703,945** | 1,329,507 |
-| 평균 시간 | 33.96초 | 33.67초 | **27.46초** | 37.81초 |
+| 전체 입력 토큰 | **756,004** | 1,544,718 | **697,755** | 1,315,569 |
+| 평균 시간 | **25.09초** | 30.81초 | **26.10초** | 34.33초 |
 
-작은 표본의 관측값입니다. Sol 6.2에서는 시간이 거의 같았고 출력 토큰은 Haejo가 25% 많았으며, 9쌍 중 2쌍은 Sky가 더 빨랐습니다. 첫 측정(2026-10-14, 개발 버전 3쌍)의 감소율은 53.5%였습니다.
-[측정 조건과 전체 결과 →](docs/haejo-matched-comparison-2026-11-18.md) · [첫 측정](docs/haejo-matched-comparison-2026-10-14.md)
+테스트 앱 하나에서 얻은 작은 표본의 관측값입니다. Sol 6.2에서 출력 토큰은 Haejo가 13% 많았습니다. 1.0.5에서는 Sol 6.2의 감소율이 27.5%였고, 1.0.6에서 에이전트가 읽는 안내서의 첫 단계에 Flow 예시를 실은 뒤의 값입니다. 그 예시는 측정한 작업과 비슷하며, 다른 종류의 작업은 측정하지 않았습니다. 첫 측정(2026-10-14, 개발 버전 3쌍)의 감소율은 53.5%였습니다.
+[측정 조건과 전체 결과 →](docs/haejo-matched-comparison-2026-11-19.md) · [1.0.5 측정](docs/haejo-matched-comparison-2026-11-18.md) · [첫 측정](docs/haejo-matched-comparison-2026-10-14.md)
 
 <details>
 <summary>캐시·출력·복잡한 Flow 재사용 결과</summary>
