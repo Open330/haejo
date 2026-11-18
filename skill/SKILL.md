@@ -28,11 +28,19 @@ one session does the whole goal, on that session command together with
 ## Start at the needed stage
 
 - **Do something in an app:** `haejo session <bundle-id> --helper --guide --steps`
-  (`exec_command tty:true, yield_time_ms:1000`). Wait for `HAEJO_SESSION_READY`,
-  send one minified Flow JSON line plus a newline (`write_stdin`,
-  `yield_time_ms:5000`), then poll the same session. `done — 결과: <value>` is
-  the checked result: report it. Use the guide's steps-only form; leave out
-  defaults. [Session](references/session.md).
+  (`exec_command tty:true, yield_time_ms:1000`). The command reads the app and
+  prints its controls and the Flow form; the app is touched only by the Flow
+  line you send. Wait for `HAEJO_SESSION_READY`, send one minified Flow JSON
+  line plus a newline (`write_stdin`, `yield_time_ms:5000`), then poll the same
+  session. `done — 결과: <value>` is the checked result: report it. The line,
+  with this app's observed identifiers in place of the names here:
+  `{"schema":2,"name":"task","target":"<bundle-id>","selector_defaults":{"role":"Button"},"check_defaults":{"field":{"identifier":"status"},"attribute":"Value"},"safety_defaults":{"effects":["write_ephemeral"],"reversibility":"reversible","resource":{"object_type":"entry","scope":"entry"}},"steps":[{"action":"set_value","selector":{"role":"TextField","identifier":"amount"},"params":{"value":"12"},"postcondition":{"field":{"identifier":"amount"},"equals":"12","attribute":"Value"}},{"action":"click","selector":{"role":"CheckBox","identifier":"agree"},"skip_if":{"field":{"identifier":"agree"},"equals":"1","attribute":"Value"},"postcondition":{"field":{"identifier":"agree"},"equals":"1","attribute":"Value"}},{"click":"compute","equals":"ready"},{"click":"submit","equals":"done","answers":true}]}`
+  — `safety_defaults` states what the steps do (here, entries that last only
+  for this screen), each step carries its own check (`postcondition`, or
+  `equals` on the `check_defaults` field; a check is `equals` for the exact
+  value, `contains` for part of it, or `exists:true`), `skip_if` leaves a control that
+  already holds the value alone, and a step runs once. Clicks and values go
+  through accessibility, in the background.
 - **Several apps in order** (a value from one into the next): one session
   command, `--then <bundle-id> [--document …]` after the first app; the next
   app's guide and observation follow the previous result on the same session.
@@ -55,6 +63,8 @@ one session does the whole goal, on that session command together with
 - **App not running:** `haejo launch <bundle-id> --helper`, then observe.
 - **Welcome task:** `haejo first-run --helper --yes`.
 - **Failures:** invalid JSON → fix it from the field hint on the same session;
+  `HAEJO_OBSERVATION_MORE` (more controls than one page) or a result that
+  takes minutes → [paging and waits](references/session.md);
   missing selector with packet → [selector repair](references/selector-repair.md);
   other or uncertain outcomes → inspect first, [recovery](references/recovery.md);
   command, permission or helper → [setup](references/setup.md).
