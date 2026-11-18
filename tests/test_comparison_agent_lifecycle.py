@@ -122,13 +122,15 @@ class AgentLifecycle(unittest.TestCase):
     def test_timeout_stops_owned_descendant_delayed_write(self):
         with tempfile.TemporaryDirectory() as folder:
             output = Path(folder) / 'delayed.txt'
-            descendant = "import time,pathlib;time.sleep(.3);pathlib.Path(" + repr(str(output)) + ").write_text('unexpected')"
+            descendant = "import time,pathlib;time.sleep(3);pathlib.Path(" + repr(str(output)) + ").write_text('unexpected')"
             parent = "import subprocess,sys,time;subprocess.Popen([sys.executable,'-c'," + repr(descendant) + "]);print('ready',flush=True);time.sleep(10)"
             with patch.object(comparison, '_AGENT_EXECUTABLE', sys.executable), \
                  self.assertRaises(subprocess.TimeoutExpired) as error:
-                comparison._run_agent(['codex', '-c', parent], '', .15, [])
+                # The parent needs time to start and print on a loaded machine (a CI
+                # runner took more than 0.15 s); the descendant writes well after.
+                comparison._run_agent(['codex', '-c', parent], '', 2, [])
             self.assertIn(b'ready', error.exception.stdout)
-            time.sleep(.4)
+            time.sleep(1.5)
             self.assertFalse(output.exists())
 
 
