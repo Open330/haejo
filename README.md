@@ -15,7 +15,7 @@ It saves the steps as a reusable **Flow**, so next time it runs with new inputs 
 [![Claude + Codex](docs/assets/badge-agents.svg)](skill/SKILL.md)
 [![Status](docs/assets/badge-status.svg)](#getting-started)
 
-[Release](https://github.com/Open330/haejo/releases/tag/v1.0.5) · [How it works](#how-it-works) · [Benchmarks](#benchmarks) · [Documentation](#documentation)
+[Release](https://github.com/Open330/haejo/releases/tag/v1.0.6) · [How it works](#how-it-works) · [Benchmarks](#benchmarks) · [Documentation](#documentation)
 
 </div>
 
@@ -134,9 +134,9 @@ A separate development test completed ten jobs with zero replay-time model calls
 
 ## Get started
 
-**Haejo 1.0.5 for Apple Silicon Macs. Requires macOS 27.0 or later.**
+**Haejo 1.0.6 for Apple Silicon Macs. Requires macOS 27.0 or later.**
 
-1. [Download the notarized DMG](https://github.com/Open330/haejo/releases/download/v1.0.5/Haejo-1.0.5-arm64.dmg) ([release notes and validation](https://github.com/Open330/haejo/releases/tag/v1.0.5)).
+1. [Download the notarized DMG](https://github.com/Open330/haejo/releases/download/v1.0.6/Haejo-1.0.6-arm64.dmg) ([release notes and validation](https://github.com/Open330/haejo/releases/tag/v1.0.6)).
 2. Open it, drag `Haejo.app` into `Applications`, then open Haejo from `Applications`.
 3. In **1. Mac permissions**, press **Open Settings** and allow app control for **Haejo Helper** (screen recording for **Haejo** is optional).
 4. Opening the app already linked the `haejo` command and skill for Claude Code and Codex (**2. Connect agent** shows it; press it again after moving the app).
@@ -146,7 +146,7 @@ Upgrading from Tacto: install Haejo the same way. Your Tacto data moves to the H
 
 Haejo runs in the menu bar without a Dock icon. Close the window to leave it in the background; the menu bar icon reopens it or quits.
 
-The 1.0.5 DMG is built from source `5dd3716` on Python 3.14: 3,837 regression cases with no failures, Apple notarization and Gatekeeper accepted, and a first install checked on a fresh macOS 27.2 account in a VM. Coming from a release candidate before rc.48, allow app control and screen capture again after upgrading (the identifiers became `open330.haejo`); web tasks need `haejo web install` once. Windows and Intel Mac builds are not provided. The in-app onboarding is currently Korean-first. [Release evidence](docs/release-readiness.md) · [Installation details](docs/installation.md)
+The 1.0.6 DMG is built from source `00123d4` on Python 3.14: 3,837 regression cases with no failures, Apple notarization and Gatekeeper accepted, and a first install checked on a fresh macOS 27.2 account in a VM. Coming from a release candidate before rc.48, allow app control and screen capture again after upgrading (the identifiers became `open330.haejo`); web tasks need `haejo web install` once. Windows and Intel Mac builds are not provided. The in-app onboarding is currently Korean-first. [Release evidence](docs/release-readiness.md) · [Installation details](docs/installation.md)
 
 ### Build from source
 
@@ -193,15 +193,15 @@ Run many rows through one Flow template (one JSON line of params per job):
 
 ## Less repeated reasoning
 
-**Against Codex's built-in computer use (Sky), Haejo 1.0.5 used 27.5% fewer total input tokens on the newest model, Sol 6.2, and 47.1% fewer on Sol 6.1.** Nine independent fresh-conversation pairs per model matched the requested model, reasoning effort, and initial state of the test app (2026-11-18).
+**Against Codex's built-in computer use (Sky), Haejo 1.0.6 used 51.1% fewer total input tokens on the newest model, Sol 6.2, and 47.0% fewer on Sol 6.1.** Nine independent fresh-conversation pairs per model matched the requested model, reasoning effort, and initial state of the test app (2026-11-19).
 
 | Metric | Sol 6.2 Haejo | Sol 6.2 Sky | Sol 6.1 Haejo | Sol 6.1 Sky |
 | :--- | ---: | ---: | ---: | ---: |
 | Successful tasks | 9/9 | 9/9 | 9/9 | 9/9 |
-| Total input tokens | **1,089,724** | 1,503,484 | **703,945** | 1,329,507 |
-| Mean time | 33.96 sec | 33.67 sec | **27.46 sec** | 37.81 sec |
+| Total input tokens | **756,004** | 1,544,718 | **697,755** | 1,315,569 |
+| Mean time | **25.09 sec** | 30.81 sec | **26.10 sec** | 34.33 sec |
 
-This is a small sample. On Sol 6.2 the time was about the same, Haejo used 25% more output tokens, and Sky was faster in 2 of the 9 pairs. The first measurement (2026-10-14, a development build, three pairs) saw 53.5% fewer. [Full methodology and results](docs/haejo-matched-comparison-2026-11-18.md) · [first measurement](docs/haejo-matched-comparison-2026-10-14.md).
+This is a small sample on one test app. On Sol 6.2 Haejo used 13% more output tokens. With 1.0.5 the Sol 6.2 figure was 27.5%; 1.0.6 put a Flow example in the first step of the guide that agents read. That example is close to the measured tasks, and other kinds of task were not measured. The first measurement (2026-10-14, a development build, three pairs) saw 53.5% fewer. [Full methodology and results](docs/haejo-matched-comparison-2026-11-19.md) · [1.0.5 measurement](docs/haejo-matched-comparison-2026-11-18.md) · [first measurement](docs/haejo-matched-comparison-2026-10-14.md).
 
 <details>
 <summary>Cache, output, and repeated-Flow results</summary>

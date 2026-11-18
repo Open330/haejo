@@ -4,67 +4,77 @@
     "haejo": {
       "runs": 9,
       "passed": 9,
-      "seconds": 305.666751582874,
-      "mean_seconds": 33.96297239809711,
-      "median_seconds_passed": 28.85454662499251,
-      "total_input_tokens": 1089724,
-      "new_input_tokens": 121404,
-      "cache_read_tokens": 968320,
-      "output_tokens": 6455
+      "seconds": 225.81282279110746,
+      "mean_seconds": 25.090313643456383,
+      "median_seconds_passed": 24.70758404204389,
+      "total_input_tokens": 756004,
+      "new_input_tokens": 80292,
+      "cache_read_tokens": 675712,
+      "output_tokens": 5698
     },
     "sky": {
       "runs": 9,
       "passed": 9,
-      "seconds": 303.05754574993625,
-      "mean_seconds": 33.67306063888181,
-      "median_seconds_passed": 34.3893802909879,
-      "total_input_tokens": 1503484,
-      "new_input_tokens": 167548,
-      "cache_read_tokens": 1335936,
-      "output_tokens": 5162
+      "seconds": 277.3065272910171,
+      "mean_seconds": 30.81183636566857,
+      "median_seconds_passed": 31.531657083018217,
+      "total_input_tokens": 1544718,
+      "new_input_tokens": 124942,
+      "cache_read_tokens": 1419776,
+      "output_tokens": 5046
     }
   },
   "observed_reduction_percent": {
-    "seconds": -0.8609605236791218,
-    "total_input_tokens": 27.520080027456228,
-    "new_input_tokens": 27.540764437653685,
-    "output_tokens": -25.048430840759405
+    "seconds": 18.569236361995188,
+    "total_input_tokens": 51.058769302875994,
+    "new_input_tokens": 35.73658177394311,
+    "output_tokens": -12.921125644074504
   },
-  "basis": "nine fresh independent paired runs (three cases, three repetitions); requested gpt-6.2-sol/medium; Codex CLI 0.169.0; installed Haejo 1.0.5; fixture preparation excluded",
+  "basis": "nine fresh independent paired runs (three cases, three repetitions); requested gpt-6.2-sol/medium; Codex CLI 0.169.0; installed Haejo 1.0.6; fixture preparation excluded",
   "other_models": {
     "gpt-6.1-sol": {
       "summary": {
         "haejo": {
           "runs": 9,
           "passed": 9,
-          "seconds": 247.10140108299674,
-          "mean_seconds": 27.455711231444084,
-          "median_seconds_passed": 27.17356845899485,
-          "total_input_tokens": 703945,
-          "new_input_tokens": 107209,
-          "cache_read_tokens": 596736,
-          "output_tokens": 5419
+          "seconds": 234.9441901249811,
+          "mean_seconds": 26.10491001388679,
+          "median_seconds_passed": 25.336334499996156,
+          "total_input_tokens": 697755,
+          "new_input_tokens": 99739,
+          "cache_read_tokens": 598016,
+          "output_tokens": 5791
         },
         "sky": {
           "runs": 9,
           "passed": 9,
-          "seconds": 340.3104494170402,
-          "mean_seconds": 37.812272157448916,
-          "median_seconds_passed": 36.45273304200964,
-          "total_input_tokens": 1329507,
-          "new_input_tokens": 176611,
-          "cache_read_tokens": 1152896,
-          "output_tokens": 5994
+          "seconds": 308.95498216705164,
+          "mean_seconds": 34.328331351894626,
+          "median_seconds_passed": 34.36506541701965,
+          "total_input_tokens": 1315569,
+          "new_input_tokens": 144881,
+          "cache_read_tokens": 1170688,
+          "output_tokens": 5850
         }
       },
       "observed_reduction_percent": {
-        "seconds": 27.389417073061594,
-        "total_input_tokens": 47.05217798778043,
-        "new_input_tokens": 39.29653305852976,
-        "output_tokens": 9.592926259592927
+        "seconds": 23.95520263921589,
+        "total_input_tokens": 46.96173290796606,
+        "new_input_tokens": 31.157984828928566,
+        "output_tokens": 1.0085470085470116
       },
       "basis": "same harness, cases, repetitions and day; requested gpt-6.1-sol/medium"
     }
+  },
+  "previous_release": {
+    "date": "2026-11-18",
+    "haejo": "1.0.5",
+    "total_input_tokens_reduction_percent": {
+      "gpt-6.2-sol": 27.520080027456228,
+      "gpt-6.1-sol": 47.05217798778043
+    },
+    "basis": "nine pairs per model; same harness and cases; Codex CLI 0.169.0",
+    "source": "docs/haejo-matched-comparison-2026-11-18.md"
   },
   "earlier": {
     "date": "2026-10-14",
@@ -78,7 +88,7 @@
     "all-app generalization",
     "ten-job scripted-replay comparison"
   ],
-  "source": "Local paired benchmark, 2026-11-18; docs/haejo-matched-comparison-2026-11-18.md",
+  "source": "Local paired benchmark, 2026-11-19; docs/haejo-matched-comparison-2026-11-19.md",
   "product": {
     "name": "Haejo",
     "measurement_label": "haejo"

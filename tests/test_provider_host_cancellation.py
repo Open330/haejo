@@ -44,14 +44,23 @@ def cancel_after_ready(ready, delay=0.2):
     return predicate
 
 
-def group_gone(group):
-    try:
-        os.killpg(group, 0)
-    except ProcessLookupError:
-        return True
-    except PermissionError:
-        return False
-    return False
+def group_gone(group, within=3.0):
+    """True once no process is left in the group.
+
+    A killed descendant stays in the group until its new parent collects it,
+    which takes a moment on a busy machine, so the answer is awaited.
+    """
+    deadline = time.monotonic() + within
+    while True:
+        try:
+            os.killpg(group, 0)
+        except ProcessLookupError:
+            return True
+        except PermissionError:
+            pass
+        if time.monotonic() >= deadline:
+            return False
+        time.sleep(0.05)
 
 
 @unittest.skipUnless(os.name == 'posix', 'owned POSIX process groups')
