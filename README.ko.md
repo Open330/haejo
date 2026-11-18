@@ -237,17 +237,17 @@ Flow 템플릿 하나로 여러 행을 처리할 때는 작업마다 매개변�
 
 ## 반복 추론을 줄이면 무엇이 달라질까요?
 
-**개발 버전의 Haejo·Sky 비교에서 전체 입력 토큰 53.5% 감소를 관측했습니다.**
-같은 요청 모델·추론 강도와 테스트 앱의 초기 상태를 맞춘 독립 새 대화 3쌍의 결과입니다.
+**Haejo 1.0.5와 Codex 내장 computer use(Sky)의 비교에서 전체 입력 토큰이 최신 모델 Sol 6.2에서 27.5%, Sol 6.1에서 47.1% 적었습니다.**
+같은 요청 모델·추론 강도와 테스트 앱의 초기 상태를 맞춘 독립 새 대화를 모델마다 9쌍 실행한 결과입니다(2026-11-18).
 
-| 지표 | Haejo | Sky |
-| :--- | ---: | ---: |
-| 작업 성공 | 3/3 | 3/3 |
-| 전체 입력 토큰 | **201,447** | 433,312 |
-| 평균 시간 | **42.10초** | 46.17초 |
+| 지표 | Sol 6.2 Haejo | Sol 6.2 Sky | Sol 6.1 Haejo | Sol 6.1 Sky |
+| :--- | ---: | ---: | ---: | ---: |
+| 작업 성공 | 9/9 | 9/9 | 9/9 | 9/9 |
+| 전체 입력 토큰 | **1,089,724** | 1,503,484 | **703,945** | 1,329,507 |
+| 평균 시간 | 33.96초 | 33.67초 | **27.46초** | 37.81초 |
 
-작은 표본의 관측값입니다. 모든 작업에서 더 빠르다는 뜻은 아니며 한 케이스에서는 Sky가 더 빨랐습니다.
-[측정 조건과 전체 결과 →](docs/haejo-matched-comparison-2026-10-14.md)
+작은 표본의 관측값입니다. Sol 6.2에서는 시간이 거의 같았고 출력 토큰은 Haejo가 25% 많았으며, 9쌍 중 2쌍은 Sky가 더 빨랐습니다. 첫 측정(2026-10-14, 개발 버전 3쌍)의 감소율은 53.5%였습니다.
+[측정 조건과 전체 결과 →](docs/haejo-matched-comparison-2026-11-18.md) · [첫 측정](docs/haejo-matched-comparison-2026-10-14.md)
 
 <details>
 <summary>캐시·출력·복잡한 Flow 재사용 결과</summary>
@@ -356,7 +356,8 @@ macOS 설정의 **빠른 실행**을 켜면 다음 작업의 시작 시간을 �
 - [네이티브 창별 입력의 현재 지원 범위](docs/native-window-input.md)
 - [Flow의 자동 에이전트 개입](docs/haejo-auto-repair-2026-10-14.md)
 - [복잡한 11단계 작업과 실패 시나리오 검증](docs/haejo-complex-scenarios-2026-10-14.md)
-- [같은 요청 조건에서 Haejo·Sky 비교](docs/haejo-matched-comparison-2026-10-14.md)
+- [같은 요청 조건에서 Haejo·Sky 비교: Sol 6.2와 Sol 6.1 (2026-11-18)](docs/haejo-matched-comparison-2026-11-18.md)
+- [같은 요청 조건에서 Haejo·Sky 비교: 첫 측정 (2026-10-14)](docs/haejo-matched-comparison-2026-10-14.md)
 - [Signed provider 응답](docs/provider-envelope.md)
 - [실행 기록에서 워크플로로 — 판단은 필요한 곳에만](docs/recipes.md)
 - [Native RTF save receipts](docs/rtf-receipts.md)

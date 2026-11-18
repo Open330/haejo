@@ -193,15 +193,15 @@ Run many rows through one Flow template (one JSON line of params per job):
 
 ## Less repeated reasoning
 
-**A development-version comparison observed 53.5% fewer total input tokens with Haejo than Sky.** Three independent fresh-conversation pairs matched the requested model, reasoning effort, and initial state of the test app.
+**Against Codex's built-in computer use (Sky), Haejo 1.0.5 used 27.5% fewer total input tokens on the newest model, Sol 6.2, and 47.1% fewer on Sol 6.1.** Nine independent fresh-conversation pairs per model matched the requested model, reasoning effort, and initial state of the test app (2026-11-18).
 
-| Metric | Haejo | Sky |
-| :--- | ---: | ---: |
-| Successful tasks | 3/3 | 3/3 |
-| Total input tokens | **201,447** | 433,312 |
-| Mean time | **42.10 sec** | 46.17 sec |
+| Metric | Sol 6.2 Haejo | Sol 6.2 Sky | Sol 6.1 Haejo | Sol 6.1 Sky |
+| :--- | ---: | ---: | ---: | ---: |
+| Successful tasks | 9/9 | 9/9 | 9/9 | 9/9 |
+| Total input tokens | **1,089,724** | 1,503,484 | **703,945** | 1,329,507 |
+| Mean time | 33.96 sec | 33.67 sec | **27.46 sec** | 37.81 sec |
 
-This is a small sample. Haejo was slower in one case; it is not universally faster. [Full methodology and results](docs/haejo-matched-comparison-2026-10-14.md).
+This is a small sample. On Sol 6.2 the time was about the same, Haejo used 25% more output tokens, and Sky was faster in 2 of the 9 pairs. The first measurement (2026-10-14, a development build, three pairs) saw 53.5% fewer. [Full methodology and results](docs/haejo-matched-comparison-2026-11-18.md) · [first measurement](docs/haejo-matched-comparison-2026-10-14.md).
 
 <details>
 <summary>Cache, output, and repeated-Flow results</summary>
@@ -306,7 +306,8 @@ Check `haejo --help` for your checkout. Use the signed launcher for native work 
 - [Safari capability matrix: which route delivers each web action](docs/safari-capability-matrix.md)
 - [Haejo automatic repair — scope and limits](docs/haejo-auto-repair-2026-10-14.md)
 - [Haejo complex scenario validation](docs/haejo-complex-scenarios-2026-10-14.md)
-- [Haejo and Sky matched comparison](docs/haejo-matched-comparison-2026-10-14.md)
+- [Haejo and Sky matched comparison, Sol 6.2 and Sol 6.1 (2026-11-18)](docs/haejo-matched-comparison-2026-11-18.md)
+- [Haejo and Sky matched comparison, first measurement (2026-10-14)](docs/haejo-matched-comparison-2026-10-14.md)
 - [provider envelope](docs/provider-envelope.md)
 - [recipes](docs/recipes.md)
 - [Long Flow waits and paused deadlines](docs/flow-wait-until.md)

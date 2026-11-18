@@ -21,7 +21,7 @@ Haejo의 랜딩페이지입니다. 한국어(`/`)와 영어(`/en/`) 홈, 그리�
 
 성능 비교(2026-10-14 동일 조건 3쌍), 11단계 Flow 재생, Safari 웹 조작 측정은 홈에서 빼
 `benchmarks/` 페이지에 모았고, 측정 조건은 항목마다 한 번씩 적습니다. 원본은
-`dist/assets/benchmark-summary.json`과 [측정 조건 기록](../../docs/haejo-matched-comparison-2026-10-14.md)입니다.
+`dist/assets/benchmark-summary.json`과 [측정 조건 기록](../../docs/haejo-matched-comparison-2026-11-18.md)입니다.
 
 별도 Chromium에서 촬영한 웹 예제와 TextEdit·Finder·계산기·테스트 앱 녹화는 홈에서 내리고
 `docs/assets/demos/`로 옮겼습니다. 저장소 [README](../../README.ko.md)가 계속 연결합니다.
