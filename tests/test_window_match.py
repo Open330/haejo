@@ -193,12 +193,13 @@ class FlowField(unittest.TestCase):
         self.assertEqual(flow.window, flow.bind().window)
         self.assertNotIn('window', json.loads(Flow.from_json(json.dumps(flow_doc())).to_json()))
 
-    def test_window_needs_schema_5_so_older_runtimes_refuse_it(self):
+    def test_window_is_saved_as_schema_5_so_older_runtimes_refuse_it(self):
         doc = flow_doc(window={'url': 'player.example.com'})
         self.assertEqual(5, json.loads(Flow.from_json(json.dumps(doc)).to_json())['schema'])
-        for bad in (dict(doc, schema=2), dict(flow_doc(), schema=5)):
-            with self.subTest(schema=bad['schema']), self.assertRaises(ValueError):
-                Flow.from_json(json.dumps(bad))
+        # Written with an earlier number, it is read and saved as schema 5.
+        self.assertEqual(5, json.loads(Flow.from_json(json.dumps(dict(doc, schema=2))).to_json())['schema'])
+        with self.assertRaises(ValueError):
+            Flow.from_json(json.dumps(dict(flow_doc(), schema=5)))
         flow = Flow.from_json(json.dumps(flow_doc()));flow.window = {'url': 'player.example.com'}
         self.assertEqual(5, json.loads(flow.to_json())['schema'])
 

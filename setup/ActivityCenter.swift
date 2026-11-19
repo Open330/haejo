@@ -80,8 +80,12 @@ struct ActivityRecord: Equatable {
     var taskID: String?
     var invocationID: String?
     var complete: Bool { exitCode != nil && !command.isEmpty }
-    var failed: Bool { exitCode.map { $0 != 0 } ?? false }
-    var status: String { !complete ? "완료 확인 없음" : failed ? "실패" : "완료" }
+    // The input was delivered and only its result went unseen: not a failure
+    // of the action. Shown apart from failures (most "failed" rows on three
+    // Macs in November 2026 were sends and saves that had worked).
+    var delivered: Bool { (exitCode.map { $0 != 0 } ?? false) && ["commit_unverified", "postcondition_timeout"].contains(error) }
+    var failed: Bool { (exitCode.map { $0 != 0 } ?? false) && !delivered }
+    var status: String { !complete ? "완료 확인 없음" : delivered ? "실행함 · 결과 미확인" : failed ? "실패" : "완료" }
     var title: String {
         ["first-run":"첫 작업", "observe":"앱 관찰", "run":"워크플로 실행", "replay":"워크플로 재사용",
          "do":"에이전트 작업", "session":"연속 작업", "batch":"반복 실행", "doctor":"상태 확인",
@@ -410,6 +414,17 @@ private func activityErrorMessage(_ code: String) -> String {
      "application_identity_changed":"대상 앱이 바뀌어 작업을 멈췄어요.",
      "text_not_verified":"입력 결과를 확인하지 못했어요.",
      "action_failed":"요청한 동작을 완료하지 못했어요.",
+     "commit_unverified":"동작은 보냈어요. 결과는 이 실행에서 확인하지 못했어요.",
+     "postcondition_timeout":"동작은 실행했어요. 기대한 결과가 시간 안에 화면에 나타나지 않았어요.",
+     "target_missing":"화면에서 대상 요소를 찾지 못해 실행하지 않았어요.",
+     "flow_failed":"작업의 한 단계에서 멈췄어요.",
+     "page_not_shown":"페이지가 열린 것을 확인하지 못했어요.",
+     "target_busy":"다른 작업이 이 앱을 쓰고 있었어요.",
+     "screen_locked":"화면이 잠겨 있었어요.",
+     "application_not_running":"대상 앱이 실행 중이 아니었어요.",
+     "window_list_unavailable":"앱이 창 목록을 알려 주지 않았어요.",
+     "contract_required":"동작의 효과가 적혀 있지 않아 실행하지 않았어요.",
+     "unreported_refusal":"명령 형식이 맞지 않아 실행하지 않았어요.",
      "step_not_authorized":"승인되지 않은 단계가 있어 실행하지 않았어요.",
      "invalid_flow":"작업 내용(flow)을 읽지 못해 실행하지 않았어요.",
      "invalid_parameters":"작업에 필요한 값이 빠져 실행하지 않았어요.",
@@ -692,7 +707,7 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
         let title = activityLabel(r.title,13,.semibold)
         let subtitle = activityLabel(r.isTask ? "작업 · 호출 \(r.records.count)회 · \(r.appNames) · \(dateFormatter.string(from:r.latest))" : "\(r.appNames) · \(dateFormatter.string(from:r.latest))",11,secondary:true)
         let mark = activityLabel(r.status,11,.semibold)
-        mark.textColor = r.failed ? .systemRed : r.status == "진행 중" ? .controlAccentColor : r.status == "기록만 있음" ? .secondaryLabelColor : r.complete ? .systemGreen : .secondaryLabelColor
+        mark.textColor = r.failed ? .systemRed : r.status == "실행함 · 결과 미확인" ? .systemOrange : r.status == "진행 중" ? .controlAccentColor : r.status == "기록만 있음" ? .secondaryLabelColor : r.complete ? .systemGreen : .secondaryLabelColor
         title.maximumNumberOfLines = 1; subtitle.maximumNumberOfLines = 1
         title.lineBreakMode = .byTruncatingTail; subtitle.lineBreakMode = .byTruncatingTail
         for v in [title,subtitle,mark] { cell.addSubview(v); v.translatesAutoresizingMaskIntoConstraints = false }

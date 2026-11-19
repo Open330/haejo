@@ -720,7 +720,7 @@ def _run_flow(flow, argv, walked: bool = False, *, _driver=None, _confirm=None, 
                      if observed is True else
                      "  단계의 postcondition 이 시간 안에 화면에 나타나지 않았습니다.\n"
                      if observed is False else
-                     "  postcondition 을 붙이면 실행 직후 화면 상태를 함께 읽어 보고합니다.\n"
+                     "  이 단계에 postcondition(실행 전에는 거짓, 실행 뒤에 참인 결과)을 붙이면 그 결과가 보일 때 완료로 끝납니다.\n"
                      if "postcondition_observed" not in last else "")
                   + "  같은 동작을 다시 실행하지 말고 해당 대상의 현재 상태를 읽어 확인하세요.\n"
                   f"  detail: {last}")
@@ -996,7 +996,7 @@ def _dispatch_command(cmd, rest):
             result = open_url(args[0], browser=browser or DEFAULT_BROWSER, driver=driver, front=front or window is not None)
         from .access_log import current
         if current.get() is not None:
-            current.get().task_result({k: v for k, v in result.items() if k != 'url'})
+            current.get().task_result({k: v for k, v in result.items() if k not in ('url', 'landed_url', 'shown_url', 'note', 'hint')})
         print(json.dumps(result, ensure_ascii=False))
         return 0 if result.get('type') == 'url_opened' else 1
 

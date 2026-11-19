@@ -146,18 +146,36 @@ def capture_main(argv, driver):
                               'detail':'specify --window with an exact observed title',
                               'windows':windows[:20]},ensure_ascii=False));return 1
         image=capture_window(driver,obs['obs_id'],args.target,window_index=indices[0])
-        # Do not overwrite an existing user's image or follow a destination symlink.
-        with args.output.open('xb') as stream:
-            import os
-            os.fchmod(stream.fileno(),0o600)
-            stream.write(image.png)
+        # A new file, never through a destination symlink. An earlier capture
+        # at the same path (a regular PNG file) is replaced: capturing the same
+        # window again to one path is the common case (99 refusals in two days
+        # on one Mac, 2026-11). Any other existing file is left as it is.
+        import os
+        try:
+            with args.output.open('xb') as stream:
+                os.fchmod(stream.fileno(),0o600)
+                stream.write(image.png)
+        except FileExistsError:
+            if args.output.is_symlink() or not args.output.is_file():
+                raise
+            with args.output.open('rb') as earlier:
+                if earlier.read(8)!=b'\x89PNG\r\n\x1a\n':
+                    raise
+            fresh=args.output.with_name(f'.{args.output.name}.{os.getpid()}.haejo')
+            with fresh.open('xb') as stream:
+                os.fchmod(stream.fileno(),0o600)
+                stream.write(image.png)
+            os.replace(fresh,args.output)
         print(json.dumps({'type':'capture','path':str(args.output),'pixels':image.viewport,
                           'window_points':{'width':image.window_frame[2],'height':image.window_frame[3]},
                           'pixel_to_point':{'x':image.window_frame[2]/image.viewport['width'],
                                             'y':image.window_frame[3]/image.viewport['height']}},ensure_ascii=False))
         return 0
     except (OSError, RuntimeError, TimeoutError, ValueError) as error:
-        result={'error':'window_capture_failed','effect':'not_started','exception':type(error).__name__}
+        result={'error':'output_exists' if isinstance(error,FileExistsError) else 'window_capture_failed',
+                'effect':'not_started','exception':type(error).__name__}
+        if isinstance(error,FileExistsError):
+            result['hint']='a file that is not an earlier capture is at --output; name another path'
         if re.fullmatch(r'[a-z_]+(?::[a-z_]+)?',str(error)):result['detail']=str(error)
         record_failure('output_exists' if isinstance(error,FileExistsError) else 'window_capture_failed','capture')
         print(json.dumps(result))

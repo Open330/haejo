@@ -4042,8 +4042,21 @@ func act(_ obsID: String, _ target: String, _ action: [String: Any],
             }
         }
         if AXUIElementSetAttributeValue(el, kAXValueAttribute as CFString, v as CFTypeRef) != .success {
-            return ["type": "error", "error": "action_failed",
-                    "effect": "not_started", "detail": "AXValue set failed"]
+            // Some apps apply the value and still answer with an error
+            // (Telegram's message field, 2026-11-16: the reply was a failure
+            // and the next observation showed the text). The field itself
+            // says which happened: read it back for a moment before calling
+            // the write failed.
+            var held = false
+            let until = ProcessInfo.processInfo.systemUptime + 0.4
+            repeat {
+                if str(el, kAXValueAttribute as String) == v { held = true; break }
+                usleep(50_000)
+            } while ProcessInfo.processInfo.systemUptime < until
+            if !held {
+                return ["type": "error", "error": "action_failed",
+                        "effect": "not_started", "detail": "AXValue set failed"]
+            }
         }
     case "type_text":
         // Typing requires a target element, and that element must be somewhere

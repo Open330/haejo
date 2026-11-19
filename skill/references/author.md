@@ -121,6 +121,13 @@ only window/element-bound background `press_key` navigation. Inspect the backend
 capabilities and provide an input selector, ContextBinding and an explicit
 attribute postcondition; `unverified_ok` cannot waive this contract. Tab,
 shift+Tab and arrows are allowed; Escape and shortcuts are not.
+**A click that sends, saves, installs or deletes** (its `safety.effects` name
+`transmit` or `write_persistent`) carries a `postcondition` for the result it
+leaves on screen: the sent text in the transcript, the field emptied, the
+dialog gone, the button's new title. Choose one that is false before the click.
+When it shows, the step is done and the Flow goes on; without one the run ends
+`commit_unverified` after the click.
+
 **To save a TextEdit document that already has a file, replay the built-in
 `textedit_save`** — `haejo replay textedit_save -p document=/abs/path/name.txt
 -p name=name.txt --helper --yes`. The absolute path is on the window's line in

@@ -103,7 +103,7 @@ def session_guide(target, *, reusable=False, document=None, save=False, steps=Fa
             'The session supplies target, document selector and resource defaults. check_value verifies that same text in the written field Value. '
             + ('selector_defaults already pins this document as ancestor; do not add ancestor to steps. '
                if reusable or save else 'Omit ancestor on this pinned connection. ')
-            + 'Use selector keys identifier/title/desc, not description. '
+            + 'Use selector keys identifier/title/desc. '
             'Quote the actual request in evidence. HAEJO_DOCUMENT_STATE matches_requested_text:true and remaining_steps:0 verifies visible text; do not read or type it again. '
             'False/null or remaining steps need inspection. Visible text does not verify Save or writer attribution; use run/replay for Save. '
         )
