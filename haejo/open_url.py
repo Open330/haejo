@@ -40,6 +40,11 @@ def front_page(tree):
     return _page_url(focused[0]) if len(focused) == 1 else None
 
 
+def shown_pages(tree):
+    """The page URL of every window in the observation, in order."""
+    return [url for url in (_page_url(block) for line, block in _windows(tree)) if url]
+
+
 def _open_url(url, *, browser=DEFAULT_BROWSER, driver=None, backend=None, front=False,
              timeout=10, clock=time.monotonic, sleep=time.sleep):
     def error(code, effect='not_started', **extra):
@@ -59,9 +64,11 @@ def _open_url(url, *, browser=DEFAULT_BROWSER, driver=None, backend=None, front=
         if path is None:
             return error('application_not_installed')
         before = None
+        earlier = []
         if driver is not None:
             seen = driver.observe(browser)
             before = front_page(seen.get('tree', '')) if seen.get('type') == 'observation' else None
+            earlier = shown_pages(seen.get('tree', '')) if seen.get('type') == 'observation' else []
         request = backend.open_url(target, path, front) if front else backend.open_url(target, path)
     except Exception:
         return error('native_open_unavailable', 'unknown')
@@ -84,9 +91,23 @@ def _open_url(url, *, browser=DEFAULT_BROWSER, driver=None, backend=None, front=
         if shown == target:
             # Already in front before: the page is there, not shown to have loaded anew.
             return dict(result, loaded_verified=before != target, already_open=before == target)
+        pages = shown_pages(obs.get('tree', '')) if obs.get('type') == 'observation' else []
+        if target in pages and target not in earlier:
+            # The browser put the page in a window that is not its focused one.
+            return dict(result, loaded_verified=True, already_open=False)
         if clock() >= deadline:
-            # A redirect lands elsewhere and is not adopted; never opened twice.
-            return dict(result, type='error', error='page_not_shown', effect='unknown', loaded_verified=False)
+            # The browser took the address and now shows a page it did not show
+            # before: the site sent the address somewhere else (a sign-in page,
+            # a canonical address). The opening is done and is never sent twice;
+            # where it landed is reported, and the caller reads that page.
+            landed = next((url for url in ([shown] if shown else []) + pages if url not in earlier), None)
+            if landed is not None:
+                return dict(result, loaded_verified=False, redirected=True, landed_url=landed,
+                            note='the browser shows landed_url in place of the address asked for')
+            return dict(result, type='error', error='page_not_shown', effect='unknown', loaded_verified=False,
+                        **({'shown_url': shown} if shown else {}),
+                        hint='the address was handed to the browser and is not sent again; '
+                             'read what it shows with `haejo windows ' + browser + ' --helper`')
         backend.pump(min(.25, max(0, deadline - clock())))
         sleep(0)
 

@@ -4,9 +4,13 @@ nothing needs installing.
 
 1. **Open:** `haejo open-url <URL> --helper` hands the address to Safari through
    LaunchServices (no typing) while the app in front stays in front. The reply
-   carries `loaded_verified` from the page's web area; `page_not_shown` means a
-   redirect landed elsewhere (it is never reopened); `already_open: true` with
-   `loaded_verified: false` means the page was already there: done.
+   carries `loaded_verified` from the page's web area. `redirected: true` with
+   `landed_url` means the site sent the address elsewhere (a sign-in page, a
+   canonical address): the page is open, so work on `landed_url`.
+   `page_not_shown` means no new page appeared in the time allowed (the address
+   was handed over once and is not sent again; `haejo windows` shows what the
+   browser has). `already_open: true` with `loaded_verified: false` means the
+   page was already there: done.
    `open_unconfirmed` may still finish later; observe before any resend.
 2. **Pick the page:** `haejo windows com.apple.Safari --helper` lists each
    window's `url`; `haejo session com.apple.Safari --window-match url=<text>

@@ -1075,8 +1075,11 @@ class Flow:
         for key in ("params", "tables", "derived", "literal_params"):
             if key in d and not isinstance(d[key], dict):
                 raise FlowFieldError(f"Flow.{key} must be an object", key, 'Use an object; params example: {"amount":"11"}, with {{amount}} in step values.')
-        if 'window' in d and schema < 5:
-            raise FlowFieldError('Flow.window requires schema 5', 'window', 'Set "schema": 5 (runtimes before it would ignore "window").')
+        if 'window' in d and 2 <= schema < 5:
+            # A window-bound Flow written with an earlier schema number is read
+            # as schema 5, the number it is saved with. (Seen in use: authors
+            # add "window" to a schema 2 Flow and the refusal cost a round trip.)
+            schema = 5
         if schema == 5 and 'window' not in d:
             raise FlowFieldError('Flow schema 5 is for a Flow with "window"', 'schema', 'Use schema 2-4, or add "window".')
         if 'window' in d:
@@ -2146,6 +2149,13 @@ def _may_rerun(step: "Step") -> bool:
     return set(step.safety.effects) <= {"read", "write_ephemeral"}
 
 
+def _pinned_document(driver) -> bool:
+    """A run pinned to one document file: its edits are confirmed by the saved
+    file (the document path of the session), not by the text on screen."""
+    from .document_scope import DocumentScopedDriver
+    return isinstance(driver, DocumentScopedDriver)
+
+
 class ReplayResult:
     def __init__(self):
         self.ok = True
@@ -2384,6 +2394,9 @@ def _selector_from(raw, where="selector"):
     known = {f.name for f in fields(Selector)}
     if not isinstance(raw, dict):
         raise ValueError(f"{where} must be an object")
+    if 'description' in raw and 'desc' not in raw:
+        # The observation prints "Description: …", so authors write that name.
+        raw = {('desc' if key == 'description' else key): value for key, value in raw.items()}
     if set(raw) - known or not any(raw.get(k) is not None for k in ("role", *_TEXT_FIELDS)):
         raise ValueError(f"{where} needs known selector fields that name an element")
     for key, value in raw.items():
@@ -3319,7 +3332,11 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
                     return {"type": "error", "error": "commit_unverified",
                             "effect": response.get("effect", "unknown"),
                             "event_id": event["event_id"], "event_state": event["state"],
-                            "detail": event["evidence_error"]}
+                            "detail": event["evidence_error"],
+                            # The app's own answer, for a caller whose result
+                            # check goes on to confirm the step.
+                            "acted_response": response if response.get("type") == "acted"
+                                and not response.get("unverified") else None}
                 res.commit_evidence[event["event_id"]] = proof
                 # What the proof is OF, kept with the event: a sender's own
                 # window is not the recipient's inbox (Codex review of a2207a2).
@@ -3355,24 +3372,41 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
         acted_on_tree = obs.get("tree")
         r = dispatch(obs, action)
 
+        checked_by_postcondition = False
         if r.get("error") in ("commit_unverified", "action_unverified"):
             extra = {}
             if step.postcondition is not None:
-                # No host receipt means the run cannot call the change
-                # confirmed. The author's own result check is still a read the
-                # caller would otherwise make by hand (or outside Haejo), so
-                # read it once and say what it showed. It never upgrades the
-                # status and never permits a resend.
+                # No host receipt exists for this app. The author's own result
+                # check is the read a caller would otherwise make by hand, so
+                # it is read here. It never permits a resend.
                 try:
                     seen = _replay_observation(driver.wait_until, flow.target, step.postcondition.check)
                     extra["postcondition_observed"] = seen.get("type") == "observation"
                 except Exception:
                     extra["postcondition_observed"] = None
-            res.record(status="unverified", step=i, action=step.action,
-                       error=r["error"], effect=r["effect"],
-                       event_id=r["event_id"], event_state=r["event_state"], detail=r["detail"],
-                       **extra)
-            return res
+            if (extra.get("postcondition_observed") is True and r["error"] == "commit_unverified"
+                    and r.get("detail") == "missing_typed_host_commit_evidence"
+                    and r.get("event_state") == "dispatched" and r.get("acted_response") is not None
+                    and not pre_satisfied and not _pinned_document(driver)):
+                # The app answered the press, and the result the author named
+                # was not on screen before it and is on screen after it. That
+                # is the check every other step is held to, so the step is
+                # done and the Flow goes on. (Seen in use: every send, save,
+                # install or deploy click in an app without a host receipt
+                # ended the run as failed although it had worked — 1,500 such
+                # records on three Macs, 2026-11-04 to 11-18.) The event keeps
+                # its own state: a receipt it is not.
+                for event in res.events:
+                    if event.get("event_id") == r["event_id"]:
+                        event["checked_by"] = "postcondition"
+                r = r["acted_response"]
+                checked_by_postcondition = True
+            else:
+                res.record(status="unverified", step=i, action=step.action,
+                           error=r["error"], effect=r["effect"],
+                           event_id=r["event_id"], event_state=r["event_state"], detail=r["detail"],
+                           **extra)
+                return res
 
         r = native_approval_refusal(r)
         if r["type"] == "approval_refused":
@@ -3467,7 +3501,7 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
                     res.log[-1]["target_terminated"] = True
                     res.log[-1]["effect"] = "acted"
                 return res
-            if (obs["type"] != "observation" and not seen_in_front()
+            if (obs["type"] != "observation" and not seen_in_front() and not checked_by_postcondition
                     and pointer_fallback_applies(step, action, r, acted_on_tree,
                                                  getattr(driver, "capabilities", ()))):
                 # The press was answered and the result never showed. On a page

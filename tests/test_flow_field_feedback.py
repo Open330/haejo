@@ -21,13 +21,13 @@ class FieldFeedbackTests(unittest.TestCase):
 
     def test_selector_locations_cover_nested_checks_and_wrong_types(self):
         base={'action':'read','selector':{'identifier':'result'}}
-        self.assert_feedback({**base,'selector':{'description':'PRIVATE'}},'selector','desc, not description')
+        self.assert_feedback({**base,'selector':{'label':'PRIVATE'}},'selector','role, identifier, title, desc')
         self.assert_feedback({**base,'selector':{'identifier':{'PRIVATE':'PRIVATE'}}},'selector.identifier','nonempty text')
         self.assert_feedback({**base,'selector':{'identifier':'result','allow_nth':'PRIVATE'}},'selector.allow_nth','nonnegative integer')
         self.assert_feedback({**base,'selector':{'identifier':'result','in_focused_window':'PRIVATE'}},'selector.in_focused_window','true or false')
         for check in ('postcondition','skip_if'):
             self.assert_feedback({**base,check:{'field':'PRIVATE','equals':'PRIVATE'}},check+'.field','object')
-            self.assert_feedback({**base,check:{'field':{'description':'PRIVATE'},'equals':'PRIVATE'}},check+'.field','desc, not description')
+            self.assert_feedback({**base,check:{'field':{'label':'PRIVATE'},'equals':'PRIVATE'}},check+'.field','role, identifier, title, desc')
             self.assert_feedback({**base,check:{'all_of':[{'field':{'identifier':42},'equals':'PRIVATE'}]}},check+'.all_of[0].field.identifier','nonempty text')
             self.assert_feedback({**base,check:{'equals':['PRIVATE']}},check+'.equals','Use text')
 

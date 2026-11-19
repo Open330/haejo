@@ -55,15 +55,28 @@ class OpenURLTests(unittest.TestCase):
         self.assertEqual(('url_opened', True, 'https://example.com/'), (r['type'], r['loaded_verified'], r['url']))
         self.assertEqual([('https://example.com/', '/Applications/Safari.app')], b.opened)
 
-    def test_a_redirect_is_not_adopted_and_nothing_is_opened_twice(self):
+    def test_a_redirect_reports_where_it_landed_and_nothing_is_opened_twice(self):
+        """The site sent the address to its sign-in page: the opening is done,
+        and the reply says which page is there (it ended as a failure before;
+        seen in use with App Store Connect and Apple Developer, 2026-11)."""
         r, b = self.run_open('https://example.com/a', shows='https://example.com/login')
-        self.assertEqual(('page_not_shown', 'unknown', False), (r['error'], r['effect'], r['loaded_verified']))
+        self.assertEqual(('url_opened', False, True, 'https://example.com/login'),
+                         (r['type'], r['loaded_verified'], r['redirected'], r['landed_url']))
+        self.assertNotIn('error', r)
+        self.assertEqual(1, len(b.opened))
+
+    def test_nothing_new_shown_is_still_page_not_shown(self):
+        r, b = self.run_open('https://example.com/a', shows='https://old.example/')
+        self.assertEqual(('page_not_shown', 'unknown', False, 'https://old.example/'),
+                         (r['error'], r['effect'], r['loaded_verified'], r['shown_url']))
+        self.assertIn('haejo windows', r['hint'])
         self.assertEqual(1, len(b.opened))
 
     def test_a_matching_window_behind_does_not_hide_a_redirect_in_front(self):
         r, b = self.run_open('https://example.com/', shows='https://example.com/login',
                              browser_kwargs={'behind': 'https://example.com/'})
-        self.assertEqual(('page_not_shown', False), (r['error'], r['loaded_verified']))
+        self.assertEqual(('url_opened', False, 'https://example.com/login'),
+                         (r['type'], r['loaded_verified'], r.get('landed_url')))
         self.assertEqual(1, len(b.opened))
 
     def test_a_page_already_in_front_is_present_not_newly_loaded(self):

@@ -224,6 +224,12 @@ class DragCaptureTests(unittest.TestCase):
                 self.assertEqual(capture_main(argv,driver),1)
             self.assertEqual(path.read_bytes(),b'private png')
             failed.assert_called_once_with('output_exists','capture')
+            # An earlier capture at the same path is replaced by the new one.
+            png=b'\x89PNG\r\n\x1a\n'
+            path.write_bytes(png+b'old');capture.png=png+b'new'
+            with contextlib.redirect_stdout(io.StringIO()):self.assertEqual(capture_main(argv,driver),0)
+            self.assertEqual(path.read_bytes(),png+b'new')
+            self.assertEqual([path.name],[p.name for p in Path(directory).iterdir()])
             driver.observe.return_value={'type':'observation','obs_id':'obs','tree':'0 Window Title: "A"\n1 Window Title: "B"'}
             with contextlib.redirect_stdout(io.StringIO()),patch('haejo.access_log.record_failure') as failed:
                 self.assertEqual(capture_main(['fixture','--helper','--output',str(Path(directory)/'other.png')],driver),1)

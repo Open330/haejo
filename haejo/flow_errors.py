@@ -41,8 +41,7 @@ def step_error(exc, path):
         boolean = re.fullmatch(r'(require_enabled|is_submit|into_sensitive_field|unverified_ok|answers) must be boolean', message)
         if match:
             field, hint = match[1], ('Use role, identifier, title, desc, value or placeholder; ancestor narrows the container, '
-                                     'near picks the repeat closest to a text, allow_nth (0-based) picks among repeats. '
-                                     'Use desc, not description.')
+                                     'near picks the repeat closest to a text, allow_nth (0-based) picks among repeats.')
         elif typed:
             field = typed[1]+'.'+typed[2]
             hint = ('Use a nonnegative integer.' if typed[2]=='allow_nth'
@@ -68,7 +67,23 @@ def feedback(exc):
         return f'JSON line {exc.lineno}, column {exc.colno}: use valid JSON, with double-quoted keys and no trailing commas.'
     if isinstance(exc, OSError):
         return 'file: could not read/write this path; check its parent directory and access.'
+    named = _TOP_LEVEL.get(str(exc))
+    if named:
+        return named
     return 'schema: invalid Flow; check name, target, steps and object fields. No input values are echoed.'
+
+
+# Fixed top-level problems, said by name. The texts are constants: no authored
+# value reaches them.
+_TOP_LEVEL = {
+    'Flow must be a JSON object': 'schema: the Flow is one JSON object: {"schema":2,"name":…,"target":…,"steps":[…]}.',
+    'Flow.steps must be a list': 'steps: use a list of step objects.',
+    'Flow requires name and target': 'name/target: both are nonempty text; target is the app bundle id.',
+    'schema 1 requires explicit migration to schema 2': 'schema: use "schema": 2.',
+    'Flow.safety_defaults must be an object': 'safety_defaults: use an object with effects, reversibility and resource.',
+    'literal data requires Flow schema 4': 'literal_params: set "schema": 4.',
+    'literal data requires named string values': 'literal_params: use an object of name: text.',
+}
 
 
 def contract_field_error(contract, path):
