@@ -387,7 +387,7 @@ wheels = [
 
 [[package]]
 name = "haejo-runtime"
-version = "1.0.7"
+version = "1.0.8"
 source = { editable = "." }
 dependencies = [
     { name = "ada-url" },
