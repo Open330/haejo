@@ -125,8 +125,9 @@ shift+Tab and arrows are allowed; Escape and shortcuts are not.
 `transmit` or `write_persistent`) carries a `postcondition` for the result it
 leaves on screen: the sent text in the transcript, the field emptied, the
 dialog gone, the button's new title. Choose one that is false before the click.
-When it shows, the step is done and the Flow goes on; without one the run ends
-`commit_unverified` after the click.
+When it shows, the step is done and the Flow goes on. Without one, the step is
+done when the screen differs after the click, and `commit_unverified` when it
+is the same.
 
 **To save a TextEdit document that already has a file, replay the built-in
 `textedit_save`** — `haejo replay textedit_save -p document=/abs/path/name.txt

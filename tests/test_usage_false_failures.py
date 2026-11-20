@@ -72,11 +72,18 @@ class ConsequentialStepTests(unittest.TestCase):
                          (result.log[-1]['status'], result.log[-1]['error'], result.log[-1]['postcondition_observed']))
         self.assertEqual(1, len(app.calls))
 
-    def test_without_a_named_result_it_stays_unverified(self):
+    def test_without_a_named_result_a_changed_screen_completes_the_step(self):
         app = SendApp()
         result = run(app, [send(postcondition=False), after()])
+        self.assertTrue(result.ok, result.log)
+        self.assertEqual([1, 3], [call['element_index'] for call in app.calls])
+        self.assertEqual('screen_change', result.events[0].get('checked_by'))
+
+    def test_without_a_named_result_an_unchanged_screen_stays_unverified(self):
+        app = SendApp(delivers=False)
+        result = run(app, [send(postcondition=False), after()])
         self.assertFalse(result.ok)
-        self.assertEqual('commit_unverified', result.log[-1]['error'])
+        self.assertEqual(('commit_unverified', False), (result.log[-1]['error'], result.log[-1]['screen_changed']))
         self.assertEqual(1, len(app.calls))
 
     def test_an_unacknowledged_press_stays_unverified(self):
@@ -84,6 +91,107 @@ class ConsequentialStepTests(unittest.TestCase):
         result = run(app, [send()])
         self.assertFalse(result.ok)
         self.assertEqual(1, len(app.calls))
+
+
+class SlowResultTests(unittest.TestCase):
+    """`postcondition_timeout` on a page still loading: the title asked for
+    was there a moment after the run had ended (june-mba, 2026-11-18)."""
+
+    class Page(SendApp):
+        def __init__(self, loads_after, settles=False):
+            super().__init__()
+            self.loads_after, self.settles, self.waits = loads_after, settles, 0
+
+        def observe(self, *args, **kwargs):
+            done = self.calls and self.waits >= self.loads_after
+            progress = 'idle' if not self.calls else ('loading' if self.settles else f'loading {self.waits}')
+            return {'type': 'observation', 'obs_id': 'o', 'tree':
+                    '0 Window  Title: Page\n  1 Button  Identifier: details\n'
+                    f'  2 StaticText  Identifier: last, Value: {"hello" if done else "none"}\n'
+                    f'  3 StaticText  Identifier: progress, Value: {progress}'}
+
+        def wait_until(self, target, predicate, **kwargs):
+            self.waits += 1
+            return super().wait_until(target, predicate, **kwargs)
+
+    def step(self):
+        return Step('click', Selector(identifier='details'),
+                    safety=Envelope.minimal().contract_for({'write_ephemeral'}, 'show details'),
+                    postcondition=Postcondition(field=Selector(identifier='last'), attribute='Value', equals='hello'))
+
+    def test_a_result_that_shows_while_the_screen_is_still_changing_is_waited_for(self):
+        app = self.Page(loads_after=3)
+        result = run(app, [self.step()])
+        self.assertTrue(result.ok, result.log)
+        self.assertEqual(1, len(app.calls), 'waiting is read-only')
+
+    def test_a_screen_that_stopped_changing_ends_the_wait(self):
+        app = self.Page(loads_after=99, settles=True)
+        result = run(app, [self.step()])
+        self.assertFalse(result.ok)
+        self.assertEqual('postcondition_timeout', result.log[-1]['error'])
+        self.assertLessEqual(app.waits, 3)
+        self.assertEqual(1, len(app.calls))
+
+
+class WindowListTests(unittest.TestCase):
+    """`window_list_unavailable` on an app launched a moment earlier."""
+
+    def driver(self, replies):
+        from haejo.helper import HelperDriver
+        driver = HelperDriver.__new__(HelperDriver)
+        driver.capabilities, driver._last_action_at, driver.sent = set(), 0.0, []
+        def send(message):
+            driver.sent.append(message)
+            return replies.pop(0) if len(replies) > 1 else replies[0]
+        driver._send = send
+        return driver
+
+    def test_a_starting_app_is_read_again(self):
+        unavailable = {'type': 'error', 'error': 'window_list_unavailable'}
+        driver = self.driver([unavailable, unavailable, {'type': 'observation', 'obs_id': 'o', 'tree': '0 Window'}])
+        with patch('haejo.helper.time.sleep'):
+            self.assertEqual('observation', driver.observe('com.example.app')['type'])
+        self.assertEqual(3, len(driver.sent))
+
+    def test_it_is_reported_when_it_lasts(self):
+        driver = self.driver([{'type': 'error', 'error': 'window_list_unavailable'}])
+        with patch('haejo.helper.WINDOW_LIST_WAIT_SECONDS', 0.05):
+            self.assertEqual('window_list_unavailable', driver.observe('com.example.app')['error'])
+
+    def test_a_polling_wait_keeps_its_own_deadline(self):
+        driver = self.driver([{'type': 'error', 'error': 'window_list_unavailable'}])
+        driver.observe('com.example.app', _settle_after_action=False)
+        self.assertEqual(1, len(driver.sent))
+
+
+class LateControlTests(unittest.TestCase):
+    """`target_missing` 50 ms into a run: the screen was still being drawn."""
+
+    class Opening(SendApp):
+        def __init__(self, appears):
+            super().__init__()
+            self.appears, self.reads = appears, 0
+
+        def observe(self, *args, **kwargs):
+            self.reads += 1
+            seen = super().observe()
+            if self.reads < self.appears:
+                seen['tree'] = '0 Window  Title: Chat'
+            return seen
+
+    def test_a_control_that_appears_a_moment_later_is_used(self):
+        app = self.Opening(appears=2)
+        result = run(app, [after()])
+        self.assertTrue(result.ok, result.log)
+        self.assertEqual([3], [call['element_index'] for call in app.calls])
+
+    def test_a_control_that_never_appears_is_missing_and_nothing_is_sent(self):
+        app = self.Opening(appears=10**6)
+        result = run(app, [after()])
+        self.assertFalse(result.ok)
+        self.assertEqual('target_missing', result.log[-1]['error'])
+        self.assertEqual([], app.calls)
 
 
 class AuthoringTests(unittest.TestCase):

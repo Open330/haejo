@@ -234,3 +234,11 @@ class DragCaptureTests(unittest.TestCase):
             with contextlib.redirect_stdout(io.StringIO()),patch('haejo.access_log.record_failure') as failed:
                 self.assertEqual(capture_main(['fixture','--helper','--output',str(Path(directory)/'other.png')],driver),1)
             failed.assert_called_once_with('window_missing_or_ambiguous','select_window')
+            # A listed element index names the window; with none named, the focused one is taken.
+            other=Path(directory)/'by-index.png'
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(capture_main(['fixture','--helper','--window','1','--output',str(other)],driver),0)
+            driver.observe.return_value={'type':'observation','obs_id':'obs','tree':'0 Window Title: "A"\n1 Window Title: "B" [focused]'}
+            with contextlib.redirect_stdout(io.StringIO()),patch('haejo.native_visual_actions.capture_window',return_value=capture) as shot:
+                self.assertEqual(capture_main(['fixture','--helper','--output',str(Path(directory)/'focused.png')],driver),0)
+            self.assertEqual(1,shot.call_args.kwargs['window_index'])
