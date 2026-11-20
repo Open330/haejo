@@ -136,6 +136,15 @@ def capture_main(argv, driver):
         indices=(Selector(role='Window',title=args.window).resolve_all(obs['tree']) if args.window else
                  [int(match.group(1)) for line in obs['tree'].splitlines()
                   if (match:=re.match(r'^(\d+) Window(?:\s|$)',line))])
+        every=[(int(m.group(1)),line) for line in obs['tree'].splitlines() if (m:=re.match(r'^(\d+) Window(?:\s|$)',line))]
+        if len(indices)!=1 and args.window and args.window.isdigit() and int(args.window) in [index for index,_ in every]:
+            # The element index the refusal below lists for each window.
+            indices=[int(args.window)]
+        if len(indices)!=1 and not args.window:
+            # Several windows and none named: the one the app has focused.
+            from .document_label import window_flag
+            focused=[index for index,line in every if window_flag(line,'focused')]
+            if len(focused)==1:indices=focused
         if len(indices)!=1:
             record_failure('window_missing_or_ambiguous','select_window')
             # Name the observed windows: "specify a title" alone left agents
@@ -143,7 +152,7 @@ def capture_main(argv, driver):
             windows=[{'element_index':int(m.group(1)),'title':Selector._attr(line,'Title') or ''}
                      for line in obs['tree'].splitlines() if (m:=re.match(r'^(\d+) Window(?:\s|$)',line))]
             print(json.dumps({'error':'window_missing_or_ambiguous','effect':'not_started',
-                              'detail':'specify --window with an exact observed title',
+                              'detail':'specify --window with an exact observed title or one of these element_index values',
                               'windows':windows[:20]},ensure_ascii=False));return 1
         image=capture_window(driver,obs['obs_id'],args.target,window_index=indices[0])
         # A new file, never through a destination symlink. An earlier capture

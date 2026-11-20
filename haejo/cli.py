@@ -720,7 +720,7 @@ def _run_flow(flow, argv, walked: bool = False, *, _driver=None, _confirm=None, 
                      if observed is True else
                      "  단계의 postcondition 이 시간 안에 화면에 나타나지 않았습니다.\n"
                      if observed is False else
-                     "  이 단계에 postcondition(실행 전에는 거짓, 실행 뒤에 참인 결과)을 붙이면 그 결과가 보일 때 완료로 끝납니다.\n"
+                     "  동작 뒤에도 화면이 그대로였습니다. 이 단계에 postcondition(실행 전에는 거짓, 실행 뒤에 참인 결과)을 붙이면 그 결과가 보일 때 완료로 끝납니다.\n"
                      if "postcondition_observed" not in last else "")
                   + "  같은 동작을 다시 실행하지 말고 해당 대상의 현재 상태를 읽어 확인하세요.\n"
                   f"  detail: {last}")

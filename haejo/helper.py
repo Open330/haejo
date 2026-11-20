@@ -610,6 +610,10 @@ class InheritedHelperDriver:
 # offered as though it could.
 
 
+# How long one observation keeps asking an app for its window list.
+WINDOW_LIST_WAIT_SECONDS = 3.0
+
+
 class HelperDriver:
     """L2 endpoint backed by the Swift helper process."""
 
@@ -789,6 +793,16 @@ class HelperDriver:
             return self._send(message)
         key = json.dumps(message, sort_keys=True)
         out = self._settled(message, key, settle_until) if settling else self._send(message)
+        if _settle_after_action and out.get("error") == "window_list_unavailable":
+            # An app that has just started (or is busy for a moment) does not
+            # hand out its window list yet. One read then failed the command
+            # (a freshly launched app, 12 times on one Mac, 2026-11): read
+            # again for a few seconds before saying so. Waits that poll
+            # (`_settle_after_action=False`) already keep their own deadline.
+            until = time.monotonic() + WINDOW_LIST_WAIT_SECONDS
+            while out.get("error") == "window_list_unavailable" and time.monotonic() < until:
+                time.sleep(0.25)
+                out = self._send(message)
         if out.get("type") == "observation" and isinstance(out.get("tree"), str):
             if not hasattr(self, '_seen_trees'):
                 self._seen_trees = {}

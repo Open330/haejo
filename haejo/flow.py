@@ -2149,6 +2149,32 @@ def _may_rerun(step: "Step") -> bool:
     return set(step.safety.effects) <= {"read", "write_ephemeral"}
 
 
+# How long a step looks for a control that is not on screen yet.
+TARGET_WAIT_MS = 2500
+
+
+def _wait_while_changing(driver, target, check, obs, before, rounds=3):
+    """Keep waiting for a result while the screen is still moving.
+
+    The first wait is a few seconds, enough for a screen that reacts at once.
+    A page that loads after a click takes longer (seen in use: the expected
+    title was there a moment after the run had ended postcondition_timeout).
+    So when that wait ends on a screen that differs from the one before it,
+    the same read-only wait runs again, up to `rounds` more times, and stops
+    as soon as two waits end on the same screen. Nothing is sent again."""
+    previous = before
+    for _ in range(rounds):
+        if obs.get("type") != "timeout":
+            return obs
+        last = obs.get("last_obs")
+        tree = last.get("tree") if isinstance(last, dict) else None
+        if not isinstance(tree, str) or tree == previous:
+            return obs
+        previous = tree
+        obs = _replay_observation(driver.wait_until, target, check)
+    return obs
+
+
 def _pinned_document(driver) -> bool:
     """A run pinned to one document file: its edits are confirmed by the saved
     file (the document path of the session), not by the text on screen."""
@@ -2925,6 +2951,7 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
         if step.action == "status_item":
             target_line = "status_item: " + str(step.params.get("title") or "")
         revealed = False
+        awaited = False
         while step.selector is not None:
             try:
                 action["element_index"], trace = step.selector.resolve(obs["tree"])
@@ -2956,6 +2983,26 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
                     e = TargetMissing(f"{e} (잘린 목록 재확인 실패: {again.get('error') or again.get('type')})")
                 elif revealed and obs.get("reveal_scan_complete") is False:
                     e = TargetMissing(f"{e} (잘린 목록을 끝까지 확인하지 못했습니다)")
+                if kind == "target_missing" and not awaited and not revealed and hasattr(driver, "wait_until"):
+                    # A control that is not there yet: the screen of an app
+                    # that has just opened, or of the step before, may still
+                    # be drawing (seen in use: runs ended target_missing 50 ms
+                    # after they began). Look for it for a moment, reading
+                    # only, before calling it missing.
+                    awaited = True
+                    def present(tree, selector=step.selector):
+                        try:
+                            selector.resolve(tree)
+                        except TargetMissing:
+                            return False
+                        except TargetAmbiguous:
+                            pass
+                        return True
+                    later = _replay_observation(driver.wait_until, flow.target, present,
+                                                timeout_ms=TARGET_WAIT_MS)
+                    if later.get("type") == "observation" and isinstance(later.get("obs_id"), str):
+                        obs = later
+                        continue
                 nearby = _nearby(step.selector, obs["tree"])
                 fix = _escalate(escalate, spend, step, Uncertainty(
                     kind=kind, step=i, intent=step.intent_text,
@@ -3384,10 +3431,26 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
                     extra["postcondition_observed"] = seen.get("type") == "observation"
                 except Exception:
                     extra["postcondition_observed"] = None
-            if (extra.get("postcondition_observed") is True and r["error"] == "commit_unverified"
-                    and r.get("detail") == "missing_typed_host_commit_evidence"
-                    and r.get("event_state") == "dispatched" and r.get("acted_response") is not None
-                    and not pre_satisfied and not _pinned_document(driver)):
+            answered = (r["error"] == "commit_unverified"
+                        and r.get("detail") == "missing_typed_host_commit_evidence"
+                        and r.get("event_state") == "dispatched" and r.get("acted_response") is not None
+                        and not _pinned_document(driver))
+            if answered and step.postcondition is None and step.action in ("click", "double_click", "press_key", "menu"):
+                # The author named no result. The app answered the press, so
+                # the screen is read once: a screen that differs from the one
+                # the press was sent on shows the press had an effect, which
+                # is all an unnamed result can show (and what a press without
+                # consequences is held to). An unchanged screen stays
+                # unverified. (Seen in use: single send/install clicks written
+                # without a postcondition, all of which had worked.)
+                try:
+                    seen = _replay_observation(driver.observe, flow.target, "tree_full")
+                    extra["screen_changed"] = (seen.get("type") == "observation"
+                                               and isinstance(acted_on_tree, str) and seen["tree"] != acted_on_tree)
+                except Exception:
+                    extra["screen_changed"] = None
+            if answered and ((extra.get("postcondition_observed") is True and not pre_satisfied)
+                             or extra.get("screen_changed") is True):
                 # The app answered the press, and the result the author named
                 # was not on screen before it and is on screen after it. That
                 # is the check every other step is held to, so the step is
@@ -3398,7 +3461,7 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
                 # its own state: a receipt it is not.
                 for event in res.events:
                     if event.get("event_id") == r["event_id"]:
-                        event["checked_by"] = "postcondition"
+                        event["checked_by"] = "postcondition" if step.postcondition is not None else "screen_change"
                 r = r["acted_response"]
                 checked_by_postcondition = True
             else:
@@ -3480,6 +3543,7 @@ def replay(driver: Driver, flow: Flow, approvals: dict[int, bool] | None = None,
             obs = _replay_observation(driver.observe, flow.target, "tree_full") if pre_satisfied and not _may_rerun(step) else None
             if obs is None or (obs.get("type") == "observation" and not post.check(obs["tree"])):
                 obs = _replay_observation(driver.wait_until, flow.target, post.check)
+                obs = _wait_while_changing(driver, flow.target, post.check, obs, acted_on_tree)
             if obs.get('type') == 'error':
                 from .window_absence import reobserve_closed_window
                 obs = reobserve_closed_window(

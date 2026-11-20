@@ -43,7 +43,7 @@ class WindowDiagnosticContractTests(unittest.TestCase):
                    'window_listing_diagnostic':diagnostic(status='role_unavailable',
                        raw_count=4,role_unavailable_count=1)}
             driver._send=Mock(return_value=reply)
-            with patch('haejo.helper._explain_no_window') as explain,patch('haejo.helper._unhide_target') as unhide:
+            with patch('haejo.helper._explain_no_window') as explain,patch('haejo.helper._unhide_target') as unhide,patch('haejo.helper.WINDOW_LIST_WAIT_SECONDS',0):
                 self.assertEqual(driver.observe('owned',require_window=required),reply)
             explain.assert_not_called();unhide.assert_not_called()
             self.assertEqual(driver._send.call_count,1)
