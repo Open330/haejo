@@ -15,7 +15,7 @@ It saves the steps as a reusable **Flow**, so next time it runs with new inputs 
 [![Claude + Codex](docs/assets/badge-agents.svg)](skill/SKILL.md)
 [![Status](docs/assets/badge-status.svg)](#getting-started)
 
-[Release](https://github.com/Open330/haejo/releases/tag/v1.0.7) · [How it works](#how-it-works) · [Benchmarks](#benchmarks) · [Documentation](#documentation)
+[Release](https://github.com/Open330/haejo/releases/tag/v1.0.8) · [How it works](#how-it-works) · [Benchmarks](#benchmarks) · [Documentation](#documentation)
 
 </div>
 
@@ -134,9 +134,9 @@ A separate development test completed ten jobs with zero replay-time model calls
 
 ## Get started
 
-**Haejo 1.0.7 for Apple Silicon Macs. Requires macOS 27.0 or later.**
+**Haejo 1.0.8 for Apple Silicon Macs. Requires macOS 27.0 or later.**
 
-1. [Download the notarized DMG](https://github.com/Open330/haejo/releases/download/v1.0.7/Haejo-1.0.7-arm64.dmg) ([release notes and validation](https://github.com/Open330/haejo/releases/tag/v1.0.7)).
+1. [Download the notarized DMG](https://github.com/Open330/haejo/releases/download/v1.0.8/Haejo-1.0.8-arm64.dmg) ([release notes and validation](https://github.com/Open330/haejo/releases/tag/v1.0.8)).
 2. Open it, drag `Haejo.app` into `Applications`, then open Haejo from `Applications`.
 3. In **1. Mac permissions**, press **Open Settings** and allow app control for **Haejo Helper** (screen recording for **Haejo** is optional).
 4. Opening the app already linked the `haejo` command and skill for Claude Code and Codex (**2. Connect agent** shows it; press it again after moving the app).
@@ -146,7 +146,7 @@ Upgrading from Tacto: install Haejo the same way. Your Tacto data moves to the H
 
 Haejo runs in the menu bar without a Dock icon. Close the window to leave it in the background; the menu bar icon reopens it or quits.
 
-The 1.0.7 DMG is built from source `f062723` on Python 3.14: 3,845 regression cases with no failures, Apple notarization and Gatekeeper accepted, and a first install checked on a fresh macOS 27.2 account in a VM. Coming from a release candidate before rc.48, allow app control and screen capture again after upgrading (the identifiers became `open330.haejo`); web tasks need `haejo web install` once. Windows and Intel Mac builds are not provided. The in-app onboarding is currently Korean-first. [Release evidence](docs/release-readiness.md) · [Installation details](docs/installation.md)
+The 1.0.8 DMG is built from source `bf4b62e` on Python 3.14: 3,853 regression cases with no failures, Apple notarization and Gatekeeper accepted, and a first install checked on a fresh macOS 27.2 account in a VM. Coming from a release candidate before rc.48, allow app control and screen capture again after upgrading (the identifiers became `open330.haejo`); web tasks need `haejo web install` once. Windows and Intel Mac builds are not provided. The in-app onboarding is currently Korean-first. [Release evidence](docs/release-readiness.md) · [Installation details](docs/installation.md)
 
 ### Build from source
 
