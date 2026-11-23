@@ -128,7 +128,8 @@ def decode_session_flow(raw, target, document=None, *, steps=False):
     return flow
 
 
-def read_session_flow(fd, timeout, emit, *, prepare=None, observe_next=None, find_observation=None, metrics=None, decode=None):
+def read_session_flow(fd, timeout, emit, *, prepare=None, observe_next=None, find_observation=None,
+                      observation_region=None, metrics=None, decode=None):
     """Repair interactive schema errors before dispatch on the same connection."""
     deadline = time.monotonic() + timeout
     reader = (_CHAIN_READER.get(fd) or _windows_reader(fd)) if sys.platform == 'win32' else None
@@ -138,7 +139,7 @@ def read_session_flow(fd, timeout, emit, *, prepare=None, observe_next=None, fin
         raw = read_flow_line(fd, max(0, deadline - time.monotonic()), reader=reader)
         counted = False
         try:
-            if observe_next is not None or find_observation is not None:
+            if observe_next is not None or find_observation is not None or observation_region is not None:
                 command = json.loads(raw)
                 if isinstance(command, dict) and 'observe_next' in command:
                     if (set(command) != {'observe_next'} or command['observe_next'] is not True
@@ -157,6 +158,15 @@ def read_session_flow(fd, timeout, emit, *, prepare=None, observe_next=None, fin
                         raise FlowFieldError('invalid_observation_lookup', 'find_in_observation',
                                              'Send one exact label as text, without a Flow or other commands.')
                     find_observation(label)
+                    continue
+                if isinstance(command, dict) and 'observation_region' in command:
+                    from .flow_errors import FlowFieldError
+                    index = command['observation_region']
+                    if (set(command) != {'observation_region'} or observation_region is None
+                            or (index is not None and (type(index) is not int or index < 0))):
+                        raise FlowFieldError('invalid_observation_region', 'observation_region',
+                                             'Send one displayed region index or null on its own.')
+                    observation_region(index)
                     continue
             if metrics is not None:
                 metrics['flow_input_attempts'] = metrics.get('flow_input_attempts', 0) + 1
@@ -261,7 +271,7 @@ MAX_CHAINED_APPS = 4
 # blocked on that pipe, so the chain owns one reader for every app; a second
 # would race the first for the next app's line.
 _CHAIN_READER = {}
-_INHERITED = ('--helper', '--timings', '--guide', '--steps')
+_INHERITED = ('--helper', '--timings', '--guide', '--steps', '--overview')
 
 
 def _run_session(args, *, make_driver, run_flow, stdin, emit):
@@ -373,8 +383,8 @@ def _run_one_session(args, *, make_driver, run_flow, stdin, emit):
     # process, so --helper is refused there and required on macOS.
     windows = sys.platform == "win32"
     helper = [] if windows else ['--helper']
-    usage = ('usage: session <app.exe | pid:N> [--guide] [--steps] [--timings] [--idle-timeout 1..600]' if windows
-             else 'usage: session <bundle-id> --helper [--document /absolute/path] [--guide] [--steps] [--timings] [--idle-timeout 1..600] [--then <bundle-id> [--document /absolute/path]]')
+    usage = ('usage: session <app.exe | pid:N> [--guide] [--steps] [--overview] [--timings] [--idle-timeout 1..600]' if windows
+             else 'usage: session <bundle-id> --helper [--document /absolute/path] [--guide] [--steps] [--overview] [--timings] [--idle-timeout 1..600] [--then <bundle-id> [--document /absolute/path]]')
     from .window_scope import take_window_arg, bind_window
     try:args,window_id=take_window_arg(args)
     except ValueError as error:emit(str(error));return 2
@@ -411,9 +421,10 @@ def _run_one_session(args, *, make_driver, run_flow, stdin, emit):
             return 2
         timeout = int(value)
         del args[index:index + 2]
-    targets = [value for value in args if value not in ('--helper', '--timings', '--guide', '--reuse-guide')]
+    targets = [value for value in args if value not in ('--helper', '--timings', '--guide', '--reuse-guide', '--overview')]
     if (len(targets) != 1 or targets[0].startswith('-') or args.count('--helper') != len(helper)
-            or args.count('--timings') > 1 or args.count('--guide') > 1 or args.count('--reuse-guide') > 1):
+            or args.count('--timings') > 1 or args.count('--guide') > 1 or args.count('--reuse-guide') > 1
+            or args.count('--overview') > 1):
         emit(usage)
         return 2
     target = targets[0]
@@ -445,24 +456,32 @@ def _run_one_session(args, *, make_driver, run_flow, stdin, emit):
             emit(json.dumps(observation, ensure_ascii=False))
             return 1
         continuation_pages = 0
+        region_requests = 0
+        regions = {}
 
-        def show_observation():
+        def show_observation(*, mode='overview', region=None):
+            nonlocal regions
+            from .observation_paging import observation_regions, observation_view
             # The live cursor belongs to this connection; authors see only
             # whether there are more candidates, never a reusable native token.
-            hidden = {'next_observation_cursor'}
+            hidden = set()
             if '--timings' not in args:
                 hidden.update(('observation_timing_ms', 'observation_metrics',
                                'window_listing_diagnostic', 'coordination_elapsed_ms'))
-            visible = {key: value for key, value in observation.items() if key not in hidden}
             more = bool(observation.get('next_observation_cursor'))
-            if more:
-                visible['has_more_observation'] = True
+            if '--overview' in args and mode == 'overview':
+                regions = {item.index: item for item in observation_regions(observation['tree'])}
+            visible = observation_view({key: value for key, value in observation.items() if key not in hidden},
+                                       regions=regions.values() if mode == 'overview' else None, region=region)
             emit(json.dumps(visible, ensure_ascii=False, separators=(',', ':')))
+            if regions and mode != 'full':
+                emit('HAEJO_OBSERVATION_REGIONS send {"observation_region":<displayed index>} for one region, '
+                     'or {"observation_region":null} for the full current observation page. No UI input is sent.')
             if more:
                 lookup = (' If the exact name is known, send {"find_in_observation":"exact label"} instead.'
                           if 'observe.reveal' in getattr(driver, 'capabilities', ()) else '')
                 emit('HAEJO_OBSERVATION_MORE send {"observe_next":true} to inspect omitted candidates on this session; no UI input is sent.' + lookup)
-            if not more and window_id is None and document is None:
+            if mode == 'overview' and not more and window_id is None and document is None:
                 # Waiting for the author's JSON can take a minute. Holding the
                 # app meanwhile turned every other observe/capture on it into
                 # a 10 s target_busy (2026-11-05/06). The replay observes again
@@ -474,6 +493,18 @@ def _run_one_session(args, *, make_driver, run_flow, stdin, emit):
                     except Exception:
                         pass
             emit('HAEJO_SESSION_READY send one compact Flow JSON line, then newline; target=' + target)
+
+        def show_region(index):
+            nonlocal region_requests
+            from .flow_errors import FlowFieldError
+            if region_requests >= MAX_OBSERVATION_PAGES:
+                raise FlowFieldError('observation_region_limit', 'observation_region',
+                                     'Eight region requests were made on this session.')
+            if index is not None and index not in regions:
+                raise FlowFieldError('observation_region_unavailable', 'observation_region',
+                                     'Use a region index from the current observation page.')
+            region_requests += 1
+            show_observation(mode='full' if index is None else 'region', region=regions.get(index))
 
         def additional_observation(label=None):
             nonlocal observation, continuation_pages
@@ -532,6 +563,7 @@ def _run_one_session(args, *, make_driver, run_flow, stdin, emit):
                                                    prepare=lambda parsed: prepare_session_flow(parsed, target, window_id),
                                                    observe_next=additional_observation,
                                                    find_observation=additional_observation,
+                                                   observation_region=show_region if '--overview' in args else None,
                                                    metrics=timing if '--timings' in args else None,
                                                    decode=lambda raw: decode_session_flow(raw, target, document, steps=bound_steps))
                 timing['flow_received_seconds'] = time.monotonic() - started

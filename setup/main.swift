@@ -1,6 +1,6 @@
 import AppKit
 
-private let contentWidth: CGFloat = 656
+private let contentWidth: CGFloat = 580
 private let scrollerWidth = NSScroller.scrollerWidth(for: .regular, scrollerStyle: .legacy)
 private var mainWidth: CGFloat { contentWidth + 64 + scrollerWidth }
 private let mutedText = adaptive(NSColor(srgbRed: 0.30, green: 0.33, blue: 0.31, alpha: 1),
@@ -390,7 +390,10 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
     var permissionDetails = false
     var permissionDetailsButton: NSButton!
-    let permissionTitle = label("1. Mac 권한", size: 15, weight: .semibold)
+    let permissionTitle = label("앱 조작 권한", size: 15, weight: .semibold)
+    let firstRunTitle = label("첫 작업", size: 15, weight: .semibold)
+    let screenStatus = label("", size: 12, color: mutedText, width: contentWidth)
+    var firstRunLaunchControls: NSStackView!
     let firstRunHint = label("", size: 12, color: mutedText, width: contentWidth - 32)
     var detectedAgents: [FirstRunAgent] = []
     var agentPicker: NSPopUpButton!
@@ -443,7 +446,7 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
            let f = args.firstIndex(of:"--activity-fixture"), f + 1 < args.count {
             let center = ActivityCenter(store:ActivityStore(root:URL(fileURLWithPath:args[f+1])),refreshAutomatically:false)
             if args.contains("--dark") { NSApp.appearance = NSAppearance(named:.darkAqua) }
-            do { try center.snapshot(to:URL(fileURLWithPath:args[i+1]),settingsPage:args.contains("--settings-page"),size:args.contains("--compact") ? NSSize(width:900,height:600) : NSSize(width:1060,height:700)) }
+            do { try center.snapshot(to:URL(fileURLWithPath:args[i+1]),settingsPage:args.contains("--settings-page"),memoryPage:args.contains("--memory-page"),size:args.contains("--compact") ? NSSize(width:900,height:600) : NSSize(width:1060,height:700)) }
             catch { FileHandle.standardError.write(Data("Activity snapshot failed\n".utf8)); exit(1) }
             NSApp.terminate(nil); return
         }
@@ -488,7 +491,6 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         build()
         installMenus()
         ApprovalCenter.shared.refresh()
-        window.center()
         // Background launches keep the settings surface out of the user's way.
         // The menu bar remains available; a normal open or menu click shows it.
         let background = CommandLine.arguments.contains("--background")
@@ -515,20 +517,13 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         if helper != nil { refreshConnection(); check() }
     }
 
-    func build() {
-        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 720, height: 640),
-                          styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
-        window.title = "Haejo"
-        window.delegate = self
-        window.isReleasedWhenClosed = false
-        window.standardWindowButton(.closeButton)?.setAccessibilityIdentifier("haejo.close")
-        window.titlebarAppearsTransparent = true
-        window.backgroundColor = canvas
+    func build(standalonePreview: Bool = false) {
         panel = AccessoryPanel(helper: helper)
         panel.delegate = self
         panel.reposition = { [weak self] in if self?.panel.isVisible == true { self?.placeAccessory() } }
         let stack = DocumentStack(); stack.orientation = .vertical; stack.alignment = .leading; stack.spacing = 10
-        stack.edgeInsets = NSEdgeInsets(top: 18, left: 32, bottom: 18, right: 32)
+        let margin: CGFloat = standalonePreview ? 32 : 12
+        stack.edgeInsets = NSEdgeInsets(top: 18, left: margin, bottom: 18, right: margin)
         stack.wantsLayer = true
         stack.fill = canvas
         contentStack = stack
@@ -540,11 +535,8 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         scroll.autohidesScrollers = true; scroll.scrollerStyle = .legacy
         scroll.documentView = stack
         scroll.contentView.drawsBackground = true; scroll.contentView.backgroundColor = canvas
-        stack.widthAnchor.constraint(equalToConstant: contentWidth + 64).isActive = true
-        window.contentView = scroll
+        stack.widthAnchor.constraint(equalToConstant: contentWidth + 2 * margin).isActive = true
         scrollView = scroll
-        window.contentMinSize = NSSize(width: mainWidth, height: 420)
-        window.contentMaxSize = NSSize(width: mainWidth, height: 2000)
         let logo = NSImageView()
         let assets = snapshotAssets ?? root.appendingPathComponent("docs/assets")
         let asset = Bundle.main.url(forResource: "haejo-app", withExtension: "icns")
@@ -567,10 +559,12 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         header.spacing = 10
         header.orientation = .horizontal; header.alignment = .centerY
         header.widthAnchor.constraint(equalToConstant: contentWidth).isActive = true
-        stack.addArrangedSubview(header)
-        stack.addArrangedSubview(label("에이전트가 여러분 대신 Mac 앱을 사용합니다.",
-                                       size: 14, color: mutedText, width: contentWidth))
-        stack.setCustomSpacing(14, after: stack.arrangedSubviews.last!)
+        if standalonePreview {
+            stack.addArrangedSubview(header)
+            stack.addArrangedSubview(label("에이전트가 여러분 대신 Mac 앱을 사용합니다.",
+                                           size: 14, color: mutedText, width: contentWidth))
+            stack.setCustomSpacing(14, after: stack.arrangedSubviews.last!)
+        }
         refreshButton = NSButton(title: "상태 새로고침", target: self, action: #selector(refreshAll))
         refreshButton.bezelStyle = .rounded; refreshButton.controlSize = .small
         permissionDetailsButton = NSButton(title: "상세 보기", target: self, action: #selector(togglePermissionDetails))
@@ -580,17 +574,18 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         permissionHeader.orientation = .horizontal; permissionHeader.alignment = .centerY
         permissionHeader.widthAnchor.constraint(equalToConstant: contentWidth).isActive = true
         stack.addArrangedSubview(permissionHeader)
-        for permission in Permission.allCases {
+        rows = Permission.allCases.map { permission in
             let row = PermissionRow(permission, target: self, selector: #selector(turnOn(_:)))
             row.showApp(appFor(permission))
-            rows.append(row); stack.addArrangedSubview(row)
+            return row
         }
+        for row in rows where row.permission == .control { stack.addArrangedSubview(row) }
         stack.addArrangedSubview(status)
         stack.setCustomSpacing(12, after: status)
         let connect = CoralButton(title: "에이전트에 연결", target: self, action: #selector(connect))
-        connect.keyEquivalent = "\r"; connect.isEnabled = false
+        connect.isEnabled = false
         connectButton = connect
-        let connectionHeader = NSStackView(views: [label("2. 에이전트 연결", size: 15, weight: .semibold), NSView(), connectButton])
+        let connectionHeader = NSStackView(views: [label("에이전트 연결", size: 15, weight: .semibold), NSView(), connectButton])
         connectionHeader.orientation = .horizontal; connectionHeader.alignment = .centerY
         connectionHeader.widthAnchor.constraint(equalToConstant: contentWidth - 32).isActive = true
         let connection = SurfaceStack(views: [connectionHeader, connectionInfo,
@@ -607,49 +602,67 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         exampleButton = NSButton(title: "첫 요청 복사", target: self, action: #selector(copyFirstRequest))
         exampleButton.bezelStyle = .rounded
         exampleButton.setAccessibilityIdentifier("haejo.copy-first-request")
-        let example = NSStackView(views: [label("3. 첫 작업", size: 15, weight: .semibold), NSView(), exampleButton])
-        example.orientation = .horizontal; example.alignment = .centerY
-        example.widthAnchor.constraint(equalToConstant: contentWidth).isActive = true
+        let firstRunHeader = NSStackView(views: [firstRunTitle, NSView(), exampleButton])
+        firstRunHeader.orientation = .horizontal; firstRunHeader.alignment = .centerY
+        firstRunHeader.widthAnchor.constraint(equalToConstant: contentWidth - 32).isActive = true
         agentPicker = NSPopUpButton(frame: .zero, pullsDown: false)
         agentPicker.setAccessibilityIdentifier("haejo.first-run-agent")
+        agentPicker.setAccessibilityLabel("첫 작업을 실행할 에이전트")
         startFirstRunButton = CoralButton(title: "첫 작업 시작", target: self, action: #selector(startFirstRun))
         startFirstRunButton.setAccessibilityIdentifier("haejo.start-first-run")
         let startRow = NSStackView(views: [agentPicker, startFirstRunButton, NSView()])
         startRow.orientation = .horizontal; startRow.alignment = .centerY; startRow.spacing = 10
         startRow.widthAnchor.constraint(equalToConstant: contentWidth - 32).isActive = true
-        let firstRun = SurfaceStack(views: [firstRunHint, startRow,
+        let launchControls = NSStackView(views: [startRow,
             label("새 터미널에서 실행 · 최초 신뢰·로그인 확인과 계정 사용량이 적용됩니다.", size: 11, color: mutedText, width: contentWidth - 32)])
+        launchControls.orientation = .vertical
+        launchControls.alignment = .leading
+        launchControls.spacing = 8
+        firstRunLaunchControls = launchControls
+        let firstRun = SurfaceStack(views: [firstRunHeader, firstRunHint, launchControls])
         firstRun.orientation = .vertical; firstRun.alignment = .leading; firstRun.spacing = 10
         firstRun.edgeInsets = NSEdgeInsets(top: 12, left: 16, bottom: 12, right: 16)
         firstRun.wantsLayer = true; firstRun.layer?.cornerRadius = 12
         firstRun.fill = .controlBackgroundColor
         firstRun.widthAnchor.constraint(equalToConstant: contentWidth).isActive = true
-        stack.addArrangedSubview(example)
         stack.addArrangedSubview(firstRun)
+        stack.setCustomSpacing(18, after: firstRun)
         firstRunSection = firstRun
-        let logs = NSButton(title: "실행 기록 보기", target: self, action: #selector(showAccessLogs))
-        logs.bezelStyle = .rounded
-        logs.setAccessibilityIdentifier("haejo.access-logs")
-        let footer = NSStackView(views: [label("창을 닫아도 메뉴 막대에서 다시 열 수 있어요.", size: 11, color: mutedText), NSView(), logs])
-        footer.orientation = .horizontal; footer.alignment = .centerY
-        footer.widthAnchor.constraint(equalToConstant: contentWidth).isActive = true
-        stack.addArrangedSubview(footer)
+        for row in rows where row.permission == .screen { stack.addArrangedSubview(row) }
+        stack.addArrangedSubview(screenStatus)
         refreshFirstRunAgents()
         render()
         stack.layoutSubtreeIfNeeded()
         let size = stack.fittingSize
         stack.setFrameSize(size)
-        let available = (NSScreen.main?.visibleFrame.height ?? 840) - 80
-        window.setContentSize(NSSize(width: mainWidth, height: min(size.height, min(520, available))))
+        if standalonePreview {
+            let preview = NSWindow(contentRect: NSRect(x: 0, y: 0, width: mainWidth, height: 520),
+                                   styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
+            preview.delegate = self
+            preview.isReleasedWhenClosed = false
+            preview.contentView = scroll
+            let available = (NSScreen.main?.visibleFrame.height ?? 840) - 80
+            preview.setContentSize(NSSize(width: mainWidth, height: min(size.height, min(520, available))))
+            window = preview
+        }
         scroll.contentView.scroll(to: .zero)
     }
 
     func render() {
-        let firstRunReady = known && state.ready && connection == .current && !checkInFlight && !installing
-        firstRunHint.stringValue = firstRunReady && !detectedAgents.isEmpty
-            ? "버튼을 누르면 선택한 에이전트가 Mac에서 첫 작업을 시작합니다."
-            : firstRunReady ? "첫 요청을 복사해 사용 중인 에이전트의 새 대화에 붙여넣으세요."
-            : "권한과 에이전트 연결을 마치면 시작할 수 있어요."
+        let controlReady = known && state.ready
+        let basicReady = controlReady && connection == .current
+        let firstRunReady = basicReady && !checkInFlight && !installing
+        firstRunTitle.stringValue = basicReady ? "기본 작업 준비 완료" : "첫 작업"
+        firstRunLaunchControls.isHidden = detectedAgents.isEmpty
+        if basicReady {
+            firstRunHint.stringValue = detectedAgents.isEmpty
+                ? "첫 요청을 복사해 사용 중인 에이전트의 새 대화에 붙여넣으세요."
+                : "연결한 에이전트로 첫 작업을 시작해 보세요."
+        } else if controlReady {
+            firstRunHint.stringValue = "Claude Code 또는 Codex를 연결하면 시작할 수 있어요."
+        } else {
+            firstRunHint.stringValue = "앱 조작 권한과 에이전트 연결을 마치면 시작할 수 있어요."
+        }
         let launch = firstRunLaunch
         if firstRunReady && !detectedAgents.isEmpty {
             switch launch {
@@ -659,33 +672,31 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
             }
         }
         startFirstRunButton?.isEnabled = firstRunReady && !detectedAgents.isEmpty && !startingFirstRun && launch == .idle
-        // App control enables basic work; only BOTH grants complete this section.
-        let permissionsComplete = known && state.captureReady
-        let compactPermissions = permissionsComplete && !permissionDetails && watch == nil && notice == nil
-        let grantedCount = Permission.allCases.filter { state.granted($0) }.count
-        permissionTitle.stringValue = permissionsComplete ? "1. Mac 권한 · 준비 완료"
-            : known && grantedCount > 0 ? "1. Mac 권한 · \(grantedCount)/2 허용" : "1. Mac 권한"
-        permissionDetailsButton?.isHidden = !permissionsComplete
+        let compactControl = controlReady && !permissionDetails && watch?.permission != .control
+        permissionTitle.stringValue = controlReady ? "앱 조작 권한 · 허용됨" : "앱 조작 권한"
+        permissionDetailsButton?.isHidden = !controlReady
         permissionDetailsButton?.title = permissionDetails ? "접기" : "상세 보기"
-        status.isHidden = compactPermissions
         for row in rows {
-            row.isHidden = compactPermissions
+            row.isHidden = row.permission == .control && compactControl
             let look: PermissionRow.Look
             if state.granted(row.permission) { look = .granted }
             else if watch?.permission == row.permission { look = .waiting }
             else if !known { look = .unknown }
-            else if state.nextNeeded == row.permission { look = .current }
-            else { look = .needed }
+            else { look = row.permission == .control ? .current : .needed }
             row.show(look)
         }
         message.isHidden = message.stringValue.isEmpty
         connectButton.isEnabled = !checkInFlight && !installing && connection != .current
         refreshButton.isEnabled = !checkInFlight && !installing
-        badge.stringValue = checkInFlight || (!known && notice == nil) ? "권한 확인 중"
-            : !known ? "권한 확인 실패" : permissionsComplete ? "권한 준비 완료"
-            : state.ready ? "앱 조작 가능 · 화면 캡처 미설정" : "권한 설정 필요"
-        badgeIcon.image = symbol(permissionsComplete ? "checkmark.circle.fill" : "circle", permissionsComplete ? .systemGreen : mutedText, size: 13)
-        badge.textColor = permissionsComplete ? successText : mutedText
+        if !known {
+            badge.stringValue = !checkInFlight && notice != nil ? "권한 확인 실패" : "권한 확인 중"
+        } else if basicReady {
+            badge.stringValue = "기본 작업 준비 완료"
+        } else {
+            badge.stringValue = controlReady ? "에이전트 연결 필요" : "앱 조작 권한 필요"
+        }
+        badgeIcon.image = symbol(basicReady ? "checkmark.circle.fill" : "circle", basicReady ? .systemGreen : mutedText, size: 13)
+        badge.textColor = basicReady ? successText : mutedText
         if !installing {
             switch connection {
             case .current:
@@ -710,13 +721,20 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         statusItem?.button?.toolTip = "Haejo · " + badge.stringValue
         updateRuntimeMenu()
         activityCenter?.updateStatus(badge.stringValue)
-        if let notice { status.stringValue = notice }
-        else if !known { status.stringValue = "권한 상태를 확인하고 있어요…" }
-        else if let watching = watch { status.stringValue = "\(watching.permission.title) 권한이 켜지기를 기다리는 중… 켜면 자동으로 확인합니다." }
-        else if permissionsComplete { status.stringValue = "앱 조작과 화면 캡처 권한이 모두 허용됐어요." }
-        else if state.ready { status.stringValue = "앱 조작은 허용됐어요. 화면 캡처는 아직 미설정입니다. 이미지 확인이 필요하면 아래에서 추가하세요." }
-        else if connection == .other && !state.accessibility { status.stringValue = "이전 설치에서 허용했더라도 이 버전의 권한을 다시 확인하세요. ‘설정 열기’에서 표시된 앱을 추가하거나 켜 주세요." }
-        else { status.stringValue = "‘설정 열기’를 누르면 설정이 열리고, 옆에 작은 도우미 창이 함께 뜹니다." }
+        if let notice {
+            status.stringValue = notice
+        } else if !known {
+            status.stringValue = "권한 상태를 확인하고 있어요…"
+        } else if watch?.permission == .control {
+            status.stringValue = "앱 조작 권한이 켜지면 자동으로 확인합니다."
+        } else if connection == .other && !controlReady {
+            status.stringValue = "이전 설치의 권한을 다시 확인하세요. ‘설정 열기’에서 표시된 앱을 추가하거나 켜 주세요."
+        } else {
+            status.stringValue = ""
+        }
+        status.isHidden = status.stringValue.isEmpty
+        screenStatus.stringValue = watch?.permission == .screen ? "화면 캡처 권한이 켜지면 자동으로 확인합니다." : ""
+        screenStatus.isHidden = screenStatus.stringValue.isEmpty
         // State changes can wrap labels or hide actions. Keep the document size
         // current without resizing the user's window or losing their scroll position.
         if let stack = contentStack, let scroll = scrollView {
@@ -921,23 +939,29 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
             }
         }
         render()
-        guard granted, finished != nil else { return }
+        guard granted, let finished else { return }
         // "Quit & Reopen" can still follow a screen capture grant for a while.
         let disarmID = UUID(); resumeDisarmID = disarmID
         DispatchQueue.main.asyncAfter(deadline: .now() + 60) { [weak self] in
             guard let self, self.resumeDisarmID == disarmID else { return }
             self.resume.disarm(pid: getpid())
         }
-        returnToSetup()
+        // Finish the watch quietly if the person moved to another page.
+        if activityCenter?.isShowingPermissions != false, window?.isMiniaturized != true {
+            returnToSetup(after: finished.permission)
+        }
     }
 
     /// The person pressed ‘설정 열기’ here and is waiting for the switch to
     /// register, so the grant brings setup back in front of System Settings,
     /// at the step that comes next. Only a finished watch calls this.
-    func returnToSetup() {
+    func returnToSetup(after permission: Permission) {
+        window.contentView?.layoutSubtreeIfNeeded()
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
-        guard state.ready, let next = connection == .current ? firstRunSection : connectionSection else { return }
+        let next = permission == .screen ? rows.first { $0.permission == .screen }
+            : connection == .current ? firstRunSection : connectionSection
+        guard let next else { return }
         next.scrollToVisible(next.bounds)
         scrollView.reflectScrolledClipView(scrollView.contentView)
     }
@@ -1075,8 +1099,10 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         logs.target = self
         let flows = menu.addItem(withTitle: "저장된 Flow", action: #selector(showFlows), keyEquivalent: "")
         flows.target = self
+        menu.addItem(withTitle: "메모리", action: #selector(showMemory), keyEquivalent: "").target = self
         let menuPreferences = menu.addItem(withTitle: "설정…", action: #selector(showPreferences), keyEquivalent: "")
         menuPreferences.target = self
+        menu.addItem(withTitle: "권한·에이전트 연결", action: #selector(showSetup), keyEquivalent: "").target = self
         menu.addItem(.separator())
         menu.addItem(withTitle: "Haejo 종료", action: #selector(quit), keyEquivalent: "").target = self
         item.menu = menu; statusItem = item
@@ -1155,25 +1181,31 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
     @objc func reopen() {
         if resume.consume(pid: getpid()) { showSetup(); return }
-        // While setup is on screen or app control is still off, the Dock brings
-        // setup back; the workspace would hide it behind "권한 설정 필요".
-        if connection == .current && state.granted(.control) && !window.isVisible { workspace().presentCurrent() }
-        else { showSetup() }
+        if window?.isVisible == true || window?.isMiniaturized == true {
+            window.deminiaturize(nil)
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+        } else if connection == .current && state.granted(.control) {
+            workspace().presentCurrent()
+        } else {
+            showSetup()
+        }
     }
     @objc func showSetup() {
-        window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
-        refreshAll()
+        workspace().presentSettings(.permissions)
     }
     @objc func showAccessLogs() {
         workspace().present()
     }
-    @objc func showPreferences() { workspace().present(settings: true) }
+    @objc func showPreferences() { workspace().presentSettings(.general) }
     @objc func showFlows() { workspace().presentFlows() }
+    @objc func showMemory() { workspace().presentMemory() }
     func workspace() -> ActivityCenter {
         if let activityCenter { return activityCenter }
-        let center = ActivityCenter(flowPage: FlowLibraryPage(runner: FlowLibraryPage.launcherRunner(root?.appendingPathComponent("launcher/haejo"))))
-        center.onSetup = { [weak self] in self?.showSetup() }
+        let runner = FlowLibraryPage.launcherRunner(root?.appendingPathComponent("launcher/haejo"))
+        let center = ActivityCenter(flowPage: FlowLibraryPage(runner:runner), memoryPage:MemoryPage(runner:runner))
+        center.onPermissionsSelected = { [weak self] in self?.refreshAll() }
+        center.onClose = { [weak self] in self?.closePermissionGuide() }
         center.onUninstall = { [weak self] removeData in
             guard let launcher = self?.root?.appendingPathComponent("launcher/haejo") else { return }
             DispatchQueue.global().async {
@@ -1184,7 +1216,9 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 DispatchQueue.main.async { self?.quit() }
             }
         }
+        center.installPermissionsView(scrollView)
         center.updateStatus(badge.stringValue)
+        window = center.window
         activityCenter = center
         return center
     }
@@ -1199,6 +1233,10 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
         guard let closing = notification.object as? NSWindow,
               closing === window || closing === panel else { return }
+        closePermissionGuide()
+    }
+
+    private func closePermissionGuide() {
         dismissPermissionGuide()
         resume.disarm(pid: getpid())
         render()
@@ -1245,7 +1283,7 @@ final class Setup: NSObject, NSApplicationDelegate, NSWindowDelegate {
         if CommandLine.arguments.contains("--connected") { connection = .current }
         if CommandLine.arguments.contains("--other-install") { connection = .other }
         if CommandLine.arguments.contains("--dark") { NSApp.appearance = NSAppearance(named: .darkAqua) }
-        build()
+        build(standalonePreview: true)
         state = snapshotState; known = true
         permissionDetails = CommandLine.arguments.contains("--permission-details")
         let permission = waiting ?? state.nextNeeded ?? .control

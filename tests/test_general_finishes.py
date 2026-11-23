@@ -66,6 +66,57 @@ class FinishesTests(unittest.TestCase):
         self.assertFalse(result.finished_without_asking)
         self.assertEqual(2, len(asked))
 
+    def test_fresh_changed_display_precedes_unchanged_controls(self):
+        app = Counter()
+        calls = []
+        def ask(goal, choices, history):
+            calls.append([choice['match'] for choice in choices])
+            action = 'click' if len(calls) == 1 else 'read'
+            return {'actions': [{'do': action, 'candidate': choices[0]}],
+                    'finishes': action == 'read'}
+        result = run(app, 'counter', 'increment and read the resulting count', ask)
+        self.assertTrue(result.verified, result.why)
+        self.assertEqual(['total 1'], result.said)
+        self.assertEqual([['Increment', 'count'], ['count', 'Increment']], calls)
+
+    def test_new_document_starts_with_normal_candidate_order(self):
+        class NavigatingCounter(Counter):
+            def observe(self, *args, **kwargs):
+                return dict(super().observe(*args, **kwargs), document_id=str(self.count))
+
+        def ask(goal, choices, history):
+            self.assertEqual('Increment', choices[0]['match'])
+            if history:
+                return {'actions': [{'do': 'read', 'candidate': choices[1]}], 'finishes': True}
+            return {'actions': [{'do': 'click', 'candidate': choices[0]}]}
+
+        result = run(NavigatingCounter(), 'counter', 'increment and read', ask)
+        self.assertEqual(['total 1'], result.said)
+        self.assertTrue(result.verified, result.why)
+
+    def test_same_button_name_in_two_containers_is_two_plans(self):
+        class Settings(Counter):
+            def tree(self):
+                return ('0 Window Title: Settings\n'
+                        '  1 Group Title: First\n'
+                        '    2 Button Title: Choose\n'
+                        '  3 Group Title: Second\n'
+                        '    4 Button Title: Choose')
+
+        stages = iter(('First', 'Second', None))
+        app = Settings()
+
+        def ask(goal, choices, history):
+            name = next(stages)
+            if name is None:
+                return {'done': True}
+            button = next(c for c in choices if c['container'] == name)
+            return {'actions': [{'do': 'click', 'candidate': button}]}
+
+        result = run(app, 'settings', 'choose both sections', ask)
+        self.assertTrue(result.ok, result.why)
+        self.assertEqual(['click', 'click'], app.calls)
+
     def test_missing_or_already_shown_evidence_falls_back_to_asking(self):
         for start, expect in ((0, 'total 3'),   # never appears
                               (2, 'total 2')):  # already there, then 'total 3'

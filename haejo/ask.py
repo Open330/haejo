@@ -588,6 +588,10 @@ def _here_question(goal: str, candidates: list[dict], done_so_far=(),
                    'ObservationPage 후보 하나에 read를 요청해 다음 관측을 보십시오. '
                    '이는 앱 조작이나 결과 읽기가 아닙니다. 다른 행동·expect·finishes와 '
                    '섞지 마십시오. 아직 전체 항목을 확인한 것은 아닙니다.')
+    if any(c.get('_observation_region') for c in indexed.values()):
+        prompt += ('\nObservationRegion은 화면 설명에 해당합니다. 필요한 영역이나 전체 '
+                   '후보를 보려면 그 후보 하나에 read를 요청하십시오. '
+                   '앱 입력이나 결과 확인에 해당하지 않으며 다른 행동·expect·finishes와 섞을 수 없습니다.')
     can_reveal = any(c.get('_observation_reveal') for c in indexed.values())
     if can_reveal:
         prompt += ('\n정확한 대상 이름을 이미 알면 페이지를 차례로 읽는 대신 '
@@ -645,7 +649,7 @@ def _here_question(goal: str, candidates: list[dict], done_so_far=(),
             can = indexed[pick].get("can")
             if can is not None and do not in can:
                 return None                       # not a thing you do to THAT
-            if indexed[pick].get('_observation_page') and (
+            if (indexed[pick].get('_observation_page') or indexed[pick].get('_observation_region')) and (
                     do != 'read' or len(raw) != 1 or a.get('finishes')
                     or a.get('expect') or set(item) - {'pick', 'do', 'why'}):
                 return None

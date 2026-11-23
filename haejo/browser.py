@@ -138,8 +138,9 @@ class BrowserDriver:
             # maps to Title.
             lines.append(self._line(idx, nodes[-1], depth))
         obs_id = f"b{uuid.uuid4().hex[:8]}"
+        document = self._document()
         self._latest[self._target] = {"obs_id": obs_id, "nodes": nodes,
-                                    "document": self._document(), "tree": "\n".join(lines)}
+                                    "document": document, "tree": "\n".join(lines)}
         custom_selects = {}
         for i, node in enumerate(nodes):
             if node['role'] == 'combobox' and node.get('options') is None:
@@ -148,6 +149,7 @@ class BrowserDriver:
                                           else {'state': 'unsupported', 'options': []})
         self._latest[self._target]['custom_selects'] = custom_selects
         return {"type": "observation", "obs_id": obs_id, "target": self._target,
+                "document_id": document[1],
                 "custom_selects": {key: {k: state[k] for k in ('state', 'options')}
                                    for key, state in custom_selects.items()},
                 "tree": "\n".join(lines), "element_count": len(nodes),

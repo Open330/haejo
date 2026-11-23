@@ -21,6 +21,14 @@ If the marker offers name lookup and the exact label is known, send
 `{"find_in_observation":"exact label"}` instead to avoid reading intervening
 pages. Lookup and continuation share the eight-request limit and deadline.
 
+Use `--overview` on dense screens. When `HAEJO_OBSERVATION_REGIONS` appears,
+send `{"observation_region":12}` (using a displayed index) for one named
+subtree, or `{"observation_region":null}` for the full current page. Region
+indices belong to the current page and the session accepts up to eight region
+requests. Opening a region reads the existing snapshot without sending input.
+Use a stable ancestor in the Flow when the same control label appears in several
+regions. Continuation still applies when the overview reports omitted elements.
+
 ## Several apps in order
 
 `haejo session <first-bundle-id> --helper --guide --steps --then <next-bundle-id> [--document /absolute/path]`

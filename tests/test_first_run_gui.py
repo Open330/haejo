@@ -17,9 +17,15 @@ class FirstRunGUIStateTests(unittest.TestCase):
         self.assertEqual(1,source.count(anchor))
         fixture=r'''
         // Test-only fixture injection: render real controls, never launch Terminal.
+        state.screen = false
+        detectedAgents = []
+        render()
+        assert(firstRunTitle.stringValue == "기본 작업 준비 완료")
+        assert(firstRunLaunchControls.isHidden && !exampleButton.isHidden && exampleButton.isEnabled)
+        assert(firstRunHint.stringValue.contains("첫 요청을 복사해"))
         detectedAgents = [FirstRunAgent(name:"Codex", executable:URL(fileURLWithPath:"/usr/bin/false"))]
         render()
-        assert(startFirstRunButton.isEnabled)
+        assert(!firstRunLaunchControls.isHidden && startFirstRunButton.isEnabled)
         let pending = directory.appendingPathComponent("owned-launch.command")
         try! Data().write(to:pending)
         firstRunStartedAt=Date(); firstRunLauncher=pending

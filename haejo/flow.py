@@ -18,6 +18,7 @@ from __future__ import annotations
 import json
 import re
 import time
+from bisect import bisect_left
 from copy import deepcopy
 from dataclasses import MISSING, dataclass, field, asdict, replace, fields, is_dataclass
 from dataclasses import field as dataclass_field
@@ -440,33 +441,38 @@ class Selector:
 
     def _nearest(self, lines: list[str], hits: list[tuple[int, int]]) -> list[tuple[int, int]]:
         """Keep the (index, line) hits whose closest container holds `near` text."""
-        if not self.near:
+        if not self.near or not hits:
             return hits
         want = _alternatives(self.near)
-        def labelled(line):
-            return any((v := self._attr(line, key)) is not None and v.lower() in want
-                       for key in ("Title", "Description", "Value"))
+        parents, ends, labels = {}, {}, []
+        stack = []
+        for position, line in enumerate(lines):
+            if not _NODE_LINE.match(line):
+                continue
+            indent = len(line) - len(line.lstrip())
+            while stack and stack[-1][0] >= indent:
+                ends[stack.pop()[1]] = position
+            parents[position] = stack[-1][1] if stack else None
+            stack.append((indent, position))
+            if any((value := self._attr(line, key)) is not None and value.lower() in want
+                   for key in ("Title", "Description", "Value")):
+                labels.append(position)
+        for _, position in stack:
+            ends[position] = len(lines)
+        if not labels:
+            return []
+
         def distance(line_no):
-            indent = len(lines[line_no]) - len(lines[line_no].lstrip())
-            levels = 0
-            for j in range(line_no - 1, -1, -1):
-                prev = lines[j]
-                if not _NODE_LINE.match(prev):
-                    continue
-                pind = len(prev) - len(prev.lstrip())
-                if pind >= indent:
-                    continue
-                levels += 1
-                # The container's own subtree: lines after it, deeper than it.
-                for k in range(j + 1, len(lines)):
-                    line = lines[k]
-                    if _NODE_LINE.match(line) and len(line) - len(line.lstrip()) <= pind:
-                        break
-                    if k != line_no and _NODE_LINE.match(line) and labelled(line):
-                        return levels
-                if labelled(prev):
+            parent = parents[line_no]
+            levels = 1
+            while parent is not None:
+                first = bisect_left(labels, parent)
+                if first < len(labels) and labels[first] == line_no:
+                    first += 1
+                if first < len(labels) and labels[first] < ends[parent]:
                     return levels
-                indent = pind
+                parent = parents[parent]
+                levels += 1
             return None
         scored = [(distance(n), idx, n) for idx, n in hits]
         found = [d for d, _, _ in scored if d is not None]

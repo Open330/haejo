@@ -284,6 +284,9 @@ class ObserveUntilTests(unittest.TestCase):
         from haejo import cli
 
         class D:
+            def observe(self, target, mode):
+                return {"type": "observation", "tree": trees[-1], "obs_id": "o"}
+
             def wait_until(self, target, predicate, timeout_ms, poll_ms):
                 self.timeout_ms = timeout_ms
                 for tree in trees:
@@ -312,6 +315,21 @@ class ObserveUntilTests(unittest.TestCase):
         code, out = self.run_cli(["--until", '{"field":{"SECRET":1},"equals":"x"}'], self.TREES)
         self.assertEqual(2, code); self.assertNotIn("SECRET", out)
 
+    def test_regions_keep_snapshot_indices_and_refuse_duplicate_names(self):
+        import json
+        tree = ("0 AXWindow Title: Sample\n"
+                "  1 AXGroup Title: Sidebar\n    2 AXButton Title: Choose\n"
+                "  3 AXGroup Title: Main\n    4 AXButton Title: Choose")
+        code, out = self.run_cli(["--overview", "--json"], [tree])
+        self.assertEqual(0, code)
+        self.assertEqual(["Sidebar", "Main"], [r["label"] for r in json.loads(out)["regions"]])
+        code, out = self.run_cli(["--region", "Main", "--json"], [tree])
+        self.assertEqual(0, code)
+        self.assertEqual("  3 AXGroup Title: Main\n    4 AXButton Title: Choose", json.loads(out)["tree"])
+        code, out = self.run_cli(["--region", "Main", "--json"], [tree.replace("Sidebar", "Main")])
+        self.assertEqual(1, code)
+        self.assertEqual("observation_region_ambiguous", json.loads(out)["error"])
+
 
 class NearAndPlaceholderTests(unittest.TestCase):
     TREE = """0 Window  Title: "Itda" [focused]
@@ -338,6 +356,19 @@ class NearAndPlaceholderTests(unittest.TestCase):
         self.assertEqual("검색하거나 입력", _selector_from({"placeholder": "검색하거나 입력"}).placeholder)
         with self.assertRaises(ValueError):
             _selector_from({"role": "Button", "near": 3})
+
+    def test_near_excludes_the_button_itself_and_keeps_ties(self):
+        from haejo.flow import Selector, TargetAmbiguous, TargetMissing
+        tree = ("0 Window Title: Test\n"
+                "  1 Group Title: Target\n    2 Button Title: Choose\n"
+                "  3 Group\n    4 Button Title: Choose\n    5 StaticText Value: Target")
+        selector = Selector(role="Button", title="Choose", near="Target")
+        self.assertEqual([2, 4], selector.resolve_all(tree))
+        with self.assertRaises(TargetAmbiguous):
+            selector.resolve(tree)
+        self.assertEqual(4, Selector(role="Button", title="Choose", near="Target", allow_nth=1).resolve(tree)[0])
+        with self.assertRaises(TargetMissing):
+            Selector(role="Button", title="Choose", near="Choose").resolve("0 Window\n  1 Group\n    2 Button Title: Choose")
 
 
 class HelperSourceTests(unittest.TestCase):

@@ -446,9 +446,10 @@ private func activityLabel(_ text: String, _ size: CGFloat = 13, _ weight: NSFon
     return field
 }
 
-final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDataSource, NSTableViewDelegate, NSSearchFieldDelegate, NSSplitViewDelegate {
+final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDataSource, NSTableViewDelegate, NSSearchFieldDelegate, NSSplitViewDelegate, NSTabViewDelegate {
     let store: ActivityStore
-    var onSetup: (() -> Void)?
+    var onPermissionsSelected: (() -> Void)?
+    var onClose: (() -> Void)?
     /// Runs `haejo uninstall --yes [--remove-data]`; the app quits after it.
     var onUninstall: ((Bool) -> Void)?
     private let queue = DispatchQueue(label:"open330.haejo.activity-reader", qos:.userInitiated)
@@ -459,15 +460,24 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
     private let summary = activityLabel("불러오는 중…", 12, secondary:true)
     private let detail = ActivityDocumentStack()
     private let history = NSStackView()
+    enum SettingsTab: String { case general, permissions, vault }
     private let settings = ActivityDocumentStack()
+    private let settingsPage = NSView()
+    private let settingsTabs = NSTabView()
+    private let settingsNavigation = NSSegmentedControl(
+        labels: ["일반", "권한·에이전트 연결", "Vault·로그인 위임"], trackingMode: .selectOne, target: nil, action: nil
+    )
+    private let permissionsTab = NSTabViewItem(identifier: SettingsTab.permissions.rawValue)
+    private let vaultTab = NSTabViewItem(identifier: SettingsTab.vault.rawValue)
     private let content = NSView()
     private let split = NSSplitView()
     private let status = activityLabel("상태 확인 중", 11, secondary:true)
+    private let recordStatus = activityLabel("", 12, secondary: true)
+    private var deleteRecordsButton: NSButton!
     private let saveStatus = activityLabel("변경 사항은 다음 작업부터 적용됩니다.", 12, secondary:true)
     // Switches, not checkboxes: an unchecked box drew as an empty grey square.
     let logToggle = NSSwitch()
     let bannerToggle = NSSwitch()
-    private let setupStatus = activityLabel("",13,secondary:true)
     let warmToggle = NSSwitch()
     let approvalToggle = NSSwitch()
     private let helperIdle = NSPopUpButton(frame:.zero,pullsDown:false)
@@ -476,7 +486,9 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
     private let settingsButton = ActivityNavigationButton()
     private let flowsButton = ActivityNavigationButton()
     let flowPage: FlowLibraryPage
-    private enum Page { case history, flows, settings }
+    let memoryPage: MemoryPage
+    private let memoryButton = ActivityNavigationButton()
+    private enum Page { case history, flows, memory, settings }
     private var page = Page.history
     private var credentialCenter: CredentialCenter?
     private var allRecords: [ActivityGroup] = []
@@ -490,14 +502,16 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
     private var rendered: ActivityGroup?
     private let dateFormatter: DateFormatter = { let f = DateFormatter(); f.dateStyle = .medium; f.timeStyle = .short; return f }()
 
-    init(store: ActivityStore = ActivityStore(), refreshAutomatically: Bool = true, flowPage: FlowLibraryPage? = nil) {
+    init(store: ActivityStore = ActivityStore(), refreshAutomatically: Bool = true, flowPage: FlowLibraryPage? = nil, memoryPage: MemoryPage? = nil) {
         self.store = store
         self.flowPage = flowPage ?? FlowLibraryPage()
+        self.memoryPage = memoryPage ?? MemoryPage()
         self.refreshAutomatically = refreshAutomatically
         let window = NSWindow(contentRect:NSRect(x:0,y:0,width:1060,height:700), styleMask:[.titled,.closable,.miniaturizable,.resizable], backing:.buffered, defer:false)
         super.init(window:window)
         window.title = "Haejo"; window.titlebarAppearsTransparent = true; window.isReleasedWhenClosed = false
         window.contentMinSize = NSSize(width:900,height:600); window.delegate = self
+        window.standardWindowButton(.closeButton)?.setAccessibilityIdentifier("haejo.close")
         window.backgroundColor = .windowBackgroundColor
         let background = ActivityBackground(frame:window.contentView!.bounds); background.wantsLayer = true; window.contentView = background
         if let visible = NSScreen.main?.visibleFrame { window.setContentSize(NSSize(width:max(900,min(1060,visible.width-32)),height:max(600,min(700,visible.height-48)))) }
@@ -522,13 +536,15 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
         let brandRow = NSStackView(views:[logo,brand]); brandRow.spacing = 8
         historyButton.title = "실행 기록"; historyButton.image = NSImage(systemSymbolName:"clock.arrow.circlepath", accessibilityDescription:nil)
         settingsButton.title = "설정"; settingsButton.image = NSImage(systemSymbolName:"slider.horizontal.3", accessibilityDescription:nil)
+        memoryButton.title = "메모리"; memoryButton.image = NSImage(systemSymbolName:"book", accessibilityDescription:nil)
+        memoryButton.setAccessibilityIdentifier("haejo.activity.memory")
         flowsButton.title = "저장된 Flow"; flowsButton.image = NSImage(systemSymbolName:"square.stack.3d.up", accessibilityDescription:nil)
         flowsButton.setAccessibilityIdentifier("haejo.activity.flows")
-        for b in [historyButton,flowsButton,settingsButton] { b.font = .systemFont(ofSize:13,weight:.medium); b.target = self; b.action = #selector(navigate(_:)); b.bezelStyle = .rounded; b.isBordered = false; b.setButtonType(.pushOnPushOff); b.wantsLayer = true; b.layer?.cornerRadius = 8; b.imagePosition = .imageLeading; b.alignment = .left; b.widthAnchor.constraint(equalToConstant:176).isActive = true; b.heightAnchor.constraint(equalToConstant:38).isActive = true }
+        for b in [historyButton,flowsButton,memoryButton,settingsButton] { b.font = .systemFont(ofSize:13,weight:.medium); b.target = self; b.action = #selector(navigate(_:)); b.bezelStyle = .rounded; b.isBordered = false; b.setButtonType(.pushOnPushOff); b.wantsLayer = true; b.layer?.cornerRadius = 8; b.imagePosition = .imageLeading; b.alignment = .left; b.widthAnchor.constraint(equalToConstant:176).isActive = true; b.heightAnchor.constraint(equalToConstant:38).isActive = true }
         historyButton.setAccessibilityIdentifier("haejo.activity.history"); settingsButton.setAccessibilityIdentifier("haejo.activity.settings")
         let tagline = activityLabel("에이전트의 작업 공간",11,secondary:true)
         let spacer = NSView(); spacer.setContentHuggingPriority(.init(1),for:.vertical)
-        let side = column([brandRow,tagline,historyButton,flowsButton,settingsButton,spacer,status])
+        let side = column([brandRow,tagline,historyButton,flowsButton,memoryButton,settingsButton,spacer,status])
         side.spacing = 8; side.setCustomSpacing(24,after:tagline)
         status.preferredMaxLayoutWidth = 176
         status.widthAnchor.constraint(lessThanOrEqualToConstant:176).isActive = true
@@ -539,6 +555,7 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
         NSLayoutConstraint.activate([sidebar.leadingAnchor.constraint(equalTo:root.leadingAnchor),sidebar.topAnchor.constraint(equalTo:root.topAnchor),sidebar.bottomAnchor.constraint(equalTo:root.bottomAnchor),sidebar.widthAnchor.constraint(equalToConstant:208),content.leadingAnchor.constraint(equalTo:sidebar.trailingAnchor),content.trailingAnchor.constraint(equalTo:root.trailingAnchor),content.topAnchor.constraint(equalTo:root.topAnchor),content.bottomAnchor.constraint(equalTo:root.bottomAnchor)])
         buildHistory(); buildSettings()
         flowPage.window = window; pin(flowPage.view,into:content); flowPage.view.isHidden = true
+        memoryPage.window = window; pin(memoryPage.view,into:content); memoryPage.view.isHidden = true
         navigate(historyButton)
     }
     private func pin(_ view: NSView, into container: NSView, inset: CGFloat = 24) {
@@ -583,13 +600,13 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
         row.orientation = .horizontal; row.alignment = .centerY; row.spacing = 10
         return row
     }
-    private func settingsCard(_ title: String, _ explanation: String, _ control: NSView) -> NSView {
-        let stack = ActivityCard(views:[activityLabel(title,16,.semibold),activityLabel(explanation,12,secondary:true),control]); stack.orientation = .vertical; stack.alignment = .leading; stack.spacing = 12
+    private func settingsCard(_ title: String, _ explanation: String, _ controls: NSView...) -> NSView {
+        let stack = ActivityCard(views: [activityLabel(title,16,.semibold), activityLabel(explanation,12,secondary:true)] + controls); stack.orientation = .vertical; stack.alignment = .leading; stack.spacing = 12
         stack.edgeInsets = NSEdgeInsets(top:20,left:20,bottom:20,right:20)
         for view in stack.arrangedSubviews where view is NSTextField {
             // Wrap at a readable measure instead of running the full window width.
             view.widthAnchor.constraint(lessThanOrEqualTo:stack.widthAnchor,constant:-40).isActive = true
-            let measure = view.widthAnchor.constraint(equalToConstant:640); measure.priority = .defaultHigh; measure.isActive = true
+            view.widthAnchor.constraint(lessThanOrEqualToConstant:640).isActive = true
         }
         stack.wantsLayer = true; stack.layer?.cornerRadius = 12
         return stack
@@ -602,6 +619,7 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
         logToggle.setAccessibilityIdentifier("haejo.settings.logging")
         retention.addItems(withTitles:["7일", "30일", "90일"]); retention.target = self; retention.action = #selector(saveSettings)
         retention.setAccessibilityIdentifier("haejo.settings.retention")
+        retention.setAccessibilityLabel("기록 보관 기간")
         warmToggle.target = self; warmToggle.action = #selector(saveSettings)
         warmToggle.setAccessibilityIdentifier("haejo.settings.keep-helper-warm")
         approvalToggle.target = self; approvalToggle.action = #selector(saveSettings)
@@ -609,47 +627,146 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
         helperIdle.addItems(withTitles:(1...10).map { "\($0)분" })
         helperIdle.target = self; helperIdle.action = #selector(saveSettings)
         helperIdle.setAccessibilityIdentifier("haejo.settings.helper-idle")
+        helperIdle.setAccessibilityLabel("빠른 실행 종료 대기 시간")
         let warmControls = NSStackView(views:[switchRow(warmToggle,"빠른 실행"),activityLabel("사용하지 않을 때 종료",12,secondary:true),helperIdle])
         warmControls.orientation = .vertical; warmControls.alignment = .leading; warmControls.spacing = 10
         let clearAlways = button("항상 허용 모두 지우기", "xmark.circle", #selector(clearAlwaysApprovals))
         let approvalControls = NSStackView(views:[switchRow(approvalToggle,"메뉴에서 승인"),clearAlways])
         approvalControls.orientation = .vertical; approvalControls.alignment = .leading; approvalControls.spacing = 10
         let remove = button("저장된 기록 모두 삭제…", "trash", #selector(confirmDelete))
+        remove.setAccessibilityIdentifier("haejo.settings.delete-records")
+        deleteRecordsButton = remove
+        recordStatus.isHidden = true
+        let retentionRow = NSStackView(views: [activityLabel("보관 기간", 13), retention])
+        retentionRow.alignment = .centerY
+        retentionRow.spacing = 10
+        let historySettings = settingsCard("기록 및 보관",
+            "접근한 앱·동작·결과·시간을 이 Mac에 저장합니다. 화면 내용·입력값·프롬프트는 기록하지 않습니다.",
+            switchRow(logToggle, "실행 기록 자동 저장"), retentionRow,
+            activityLabel("기록을 저장하는 작업을 시작할 때 보관 기간과 100MB 한도에 맞춰 오래된 기록부터 정리합니다.", 12, secondary: true),
+            remove, recordStatus)
         let uninstallButton = button("Haejo 제거…", "xmark.bin", #selector(confirmUninstall))
         uninstallButton.setAccessibilityIdentifier("haejo.settings.uninstall")
-        let credentials = button("Vault·로그인 위임 관리", "key", #selector(openCredentials))
-        let setupButton = button("권한·연결 확인", "arrow.up.forward.app", #selector(openSetup))
-        setupButton.setAccessibilityIdentifier("haejo.settings.setup")
-        setupStatus.isHidden = setupStatus.stringValue.isEmpty
-        let setupControls = NSStackView(views:[setupStatus,setupButton]); setupControls.orientation = .vertical; setupControls.alignment = .leading; setupControls.spacing = 10
-        let cards = [settingsCard("Mac 권한·에이전트", "손쉬운 사용·화면 기록 권한과 Claude Code·Codex 연결 상태를 확인하고 다시 연결합니다.",setupControls),
-                     settingsCard("로그인 위임", "비밀번호 보관함(Vault) 연결과 앱·사이트별 로그인 위임을 관리합니다. 에이전트가 만든 위임 파일을 끌어다 놓고 허용 범위를 확인하세요.",credentials),
-                     settingsCard("메뉴 승인", "결제·전송·삭제처럼 확인이 필요한 단계를 이 Mac의 Haejo 메뉴 카드로 결정합니다. 기본은 꺼짐입니다. 켜면 카드에서 고른 범위(이번만·이 작업 동안·항상)로 진행합니다.",approvalControls),
-                     settingsCard("빠른 실행", "Haejo Helper를 잠시 켜 두어 다음 작업을 더 빨리 시작합니다. 기본은 꺼짐이며, 아래 시간 동안 쓰지 않으면 스스로 종료합니다.",warmControls),
-                     settingsCard("실행 기록", "접근한 앱·동작·결과·시간을 이 Mac에 저장합니다. 화면 내용·입력값·프롬프트는 기록하지 않습니다. 오늘 기록은 실행마다 한 파일, 지난 기록은 하루 한 파일로 합쳐 보관합니다.",switchRow(logToggle,"실행 기록 자동 저장")),
-                     settingsCard("기록 보관 기간", "선택한 기간과 디스크 사용량 100MB 안에서 다음 작업을 시작할 때 오래된 기록부터 정리합니다.",retention),
-                     settingsCard("작업 표시", "끄면 우상단 배너를 숨깁니다. 기존 Haejo 메뉴에서 작업 상태를 확인하거나 중단할 수 있고, Esc로도 중단할 수 있습니다.",switchRow(bannerToggle,"작업 중 배너 표시")),
-                     settingsCard("Haejo 제거", "이 설치가 만든 haejo 명령·스킬 연결을 지우고 Haejo.app을 휴지통으로 옮깁니다. 실행 기록과 Flow는 고를 때만 함께 지웁니다.",uninstallButton)]
-        settings.addArrangedSubview(activityLabel("설정",24,.semibold))
-        for card in cards { settings.addArrangedSubview(card); card.widthAnchor.constraint(equalTo:settings.widthAnchor).isActive = true }
-        for v in [saveStatus,remove,activityLabel("기록은 Haejo를 통한 접근 내역입니다. 에이전트의 내부 추론이나 전체 대화는 포함하지 않습니다.",12,secondary:true)] { settings.addArrangedSubview(v) }
+        let cards = [
+            historySettings,
+            settingsCard("작업 표시", "끄면 우상단 배너를 숨깁니다. 기존 Haejo 메뉴에서 작업 상태를 확인하거나 중단할 수 있고, Esc로도 중단할 수 있습니다.",
+                         switchRow(bannerToggle, "작업 중 배너 표시")),
+            settingsCard("메뉴 승인", "결제·전송·삭제처럼 확인이 필요한 단계를 이 Mac의 Haejo 메뉴 카드로 결정합니다. 기본은 꺼짐입니다. 켜면 카드에서 고른 범위(이번만·이 작업 동안·항상)로 진행합니다.",
+                         approvalControls),
+            settingsCard("빠른 실행", "Haejo Helper를 잠시 켜 두어 다음 작업을 더 빨리 시작합니다. 기본은 꺼짐이며, 아래 시간 동안 쓰지 않으면 스스로 종료합니다.",
+                         warmControls)
+        ]
+        let uninstall = settingsCard("Haejo 제거",
+            "이 설치가 만든 haejo 명령·스킬 연결을 지우고 Haejo.app을 휴지통으로 옮깁니다. 실행 기록과 Flow는 고를 때만 함께 지웁니다.",
+            uninstallButton)
+        settings.edgeInsets = NSEdgeInsets(top:16,left:16,bottom:16,right:16)
+        for card in cards {
+            settings.addArrangedSubview(card)
+            card.widthAnchor.constraint(equalTo: settings.widthAnchor, constant: -32).isActive = true
+        }
+        if let lastCard = cards.last { settings.setCustomSpacing(24, after: lastCard) }
+        settings.addArrangedSubview(uninstall)
+        uninstall.widthAnchor.constraint(equalTo: settings.widthAnchor, constant: -32).isActive = true
         settings.addArrangedSubview(activityLabel("Haejo · " + (Bundle.main.object(forInfoDictionaryKey:"HaejoReleaseTag") as? String ?? "개발 버전"),11,secondary:true))
         let scroll = NSScrollView(); scroll.hasVerticalScroller = true; scroll.autohidesScrollers = true; scroll.drawsBackground = false; scroll.contentView.drawsBackground = false
         settings.translatesAutoresizingMaskIntoConstraints = false; scroll.documentView = settings
         settings.widthAnchor.constraint(equalTo:scroll.contentView.widthAnchor).isActive = true
-        pin(scroll,into:content); scroll.isHidden = true; scroll.identifier = NSUserInterfaceItemIdentifier("settings-page")
+        let general = NSTabViewItem(identifier: SettingsTab.general.rawValue)
+        general.label = "일반"
+        let generalPane = NSView()
+        let divider = NSBox()
+        divider.boxType = .separator
+        for subview in [scroll, divider, saveStatus] {
+            generalPane.addSubview(subview)
+            subview.translatesAutoresizingMaskIntoConstraints = false
+        }
+        NSLayoutConstraint.activate([
+            scroll.topAnchor.constraint(equalTo: generalPane.topAnchor),
+            scroll.leadingAnchor.constraint(equalTo: generalPane.leadingAnchor),
+            scroll.trailingAnchor.constraint(equalTo: generalPane.trailingAnchor),
+            divider.topAnchor.constraint(equalTo: scroll.bottomAnchor),
+            divider.leadingAnchor.constraint(equalTo: generalPane.leadingAnchor, constant: 16),
+            divider.trailingAnchor.constraint(equalTo: generalPane.trailingAnchor, constant: -16),
+            saveStatus.topAnchor.constraint(equalTo: divider.bottomAnchor, constant: 8),
+            saveStatus.leadingAnchor.constraint(equalTo: divider.leadingAnchor),
+            saveStatus.trailingAnchor.constraint(equalTo: divider.trailingAnchor),
+            saveStatus.bottomAnchor.constraint(equalTo: generalPane.bottomAnchor, constant: -4)
+        ])
+        general.view = generalPane
+        permissionsTab.label = "권한·에이전트 연결"
+        vaultTab.label = "Vault·로그인 위임"
+        for tab in [general, permissionsTab, vaultTab] { settingsTabs.addTabViewItem(tab) }
+        settingsTabs.tabViewType = .noTabsNoBorder
+        settingsTabs.delegate = self
+        settingsNavigation.segmentStyle = .rounded
+        settingsNavigation.selectedSegment = 0
+        settingsNavigation.target = self
+        settingsNavigation.action = #selector(changeSettingsTab(_:))
+        settingsNavigation.setAccessibilityLabel("설정 탭")
+        settingsPage.addSubview(settingsNavigation)
+        settingsPage.addSubview(settingsTabs)
+        settingsNavigation.translatesAutoresizingMaskIntoConstraints = false
+        settingsTabs.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            settingsNavigation.topAnchor.constraint(equalTo: settingsPage.topAnchor),
+            settingsNavigation.leadingAnchor.constraint(equalTo: settingsPage.leadingAnchor),
+            settingsTabs.topAnchor.constraint(equalTo: settingsNavigation.bottomAnchor, constant: 12),
+            settingsTabs.leadingAnchor.constraint(equalTo: settingsPage.leadingAnchor),
+            settingsTabs.trailingAnchor.constraint(equalTo: settingsPage.trailingAnchor),
+            settingsTabs.bottomAnchor.constraint(equalTo: settingsPage.bottomAnchor)
+        ])
+        pin(settingsPage, into: content)
+        settingsPage.isHidden = true
+    }
+    @objc private func changeSettingsTab(_ sender: NSSegmentedControl) {
+        settingsTabs.selectTabViewItem(at: sender.selectedSegment)
+    }
+    var isShowingPermissions: Bool {
+        page == .settings && settingsTabs.selectedTabViewItem === permissionsTab
+    }
+    func installPermissionsView(_ view: NSView) {
+        permissionsTab.view = view
+    }
+    func selectSettingsTab(_ tab: SettingsTab) {
+        // Select before showing the settings page so only the destination loads.
+        let changed = (settingsTabs.selectedTabViewItem?.identifier as? String) != tab.rawValue
+        settingsTabs.selectTabViewItem(withIdentifier: tab.rawValue)
+        if page != .settings || !changed { navigate(settingsButton) }
+    }
+    func tabView(_ tabView: NSTabView, willSelect tabViewItem: NSTabViewItem?) {
+        if tabView.selectedTabViewItem === vaultTab { credentialCenter?.clearSecret() }
+        if tabViewItem === vaultTab && credentialCenter == nil {
+            let center = CredentialCenter()
+            vaultTab.view = center.view
+            credentialCenter = center
+        }
+    }
+    func tabView(_ tabView: NSTabView, didSelect tabViewItem: NSTabViewItem?) {
+        if let tabViewItem { settingsNavigation.selectedSegment = tabView.indexOfTabViewItem(tabViewItem) }
+        if page == .settings { refreshSettingsTab() }
+    }
+    private func refreshSettingsTab() {
+        switch settingsTabs.selectedTabViewItem?.identifier as? String {
+        case SettingsTab.permissions.rawValue: onPermissionsSelected?()
+        case SettingsTab.vault.rawValue: if refreshAutomatically { credentialCenter?.reload() }
+        default: loadSettings()
+        }
     }
     @objc private func navigate(_ sender: NSButton) {
-        page = sender === settingsButton ? .settings : sender === flowsButton ? .flows : .history
+        if page == .settings && sender !== settingsButton { credentialCenter?.clearSecret() }
+        page = sender === settingsButton ? .settings : sender === flowsButton ? .flows : sender === memoryButton ? .memory : .history
         isSettings = page == .settings
         history.isHidden = page != .history
         flowPage.view.isHidden = page != .flows
-        content.subviews.first(where: { $0.identifier?.rawValue == "settings-page" })?.isHidden = !isSettings
+        memoryPage.view.isHidden = page != .memory
+        memoryButton.state = page == .memory ? .on : .off
+        settingsPage.isHidden = !isSettings
         historyButton.state = page == .history ? .on : .off; settingsButton.state = isSettings ? .on : .off
         flowsButton.state = page == .flows ? .on : .off
-        for b in [historyButton,flowsButton,settingsButton] { b.contentTintColor = b.state == .on ? .controlAccentColor : .labelColor; b.needsDisplay = true }
+        for b in [historyButton,flowsButton,memoryButton,settingsButton] { b.contentTintColor = b.state == .on ? .controlAccentColor : .labelColor; b.needsDisplay = true }
         switch page {
-        case .settings: loadSettings()
+        case .memory: if refreshAutomatically { memoryPage.refreshIfClean() }
+        case .settings: refreshSettingsTab()
         case .flows:
             window?.contentView?.layoutSubtreeIfNeeded()
             if flowPage.split.subviews[0].frame.width < 240 { flowPage.split.setPosition(300,ofDividerAt:0) }
@@ -663,12 +780,22 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
     }
     func present(settings: Bool = false) {
         navigate(settings ? settingsButton : historyButton)
+        bringForward()
+    }
+    func presentSettings(_ tab: SettingsTab) {
+        selectSettingsTab(tab)
+        bringForward()
+    }
+    private func bringForward() {
         showWindow(nil); window?.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps:true)
         if timer == nil { timer = Timer.scheduledTimer(withTimeInterval:2,repeats:true) { [weak self] _ in if self?.window?.isVisible == true && self?.window?.isMiniaturized == false && NSApp.isActive && self?.page == .history { self?.refresh() } } }
     }
-    func presentCurrent() { if page == .flows { presentFlows() } else { present(settings:isSettings) } }
-    func updateStatus(_ text: String) { status.stringValue = text; setupStatus.stringValue = text; setupStatus.isHidden = text.isEmpty }
-    @objc private func openSetup() { onSetup?() }
+    func presentMemory() {
+        navigate(memoryButton)
+        showWindow(nil); window?.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps:true)
+    }
+    func presentCurrent() { if page == .memory { presentMemory() } else if page == .flows { presentFlows() } else { present(settings:isSettings) } }
+    func updateStatus(_ text: String) { status.stringValue = text }
     @objc func refresh() {
         guard !loading else { return }; loading = true
         queue.async { [weak self] in
@@ -826,10 +953,6 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
         helperIdle.isEnabled = currentSettings.keepHelperWarm
         retention.selectItem(at:[7,30,90].firstIndex(of:currentSettings.retentionDays) ?? 1)
     }
-    @objc private func openCredentials() {
-        if credentialCenter == nil {credentialCenter=CredentialCenter()}
-        credentialCenter?.present()
-    }
     @objc private func saveSettings(_ sender: Any? = nil) {
         var desired = currentSettings; desired.showControlBanner = bannerToggle.state == .on
         desired.loggingEnabled = logToggle.state == .on
@@ -886,32 +1009,42 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
         }
     }
     @objc private func confirmDelete() {
-        guard let window else { return }
+        guard let window, deleteRecordsButton.isEnabled else { return }
         let alert = NSAlert(); alert.messageText = "저장된 실행 기록을 모두 삭제할까요?"
         alert.informativeText = "이 Mac의 접근 기록이 삭제됩니다. 작업과 저장된 워크플로는 유지됩니다."
         alert.addButton(withTitle:"삭제"); alert.addButton(withTitle:"취소")
         alert.buttons.first?.hasDestructiveAction = true
         alert.beginSheetModal(for:window) { [weak self] response in
-            guard response == .alertFirstButtonReturn, let self else { return }
-            self.queue.async {
-                let result = Result { try self.store.deleteRecords() }
-                DispatchQueue.main.async {
-                    switch result { case .success: self.saveStatus.stringValue = "저장된 기록을 삭제했어요."
-                    case .failure: self.saveStatus.stringValue = "일부 기록을 삭제하지 못했어요." }
-                    self.refresh()
+            guard response == .alertFirstButtonReturn else { return }
+            self?.deleteStoredRecords()
+        }
+    }
+    private func deleteStoredRecords() {
+        guard deleteRecordsButton.isEnabled else { return }
+        deleteRecordsButton.isEnabled = false
+        recordStatus.stringValue = "저장된 기록을 삭제하는 중…"
+        recordStatus.isHidden = false
+        queue.async {
+            let result = Result { try self.store.deleteRecords() }
+            DispatchQueue.main.async {
+                switch result {
+                case .success: self.recordStatus.stringValue = "저장된 기록을 삭제했어요."
+                case .failure: self.recordStatus.stringValue = "일부 기록을 삭제하지 못했어요."
                 }
+                self.deleteRecordsButton.isEnabled = true
+                self.refresh()
             }
         }
     }
-    func snapshot(to directory: URL, settingsPage: Bool = false, flowsPage: Bool = false, size: NSSize = NSSize(width:1060,height:700)) throws {
+    func snapshot(to directory: URL, settingsPage: Bool = false, flowsPage: Bool = false, memoryPage: Bool = false, size: NSSize = NSSize(width:1060,height:700)) throws {
         try FileManager.default.createDirectory(at:directory,withIntermediateDirectories:true)
         allRecords = try store.groups(); currentSettings = (try? store.preferences()) ?? HaejoPreferences(); applyFilter()
-        navigate(settingsPage ? settingsButton : flowsPage ? flowsButton : historyButton)
+        navigate(settingsPage ? settingsButton : flowsPage ? flowsButton : memoryPage ? memoryButton : historyButton)
         window?.setContentSize(size)
         guard let view = window?.contentView else { return }
         view.layoutSubtreeIfNeeded()
         table.reloadData(); view.layoutSubtreeIfNeeded()
-        if !settingsPage && !flowsPage { showDetail(filtered.first) }
+        if !settingsPage && !flowsPage && !memoryPage { showDetail(filtered.first) }
         if flowsPage { flowPage.layoutDetail() }
         view.layoutSubtreeIfNeeded()
         func redraw(_ v: NSView) { v.needsDisplay = true; v.displayIfNeeded(); for child in v.subviews { redraw(child) } }
@@ -929,7 +1062,12 @@ final class ActivityCenter: NSWindowController, NSWindowDelegate, NSTableViewDat
     func splitView(_ splitView: NSSplitView, constrainMinCoordinate proposedMinimumPosition: CGFloat, ofSubviewAt dividerIndex: Int) -> CGFloat { 240 }
     func splitView(_ splitView: NSSplitView, constrainMaxCoordinate proposedMaximumPosition: CGFloat, ofSubviewAt dividerIndex: Int) -> CGFloat { min(380,splitView.bounds.width-300) }
     func windowDidResize(_ notification: Notification) { let record = rendered; rendered = nil; showDetail(record); if page == .flows { flowPage.layoutDetail() } }
-    func windowWillClose(_ notification: Notification) { timer?.invalidate(); timer = nil }
+    func windowWillClose(_ notification: Notification) {
+        credentialCenter?.clearSecret()
+        timer?.invalidate()
+        timer = nil
+        onClose?()
+    }
 }
 
 // Loaded only when the person opens credential management. No credential
@@ -945,7 +1083,8 @@ final class CredentialPlanDrop: NSView {
     }
 }
 
-final class CredentialCenter: NSWindowController, NSWindowDelegate {
+final class CredentialCenter: NSObject, NSTabViewDelegate {
+    let view = NSView()
     typealias Runner = ([String],Data?) throws -> [String:Any]
     private let runner:Runner
     private let queue=DispatchQueue(label:"open330.haejo.credential-settings",qos:.userInitiated)
@@ -959,7 +1098,7 @@ final class CredentialCenter: NSWindowController, NSWindowDelegate {
     private let grants=NSPopUpButton(frame:.zero,pullsDown:false)
     private let grantName=NSTextField(string:"")
     private let level=NSPopUpButton(frame:.zero,pullsDown:false)
-    private let preview=activityLabel("에이전트가 만든 위임 파일을 선택하거나 아래로 끌어놓으세요.",13,secondary:true)
+    private lazy var preview = activityLabel(planPrompt, 13, secondary: true)
     private let grantDetails=activityLabel("등록된 위임을 선택하면 앱·사이트·수준을 확인할 수 있습니다.",12,secondary:true)
     private let itemName=NSTextField(string:"")
     private let secret=NSSecureTextField(string:"")
@@ -970,8 +1109,12 @@ final class CredentialCenter: NSWindowController, NSWindowDelegate {
     private var reviewDigest:String?
     private var busy=false
     private var savePlan:NSButton!
+    private var revokeButton: NSButton!
+    private let planPrompt = "에이전트가 만든 위임 파일을 선택하거나 아래로 끌어놓으세요."
     private let tabs=NSTabView()
-    private var tabButtons:[NSButton]=[]
+    private let navigation = NSSegmentedControl(
+        labels: ["Vault 연결", "로그인 위임", "로컬 인증 정보"], trackingMode: .selectOne, target: nil, action: nil
+    )
 
     init(runner:Runner?=nil) {
         let launcher=Bundle.main.resourceURL?.appendingPathComponent("runtime/launcher/haejo")
@@ -986,64 +1129,81 @@ final class CredentialCenter: NSWindowController, NSWindowDelegate {
             guard data.count<=1_048_576,let result=try JSONSerialization.jsonObject(with:data) as? [String:Any] else {throw NSError(domain:"HaejoCredentials",code:2)}
             return result
         }
-        let window=NSWindow(contentRect:NSRect(x:0,y:0,width:780,height:620),styleMask:[.titled,.closable,.resizable],backing:.buffered,defer:false)
-        super.init(window:window);window.title="Vault · 로그인 위임";window.isReleasedWhenClosed=false
-        window.delegate=self
-        window.contentView=ActivityBackground(frame:window.contentView!.bounds)
-        window.backgroundColor = .windowBackgroundColor
-        window.contentMinSize=NSSize(width:740,height:600);window.center();build()
-    }
-    required init?(coder:NSCoder) { nil }
-    private func column(_ views:[NSView])->NSStackView {
-        let stack=NSStackView(views:views);stack.orientation = .vertical;stack.alignment = .leading;stack.spacing=14
-        return stack
+        super.init()
+        build()
     }
     private func row(_ title:String,_ field:NSView)->NSView {
         let label=activityLabel(title,12,.medium);label.widthAnchor.constraint(equalToConstant:130).isActive=true
+        if let control = field as? NSControl {
+            control.setAccessibilityLabel(title)
+        } else if let pathControls = field as? NSStackView {
+            pathControls.arrangedSubviews.first?.setAccessibilityLabel(title)
+            pathControls.arrangedSubviews.last?.setAccessibilityLabel("\(title) 선택")
+        }
         let stack=NSStackView(views:[label,field]);stack.spacing=12
-        field.widthAnchor.constraint(greaterThanOrEqualToConstant:430).isActive=true
+        field.widthAnchor.constraint(greaterThanOrEqualToConstant:300).isActive=true
         return stack
     }
     private func action(_ title:String,_ selector:Selector)->NSButton {
         let button=NSButton(title:title,target:self,action:selector);button.bezelStyle = .rounded;buttons.append(button);return button
     }
     private func tab(_ title:String,_ views:[NSView],_ tabs:NSTabView) {
-        let stack=column(views);stack.edgeInsets=NSEdgeInsets(top:24,left:20,bottom:20,right:20)
-        let item=NSTabViewItem(identifier:title);item.label=title;item.view=stack;tabs.addTabViewItem(item)
-        for v in views where v is NSTextField {v.widthAnchor.constraint(lessThanOrEqualTo:stack.widthAnchor,constant:-40).isActive=true}
+        let stack = ActivityDocumentStack(views: views)
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 10
+        stack.edgeInsets = NSEdgeInsets(top:12,left:4,bottom:16,right:4)
+        let scroll = NSScrollView()
+        scroll.drawsBackground = false
+        scroll.hasVerticalScroller = true
+        scroll.autohidesScrollers = true
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        scroll.documentView = stack
+        stack.widthAnchor.constraint(equalTo: scroll.contentView.widthAnchor).isActive = true
+        for field in views.compactMap({ $0 as? NSTextField }) {
+            field.widthAnchor.constraint(lessThanOrEqualTo: stack.widthAnchor, constant: -8).isActive = true
+        }
+        let item = NSTabViewItem(identifier: title)
+        item.label = title
+        item.view = scroll
+        tabs.addTabViewItem(item)
     }
     private func build() {
         provider.addItems(withTitles:["macOS Keychain","Bitwarden / Vaultwarden"])
         provider.target=self;provider.action=#selector(providerChanged)
         providers.target=self;providers.action=#selector(selectProvider)
+        providers.addItem(withTitle: "새 연결")
         providerName.placeholderString="예: work";server.placeholderString="https://vault.example.com"
         executable.placeholderString="선택 사항 · bw 실행 파일의 절대 경로"
         sessionFile.placeholderString="선택 사항 · 기존 인증 세션 파일의 절대 경로"
         grantName.placeholderString="예: work-login";itemName.placeholderString="예: work-password"
         level.addItems(withTitles:["파일에 지정된 수준", "입력만 허용 (제출 안 함)"])
         tabs.tabViewType = .noTabsNoBorder;tabs.translatesAutoresizingMaskIntoConstraints=false
-        for (index,title) in ["Vault 연결","로그인 위임","로컬 인증 정보"].enumerated() {
-            let button=NSButton(title:title,target:self,action:#selector(selectTab(_:)))
-            button.tag=index;button.bezelStyle = .rounded;button.setButtonType(.pushOnPushOff)
-            button.widthAnchor.constraint(equalToConstant:180).isActive=true;button.heightAnchor.constraint(equalToConstant:32).isActive=true
-            button.state=index==0 ? .on : .off;tabButtons.append(button)
-        }
-        let navigation=NSStackView(views:tabButtons);navigation.spacing=8
+        navigation.segmentStyle = .rounded
+        navigation.selectedSegment = 0
+        navigation.target = self
+        navigation.action = #selector(selectTab(_:))
+        navigation.setAccessibilityLabel("Vault 관리 탭")
         tab("Vault 연결",[
             activityLabel("인증 정보를 보관할 곳을 연결하세요",20,.semibold),
             activityLabel("Vault의 잠금·로그인 상태는 유지합니다. 연결 이름은 에이전트가 위임을 만들 때 사용합니다.",12,secondary:true),
             row("등록된 연결",providers),row("연결 이름",providerName),row("보관 방식",provider),row("Vault 서버",server),
             row("실행 파일",NSStackView(views:[executable,action("선택…",#selector(chooseExecutable))])),
-            row("세션 파일",NSStackView(views:[sessionFile,action("선택…",#selector(chooseSession))])),action("연결 등록·수정",#selector(registerProvider))],tabs)
-        let drop=CredentialPlanDrop(frame:.zero);drop.heightAnchor.constraint(equalToConstant:62).isActive=true
-        drop.widthAnchor.constraint(equalToConstant:640).isActive=true;drop.wantsLayer=true;drop.layer?.cornerRadius=10
+            row("세션 파일",NSStackView(views:[sessionFile,action("선택…",#selector(chooseSession))])),
+            NSStackView(views:[action("연결 등록·수정",#selector(registerProvider)),
+                               action("연결 목록 새로고침",#selector(reload))])],tabs)
+        let drop=CredentialPlanDrop(frame:.zero);drop.heightAnchor.constraint(equalToConstant:48).isActive=true
+        drop.widthAnchor.constraint(equalToConstant:440).isActive=true;drop.wantsLayer=true;drop.layer?.cornerRadius=10
         drop.layer?.borderWidth=1;drop.layer?.borderColor=NSColor.separatorColor.cgColor
         let dropLabel=activityLabel("위임 JSON 파일을 여기에 끌어놓기",13,secondary:true)
         drop.addSubview(dropLabel);dropLabel.translatesAutoresizingMaskIntoConstraints=false
         NSLayoutConstraint.activate([dropLabel.centerXAnchor.constraint(equalTo:drop.centerXAnchor),dropLabel.centerYAnchor.constraint(equalTo:drop.centerYAnchor)])
         drop.receive={ [weak self] url in self?.review(url) }
         grants.target=self;grants.action=#selector(grantChanged)
-        let manage=NSStackView(views:[grants,action("새로고침",#selector(reload)),action("선택한 위임 취소",#selector(revoke))]);manage.spacing=10
+        grants.setAccessibilityLabel("등록된 로그인 위임")
+        revokeButton = action("선택한 위임 취소", #selector(revoke))
+        revokeButton.isEnabled = false
+        let manage=NSStackView(views:[grants,action("새로고침",#selector(reload)),revokeButton]);manage.spacing=10
         savePlan=action("검토한 위임 저장",#selector(registerGrant));savePlan.isEnabled=false
         preview.preferredMaxLayoutWidth=640;preview.maximumNumberOfLines=4
         grantDetails.preferredMaxLayoutWidth=640;grantDetails.maximumNumberOfLines=3
@@ -1054,55 +1214,88 @@ final class CredentialCenter: NSWindowController, NSWindowDelegate {
             activityLabel("에이전트에게 비밀번호를 보내지 않고 직접 저장합니다. 위임에서 이 항목 이름을 참조합니다.",12,secondary:true),
             row("항목 이름",itemName),row("비밀값",secret),action("Keychain에 저장",#selector(storeSecret))],tabs)
         status.maximumNumberOfLines=3;status.preferredMaxLayoutWidth=720
-        let content=window!.contentView!;content.addSubview(tabs);content.addSubview(status);content.addSubview(navigation);status.translatesAutoresizingMaskIntoConstraints=false;navigation.translatesAutoresizingMaskIntoConstraints=false
+        tabs.delegate = self
+        let content = view;content.addSubview(tabs);content.addSubview(status);content.addSubview(navigation);status.translatesAutoresizingMaskIntoConstraints=false;navigation.translatesAutoresizingMaskIntoConstraints=false
         NSLayoutConstraint.activate([navigation.topAnchor.constraint(equalTo:content.topAnchor,constant:20),navigation.leadingAnchor.constraint(equalTo:content.leadingAnchor,constant:28),
             tabs.topAnchor.constraint(equalTo:navigation.bottomAnchor,constant:12),tabs.leadingAnchor.constraint(equalTo:content.leadingAnchor,constant:20),tabs.trailingAnchor.constraint(equalTo:content.trailingAnchor,constant:-20),
             tabs.bottomAnchor.constraint(equalTo:status.topAnchor,constant:-16),status.leadingAnchor.constraint(equalTo:content.leadingAnchor,constant:28),status.trailingAnchor.constraint(equalTo:content.trailingAnchor,constant:-28),status.bottomAnchor.constraint(equalTo:content.bottomAnchor,constant:-20),status.heightAnchor.constraint(equalToConstant:48)])
         providerChanged()
     }
-    @objc private func selectTab(_ sender:NSButton) {
-        tabs.selectTabViewItem(at:sender.tag)
-        for button in tabButtons {button.state=button===sender ? .on : .off}
+    @objc private func selectTab(_ sender: NSSegmentedControl) {
+        tabs.selectTabViewItem(at: sender.selectedSegment)
     }
-    func present() {showWindow(nil);window?.makeKeyAndOrderFront(nil);reload()}
-    func windowWillClose(_ notification:Notification) {secret.stringValue=""}
-    private func call(_ args:[String],input:Data?=nil,done:@escaping([String:Any])->Void) {
-        guard !busy else {return};busy=true;buttons.forEach{$0.isEnabled=false};status.stringValue="처리 중…"
+    func tabView(_ tabView: NSTabView, willSelect tabViewItem: NSTabViewItem?) {
+        clearSecret()
+    }
+    func tabView(_ tabView: NSTabView, didSelect tabViewItem: NSTabViewItem?) {
+        guard let tabViewItem else { return }
+        navigation.selectedSegment = tabView.indexOfTabViewItem(tabViewItem)
+    }
+    func clearSecret() {
+        secret.currentEditor()?.string = ""
+        secret.abortEditing()
+        secret.stringValue = ""
+    }
+    private func call(_ args: [String], input: Data? = nil, feedback: String? = nil,
+                      done: @escaping ([String: Any]) -> Void) {
+        guard !busy else { return }
+        busy = true
+        buttons.forEach { $0.isEnabled = false }
+        status.stringValue = feedback.map { "\($0) 목록을 갱신하는 중…" } ?? "처리 중…"
         queue.async { [weak self] in
             guard let self else {return}
             let result=(try? self.runner(args,input)) ?? ["ok":false,"error":"credential_configuration_invalid"]
             DispatchQueue.main.async {
-                self.busy=false;self.buttons.forEach{$0.isEnabled=true};self.savePlan.isEnabled=self.reviewDigest != nil
-                if let code=result["error"] as? String {self.status.stringValue=activityErrorMessage(code);return}
-                self.status.stringValue="완료했습니다.";done(result)
+                self.busy = false
+                self.buttons.forEach { $0.isEnabled = true }
+                self.savePlan.isEnabled = self.reviewDigest != nil
+                self.revokeButton.isEnabled = self.grants.selectedItem != nil
+                if let code = result["error"] as? String {
+                    let message = activityErrorMessage(code)
+                    self.status.stringValue = feedback.map { "\($0) 목록을 갱신하지 못했습니다. \(message)" } ?? message
+                    return
+                }
+                self.status.stringValue = feedback ?? "완료했습니다."
+                done(result)
             }
         }
     }
     @objc private func providerChanged() {for field in [server,executable,sessionFile] {field.isEnabled=provider.indexOfSelectedItem==1}}
     @objc private func selectProvider() {
-        guard let name=providers.titleOfSelectedItem,let config=vaults[name] else {providerName.stringValue="";return}
-        providerName.stringValue=name;provider.selectItem(at:config["kind"] as? String == "bitwarden" ? 1 : 0)
-        server.stringValue=config["server"] as? String ?? "";executable.stringValue=config["executable"] as? String ?? "";sessionFile.stringValue=config["session_file"] as? String ?? "";providerChanged()
+        let name = providers.titleOfSelectedItem ?? ""
+        let config = vaults[name]
+        providerName.stringValue = config == nil ? "" : name
+        provider.selectItem(at: config?["kind"] as? String == "bitwarden" ? 1 : 0)
+        server.stringValue = config?["server"] as? String ?? ""
+        executable.stringValue = config?["executable"] as? String ?? ""
+        sessionFile.stringValue = config?["session_file"] as? String ?? ""
+        providerChanged()
     }
     private func choosePath(_ field:NSTextField) {
         let picker=NSOpenPanel();picker.canChooseDirectories=false;picker.allowsMultipleSelection=false
-        picker.beginSheetModal(for:window!) {response in if response == .OK,let url=picker.url {field.stringValue=url.path}}
+        guard let window = view.window else { return }
+        picker.beginSheetModal(for:window) {response in if response == .OK,let url=picker.url {field.stringValue=url.path}}
     }
     @objc private func chooseExecutable() {choosePath(executable)}
     @objc private func chooseSession() {choosePath(sessionFile)}
     @objc private func registerProvider() {
-        var args=["vault",providerName.stringValue]
+        let name = providerName.stringValue
+        let verb = vaults[name] == nil ? "등록" : "수정"
+        var args = ["vault", name]
         if provider.indexOfSelectedItem==0 {args.append("--keychain")}
         else {
             args += ["--bitwarden",server.stringValue]
             if !executable.stringValue.isEmpty {args += ["--executable",executable.stringValue]}
             if !sessionFile.stringValue.isEmpty {args += ["--session-file",sessionFile.stringValue]}
         }
-        call(args) { [weak self] _ in self?.status.stringValue="연결을 등록했습니다. 위임 파일에서 이 연결 이름을 사용할 수 있습니다." }
+        call(args) { [weak self] _ in
+            self?.reloadLists(selectProvider: name, feedback: "‘\(name)’ 연결을 \(verb)했습니다.")
+        }
     }
     @objc private func choosePlan() {
         let picker=NSOpenPanel();picker.canChooseDirectories=false;picker.allowsMultipleSelection=false;picker.allowedFileTypes=["json"]
-        picker.beginSheetModal(for:window!) { [weak self] response in if response == .OK,let url=picker.url {self?.review(url)} }
+        guard let window = view.window else { return }
+        picker.beginSheetModal(for:window) { [weak self] response in if response == .OK,let url=picker.url {self?.review(url)} }
     }
     private func review(_ url:URL) {
         guard !busy else {return}
@@ -1117,28 +1310,74 @@ final class CredentialCenter: NSWindowController, NSWindowDelegate {
     }
     @objc private func registerGrant() {
         guard let url=planURL,let digest=reviewDigest else {return}
-        var args=["grant",grantName.stringValue,url.path,"--yes","--review-digest",digest]
-        if level.indexOfSelectedItem==1 {args.append("--fill-only")}
-        call(args) { [weak self] _ in self?.reload() }
+        let name = grantName.stringValue
+        var args = ["grant", name, url.path, "--yes", "--review-digest", digest]
+        if level.indexOfSelectedItem == 1 { args.append("--fill-only") }
+        call(args) { [weak self] _ in
+            guard let self else { return }
+            self.planURL = nil
+            self.reviewDigest = nil
+            self.savePlan.isEnabled = false
+            self.grantName.stringValue = ""
+            self.level.selectItem(at: 0)
+            self.preview.stringValue = self.planPrompt
+            self.reloadLists(selectGrant: name, feedback: "‘\(name)’ 위임을 저장했습니다.")
+        }
     }
-    @objc private func reload() {
-        call(["list","--vaults"]) { [weak self] info in
-            guard let self else {return};self.scopes=info["scopes"] as? [String:[String:Any]] ?? [:]
-            self.vaults=info["vaults"] as? [String:[String:Any]] ?? [:]
-            self.providers.removeAllItems();self.providers.addItems(withTitles:["새 연결"]+self.vaults.keys.sorted())
-            self.grants.removeAllItems();self.grants.addItems(withTitles:(info["grants"] as? [String] ?? []).sorted());self.grantChanged()
+    @objc func reload() { reloadLists() }
+
+    private func reloadLists(selectProvider preferredProvider: String? = nil,
+                             selectGrant preferredGrant: String? = nil, feedback: String? = nil) {
+        call(["list", "--vaults"], feedback: feedback) { [weak self] info in
+            guard let self else { return }
+            guard let vaults = info["vaults"] as? [String: [String: Any]],
+                  let scopes = info["scopes"] as? [String: [String: Any]],
+                  let grants = info["grants"] as? [String] else {
+                self.status.stringValue = [feedback, "목록을 읽지 못했습니다. 새로고침해 주세요."].compactMap { $0 }.joined(separator: " ")
+                return
+            }
+            let providerSelection = preferredProvider ?? self.providers.titleOfSelectedItem
+            let grantSelection = preferredGrant ?? self.grants.titleOfSelectedItem
+            self.vaults = vaults
+            self.scopes = scopes
+            self.providers.removeAllItems()
+            self.providers.addItems(withTitles: ["새 연결"] + vaults.keys.sorted())
+            if let providerSelection, self.providers.item(withTitle: providerSelection) != nil {
+                self.providers.selectItem(withTitle: providerSelection)
+                if preferredProvider != nil { self.selectProvider() }
+            } else {
+                self.providers.selectItem(at: 0)
+            }
+
+            self.grants.removeAllItems()
+            self.grants.addItems(withTitles: grants.sorted())
+            if let grantSelection, self.grants.item(withTitle: grantSelection) != nil {
+                self.grants.selectItem(withTitle: grantSelection)
+            } else if !grants.isEmpty {
+                self.grants.selectItem(at: 0)
+            }
+            self.grantChanged()
+            if feedback == nil { self.status.stringValue = "목록을 새로고침했습니다." }
         }
     }
     @objc private func grantChanged() {
+        revokeButton.isEnabled = !busy && grants.selectedItem != nil
         guard let name=grants.titleOfSelectedItem,let info=scopes[name] else {grantDetails.stringValue="등록된 위임이 없습니다.";return}
         if let code=info["error"] as? String {grantDetails.stringValue=activityErrorMessage(code);return}
         grantDetails.stringValue="\(info["target"] as? String ?? "") · \(info["origin"] as? String ?? "기본 앱 화면")\n\(info["level"] as? String ?? "사용 불가") · 계정 확인 \((info["account_check"] as? Bool)==true ? "설정됨" : "미설정")"
     }
-    @objc private func revoke() {guard let name=grants.titleOfSelectedItem else {return};call(["revoke",name]) { [weak self] _ in self?.reload() }}
+    @objc private func revoke() {
+        guard let name = grants.titleOfSelectedItem else { return }
+        call(["revoke", name]) { [weak self] _ in
+            self?.reloadLists(feedback: "‘\(name)’ 위임을 취소했습니다.")
+        }
+    }
     @objc private func storeSecret() {
         guard !busy else {return}
-        guard !secret.stringValue.isEmpty else {status.stringValue="저장할 비밀값을 입력하세요.";return}
-        let data=(secret.stringValue+"\n").data(using:.utf8);secret.stringValue=""
+        let value = secret.currentEditor()?.string ?? secret.stringValue
+        guard !value.isEmpty else {status.stringValue="저장할 비밀값을 입력하세요.";return}
+        let data = (value + "\n").data(using:.utf8)
+        clearSecret()
         call(["put",itemName.stringValue],input:data) { [weak self] _ in self?.status.stringValue="Keychain에 저장했습니다. 비밀값은 에이전트에게 전달되지 않았습니다." }
     }
 }
@@ -1631,4 +1870,111 @@ final class FlowLibraryPage: NSObject, NSTableViewDataSource, NSTableViewDelegat
     func splitView(_ splitView: NSSplitView, shouldAdjustSizeOfSubview view: NSView) -> Bool { view === splitView.subviews.last }
     func splitView(_ splitView: NSSplitView, constrainMinCoordinate proposedMinimumPosition: CGFloat, ofSubviewAt dividerIndex: Int) -> CGFloat { 240 }
     func splitView(_ splitView: NSSplitView, constrainMaxCoordinate proposedMaximumPosition: CGFloat, ofSubviewAt dividerIndex: Int) -> CGFloat { min(380,splitView.bounds.width-300) }
+}
+
+
+/// The reference document is read and written by the runtime, just like Flows.
+final class MemoryPage: NSObject, NSTextViewDelegate {
+    let view = NSStackView()
+    let editor = NSTextView()
+    let status = activityLabel("", 12, secondary:true)
+    private let save = NSButton(title:"저장", target:nil, action:nil)
+    private let clear = NSButton(title:"전체 삭제", target:nil, action:nil)
+    private let refresh = NSButton(title:"새로고침", target:nil, action:nil)
+    weak var window: NSWindow?
+    private let runner: FlowLibraryPage.Runner
+    private let queue = DispatchQueue(label:"open330.haejo.memory", qos:.userInitiated)
+    private var revision: String?
+    private var original = ""
+    private(set) var busy = false
+    var dirty: Bool { editor.string != original }
+
+    init(runner: FlowLibraryPage.Runner? = nil) {
+        self.runner = runner ?? FlowLibraryPage.launcherRunner()
+        super.init()
+        view.orientation = .vertical; view.alignment = .leading; view.spacing = 16
+        let title = activityLabel("메모리",24,.semibold)
+        let tools = NSStackView(views:[title,NSView(),refresh,clear,save]); tools.spacing = 10
+        let explanation = activityLabel("Haejo 작업에서 함께 참고할 선호·규칙·앱 사용 팁을 적어 주세요. 스킬이 작업 시작 전에 읽습니다. 비밀번호나 일회성 작업 내용은 저장하지 마세요.",13,secondary:true)
+        let scroll = NSScrollView(); scroll.hasVerticalScroller = true; scroll.borderType = .bezelBorder
+        editor.isRichText = false; editor.isAutomaticQuoteSubstitutionEnabled = false
+        editor.font = .systemFont(ofSize:14); editor.textContainerInset = NSSize(width:12,height:12)
+        editor.minSize = NSSize(width:0,height:280); editor.maxSize = NSSize(width:CGFloat.greatestFiniteMagnitude,height:CGFloat.greatestFiniteMagnitude)
+        editor.isVerticallyResizable = true; editor.autoresizingMask = [.width]
+        editor.textContainer?.widthTracksTextView = true; editor.delegate = self
+        editor.setAccessibilityIdentifier("haejo.memory.text")
+        scroll.documentView = editor
+        for v in [tools,explanation,scroll,status] { view.addArrangedSubview(v); v.widthAnchor.constraint(equalTo:view.widthAnchor).isActive = true }
+        scroll.heightAnchor.constraint(greaterThanOrEqualToConstant:280).isActive = true
+        for (b, action, id) in [(save,#selector(saveMemory),"save"),(clear,#selector(clearMemory),"clear"),(refresh,#selector(reload),"refresh")] {
+            b.target = self; b.action = action; b.bezelStyle = .rounded; b.setAccessibilityIdentifier("haejo.memory."+id)
+        }
+        updateControls()
+    }
+    private func updateControls() {
+        save.isEnabled = !busy && revision != nil && dirty
+        clear.isEnabled = !busy && revision != nil && !editor.string.isEmpty
+        refresh.isEnabled = !busy; editor.isEditable = !busy && revision != nil
+    }
+    func textDidChange(_ notification: Notification) { updateControls() }
+    func refreshIfClean() {
+        guard !busy, !dirty else { return }
+        readMemory()
+    }
+    private func discardConfirmed(_ message: String) -> Bool {
+        let alert = NSAlert(); alert.messageText = message
+        alert.addButton(withTitle:"계속"); alert.addButton(withTitle:"취소")
+        return alert.runModal() == .alertFirstButtonReturn
+    }
+    @objc func reload() {
+        guard !busy else { return }
+        if dirty && !discardConfirmed("저장하지 않은 변경을 버리고 다시 불러올까요?") { return }
+        readMemory()
+    }
+    private func readMemory() { request(["memory","read","--json"], success:"메모리를 불러왔어요.") }
+    @objc func saveMemory() {
+        guard let revision, !busy else { return }
+        let text = editor.string
+        request(["memory","set","--revision",revision,"--json"], text:text, success:"메모리를 저장했어요. 다음 작업부터 참조합니다.")
+    }
+    @objc func clearMemory() {
+        guard let revision, !busy, discardConfirmed("저장된 메모리와 편집 중인 내용을 모두 삭제할까요?") else { return }
+        request(["memory","clear","--revision",revision,"--json"], success:"메모리를 삭제했어요.")
+    }
+    private func request(_ args: [String], text: String? = nil, success: String) {
+        busy = true; updateControls(); status.stringValue = "처리 중…"
+        queue.async { [weak self] in
+            guard let self else { return }
+            let result = Result { () throws -> [String:Any] in
+                var arguments = args
+                var folder: URL?
+                defer { if let folder { try? FileManager.default.removeItem(at:folder) } }
+                if let text {
+                    let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+                    try FileManager.default.createDirectory(at:dir,withIntermediateDirectories:false,attributes:[.posixPermissions:0o700])
+                    folder = dir
+                    let file = dir.appendingPathComponent("memory.txt")
+                    try Data(text.utf8).write(to:file,options:.atomic)
+                    try FileManager.default.setAttributes([.posixPermissions:0o600],ofItemAtPath:file.path)
+                    arguments += ["--file",file.path]
+                }
+                let (code,data) = try self.runner(arguments)
+                let object = (try? JSONSerialization.jsonObject(with:data)) as? [String:Any]
+                guard code == 0, let object, object["text"] is String, object["revision"] is String else {
+                    throw NSError(domain:"HaejoMemory",code:1,userInfo:[NSLocalizedDescriptionKey:object?["detail"] as? String ?? "메모리를 처리하지 못했어요. 연결 상태를 확인한 뒤 다시 시도해 주세요."])
+                }
+                return object
+            }
+            DispatchQueue.main.async {
+                self.busy = false
+                switch result {
+                case .success(let object):
+                    self.original = object["text"] as! String; self.editor.string = self.original
+                    self.revision = object["revision"] as? String; self.status.stringValue = success
+                case .failure(let error): self.status.stringValue = error.localizedDescription
+                }
+                self.updateControls()
+            }
+        }
+    }
 }

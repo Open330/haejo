@@ -31,28 +31,42 @@ class SetupWindowLifecycleTests(unittest.TestCase):
             render()
             assert(window.frame == original, "Permission refresh moved/resized the user's window")
         }
-        // Basic app control is usable before screen capture is granted, but
-        // the permission section must stay expanded and cannot claim completion.
+        // App control and connection determine readiness. Screen capture has
+        // its own card below the first task, even when it is not granted.
         notice = nil; permissionDetails = false; watch = nil; checkInFlight = false
+        let controlRow = rows.first { $0.permission == .control }!
+        let screenRow = rows.first { $0.permission == .screen }!
+        let firstTaskPosition = contentStack.arrangedSubviews.firstIndex { $0 === firstRunSection }!
+        let screenPosition = contentStack.arrangedSubviews.firstIndex { $0 === screenRow }!
+        assert(firstTaskPosition < screenPosition)
         for control in [false, true] {
             for screen in [false, true] {
-                known = true; state.accessibility = control; state.screen = screen
-                render()
-                let complete = control && screen
-                assert(rows.allSatisfy { $0.isHidden == complete })
-                assert(permissionDetailsButton.isHidden == !complete)
-                assert(permissionTitle.stringValue.contains("준비 완료") == complete)
-                assert((badge.stringValue == "권한 준비 완료") == complete)
-                if control && !screen {
-                    assert(permissionTitle.stringValue.contains("1/2"))
-                    assert(badge.stringValue.contains("화면 캡처 미설정"))
-                    assert(startFirstRunButton.isEnabled == (connection == .current && !detectedAgents.isEmpty))
+                for connected in [false, true] {
+                    known = true; state.accessibility = control; state.screen = screen
+                    connection = connected ? .current : .missing
+                    render()
+                    let ready = control && connected
+                    assert(controlRow.isHidden == control && !screenRow.isHidden)
+                    assert(screenRow.action.isHidden == screen)
+                    assert(permissionDetailsButton.isHidden == !control)
+                    assert(permissionTitle.stringValue.contains("허용됨") == control)
+                    assert((badge.stringValue == "기본 작업 준비 완료") == ready)
+                    assert((firstRunTitle.stringValue == "기본 작업 준비 완료") == ready)
+                    assert(startFirstRunButton.isEnabled == (ready && !detectedAgents.isEmpty))
                 }
                 known = false; render()
-                assert(rows.allSatisfy { !$0.isHidden })
-                assert(!permissionTitle.stringValue.contains("준비 완료"))
+                assert(!controlRow.isHidden && !screenRow.isHidden)
+                assert(firstRunTitle.stringValue == "첫 작업")
             }
         }
+        known = true; state.accessibility = true; state.screen = false
+        permissionDetails = true; render()
+        assert(!controlRow.isHidden && !screenRow.isHidden)
+        permissionDetails = false
+        watch = PermissionWatch(permission: .screen, started: Date())
+        render()
+        assert(!screenStatus.isHidden && screenRow.action.title == "설정 다시 열기")
+        watch = nil
         // The actual panel must be unable to steal keyboard focus from an
         // authentication window, including when the drag icon is clicked.
         assert(!panel.canBecomeKey && !panel.canBecomeMain)
@@ -204,22 +218,56 @@ class SetupWindowLifecycleTests(unittest.TestCase):
         runtimeRuns[runID] = (run,Date(timeIntervalSinceNow:-5)); updateRuntimeMenu()
         assert(runtimeRuns.isEmpty && !runtimeStop!.isEnabled)
         assert(runtimeMenuTitle!.title == "진행 중인 작업 없음")
+        // Exercise the actual embedded permission view in the compact workspace.
+        let integrated = Setup()
+        integrated.root = root
+        integrated.helper = helper
+        integrated.resume = resume
+        integrated.build()
+        assert(integrated.window == nil, "Preparing permissions built a second window")
+        let workspace = integrated.workspace()
+        workspace.onPermissionsSelected = nil
+        assert(integrated.window === workspace.window)
+        let compactSize = NSSize(width:900,height:600)
+        workspace.window!.setContentSize(compactSize)
+        for tab: ActivityCenter.SettingsTab in [.permissions, .vault, .general] {
+            workspace.selectSettingsTab(tab)
+            workspace.window!.contentView!.layoutSubtreeIfNeeded()
+            RunLoop.current.run(until: Date().addingTimeInterval(0.04))
+            assert(workspace.window!.contentView!.bounds.size == compactSize,
+                   "Switching settings tabs resized the workspace")
+        }
+        workspace.selectSettingsTab(.permissions)
+        workspace.window!.contentView!.layoutSubtreeIfNeeded()
+        integrated.scrollView.tile()
+        assert(integrated.scrollView.window === workspace.window)
+        assert(integrated.scrollView.contentSize.width >= integrated.contentStack.frame.width,
+               "Permissions content is clipped horizontally at the minimum window size")
+        workspace.selectSettingsTab(.general)
+        integrated.watch = PermissionWatch(permission: .screen, started: Date())
+        let returnsBeforeNavigation = testReturns
+        integrated.endWatch(granted: true)
+        assert(testReturns == returnsBeforeNavigation && !workspace.isShowingPermissions,
+               "Finishing a permission watch replaced a different settings tab")
+        integrated.watch = PermissionWatch(permission: .screen, started: Date())
+        workspace.window!.performClose(nil)
+        assert(integrated.watch == nil, "Closing the workspace did not clear the permission watch")
         try! Data("{\"stable_refresh\":true,\"dismissed_stays_closed\":true,\"reopen_count\":20,\"non_key_panel\":true,\"authentication_priority\":true,\"grant_returns_to_setup\":true,\"reopened_once\":true,\"person_quit_stays_quit\":true,\"background_keeps_focus\":true}\n".utf8)
             .write(to: directory.appendingPathComponent("lifecycle-check.json"))
 '''
         # Keep this regression independent of the person's current windows.
-        source = source.replace('if connection == .current && state.granted(.control) && !window.isVisible { workspace().presentCurrent() }',
-                                'if connection == .current && state.granted(.control) && !window.isVisible { testOpenCount += 1 }')
-        assert 'workspace().presentCurrent()' not in source.split('@objc func reopen()')[1].split('@objc func showSetup()')[0]
-        source = source.replace('if connection == .current { showAccessLogs() }', 'if connection == .current { testOpenCount += 1 }')
+        source = source.replace('let center = ActivityCenter(flowPage:',
+                                'let center = ActivityCenter(store: ActivityStore(root: root), refreshAutomatically: false, flowPage:')
+        source = source.replace('            workspace().presentCurrent()', '            testOpenCount += 1')
+        source = source.replace('        workspace().presentSettings(.permissions)', '        testOpenCount += 1')
         instrumented = source.replace('        window.makeKeyAndOrderFront(nil)', '        testOpenCount += 1')
         instrumented = instrumented.replace('        NSApp.activate(ignoringOtherApps: true)', '        // Activation disabled in offscreen fixture.')
         instrumented = instrumented.replace('NSWorkspace.shared.frontmostApplication?.bundleIdentifier == "com.apple.systempreferences"', 'testSettingsFrontmost')
         instrumented = instrumented.replace('guard let settings = settingsWindowFrame() else {', 'guard let settings = testSettingsWindowFrame() else {')
         instrumented = instrumented.replace('if !panel.isVisible { panel.orderFrontRegardless() }', 'if !panel.isVisible { testPanelOrders += 1 }')
         for call in ('window.makeKeyAndOrderFront(nil)', 'NSApp.activate(ignoringOtherApps: true)'):
-            self.assertIn(call, source.split('func returnToSetup() {')[1].split('\n    }')[0])
-        instrumented = instrumented.replace('func returnToSetup() {', 'func returnToSetup() { testReturns += 1')
+            self.assertIn(call, source.split('func returnToSetup(after permission: Permission) {')[1].split('\n    }')[0])
+        instrumented = instrumented.replace('func returnToSetup(after permission: Permission) {', 'func returnToSetup(after permission: Permission) { testReturns += 1')
         quitting = '        resume.disarm(pid: getpid())\n        NSApp.terminate(nil)'
         self.assertEqual(1, source.count(quitting))
         instrumented = instrumented.replace(quitting, '        resume.disarm(pid: getpid())\n        testQuits += 1')

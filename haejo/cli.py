@@ -13,6 +13,7 @@ Usage:
        --task <id>, --finish-task on the last; haejo task status|list|note <id>)
   haejo <command> --help  # usage for one command; asking for help never runs it
   haejo --version         # which release this is
+  haejo memory read [--json] | set --file <path> --revision <revision> | clear --revision <revision>
   haejo auth --help       # vault-backed delegated filling and login
   haejo doctor            # check/guide permissions
   haejo apps              # list running apps (GUI session check)
@@ -765,6 +766,10 @@ def _main(argv=None):
         print(help_text)
         return 0
 
+    if cmd == 'memory':
+        from .memory import main as memory_main
+        return memory_main(rest)
+
     if cmd == 'task':
         from .task import main as task_main
         return task_main(rest)
@@ -1154,6 +1159,7 @@ def _dispatch_command(cmd, rest):
     if cmd == "observe":
         app = "<app.exe | pid:N>" if sys.platform == "win32" else "<bundle-id>"
         usage = (f"usage: observe {app} [--helper] [--json] [--all-windows | --document <absolute path>]"
+                 " [--overview | --region NAME]"
                  " [--reveal <exact label>]... [--until '<postcondition JSON>' | --until-text TEXT"
                  " | --until-gone TEXT] [--timeout SECONDS]")
         structured = "--json" in rest
@@ -1248,7 +1254,20 @@ def _dispatch_command(cmd, rest):
             if not document.startswith("/"):
                 print(usage)
                 return 2
-        targets = [value for value in rest if value not in ("--helper", "--all-windows", "--json")]
+        overview = "--overview" in rest
+        region_name = None
+        if "--region" in rest:
+            k = rest.index("--region")
+            if (overview or rest.count("--region") != 1 or k + 1 >= len(rest)
+                    or not rest[k + 1].strip() or rest[k + 1].startswith("-")):
+                print(usage)
+                return 2
+            region_name = rest[k + 1]
+            rest = rest[:k] + rest[k + 2:]
+        if rest.count("--overview") > 1 or (identities and (overview or region_name is not None)):
+            print(usage)
+            return 2
+        targets = [value for value in rest if value not in ("--helper", "--all-windows", "--json", "--overview")]
         if len(targets) != 1 or targets[0].startswith("-"):
             print(usage)
             return 2
@@ -1287,6 +1306,28 @@ def _dispatch_command(cmd, rest):
                  else driver.observe(targets[0], "tree_full", reveal=reveal, **({"window_identity":True} if identities else {})) if reveal
                  else driver.observe(targets[0], "tree_full", window_identity=True) if identities
                  else driver.observe(targets[0], "tree_full"))
+        if (overview or region_name is not None) and o.get("type") == "observation":
+            from .observation_paging import observation_regions, observation_view
+            regions = observation_regions(o['tree'], exact_name=region_name)
+            if region_name is not None and len(regions) != 1:
+                o = {'type': 'error', 'effect': 'not_started',
+                     'error': 'observation_region_ambiguous' if regions else 'observation_region_missing',
+                     'detail': 'Use --overview to inspect named regions in the current observation.'}
+            else:
+                o = observation_view(o, regions=regions if overview else None,
+                                     region=regions[0] if region_name is not None else None)
+            if not structured and o.get('observation_view') == 'overview':
+                for region in o['regions']:
+                    path = ' / '.join((*region['path'], region['label']))
+                    print(f"{path} [{region['role']}] ({region['element_count']})")
+                if o.get('truncated') or o.get('has_more_observation'):
+                    print("… (트리 일부만 표시)")
+                return 0
+            if not structured and o.get('observation_view') == 'region':
+                print(o['tree'])
+                if o.get('truncated') or o.get('has_more_observation'):
+                    print("… (트리 일부만 표시)")
+                return 0
         if structured:
             try:
                 encoded=json.dumps(o,ensure_ascii=False,allow_nan=False)

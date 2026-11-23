@@ -35,8 +35,9 @@ class GeneralWindowObservationTests(unittest.TestCase):
                                    {'do':'read','candidate':candidates[1]}],
                         'expect':'result of an unexecuted later action'}
             if len(plans) == 2:
-                self.assertEqual('1', candidates[1]['label'])
-                return {'actions':[{'do':'read','candidate':candidates[1]}]}
+                count = next(c for c in candidates if c['match'] == 'count')
+                self.assertEqual('1', count['label'])
+                return {'actions':[{'do':'read','candidate':count}]}
             return {'done':True}
         result = run(app,'fixture','increment once and read',planner)
         self.assertTrue(result.ok, result.why)

@@ -48,7 +48,7 @@ class SessionObservationPagingTests(unittest.TestCase):
         self.assertEqual('error', driver.observe('com.apple.TextEdit', continuation='next-cursor')['type'])
         inner.document_text.assert_called_once()  # No repin or app-wide read.
 
-    def run_interactive(self, pages, replies, *, capabilities=()):
+    def run_interactive(self, pages, replies, *, capabilities=(), flags=()):
         app = Mock()
         app.capabilities = capabilities
         app.observe.side_effect = pages
@@ -70,7 +70,7 @@ class SessionObservationPagingTests(unittest.TestCase):
                 writer.start()
         try:
             with os.fdopen(os.dup(slave)) as stream:
-                result = run_session(['com.apple.calculator', '--helper', '--guide'],
+                result = run_session(['com.apple.calculator', '--helper', '--guide', *flags],
                     make_driver=lambda *args, **kwargs: app, run_flow=runner, stdin=stream, emit=emit)
         finally:
             for writer in writers:
@@ -111,6 +111,30 @@ class SessionObservationPagingTests(unittest.TestCase):
         self.assertEqual({'reveal': ['Item239']}, app.observe.call_args.kwargs)
         self.assertIn('find_in_observation', '\n'.join(messages))
         self.assertNotIn('PRIVATE', '\n'.join(messages))
+        app.act.assert_not_called()
+        runner.assert_called_once()
+
+    def test_overview_opens_native_list_and_returns_to_full_snapshot_without_input(self):
+        page = self.page('PRIVATE-cursor')
+        page['tree'] = '\n'.join(['0 Window Title: Picker', '  1 List Title: Recent',
+            '    2 Row Title: Recent selection', '  3 List Title: Catalog',
+            *(f'    {i} Row Title: Catalog item {i}' for i in range(4, 104))])
+        page['custom_selects'] = {'2': {'state': 'open'}, '8': {'state': 'closed'}}
+        result, app, runner, messages = self.run_interactive(
+            [page], [{'observation_region': True}, {'observation_region': 3},
+                     {'observation_region': None}, calculator_example()], flags=['--overview'])
+        self.assertEqual(0, result)
+        overview, detail, full = [json.loads(m) for m in messages if m.startswith('{"type":"observation"')]
+        self.assertEqual('overview', overview['observation_view'])
+        self.assertNotIn('tree', overview)
+        self.assertEqual([1, 3], [region['index'] for region in overview['regions']])
+        self.assertEqual('region', detail['observation_view'])
+        self.assertIn('103 Row Title: Catalog item 103', detail['tree'])
+        self.assertNotIn('Recent selection', detail['tree'])
+        self.assertEqual({'8': {'state': 'closed'}}, detail['custom_selects'])
+        self.assertEqual(page['tree'], full['tree'])
+        self.assertNotIn('PRIVATE', '\n'.join(messages))
+        app.observe.assert_called_once()
         app.act.assert_not_called()
         runner.assert_called_once()
 

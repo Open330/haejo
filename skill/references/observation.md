@@ -42,6 +42,15 @@ CLI invocation cannot resume that pin. For live option planning, use
 `haejo do '<selection goal>' --helper`, which observes between actions on the same
 channel. JSON is a diagnostic snapshot, not a session or input authorization.
 
+### Inspecting regions
+
+Use `haejo observe <app> --helper --overview` to list named accessibility
+regions across observed windows. Use `--region "<exact name>"` in place of
+`--overview` to read one region on a fresh observation. Combine either with
+`--json` for the structured view. A duplicate visible name produces an error.
+If the view reports omitted content, use the full observation, a pinned
+window, or the same-session continuation to inspect it.
+
 ### Waiting for a state
 
 `haejo observe <app> --helper --until-text "<exact text>" [--timeout 30]` waits

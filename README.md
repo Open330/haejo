@@ -346,3 +346,7 @@ Release candidate · [MIT License](LICENSE)
 - [Preview 3 runtime update](docs/runtime-update-2026-10-19.md)
 
 </details>
+
+## Shared reference memory
+
+The skill reads dedicated Haejo memory before each task. Manage the same reference document in **Haejo → 메모리**, or run `haejo memory read --json`. Saves and clears require the revision returned by the read, preventing concurrent edits from overwriting each other. [CLI · storage](skill/references/memory.md).

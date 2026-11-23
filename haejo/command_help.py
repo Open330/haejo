@@ -161,7 +161,7 @@ def session_guide(target, *, reusable=False, document=None, save=False, steps=Fa
     )
 
 # These parse their own arguments and print their own help.
-_OWN_HELP = frozenset(("task", "auth", "web", "web-upload", "attach", "flows", "capture", "drag", "hover",
+_OWN_HELP = frozenset(("memory", "task", "auth", "web", "web-upload", "attach", "flows", "capture", "drag", "hover",
                        "resize", "vroid-drag", "vroid-focus"))
 
 
@@ -218,6 +218,7 @@ def _specific_help(command, args):
         return (
             "usage: haejo observe <bundle-id> --helper [--json] "
             "[--all-windows | --document /absolute/path] [--reveal TEXT] "
+            "[--overview | --region NAME] "
             "[--until TEXT | --until-text TEXT | --until-gone TEXT] [--timeout SECONDS]\n"
             "Example: haejo observe com.apple.calculator --helper\n"
             "Read current accessibility selectors. --json includes capabilities.\n"
@@ -234,10 +235,11 @@ def _specific_help(command, args):
         )
     if command == "session":
         text = (
-            "usage: haejo session <bundle-id> --helper [--document /absolute/path] [--guide | --reuse-guide] [--steps] [--save /absolute/new.json] [--receipt /absolute/new.json] [--timings] [--idle-timeout 1..600] [--task new --goal '<goal>' | --task <id>] [--finish-task] [--then <bundle-id> [--document /absolute/path]]...\n"
+            "usage: haejo session <bundle-id> --helper [--document /absolute/path] [--guide | --reuse-guide] [--steps] [--overview] [--save /absolute/new.json] [--receipt /absolute/new.json] [--timings] [--idle-timeout 1..600] [--task new --goal '<goal>' | --task <id>] [--finish-task] [--then <bundle-id> [--document /absolute/path]]...\n"
             "exec_command tty=true, yield_time_ms=1000; wait for observation and\n"
             "HAEJO_SESSION_READY. write_stdin: one compact Flow JSON line + newline, yield_time_ms=5000.\n"
             "Poll the same session. One flow then exit. --document pins one TextEdit file.\n"
+            "--overview shows named regions. Send {\"observation_region\":<index>} to inspect one.\n"
             "Use run --yes for steps the user already approved; use observe for a read-only check. "
             "Use run for judgment. Schema example: haejo session --help --example."
         )

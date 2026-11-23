@@ -385,6 +385,20 @@ def screen_key(cands: list[dict]) -> str:
     return hashlib.sha1("|".join(names).encode()).hexdigest()[:12]
 
 
+def _candidate_identity(candidate):
+    return tuple(candidate.get(key) for key in ('role', 'attr', 'match', 'where'))
+
+
+def _candidate_states(candidates):
+    states = {}
+    for candidate in candidates:
+        identity = _candidate_identity(candidate)
+        states[identity] = (None if identity in states else
+            (candidate['line'].strip().partition(' ')[2], candidate.get('options'),
+             candidate['can'], candidate['disabled']))
+    return states
+
+
 def menu_effect(before: str, after: str, path) -> dict | None:
     """What a menu command visibly changed, as something a recipe can check.
 
@@ -614,6 +628,8 @@ def run(driver, target: str, goal: str, ask_here, *, max_screens: int = 8,
     custom_selects = {}
     pending_continuation = None
     pending_reveal = None
+    pending_view = None
+    previous_candidates = None
     prepare_commit = prepare_commit or getattr(driver, "prepare_commit", None)
     after_commit = after_commit or getattr(driver, "after_commit", None)
 
@@ -766,10 +782,18 @@ def run(driver, target: str, goal: str, ask_here, *, max_screens: int = 8,
 
     planned_on = None     # the tree the previous batch was planned against
     where_memo: dict = {}  # (fact, screen) -> where it is shown; values re-read
+    from .observation_paging import comparison_scope, continuation_candidate, observation_regions, region_candidates
+
     for _ in range(max_screens):
         if stopped():
             return res
-        obs = observe()
+        browsing_region = pending_view is not None
+        if browsing_region:
+            obs, cands, regions, region = pending_view
+            pending_view = None
+        else:
+            obs = observe()
+            region = None
         if stopped():
             return res
         if obs["type"] != "observation":
@@ -778,10 +802,10 @@ def run(driver, target: str, goal: str, ask_here, *, max_screens: int = 8,
         # What the last action of the previous batch left behind. Only the
         # last one: the screen between two observations is the sum of the
         # whole batch, and only for the final action is that sum its own.
-        if planned_on is not None and res.visits and res.visits[-1].actions:
+        if not browsing_region and planned_on is not None and res.visits and res.visits[-1].actions:
             res.visits[-1].actions[-1]["screen_change"] = screen_change(planned_on, obs["tree"])
         planned_on = obs["tree"]
-        if visual_session is not None:
+        if visual_session is not None and not browsing_region:
             try:
                 use_visual = (visual_scope.when is None
                     or visual_scope.when(deepcopy(obs), deepcopy(available(obs["tree"]))) is True)
@@ -799,21 +823,41 @@ def run(driver, target: str, goal: str, ask_here, *, max_screens: int = 8,
                 if should_stop:
                     return res
                 continue
-        try:
-            with model_deadline(deadline):
-                menus.refresh()
-        except Exception as exc:
-            res.why = f"메뉴를 확인하지 못했습니다: {exc}"
-            return res
-        if stopped():return res
-        cands = available(obs["tree"])
-        from .observation_paging import continuation_candidate
-        page_candidate = continuation_candidate(obs, reveal_supported='observe.reveal' in capabilities)
+        if not browsing_region:
+            try:
+                with model_deadline(deadline):
+                    menus.refresh()
+            except Exception as exc:
+                res.why = f"메뉴를 확인하지 못했습니다: {exc}"
+                return res
+            if stopped():
+                return res
+            cands = available(obs["tree"])
+            regions = (observation_regions(obs['tree'], candidate_indices={
+                c['element_index'] for c in cands if c['element_index'] >= 0})
+                if len(cands) >= 32 and not any('select_custom_option' in c['can'] for c in cands)
+                else [])
+        page_candidate = (None if region is not None else continuation_candidate(
+            obs, reveal_supported='observe.reveal' in capabilities))
+        shown = cands if region is None else [c for c in cands if c['element_index'] in region.indices]
+        scope = comparison_scope(obs)
+        fresh_choices = []
+        if previous_candidates and not res.identity_changed and scope == previous_candidates[0]:
+            previous = previous_candidates[1]
+            # Compare semantic candidate identity and current content, ignoring
+            # row numbers and indentation. Ambiguous identities are left alone.
+            current = _candidate_states(cands)
+            changed = {identity for identity, value in current.items()
+                       if value is not None and previous.get(identity, ()) not in (None, value)}
+            fresh_choices = [c for c in shown if _candidate_identity(c) in changed]
+            shown = [c for c in shown if _candidate_identity(c) not in changed]
+        navigation = region_candidates(regions, region)
+        shown = [*fresh_choices, *navigation.values(), *shown]
         if page_candidate is not None:
             # Keep the lookup/continuation affordance on the first token page,
             # rather than making the agent read every visible candidate first.
-            cands.insert(0, page_candidate)
-        if not cands:
+            shown = [page_candidate, *shown]
+        if not shown:
             res.why = "화면에 조작할 수 있는 것이 없습니다"
             return res
         key = screen_key(cands)
@@ -832,7 +876,7 @@ def run(driver, target: str, goal: str, ask_here, *, max_screens: int = 8,
             # It does not reach driver input; dispatch keeps its own checks.
             with (capture_provider_calls() as calls, model_deadline(deadline),
                   model_cancellation(cancelled)):
-                answer = ask_here(goal, cands, done_so_far)
+                answer = ask_here(goal, shown, done_so_far)
         except TimeoutError:
             if not stopped():
                 res.stop_reason = "model_timeout"
@@ -868,13 +912,27 @@ def run(driver, target: str, goal: str, ask_here, *, max_screens: int = 8,
                 res.why = '정확한 이름의 추가 관측만 단독으로 요청할 수 있습니다'
                 return res
             pending_reveal = label
+            previous_candidates = None
             planned_on = None
+            continue
+        acts = answer.get("actions") or []
+        if any(a.get('candidate', {}).get('_observation_region') for a in acts):
+            candidate = acts[0].get('candidate', {})
+            pick = candidate.get('element_index')
+            if (len(acts) != 1 or acts[0].get('do') != 'read'
+                    or type(pick) is not int or navigation.get(pick) != candidate
+                    or answer.get('done') or answer.get('finishes') or answer.get('expect')):
+                res.why = '관측 영역은 다른 행동이나 완료 선언과 함께 열 수 없습니다'
+                return res
+            pending_view = (obs, cands, regions, next((r for r in regions if r.index == pick), None))
             continue
         if answer.get("done"):
             return finish(obs, cands)
-        acts = answer.get("actions") or []
         if not acts:
             res.why = "이 화면에서 할 수 있는 일이 없습니다"
+            return res
+        if region is not None and any(a.get('candidate') not in shown for a in acts):
+            res.why = '현재 관측 영역에서 표시하지 않은 대상입니다'
             return res
 
         # This is a host-owned observation request, never an app element or a
@@ -886,6 +944,7 @@ def run(driver, target: str, goal: str, ask_here, *, max_screens: int = 8,
                 res.why = '추가 관측은 다른 행동이나 완료 선언과 함께 요청할 수 없습니다'
                 return res
             pending_continuation = obs['next_observation_cursor']
+            previous_candidates = None
             planned_on = None
             continue
 
@@ -904,7 +963,7 @@ def run(driver, target: str, goal: str, ask_here, *, max_screens: int = 8,
                 done_so_far.append("메뉴 목록 조회: " + json.dumps(menus.path,ensure_ascii=False))
                 continue
 
-        plan = tuple((a["do"], a["candidate"]["match"],
+        plan = tuple((a["do"], _candidate_identity(a["candidate"]),
                       repr(a.get("value")), a.get("option_label"), a.get("direction"), a.get("pages"), a.get("scope"), a.get("attachment_digest")) for a in acts)
         # Scrolling can change the viewport without changing the AX tree.
         # Permit repeated navigation, bounded by max_screens, and replan each
@@ -922,6 +981,7 @@ def run(driver, target: str, goal: str, ask_here, *, max_screens: int = 8,
             res.why = "같은 화면에서 같은 일을 되풀이하고 있습니다"
             return res
         seen_plans[plan_key] = plan
+        previous_candidates = (scope, _candidate_states(cands)) if scope is not None else None
 
         # A sheet that was already up when the plan was made is what the plan
         # is about; one that appears partway through is not.

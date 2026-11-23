@@ -393,3 +393,7 @@ Release candidate · [MIT License](LICENSE)
 </details>
 
 [자동 접근 로그와 실행 기록](docs/access-logging.md)
+
+## 공통 참조 메모리
+
+스킬은 작업 시작 전에 Haejo 전용 메모리를 읽습니다. **Haejo → 메모리** 화면에서 작성·수정·삭제하거나 `haejo memory read --json`으로 읽을 수 있습니다. 저장·삭제에는 읽을 때 받은 revision이 필요하므로 동시에 수정한 내용을 덮어쓰지 않습니다. [CLI · storage](skill/references/memory.md).
