@@ -239,7 +239,7 @@ def _specific_help(command, args):
             "exec_command tty=true, yield_time_ms=1000; wait for observation and\n"
             "HAEJO_SESSION_READY. write_stdin: one compact Flow JSON line + newline, yield_time_ms=5000.\n"
             "Poll the same session. One flow then exit. --document pins one TextEdit file.\n"
-            "--overview shows named regions. Send {\"observation_region\":<index>} to inspect one.\n"
+            "--overview shows named regions. Follow the session prompt to inspect one by index.\n"
             "Use run --yes for steps the user already approved; use observe for a read-only check. "
             "Use run for judgment. Schema example: haejo session --help --example."
         )

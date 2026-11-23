@@ -353,7 +353,7 @@ expect eof
         hits, lines, _ = self.wait_for(r'app downloaded|want to open it', 'gatekeeper-prompt', timeout=60)
         button = [l for l in self.find(lines, r'^Open$', exact=True) if l['cy'] > hits[0]['cy']]
         self.click(button[0]['cx'], button[0]['cy'])
-        _, lines, path = self.wait_for(r'Mac 권한', 'haejo-window', timeout=60)
+        _, lines, path = self.wait_for(r'앱 조작 권한', 'haejo-window', timeout=60)
         connected = bool(self.find(lines, r'연결 완료|연결했어요'))
         return {'agents_connected': connected, 'screenshot': path.name}
 
@@ -400,10 +400,17 @@ expect eof
             lines, path = self.screen(f'{label}-uncover')
             if not self.find(lines, r'^설정 (다시 )?열기$', exact=True):
                 # Another window covers the button: click what shows of setup, as a person would.
-                visible = self.find(lines, r'에이전트 연결|첫 작업|Mac 권한|연결 완료')
+                visible = self.find(lines, r'에이전트 연결|첫 작업|앱 조작 권한|연결 완료')
                 if visible:
                     self.click(visible[0]['cx'], visible[0]['cy'])
                     time.sleep(1.5)
+            if which == 1 and not self.find(lines, r'화면 캡처.*선택'):
+                # The optional card follows the first task and may sit below the viewport.
+                content = self.find(lines, r'첫 작업|기본 작업 준비 완료|에이전트 연결')
+                if content:
+                    self._vncdo('move', content[-1]['cx'], content[-1]['cy'],
+                                'click', 5, 'click', 5, 'click', 5, 'click', 5)
+                    self.wait_for(r'화면 캡처.*선택', f'{label}-card', timeout=12)
             hits, lines, _ = self.wait_for(r'^설정 (다시 )?열기$', f'{label}-before', exact=True)
             target = sorted(hits, key=lambda l: l['cy'])[0 if which == 0 else -1]   # a granted card has no button
             self.click(target['cx'], target['cy'])
